@@ -1,5 +1,6 @@
 var gItemMap = null
 var gCurrentRange = null
+var serverURL = 'http://dsumorok.mooo.com:7775'
 
 function onOpen() {
   var ui = DocumentApp.getUi()
@@ -7,9 +8,123 @@ function onOpen() {
   
   menu.addItem('Scan Document', 'scanDocument').addToUi()
   menu.addItem('Reset Scan', 'resetScan').addToUi()
+  menu.addItem('Fetch Test', 'sendAnalyzeRequest').addToUi()
   
   resetScan();
 }
+
+function processBody(body) {
+}
+
+function fetchTest() {
+  //x = 6
+  //var response = UrlFetchApp.fetch('http://dsumorok.mooo.com:2531/')
+  //Logger.log(response.getContent())
+  //x = 3
+  
+  var response = UrlFetchApp.fetch('http://www.boston.com/')
+  var responseBlob = Utilities.newBlob(response, 'text/plain')
+  //Logger.log(responseBlob.getDataAsString())
+  
+  var resumeBlob = Utilities.newBlob('Hire me!', 'text/plain', 'resume.txt');
+  var formData = {
+    'name': 'Bob Smith',
+    'email': 'bob@example.com',
+    'resume': resumeBlob
+  };
+  
+  var docId = DocumentApp.getActiveDocument().getId();
+
+  var test = {
+    'documentId': docId
+  }
+  
+  var testJSON = JSON.stringify(test);
+  
+  var options = {
+    'method' : 'post',
+    'payload' : testJSON
+  };
+  
+  response = UrlFetchApp.fetch('http://dsumorok.mooo.com:7775/analyzeDocument', options)
+  var responseText = response.getContentText()
+}
+
+function sendEmptyMessage() {
+  sendMessage('test')
+}
+
+function sendMessage(message) {
+  var request = {
+    'message': message
+  }
+  
+  var requestJSON = JSON.stringify(request);
+  
+  var options = {
+    'method' : 'post',
+    'payload' : requestJSON
+  };
+
+  UrlFetchApp.fetch(serverURL + '/message', options)
+}
+
+function sendAnalyzeRequest() {
+  var docId = DocumentApp.getActiveDocument().getId();
+
+  var request = {
+    'documentId': docId
+  }
+  
+  var requestJSON = JSON.stringify(request);
+  
+  var options = {
+    'method' : 'post',
+    'payload' : requestJSON
+  };
+  
+  response = UrlFetchApp.fetch(serverURL + '/analyzeDocument', options)
+  var responseText = response.getContentText()
+  var client_state = JSON.parse(responseText)
+  
+  var doc = DocumentApp.getActiveDocument()
+  var body = doc.getBody()
+  var docText = body.editAsText()
+
+  if( 'highlight_start' in client_state ) {
+    var highlight_start = client_state['highlight_start']
+    var highlight_end = client_state['highlight_end']
+
+    var selectionRange = doc.newRange()
+    selectionRange.addElement(docText, highlight_start,
+                              highlight_end)
+    doc.setSelection(selectionRange.build())
+  }
+
+  if( 'html' in client_state ) {
+    var ui = DocumentApp.getUi()
+    var htmlMessage = client_state['html']
+    var htmlOutput = HtmlService.createHtmlOutput(htmlMessage)
+    ui.showSidebar(htmlOutput)
+  }
+  
+  var searchType = DocumentApp.ElementType.PARAGRAPH
+  
+  var count = 0;
+  searchResult = null;
+  
+  while( true ) {
+    searchResult = body.findElement(searchType, searchResult)
+    if( searchResult == null ) {
+      break;
+    }
+    
+    ++count;
+  }
+
+  var endIndex = count
+}
+
 
 function resetScan() {
   var itemMap = generateItemMap()
@@ -216,4 +331,3 @@ function showSidebar(result) {
 
   ui.showSidebar(htmlOutput)
 }
-
