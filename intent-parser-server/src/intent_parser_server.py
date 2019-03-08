@@ -185,13 +185,15 @@ class IntentParserServer:
         client_state['search_result_index'] += 1
 
         search_result = search_results[ search_result_index ]
-        start_pos = search_result['startPos']
-        end_pos = search_result['endPos']
+        paragraph_index = search_result['paragraph_index']
+        offset = search_result['offset']
         term = search_result['term']
+        end_offset = offset + len(term) - 1
 
         actions = []
 
-        highlightTextAction = self.highlightText(start_pos, end_pos)
+        highlightTextAction = self.highlightText(paragraph_index, offset,
+                                                 end_offset)
         actions.append(highlightTextAction)
 
         dialogAction = self.simple_sidebar_dialog('Process ' + term + ' ?',
@@ -201,12 +203,27 @@ class IntentParserServer:
 
         return actions
 
+    def get_paragraphs(self, element):
+        paragraphs = []
+        if type(element) is dict:
+            for key in element:
+                if key == 'paragraph':
+                    paragraphs.append(element[key])
+
+                paragraphs += self.get_paragraphs(element[key])
+
+        elif type(element) is list:
+            for entry in element:
+                paragraphs += self.get_paragraphs(entry)
+
+        return paragraphs
+
 
     def analyze_document(self, client_state, doc):
         body = doc.get('body');
         doc_content = body.get('content')
-        paragraph_content = list(filter(lambda x : 'paragraph' in x, doc_content))
-        paragraphs = list(map(lambda x : x['paragraph'], paragraph_content))
+
+        paragraphs = self.get_paragraphs(doc_content)
 
         search_results = []
         term = 'Kan'
@@ -218,13 +235,10 @@ class IntentParserServer:
             if result is None:
                 break;
 
-            search_results.append({ 'startPos': result[0],
-                                    'endPos': result[1],
+            search_results.append({ 'paragraph_index': result[0],
+                                    'offset': result[1],
                                     'term': term })
-            pos = result[1] + 1
-            itr += 1
-            if itr > 10:
-                break;
+            pos = result[2] + len(term)
 
         if len(search_results) == 0:
             return []
@@ -240,11 +254,12 @@ class IntentParserServer:
     def process_analyze_no(self, json_body, client_state):
         return self.report_search_results(client_state)
 
-    def highlightText(self, start_pos, end_pos):
+    def highlightText(self, paragraph_index, offset, end_offset):
         highlightText = {}
         highlightText['action'] = 'highlightText'
-        highlightText['start_index'] = start_pos - 1
-        highlightText['end_index'] = end_pos - 1
+        highlightText['paragraph_index'] = paragraph_index
+        highlightText['offset'] = offset
+        highlightText['end_offset'] = end_offset
 
         return highlightText
 
@@ -275,34 +290,39 @@ class IntentParserServer:
 
     def find_text(self, text, starting_pos, paragraphs):
         elements = []
-        for paragraph in paragraphs:
-            elements += paragraph['elements']
 
-        for element in elements:
-            if 'textRun' not in element:
-                continue
-            text_run = element['textRun']
+        for paragraph_index in range( len(paragraphs )):
+            paragraph = paragraphs[ paragraph_index ]
+            elements = paragraph['elements']
 
-            end_index = element['endIndex']
-            if end_index < starting_pos:
-                continue
 
-            start_index = element['startIndex']
-            if start_index < starting_pos:
-                find_start = starting_pos - start_index
-            else:
-                find_start = 0
+            for element_index in range( len(elements) ):
+                element = elements[ element_index ]
 
-            content = text_run['content'].lower()
-            index = content.find(text.lower(), find_start)
-            if index < 0:
-                continue
+                if 'textRun' not in element:
+                    continue
+                text_run = element['textRun']
 
-            result_start = index + start_index
-            result_end = result_start + len(text) - 1
+                end_index = element['endIndex']
+                if end_index < starting_pos:
+                    continue
 
-            return (result_start, result_end)
+                start_index = element['startIndex']
+                if start_index < starting_pos:
+                    find_start = starting_pos - start_index
+                else:
+                    find_start = 0
 
+                content = text_run['content'].lower()
+                offset = content.find(text.lower(), find_start)
+                if offset < 0:
+                    continue
+
+                first_index = elements[0]['startIndex']
+                offset += start_index - first_index
+
+                pos = first_index + offset
+                return (paragraph_index, offset, pos)
         return None
 
     def handleGET(self, httpMessage, sm):
