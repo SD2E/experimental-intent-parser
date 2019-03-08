@@ -69,6 +69,48 @@ function sendMessage(message) {
   UrlFetchApp.fetch(serverURL + '/message', options)
 }
 
+function buttonClick(buttonName) {
+  sendMessage('Clicked ' + buttonName)
+}
+
+function processActions(actions) {
+  for( var actionKey in actions) {
+    var actionDesc = actions[actionKey]
+
+    switch(actionDesc['action']) {
+      case 'highlightText':
+        var startIndex = actionDesc['start_index']
+        var endIndex = actionDesc['end_index']
+        //highlightDocText(startIndex, endIndex)
+        break;
+
+      case 'showSidebar':
+        showSidebar(actionDesc['html'])
+        break;
+
+      default:
+        break;
+    }
+  }
+}
+
+function showSidebar(html) {
+    var ui = DocumentApp.getUi()
+    var htmlOutput = HtmlService.createHtmlOutput(html)
+    ui.showSidebar(htmlOutput)
+}
+
+function highlightDocText(startIndex, endIndex) {
+  var doc = DocumentApp.getActiveDocument()
+  var body = doc.getBody()
+  var docText = body.editAsText()
+  var selectionRange = doc.newRange()
+
+  selectionRange.addElement(docText, startIndex, endIndex)
+
+  doc.setSelection(selectionRange.build())
+}
+
 function sendAnalyzeRequest() {
   var docId = DocumentApp.getActiveDocument().getId();
 
@@ -85,11 +127,11 @@ function sendAnalyzeRequest() {
   
   response = UrlFetchApp.fetch(serverURL + '/analyzeDocument', options)
   var responseText = response.getContentText()
-  var client_state = JSON.parse(responseText)
+  var actions = JSON.parse(responseText)
   
-  var doc = DocumentApp.getActiveDocument()
-  var body = doc.getBody()
-  var docText = body.editAsText()
+  processActions(actions)
+
+  return
 
   if( 'highlight_start' in client_state ) {
     var highlight_start = client_state['highlight_start']
@@ -303,7 +345,7 @@ function scanDocument() {
   showSidebar(result)
 }
 
-function showSidebar(result) {
+function showSidebar2(result) {
   var ui = DocumentApp.getUi()
   var htmlMessage = ''
 
