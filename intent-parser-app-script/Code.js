@@ -54,6 +54,10 @@ function sendEmptyMessage() {
   sendMessage('test')
 }
 
+function testSendMessage() {
+  buttonClick('hi there')
+}
+
 function sendMessage(message) {
   var request = {
     'message': message
@@ -70,7 +74,7 @@ function sendMessage(message) {
 }
 
 function buttonClick(buttonName) {
-  sendMessage('Clicked ' + buttonName)
+  sendPost('/buttonClick', {'buttonId' : buttonName})
 }
 
 function processActions(actions) {
@@ -81,7 +85,7 @@ function processActions(actions) {
       case 'highlightText':
         var startIndex = actionDesc['start_index']
         var endIndex = actionDesc['end_index']
-        //highlightDocText(startIndex, endIndex)
+        highlightDocText(startIndex, endIndex)
         break;
 
       case 'showSidebar':
@@ -111,25 +115,39 @@ function highlightDocText(startIndex, endIndex) {
   doc.setSelection(selectionRange.build())
 }
 
-function sendAnalyzeRequest() {
+function sendPost(resource, data) {
   var docId = DocumentApp.getActiveDocument().getId();
 
   var request = {
     'documentId': docId
   }
-  
+
+  if( typeof(data) != 'undefined' ) {
+    request['data'] = data;
+  }
+
   var requestJSON = JSON.stringify(request);
-  
+
   var options = {
     'method' : 'post',
     'payload' : requestJSON
   };
   
-  response = UrlFetchApp.fetch(serverURL + '/analyzeDocument', options)
+  response = UrlFetchApp.fetch(serverURL + resource, options)
   var responseText = response.getContentText()
   var actions = JSON.parse(responseText)
   
   processActions(actions)
+}
+
+function tes() {
+  sendPost('test')
+  sendPost('test', 'z')
+  sendPost('test', {'x': 'y'})
+}
+
+function sendAnalyzeRequest() {
+  sendPost('/analyzeDocument')
 
   return
 
