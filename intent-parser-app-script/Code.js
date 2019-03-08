@@ -7,7 +7,7 @@ function onOpen() {
   var menu = ui.createMenu('Parse Intent')
   
   menu.addItem('Analyze Document', 'sendAnalyzeRequest').addToUi()
-  
+
   resetScan();
 }
 
@@ -36,9 +36,10 @@ function processActions(actions) {
 
     switch(actionDesc['action']) {
       case 'highlightText':
-        var startIndex = actionDesc['start_index']
-        var endIndex = actionDesc['end_index']
-        highlightDocText(startIndex, endIndex)
+        var paragraphIndex = actionDesc['paragraph_index']
+        var offset = actionDesc['offset']
+        var endOffset = actionDesc['end_offset']
+        highlightDocText(paragraphIndex, offset, endOffset)
         break;
 
       case 'showSidebar':
@@ -57,13 +58,14 @@ function showSidebar(html) {
     ui.showSidebar(htmlOutput)
 }
 
-function highlightDocText(startIndex, endIndex) {
+function highlightDocText(paragraphIndex, offset, endOffset) {
   var doc = DocumentApp.getActiveDocument()
   var body = doc.getBody()
-  var docText = body.editAsText()
+  var paragraph = body.getParagraphs()[paragraphIndex]
+  var docText = paragraph.editAsText()
   var selectionRange = doc.newRange()
 
-  selectionRange.addElement(docText, startIndex, endIndex)
+  selectionRange.addElement(docText, offset, endOffset)
 
   doc.setSelection(selectionRange.build())
 }
