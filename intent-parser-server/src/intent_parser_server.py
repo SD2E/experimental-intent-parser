@@ -7,6 +7,7 @@ import http_message;
 import uuid
 import traceback
 import functools
+from operator import itemgetter
 
 class ConnectionException(Exception):
     def __init__(self, code, message, content=""):
@@ -21,13 +22,17 @@ class IntentParserServer:
         self.bind_port = bind_port
         self.bind_ip = bind_ip
 
+        self.google_accessor = GoogleAccessor.create()
+        self.client_state_map = {}
+        self.client_state_lock = threading.Lock()
+        self.item_map = self.generate_item_map()
+
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((bind_ip, bind_port))
         self.server.listen(5)
-        self.google_accessor = GoogleAccessor.create()
-        self.client_state_map = {}
-        self.client_state_lock = threading.Lock()
+
+        print('listening on {}:{}'.format(bind_ip, bind_port))
 
     def serverRunLoop(self):
         while True:
@@ -59,6 +64,7 @@ class IntentParserServer:
                         self.handleGET(httpMessage, sm)
                     else:
                         self.sendResponse(501, 'Not Implemented', 'Unrecognized request method\n', sm)
+
                 except ConnectionException as ex:
                     self.sendResponse(ex.code, ex.message, ex.content, sm)
 
@@ -158,9 +164,10 @@ class IntentParserServer:
                 document_id=document_id
                 )
         except Exception as ex:
+            print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
             raise ConnectionException('404', 'Not Found',
                                       'Failed to access document ' +
-                                      client_state['docId'])
+                                      document_id)
 
         client_state = self.new_connection(document_id)
         client_state['pos'] = 0
@@ -176,32 +183,62 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
 
+    def add_link(self, client_state):
+            search_results = client_state['search_results']
+            search_result_index = client_state['search_result_index'] - 1
+            search_result = search_results[search_result_index]
+            paragraph_index = search_result['paragraph_index']
+            offset = search_result['offset']
+            term = search_result['term']
+            link = self.item_map[term]
+            end_offset = offset + len(term) - 1
+
+            action = self.link_text(paragraph_index, offset,
+                                    end_offset, link)
+
+            return [action]
+
+
     def report_search_results(self, client_state):
-        search_results = client_state['search_results']
-        search_result_index = client_state['search_result_index']
-        if search_result_index >= len(search_results):
-            return []
+        while True:
+            search_results = client_state['search_results']
+            search_result_index = client_state['search_result_index']
+            if search_result_index >= len(search_results):
+                return []
 
-        client_state['search_result_index'] += 1
+            client_state['search_result_index'] += 1
 
-        search_result = search_results[ search_result_index ]
-        paragraph_index = search_result['paragraph_index']
-        offset = search_result['offset']
-        term = search_result['term']
-        end_offset = offset + len(term) - 1
+            search_result = search_results[ search_result_index ]
+            paragraph_index = search_result['paragraph_index']
+            offset = search_result['offset']
+            term = search_result['term']
+            uri = search_result['uri']
+            link = search_result['link']
+            end_offset = offset + len(term) - 1
 
-        actions = []
+            actions = []
 
-        highlightTextAction = self.highlightText(paragraph_index, offset,
-                                                 end_offset)
-        actions.append(highlightTextAction)
+            if link is not None and link == self.item_map[term]:
+                continue
 
-        dialogAction = self.simple_sidebar_dialog('Process ' + term + ' ?',
-                                                  [('Yes', 'process_analyze_yes'),
-                                                  ('No', 'process_analyze_no')])
-        actions.append(dialogAction)
+            highlightTextAction = self.highlight_text(paragraph_index, offset,
+                                                      end_offset)
+            actions.append(highlightTextAction)
 
-        return actions
+            use_sidebar = True
+
+            if use_sidebar:
+                dialogAction = self.simple_sidebar_dialog('Link ' + term + ' to ' + uri + ' ?',
+                                                          [('Yes', 'process_analyze_yes'),
+                                                           ('No', 'process_analyze_no')])
+            else:
+                dialogAction = self.simple_modal_dialog('Link ' + term + ' to ' + uri + ' ?',
+                                                        [('Yes', 'process_analyze_yes'),
+                                                         ('No', 'process_analyze_no')],
+                                                        'Add Link', 500, 150)
+            actions.append(dialogAction)
+
+            return actions
 
     def get_paragraphs(self, element):
         paragraphs = []
@@ -226,22 +263,29 @@ class IntentParserServer:
         paragraphs = self.get_paragraphs(doc_content)
 
         search_results = []
-        term = 'Kan'
-        pos = 0
 
         itr = 0
-        while True:
-            result = self.find_text(term, pos, paragraphs)
-            if result is None:
-                break;
+        for term in self.item_map.keys():
+            pos = 0
+            while True:
+                result = self.find_text(term, pos, paragraphs)
+                if result is None:
+                    break;
 
-            search_results.append({ 'paragraph_index': result[0],
-                                    'offset': result[1],
-                                    'term': term })
-            pos = result[2] + len(term)
+                search_results.append({ 'paragraph_index': result[0],
+                                        'offset': result[1],
+                                        'term': term,
+                                        'uri': self.item_map[term],
+                                        'link': result[3]})
+                pos = result[2] + len(term)
 
         if len(search_results) == 0:
             return []
+
+        search_results = sorted(search_results,
+                                key=itemgetter('paragraph_index',
+                                               'offset')
+                                )
 
         client_state['search_results'] = search_results
         client_state['search_result_index'] = 0
@@ -249,19 +293,31 @@ class IntentParserServer:
         return self.report_search_results(client_state)
 
     def process_analyze_yes(self, json_body, client_state):
-        return self.report_search_results(client_state)
+        actions = self.add_link(client_state);
+        actions += self.report_search_results(client_state)
+        return actions
 
     def process_analyze_no(self, json_body, client_state):
         return self.report_search_results(client_state)
 
-    def highlightText(self, paragraph_index, offset, end_offset):
-        highlightText = {}
-        highlightText['action'] = 'highlightText'
-        highlightText['paragraph_index'] = paragraph_index
-        highlightText['offset'] = offset
-        highlightText['end_offset'] = end_offset
+    def highlight_text(self, paragraph_index, offset, end_offset):
+        highlight_text = {}
+        highlight_text['action'] = 'highlightText'
+        highlight_text['paragraph_index'] = paragraph_index
+        highlight_text['offset'] = offset
+        highlight_text['end_offset'] = end_offset
 
-        return highlightText
+        return highlight_text
+
+    def link_text(self, paragraph_index, offset, end_offset, url):
+        link_text = {}
+        link_text['action'] = 'linkText'
+        link_text['paragraph_index'] = paragraph_index
+        link_text['offset'] = offset
+        link_text['end_offset'] = end_offset
+        link_text['url'] = url
+
+        return link_text
 
     def simple_sidebar_dialog(self, message, buttons):
         htmlMessage = '<script>\n\n'
@@ -285,6 +341,34 @@ class IntentParserServer:
         action = {}
         action['action'] = 'showSidebar'
         action['html'] = htmlMessage
+
+        return action
+
+    def simple_modal_dialog(self, message, buttons, title, width, height):
+        htmlMessage = '<script>\n\n'
+        htmlMessage += 'function onSuccess() { \n\
+                         google.script.host.close()\n\
+                      }\n\n'
+        for button in buttons:
+            htmlMessage += 'function ' + button[1] + 'Click() {\n'
+            htmlMessage += '  google.script.run.withSuccessHandler'
+            htmlMessage += '(onSuccess).buttonClick(\''
+            htmlMessage += button[1]  + '\')\n'
+            htmlMessage += '}\n\n'
+        htmlMessage += '</script>\n\n'
+
+        htmlMessage += '<p>' + message + '<p>\n'
+        for button in buttons:
+            htmlMessage += '<input id=' + button[1] + 'Button value="'
+            htmlMessage += button[0] + '" type="button" onclick="'
+            htmlMessage += button[1] + 'Click()" />\n'
+
+        action = {}
+        action['action'] = 'showModalDialog'
+        action['html'] = htmlMessage
+        action['title'] = title
+        action['width'] = width
+        action['height'] = height
 
         return action
 
@@ -321,8 +405,18 @@ class IntentParserServer:
                 first_index = elements[0]['startIndex']
                 offset += start_index - first_index
 
+                link = None
+
+                if 'textStyle' in text_run:
+                    text_style = text_run['textStyle']
+                    if 'link' in text_style:
+                        link = text_style['link']
+                        if 'url' in link:
+                            link = link['url']
+
                 pos = first_index + offset
-                return (paragraph_index, offset, pos)
+                return (paragraph_index, offset, pos, link)
+
         return None
 
     def handleGET(self, httpMessage, sm):
@@ -378,6 +472,23 @@ class IntentParserServer:
             client_state['locked'] = False
 
         self.client_state_lock.release()
+
+    def generate_item_map(self):
+          item_map = {}
+
+          item_map["Kan"] = "https://hub.sd2e.org/user/sd2e/design/Kan/1"
+          item_map["Chloramphenicol"] = "https://hub.sd2e.org/user/sd2e/design/CAT_C0378/1"
+          item_map["MG1655"] = "https://hub.sd2e.org/user/sd2e/design/MG1655_PhlF_Gate/1"
+          item_map["MG1655_WT"] = "https://hub.sd2e.org/user/sd2e/design/MG1655_WT/1"
+          item_map["arabinose"] = "https://hub.sd2e.org/user/sd2e/design/Larabinose/1"
+          item_map["IPTG"] = "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
+          item_map["PhlF"] = "https://hub.sd2e.org/user/sd2e/design/MG1655_PhlF_Gate/1"
+          item_map["IcaR"] = "https://hub.sd2e.org/user/sd2e/design/MG1655_IcaR_Gate/1"
+          item_map["NAND"] = "https://hub.sd2e.org/user/sd2e/design/UWBF_8542/1"
+          item_map["pBAD"] = "https://hub.sd2e.org/user/sd2e/design/pBAD/1"
+
+          return item_map
+
 
 sbhPlugin = IntentParserServer()
 sbhPlugin.serverRunLoop()
