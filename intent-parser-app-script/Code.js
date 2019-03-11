@@ -5,7 +5,7 @@ var serverURL = 'http://dsumorok.mooo.com:7775'
 function onOpen() {
   var ui = DocumentApp.getUi()
   var menu = ui.createMenu('Parse Intent')
-  
+
   menu.addItem('Analyze Document', 'sendAnalyzeRequest').addToUi()
 
   resetScan();
@@ -15,9 +15,9 @@ function sendMessage(message) {
   var request = {
     'message': message
   }
-  
+
   var requestJSON = JSON.stringify(request);
-  
+
   var options = {
     'method' : 'post',
     'payload' : requestJSON
@@ -42,8 +42,21 @@ function processActions(actions) {
         highlightDocText(paragraphIndex, offset, endOffset)
         break;
 
+      case 'linkText':
+        var paragraphIndex = actionDesc['paragraph_index']
+        var offset = actionDesc['offset']
+        var endOffset = actionDesc['end_offset']
+        var url = actionDesc['url']
+        linkDocText(paragraphIndex, offset, endOffset, url)
+        break;
+
       case 'showSidebar':
         showSidebar(actionDesc['html'])
+        break;
+
+      case 'showModalDialog':
+        showModalDialog(actionDesc['html'], actionDesc['title'],
+                        actionDesc['width'], actionDesc['height'])
         break;
 
       default:
@@ -58,6 +71,15 @@ function showSidebar(html) {
     ui.showSidebar(htmlOutput)
 }
 
+function showModalDialog(html, title, width, height) {
+    var ui = DocumentApp.getUi()
+    var htmlOutput = HtmlService.createHtmlOutput(html)
+    htmlOutput.setWidth(width)
+    htmlOutput.setHeight(height)
+
+    ui.showModalDialog(htmlOutput, title)
+}
+
 function highlightDocText(paragraphIndex, offset, endOffset) {
   var doc = DocumentApp.getActiveDocument()
   var body = doc.getBody()
@@ -68,6 +90,15 @@ function highlightDocText(paragraphIndex, offset, endOffset) {
   selectionRange.addElement(docText, offset, endOffset)
 
   doc.setSelection(selectionRange.build())
+}
+
+function linkDocText(paragraphIndex, offset, endOffset, url) {
+  var doc = DocumentApp.getActiveDocument()
+  var body = doc.getBody()
+  var paragraph = body.getParagraphs()[paragraphIndex]
+  var docText = paragraph.editAsText()
+
+  docText.setLinkUrl(offset, endOffset, url)
 }
 
 function sendPost(resource, data) {
@@ -87,32 +118,14 @@ function sendPost(resource, data) {
     'method' : 'post',
     'payload' : requestJSON
   };
-  
+
   response = UrlFetchApp.fetch(serverURL + resource, options)
   var responseText = response.getContentText()
   var actions = JSON.parse(responseText)
-  
+
   processActions(actions)
 }
 
 function sendAnalyzeRequest() {
   sendPost('/analyzeDocument')
-}
-
-
-function generateItemMap() {
-  itemMap = {} //new Object();
-
-  itemMap["Kan"] = "https://hub.sd2e.org/user/sd2e/design/Kan/1"
-  itemMap["Chloramphenicol"] = "https://hub.sd2e.org/user/sd2e/design/CAT_C0378/1"
-  itemMap["MG1655"] = "https://hub.sd2e.org/user/sd2e/design/MG1655_PhlF_Gate/1"
-  itemMap["MG1655_WT"] = "https://hub.sd2e.org/user/sd2e/design/MG1655_WT/1"
-  itemMap["arabinose"] = "https://hub.sd2e.org/user/sd2e/design/Larabinose/1"
-  itemMap["IPTG"] = "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
-  itemMap["PhlF"] = "https://hub.sd2e.org/user/sd2e/design/MG1655_PhlF_Gate/1"
-  itemMap["IcaR"] = "https://hub.sd2e.org/user/sd2e/design/MG1655_IcaR_Gate/1"
-  itemMap["NAND"] = "https://hub.sd2e.org/user/sd2e/design/UWBF_8542/1"
-  itemMap["pBAD"] = "https://hub.sd2e.org/user/sd2e/design/pBAD/1"
-  
-  return itemMap
 }
