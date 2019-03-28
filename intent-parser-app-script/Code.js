@@ -1,6 +1,6 @@
 var gItemMap = null
 var gCurrentRange = null
-var serverURL = 'http://dsumorok.mooo.com:7775'
+var serverURL = '192.1.120.130'
 
 function onOpen() {
   var ui = DocumentApp.getUi()
