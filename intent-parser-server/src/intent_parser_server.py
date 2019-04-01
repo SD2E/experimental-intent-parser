@@ -170,11 +170,25 @@ class IntentParserServer:
                                       document_id)
 
         client_state = self.new_connection(document_id)
-        client_state['pos'] = 0
         client_state['doc'] = doc
 
+        if 'data' in json_body:
+            body = doc.get('body');
+            doc_content = body.get('content')
+            paragraphs = self.get_paragraphs(doc_content)
+
+            data = json_body['data']
+            paragraph_index = data['paragraphIndex']
+            offset = data['offset']
+            paragraph = paragraphs[ paragraph_index ]
+            first_element = paragraph['elements'][0]
+            paragraph_offset = first_element['startIndex']
+            start_offset = paragraph_offset + offset
+        else:
+            start_offset = 0
+
         try:
-            actions = self.analyze_document(client_state, doc)
+            actions = self.analyze_document(client_state, doc, start_offset)
             self.sendResponse(200, 'OK', json.dumps(actions), sm)
 
         except Exception as e:
@@ -256,7 +270,7 @@ class IntentParserServer:
         return paragraphs
 
 
-    def analyze_document(self, client_state, doc):
+    def analyze_document(self, client_state, doc, start_offset):
         body = doc.get('body');
         doc_content = body.get('content')
 
@@ -266,7 +280,7 @@ class IntentParserServer:
 
         itr = 0
         for term in self.item_map.keys():
-            pos = 0
+            pos = start_offset
             while True:
                 result = self.find_text(term, pos, paragraphs)
                 if result is None:
