@@ -23,6 +23,10 @@ class IntentParserServer:
         self.bind_ip = bind_ip
 
         self.google_accessor = GoogleAccessor.create()
+        self.spreadsheet_id = "1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g";
+        self.google_accessor.set_spreadsheet_id(self.spreadsheet_id)
+        self.spreadsheet_tabs = self.google_accessor.type_tabs.keys()
+
         self.client_state_map = {}
         self.client_state_lock = threading.Lock()
         self.item_map = self.generate_item_map()
@@ -228,6 +232,7 @@ class IntentParserServer:
             term = search_result['term']
             uri = search_result['uri']
             link = search_result['link']
+            content_term = search_result['text']
             end_offset = offset + len(term) - 1
 
             actions = []
@@ -242,7 +247,9 @@ class IntentParserServer:
             use_sidebar = True
 
             if use_sidebar:
-                dialogAction = self.simple_sidebar_dialog('Link ' + term + ' to ' + uri + ' ?',
+                dialogAction = self.simple_sidebar_dialog('Link ' + content_term + ' to ' +
+                                                          '<a href=' + uri + ' target=_blank>' +
+                                                          term + '</a> ?',
                                                           [('Yes', 'process_analyze_yes'),
                                                            ('No', 'process_analyze_no')])
             else:
@@ -270,6 +277,15 @@ class IntentParserServer:
         return paragraphs
 
 
+    def fetch_spreadsheet_data(self):
+        tab_data = {}
+        for tab in self.spreadsheet_tabs:
+            tab_data[tab] = self.google_accessor.get_row_data(tab=tab)
+            print('Fetched data from tab ' + tab)
+
+        return tab_data
+
+
     def analyze_document(self, client_state, doc, start_offset):
         body = doc.get('body');
         doc_content = body.get('content')
@@ -290,7 +306,9 @@ class IntentParserServer:
                                         'offset': result[1],
                                         'term': term,
                                         'uri': self.item_map[term],
-                                        'link': result[3]})
+                                        'link': result[3],
+                                        'text': result[4]})
+
                 pos = result[2] + len(term)
 
         if len(search_results) == 0:
@@ -411,10 +429,22 @@ class IntentParserServer:
                 else:
                     find_start = 0
 
-                content = text_run['content'].lower()
-                offset = content.find(text.lower(), find_start)
+                content = text_run['content']
+                offset = content.lower().find(text.lower(), find_start)
+
+                # Check for whitespece before found text
+                if offset > 0 and content[offset-1].isalpha():
+                    continue
+
+                # Check for whitespece after found text
+                next_offset = offset + len(text)
+                if next_offset < len(content) and content[next_offset].isalpha():
+                    continue
+
                 if offset < 0:
                     continue
+
+                content_text = content[offset:(offset+len(text))]
 
                 first_index = elements[0]['startIndex']
                 offset += start_index - first_index
@@ -429,7 +459,8 @@ class IntentParserServer:
                             link = link['url']
 
                 pos = first_index + offset
-                return (paragraph_index, offset, pos, link)
+                return (paragraph_index, offset, pos, link,
+                        content_text)
 
         return None
 
@@ -488,20 +519,24 @@ class IntentParserServer:
         self.client_state_lock.release()
 
     def generate_item_map(self):
-          item_map = {}
+        item_map = {}
 
-          item_map["Kan"] = "https://hub.sd2e.org/user/sd2e/design/Kan/1"
-          item_map["Chloramphenicol"] = "https://hub.sd2e.org/user/sd2e/design/CAT_C0378/1"
-          item_map["MG1655"] = "https://hub.sd2e.org/user/sd2e/design/MG1655_PhlF_Gate/1"
-          item_map["MG1655_WT"] = "https://hub.sd2e.org/user/sd2e/design/MG1655_WT/1"
-          item_map["arabinose"] = "https://hub.sd2e.org/user/sd2e/design/Larabinose/1"
-          item_map["IPTG"] = "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
-          item_map["PhlF"] = "https://hub.sd2e.org/user/sd2e/design/MG1655_PhlF_Gate/1"
-          item_map["IcaR"] = "https://hub.sd2e.org/user/sd2e/design/MG1655_IcaR_Gate/1"
-          item_map["NAND"] = "https://hub.sd2e.org/user/sd2e/design/UWBF_8542/1"
-          item_map["pBAD"] = "https://hub.sd2e.org/user/sd2e/design/pBAD/1"
+        #f = open('item-map.json', 'r')
+        #item_map = json.loads(f.read())
+        #return item_map
 
-          return item_map
+        sheet_data = self.fetch_spreadsheet_data()
+        for tab in sheet_data:
+            for row in sheet_data[tab]:
+                if 'Common Name' in row and 'SynBioHub URI' in row:
+                    common_name = row['Common Name']
+                    uri = row['SynBioHub URI']
+                    item_map[common_name] = uri
+
+        #f = open('item-map.json', 'w')
+        #f.write(json.dumps(item_map))
+        #f.close()
+        return item_map
 
 
 sbhPlugin = IntentParserServer()
