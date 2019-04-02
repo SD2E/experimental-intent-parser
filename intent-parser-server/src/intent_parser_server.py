@@ -201,15 +201,13 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
 
-    def add_link(self, client_state):
-            search_results = client_state['search_results']
-            search_result_index = client_state['search_result_index'] - 1
-            search_result = search_results[search_result_index]
+    def add_link(self, search_result):
             paragraph_index = search_result['paragraph_index']
             offset = search_result['offset']
             term = search_result['term']
             link = self.item_map[term]
             end_offset = offset + len(term) - 1
+            search_result['link'] = link
 
             action = self.link_text(paragraph_index, offset,
                                     end_offset, link)
@@ -246,17 +244,23 @@ class IntentParserServer:
 
             use_sidebar = True
 
+            html  = ''
+            html += '<center>'
+            html += 'Link ' + content_term + ' to ';
+            html += '<a href=' + uri + ' target=_blank>'
+            html += term + '</a> ?'
+            html += '</center>'
+
+
+            buttons = [('Yes', 'process_analyze_yes'),
+                       ('No', 'process_analyze_no'),
+                       ('Link All', 'process_link_all')]
+
             if use_sidebar:
-                dialogAction = self.simple_sidebar_dialog('Link ' + content_term + ' to ' +
-                                                          '<a href=' + uri + ' target=_blank>' +
-                                                          term + '</a> ?',
-                                                          [('Yes', 'process_analyze_yes'),
-                                                           ('No', 'process_analyze_no')])
+                dialogAction = self.simple_sidebar_dialog(html, buttons)
             else:
-                dialogAction = self.simple_modal_dialog('Link ' + term + ' to ' + uri + ' ?',
-                                                        [('Yes', 'process_analyze_yes'),
-                                                         ('No', 'process_analyze_no')],
-                                                        'Add Link', 500, 150)
+                dialogAction = self.simple_modal_dialog(html, buttons)
+
             actions.append(dialogAction)
 
             return actions
@@ -325,12 +329,35 @@ class IntentParserServer:
         return self.report_search_results(client_state)
 
     def process_analyze_yes(self, json_body, client_state):
-        actions = self.add_link(client_state);
+        search_results = client_state['search_results']
+        search_result_index = client_state['search_result_index'] - 1
+        search_result = search_results[search_result_index]
+
+        actions = self.add_link(search_result);
         actions += self.report_search_results(client_state)
         return actions
 
     def process_analyze_no(self, json_body, client_state):
         return self.report_search_results(client_state)
+
+
+    def process_link_all(self, json_body, client_state):
+        search_results = client_state['search_results']
+        search_result_index = client_state['search_result_index'] - 1
+        search_result = search_results[search_result_index]
+        term = search_result['term']
+        term_search_results = list(filter(lambda x : x['term'] == term,
+                                          search_results))
+
+        actions = []
+
+        for term_result in term_search_results:
+            actions += self.add_link(term_result);
+
+        actions += self.report_search_results(client_state)
+
+        return actions
+
 
     def highlight_text(self, paragraph_index, offset, end_offset):
         highlight_text = {}
@@ -365,10 +392,12 @@ class IntentParserServer:
         htmlMessage += '</script>\n\n'
 
         htmlMessage += '<p>' + message + '<p>\n'
+        htmlMessage += '<center>'
         for button in buttons:
             htmlMessage += '<input id=' + button[1] + 'Button value="'
             htmlMessage += button[0] + '" type="button" onclick="'
             htmlMessage += button[1] + 'Click()" />\n'
+        htmlMessage += '</center>'
 
         action = {}
         action['action'] = 'showSidebar'
