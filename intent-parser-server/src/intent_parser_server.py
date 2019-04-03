@@ -67,23 +67,25 @@ class IntentParserServer:
                     elif method == 'GET':
                         self.handleGET(httpMessage, sm)
                     else:
-                        self.sendResponse(501, 'Not Implemented', 'Unrecognized request method\n', sm)
+                        self.send_response(501, 'Not Implemented', 'Unrecognized request method\n',
+                                           sm)
 
                 except ConnectionException as ex:
-                    self.sendResponse(ex.code, ex.message, ex.content, sm)
+                    self.send_response(ex.code, ex.message, ex.content, sm)
 
                 except Exception as ex:
                     print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
-                    self.sendResponse(504, 'Internal Server Error', 'Internal Server Error\n', sm)
+                    self.send_response(504, 'Internal Server Error', 'Internal Server Error\n', sm)
 
         except Exception as e:
             print('Exception: {}'.format(e))
 
         client_socket.close()
 
-    def sendResponse(self, code, message, content, sm):
+    def send_response(self, code, message, content, sm, content_type='text/html'):
             response = http_message.HttpMessage()
             response.setResponseCode(code, message)
+            response.setHeader('content-type', content_type)
             response.setBody(content.encode('utf-8'))
             response.send(sm)
 
@@ -97,7 +99,7 @@ class IntentParserServer:
         elif resource == '/buttonClick':
             self.process_button_click(httpMessage, sm)
         else:
-            self.sendResponse(404, 'Not Found', 'Resource Not Found\n', sm)
+            self.send_response(404, 'Not Found', 'Resource Not Found\n', sm)
 
     def get_json_body(self, httpMessage):
         body = httpMessage.getBody()
@@ -130,17 +132,51 @@ class IntentParserServer:
 
         try:
             actions = method(json_body, client_state)
-            self.sendResponse(200, 'OK', json.dumps(actions), sm)
+            self.send_response(200, 'OK', json.dumps(actions), sm,
+                               'application/json')
         except Exception as e:
             raise e
         finally:
             self.release_connection(client_state)
 
+    def process_generate_report(self, httpMessage, sm):
+        resource = httpMessage.getResource()
+        document_id = resource.split('?')[1]
+        client_state = {}
+
+        try:
+            doc = self.google_accessor.get_document(
+                document_id=document_id
+                )
+        except Exception as ex:
+            print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            raise ConnectionException('404', 'Not Found',
+                                      'Failed to access document ' +
+                                      document_id)
+
+        client_state = {}
+        client_state['doc'] = doc
+        self.analyze_document(client_state, doc, 0)
+
+        report = {}
+        terms = []
+        search_results = client_state['search_results']
+        for search_result in search_results:
+            term = {}
+            term['term'] = search_result['term']
+            terms.append(term)
+
+        report['terms'] = terms
+
+        self.send_response(200, 'OK', json.dumps(report), sm,
+                           'application/json')
+
     def process_message(self, httpMessage, sm):
         json_body = self.get_json_body(httpMessage)
         if 'message' in json_body:
             print(json_body['message'])
-        self.sendResponse(200, 'OK', '[]', sm)
+        self.send_response(200, 'OK', '[]', sm,
+                           'application/json')
 
 
     def get_client_state(self, httpMessage):
@@ -193,7 +229,8 @@ class IntentParserServer:
 
         try:
             actions = self.analyze_document(client_state, doc, start_offset)
-            self.sendResponse(200, 'OK', json.dumps(actions), sm)
+            self.send_response(200, 'OK', json.dumps(actions), sm,
+                               'application/json')
 
         except Exception as e:
             raise e
@@ -494,9 +531,12 @@ class IntentParserServer:
         return None
 
     def handleGET(self, httpMessage, sm):
-        resource = httpMessage.getResource()
+        resource = httpMessage.getPath()
+
         if resource == "/status":
-            self.sendResponse(200, 'OK', 'SBH Plugin Up and Running\n', sm)
+            self.send_response(200, 'OK', 'Intent Parser Server is Up and Running\n', sm)
+        elif resource == '/document_report':
+            self.process_generate_report(httpMessage, sm)
         else:
             raise ConnectionException(404, 'Not Found', 'Resource Not Found')
 

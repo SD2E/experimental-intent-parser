@@ -96,6 +96,9 @@ class HttpMessage:
     def getResource(self):
         return self.resource
 
+    def getPath(self):
+        return self.resource.split('?')[0]
+
     def getRequestLine(self):
         return self.requestLine
 
@@ -175,8 +178,8 @@ class HttpMessage:
 
         if 'Content-Length' in self.header:
             self.fetchRawBody(socketManager)
-        
-    
+
+
     def fetchRawBody(self, socketManager):
         lengthStr = self.header['Content-Length'][0]
         self.body = socketManager.readBytes(int(lengthStr))
