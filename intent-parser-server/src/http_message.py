@@ -32,19 +32,19 @@ class HttpMessage:
             return
 
         while (self.state != State.DONE) and (self.state != State.ERROR):
-            line = socketManager.readLine()
+            line = socketManager.read_line()
 
             if line == None:
                 self.state = State.ERROR
                 return
 
-            if self.processLine(line) == self.ERROR:
+            if self.process_line(line) == self.ERROR:
                 self.state = State.ERROR
                 return
 
-        self.fetchBody(socketManager)
+        self.fetch_body(socketManager)
 
-    def setResponseCode(self, code, message):
+    def set_response_code(self, code, message):
         if self.state != State.REQUEST:
             self.state = State.ERROR
             return self.ERROR
@@ -52,7 +52,7 @@ class HttpMessage:
         self.requestLine = 'HTTP/1.1 ' + str(code) + ' ' + message
         self.state = State.HEADER
 
-    def setHeader(self, key, value):
+    def set_header(self, key, value):
         if self.state != State.HEADER:
             self.state = State.ERROR
             return self.ERROR
@@ -66,63 +66,63 @@ class HttpMessage:
         return self.send(self.socketManager)
 
     def send(self, socketManager):
-        self.sendLine(socketManager, self.requestLine)
+        self.send_line(socketManager, self.requestLine)
 
         for header in self.header:
             for value in self.header[header]:
-                self.sendLine(socketManager, header + ': ' + value)
+                self.send_line(socketManager, header + ': ' + value)
 
-        self.sendLine(socketManager, '');
+        self.send_line(socketManager, '');
 
         if self.body != None:
             socketManager.write(self.body)
 
 
-    def sendLine(self, socketManager, line):
+    def send_line(self, socketManager, line):
         return socketManager.write((line + '\r\n').encode('utf-8'))
 
 
-    def setBody(self, body):
+    def set_body(self, body):
         self.body = body
-        return self.setHeader('Content-Length',
-                              str(len(body)))
+        return self.set_header('Content-Length',
+                               str(len(body)))
 
-    def getBody(self):
+    def get_body(self):
         return self.body
 
-    def getState(self):
+    def get_state(self):
         return self.state
 
-    def getResource(self):
+    def get_resource(self):
         return self.resource
 
-    def getPath(self):
+    def get_path(self):
         return self.resource.split('?')[0]
 
-    def getRequestLine(self):
+    def get_request_line(self):
         return self.requestLine
 
-    def getMethod(self):
+    def get_method(self):
         return self.method
 
-    def getHeader(self, headerName):
+    def get_header(self, headerName):
         if headerName not in self.header:
             return None
 
         return self.header[headerName][0]
 
-    def getHeaders(self, headerName):
+    def get_headers(self, headerName):
         if headerName not in self.header:
             return None
 
         return self.header[headerName]
 
-    def processLine(self, line):
+    def process_line(self, line):
         if self.state == State.REQUEST:
-            return self.processRequest(line)
+            return self.process_request(line)
 
         elif self.state == State.HEADER:
-            return self.processHeader(line)
+            return self.process_header(line)
 
         elif self.state == State.HEADER:
             return self.DONE
@@ -130,7 +130,7 @@ class HttpMessage:
         else:
             return self.ERROR
 
-    def processHeader(self, line):
+    def process_header(self, line):
         if self.headerCount >= self.maxHeaderCount:
             raise Exception("Too many HTTP Headers")
 
@@ -152,7 +152,7 @@ class HttpMessage:
         self.header[key].append(value)
         self.headerCount += 1
 
-    def processRequest(self, line):
+    def process_request(self, line):
         self.requestLine = line
 
         fields = line.split()
@@ -170,32 +170,32 @@ class HttpMessage:
         self.state = State.HEADER;
         return self.PENDING
 
-    def fetchBody(self, socketManager):
+    def fetch_body(self, socketManager):
         if 'Transfer-Encoding' in self.header:
             if self.header['Transfer-Encoding'][0] == 'chunked':
-                self.readChunkedBody(socketManager);
+                self.read_chunked_body(socketManager);
                 return
 
         if 'Content-Length' in self.header:
-            self.fetchRawBody(socketManager)
+            self.fetch_raw_body(socketManager)
 
 
-    def fetchRawBody(self, socketManager):
+    def fetch_raw_body(self, socketManager):
         lengthStr = self.header['Content-Length'][0]
-        self.body = socketManager.readBytes(int(lengthStr))
+        self.body = socketManager.read_bytes(int(lengthStr))
 
 
-    def readChunkedBody(self, socketManager):
+    def read_chunked_body(self, socketManager):
         self.body = b'';
         while True:
-            chunkLenStr = socketManager.readLine()
+            chunkLenStr = socketManager.read_line()
             if chunkLenStr == None:
                 break;
             chunkLen = int(chunkLenStr, 16)
             if chunkLen == 0:
-                val = socketManager.readLine()
-                socketManager.readLine()
+                val = socketManager.read_line()
+                socketManager.read_line()
                 break;
-            self.body += socketManager.readBytes(chunkLen)
-            socketManager.readLine()
+            self.body += socketManager.read_bytes(chunkLen)
+            socketManager.read_line()
         pass

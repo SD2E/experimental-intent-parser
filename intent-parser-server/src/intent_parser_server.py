@@ -18,7 +18,7 @@ class ConnectionException(Exception):
 
 
 class IntentParserServer:
-    def __init__(self, bind_port=4454, bind_ip="0.0.0.0"):
+    def __init__(self, bind_port=8080, bind_ip="0.0.0.0"):
         self.bind_port = bind_port
         self.bind_ip = bind_ip
 
@@ -55,11 +55,11 @@ class IntentParserServer:
             while True:
                 httpMessage = http_message.HttpMessage(sm)
 
-                if httpMessage.getState() == http_message.State.ERROR:
+                if httpMessage.get_state() == http_message.State.ERROR:
                     client_socket.close()
                     return
 
-                method = httpMessage.getMethod()
+                method = httpMessage.get_method()
 
                 try:
                     if method == 'POST':
@@ -84,13 +84,13 @@ class IntentParserServer:
 
     def send_response(self, code, message, content, sm, content_type='text/html'):
             response = http_message.HttpMessage()
-            response.setResponseCode(code, message)
-            response.setHeader('content-type', content_type)
-            response.setBody(content.encode('utf-8'))
+            response.set_response_code(code, message)
+            response.set_header('content-type', content_type)
+            response.set_body(content.encode('utf-8'))
             response.send(sm)
 
     def handlePOST(self, httpMessage, sm):
-        resource = httpMessage.getResource()
+        resource = httpMessage.get_resource()
 
         if resource == '/analyzeDocument':
             self.process_analyze_document(httpMessage, sm)
@@ -102,7 +102,7 @@ class IntentParserServer:
             self.send_response(404, 'Not Found', 'Resource Not Found\n', sm)
 
     def get_json_body(self, httpMessage):
-        body = httpMessage.getBody()
+        body = httpMessage.get_body()
         if body == None or len(body) == 0:
             errorMessage = 'No POST data\n'
             raise ConnectionException(400, 'Bad Request', errorMessage)
@@ -140,7 +140,7 @@ class IntentParserServer:
             self.release_connection(client_state)
 
     def process_generate_report(self, httpMessage, sm):
-        resource = httpMessage.getResource()
+        resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
         client_state = {}
 
@@ -531,7 +531,7 @@ class IntentParserServer:
         return None
 
     def handleGET(self, httpMessage, sm):
-        resource = httpMessage.getPath()
+        resource = httpMessage.get_path()
 
         if resource == "/status":
             self.send_response(200, 'OK', 'Intent Parser Server is Up and Running\n', sm)
@@ -590,9 +590,9 @@ class IntentParserServer:
     def generate_item_map(self):
         item_map = {}
 
-        #f = open('item-map.json', 'r')
-        #item_map = json.loads(f.read())
-        #return item_map
+        f = open('item-map.json', 'r')
+        item_map = json.loads(f.read())
+        return item_map
 
         sheet_data = self.fetch_spreadsheet_data()
         for tab in sheet_data:
