@@ -1,6 +1,6 @@
 var gItemMap = null
 var gCurrentRange = null
-var serverURL = 'intent-parser-server.bbn.com'
+var serverURL = 'http://intent-parser-server.bbn.com'
 
 function onOpen() {
   var ui = DocumentApp.getUi()
@@ -8,6 +8,7 @@ function onOpen() {
 
   menu.addItem('Analyze from top', 'sendAnalyzeFromTop').addToUi()
   menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor').addToUi()
+  menu.addItem('Generate Report', 'sendGenerateReport').addToUi()
 
   resetScan();
 }
@@ -41,7 +42,7 @@ function processActions(actions) {
         var offset = actionDesc['offset']
         var endOffset = actionDesc['end_offset']
         highlightDocText(paragraphIndex, offset, endOffset)
-        break;
+        break
 
       case 'linkText':
         var paragraphIndex = actionDesc['paragraph_index']
@@ -49,19 +50,23 @@ function processActions(actions) {
         var endOffset = actionDesc['end_offset']
         var url = actionDesc['url']
         linkDocText(paragraphIndex, offset, endOffset, url)
-        break;
+        break
 
       case 'showSidebar':
         showSidebar(actionDesc['html'])
-        break;
+        break
+
+      case 'reportContent':
+        processReportContent(actionDesc['report'])
+        break
 
       case 'showModalDialog':
         showModalDialog(actionDesc['html'], actionDesc['title'],
                         actionDesc['width'], actionDesc['height'])
-        break;
+        break
 
       default:
-        break;
+        break
     }
   }
 }
@@ -405,4 +410,30 @@ function sendAnalyzeFromCursor() {
   var cursorLocation = findCursor()
 
   sendPost('/analyzeDocument', cursorLocation)
+}
+
+function sendGenerateReport() {
+  var docId = DocumentApp.getActiveDocument().getId();
+
+  var html = ''
+  html += '<script>\n'
+  html += 'function onSuccess() {\n'
+  html += '  google.script.host.close()\n'
+  html += '}\n'
+  html += '</script>\n'
+  html += '\n'
+  html += '<p>'
+  html += '<center>'
+
+  html += 'Download Report '
+  html += '<a href=' + serverURL + '/document_report?'
+  html += docId + ' target=_blank>here</a>'
+
+  html += '</p>'
+  html += '\n'
+  html += '<input id=okButton Button value="Done" '
+  html += 'type="button" onclick="onSuccess()" />\n'
+  html += '</center>'
+
+  showModalDialog(html, 'Download', 300, 100)
 }
