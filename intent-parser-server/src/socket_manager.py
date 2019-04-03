@@ -5,7 +5,7 @@ class SocketManager:
         self.index = 0
         self.BUF_LEN = 8192
 
-    def readLine(self):
+    def read_line(self):
         index = 0
         while True:
             while index < len(self.buffer):
@@ -37,7 +37,7 @@ class SocketManager:
     def write(self, data):
         return self.socket.send(data)
 
-    def readBytes(self, byteCount):
+    def read_bytes(self, byteCount):
         bytesLeft = byteCount
 
         result = b''
