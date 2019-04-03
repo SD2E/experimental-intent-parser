@@ -590,9 +590,9 @@ class IntentParserServer:
     def generate_item_map(self):
         item_map = {}
 
-        f = open('item-map.json', 'r')
-        item_map = json.loads(f.read())
-        return item_map
+        #f = open('item-map.json', 'r')
+        #item_map = json.loads(f.read())
+        #return item_map
 
         sheet_data = self.fetch_spreadsheet_data()
         for tab in sheet_data:
