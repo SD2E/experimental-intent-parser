@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+  <script>
+    function onSuccess() {
+        google.script.host.close()
+    }
+
+    function submitButton(parentNode) {
+        google.script.run.withSuccessHandler(onSuccess).
+            submitForm(parentNode)
+    }
+  </script>
+  
+<form action="/add">
+  <input type="hidden" name="selectionStartParagraph" value="${STARTPARAGRAPH}">
+  <input type="hidden" name="selectionStartOffset" value="${STARTOFFSET}">
+  <input type="hidden" name="selectionEndParagraph" value="${ENDPARAGRAPH}">
+  <input type="hidden" name="selectionEndOffset" value="${ENDOFFSET}">
+  <input type="hidden" name="formName" value="addToSynBioHub">
+
+  <table stype="width:100%">
+    <tr>
+      <th>Common Name</th>
+      <th>Item Type</th>
+    </tr>
+    <tr>
+      <td>
+        <input type="text" name="commonName" value="${COMMONNAME}">
+      </td>
+      <td>
+        <select id="itemTypeSelect" name="itemType">
+          ${ITEMTYPEOPTIONS}
+        </select>
+      </td>
+    </tr>
+  </table>
+  <br><br>
+  <center>
+    <input type="button" value="Submit"
+           onclick='submitButton(this.parentNode.parentNode)'>
+  </center>
+</form> 
+</body>
+</html>
