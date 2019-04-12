@@ -9,6 +9,7 @@ function onOpen() {
   menu.addItem('Analyze from top', 'sendAnalyzeFromTop').addToUi()
   menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor').addToUi()
   menu.addItem('Generate Report', 'sendGenerateReport').addToUi()
+  menu.addItem('Add to SynBioHub', 'addToSynBioHub').addToUi()
 
   resetScan();
 }
@@ -383,6 +384,12 @@ function findCursor() {
     }
   }
 
+  return getLocation(el, offset)
+}
+
+function getLocation(el, offset) {
+  var doc = DocumentApp.getActiveDocument()
+
   // Get the ordared list of paragraphs
   var plist = doc.getBody().getParagraphs()
 
@@ -436,4 +443,37 @@ function sendGenerateReport() {
   html += '</center>'
 
   showModalDialog(html, 'Download', 300, 100)
+}
+
+function addToSynBioHub() {
+  var doc = DocumentApp.getActiveDocument()
+  selectionRange = doc.getSelection()
+
+  if(selectionRange == null) {
+    return
+  }
+
+    // Cursor position is null, so assume a selection
+  var selectionRange = doc.getSelection()
+  var rangeElements = selectionRange.getRangeElements()
+  var firstElement = rangeElements[0]
+  var lastElement = rangeElements[ rangeElements.length - 1 ]
+
+  // Extract element and offset from end of selection
+  var startEl = firstElement.getElement()
+  var startOffset = firstElement.getStartOffset()
+  var startLocation = getLocation(startEl, startOffset)
+
+  var endEl = lastElement.getElement()
+  var endOffset = lastElement.getEndOffsetInclusive()
+  var endLocation = getLocation(endEl, endOffset);
+
+  var selection = {'start': startLocation,
+                   'end': endLocation}
+
+  sendPost('/addToSynBioHub', selection)
+}
+
+function submitForm(formData) {
+  sendPost('/submitForm', formData)
 }

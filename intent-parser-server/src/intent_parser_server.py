@@ -7,6 +7,9 @@ import http_message;
 import uuid
 import traceback
 import functools
+import sbol
+import sys
+import getopt
 from operator import itemgetter
 
 class ConnectionException(Exception):
@@ -18,9 +21,46 @@ class ConnectionException(Exception):
 
 
 class IntentParserServer:
-    def __init__(self, bind_port=8080, bind_ip="0.0.0.0"):
+    def __init__(self, bind_port=8080, bind_ip="0.0.0.0",
+                 sbh_url=None, sbh_spoofing_prefix=None,
+                 sbh_collection=None, sbh_collection_user=None,
+                 sbh_collection_version=None,
+                 sbh_username=None, sbh_password=None):
+
         self.bind_port = bind_port
         self.bind_ip = bind_ip
+
+        if sbh_url is not None:
+            # log into Syn Bio Hub
+            if sbh_username is None:
+                raise Exception('SBH username was not specified')
+
+            if sbh_password is None:
+                raise Exception('SBH password was not speficied')
+
+            self.sbh = sbol.PartShop(sbh_url)
+            self.sbh_collection = sbh_collection
+
+            if sbh_spoofing_prefix is not None:
+                self.sbh.spoof(sbh_spoofing_prefix)
+                self.sbh_collection_uri = sbh_spoofing_prefix \
+                    + '/user/' + sbh_collection_user \
+                    + '/' + sbh_collection + '/' \
+                    + sbh_collection + '_collection/' \
+                    + sbh_collection_version
+            else:
+                self.sbh_collection_uri = sbh_url + '/'
+                self.sbh_collection_uri = sbh_url \
+                    + '/user/' + sbh_collection_user \
+                    + '/' + sbh_collection + '/' \
+                    + sbh_collection + '_collection/' \
+                    + sbh_collection_version
+
+            self.sbh_uri_prefix = sbh_url \
+                + '/user/' + sbh_collection_user \
+                + '/' + sbh_collection + '/'
+
+            self.sbh.login(sbh_username, sbh_password)
 
         self.google_accessor = GoogleAccessor.create()
         self.spreadsheet_id = "1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g";
@@ -35,6 +75,33 @@ class IntentParserServer:
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((bind_ip, bind_port))
         self.server.listen(5)
+
+        self.item_types = {
+            'component': {
+                'Bead'     : 'http://purl.obolibrary.org/obo/NCIT_C70671',
+                'CHEBI'    : 'http://identifiers.org/chebi/CHEBI:24431',
+                'DNA'      : 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
+                'Protein'  : 'http://www.biopax.org/release/biopax-level3.owl#Protein',
+                'RNA'      : 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
+            },
+            'module': {
+                'Strain'   : 'http://purl.obolibrary.org/obo/NCIT_C14419',
+                'Media'    : 'http://purl.obolibrary.org/obo/NCIT_C85504',
+                'Stain'    : 'http://purl.obolibrary.org/obo/NCIT_C841',
+                'Buffer'   : 'http://purl.obolibrary.org/obo/NCIT_C70815',
+                'Solution' : 'http://purl.obolibrary.org/obo/NCIT_C70830'
+            },
+            'collection': {
+                'Challenge Problem' : ''
+            },
+            'external': {
+                'Attribute' : ''
+            }
+        }
+
+        f = open('add.html', 'r')
+        self.add_html = f.read()
+        f.close()
 
         print('listening on {}:{}'.format(bind_ip, bind_port))
 
@@ -98,6 +165,10 @@ class IntentParserServer:
             self.process_message(httpMessage, sm)
         elif resource == '/buttonClick':
             self.process_button_click(httpMessage, sm)
+        elif resource == '/addToSynBioHub':
+            self.process_add_to_syn_bio_hub(httpMessage, sm)
+        elif resource == '/submitForm':
+            self.process_submit_form(httpMessage, sm)
         else:
             self.send_response(404, 'Not Found', 'Resource Not Found\n', sm)
 
@@ -187,7 +258,10 @@ class IntentParserServer:
                                       'Missing documentId')
         document_id = json_body['documentId']
 
-        client_state = self.get_connection(document_id)
+        try:
+            client_state = self.get_connection(document_id)
+        except:
+            client_state = None
 
         return (json_body, client_state)
 
@@ -293,10 +367,7 @@ class IntentParserServer:
                        ('No', 'process_analyze_no'),
                        ('Link All', 'process_link_all')]
 
-            if use_sidebar:
-                dialogAction = self.simple_sidebar_dialog(html, buttons)
-            else:
-                dialogAction = self.simple_modal_dialog(html, buttons)
+            dialogAction = self.simple_sidebar_dialog(html, buttons)
 
             actions.append(dialogAction)
 
@@ -330,7 +401,6 @@ class IntentParserServer:
     def analyze_document(self, client_state, doc, start_offset):
         body = doc.get('body');
         doc_content = body.get('content')
-
         paragraphs = self.get_paragraphs(doc_content)
 
         search_results = []
@@ -456,19 +526,44 @@ class IntentParserServer:
         htmlMessage += '</script>\n\n'
 
         htmlMessage += '<p>' + message + '<p>\n'
+        htmlMessage += '<center>'
         for button in buttons:
             htmlMessage += '<input id=' + button[1] + 'Button value="'
             htmlMessage += button[0] + '" type="button" onclick="'
             htmlMessage += button[1] + 'Click()" />\n'
+        htmlMessage += '</center>'
 
+        return self.modal_dialog(htmlMessage, title, width, height)
+
+        return action
+
+    def modal_dialog(self, html, title, width, height):
         action = {}
         action['action'] = 'showModalDialog'
-        action['html'] = htmlMessage
+        action['html'] = html
         action['title'] = title
         action['width'] = width
         action['height'] = height
 
         return action
+
+    def get_paragraph_text(self, paragraph):
+        elements = paragraph['elements']
+        paragraph_text = '';
+
+        for element_index in range( len(elements) ):
+            element = elements[ element_index ]
+
+            if 'textRun' not in element:
+                continue
+            text_run = element['textRun']
+
+            end_index = element['endIndex']
+            start_index = element['startIndex']
+
+            paragraph_text += text_run['content']
+
+        return paragraph_text
 
     def find_text(self, text, starting_pos, paragraphs):
         elements = []
@@ -476,7 +571,6 @@ class IntentParserServer:
         for paragraph_index in range( len(paragraphs )):
             paragraph = paragraphs[ paragraph_index ]
             elements = paragraph['elements']
-
 
             for element_index in range( len(elements) ):
                 element = elements[ element_index ]
@@ -538,6 +632,7 @@ class IntentParserServer:
         elif resource == '/document_report':
             self.process_generate_report(httpMessage, sm)
         else:
+            print('Did not find ' + resource)
             raise ConnectionException(404, 'Not Found', 'Resource Not Found')
 
     def new_connection(self, document_id):
@@ -577,6 +672,9 @@ class IntentParserServer:
         return client_state
 
     def release_connection(self, client_state):
+        if client_state is None:
+            return
+
         self.client_state_lock.acquire()
 
         document_id = client_state['document_id']
@@ -590,9 +688,9 @@ class IntentParserServer:
     def generate_item_map(self):
         item_map = {}
 
-        #f = open('item-map.json', 'r')
-        #item_map = json.loads(f.read())
-        #return item_map
+        f = open('item-map.json', 'r')
+        item_map = json.loads(f.read())
+        return item_map
 
         sheet_data = self.fetch_spreadsheet_data()
         for tab in sheet_data:
@@ -607,6 +705,177 @@ class IntentParserServer:
         #f.close()
         return item_map
 
+    def process_submit_form(self, httpMessage, sm):
+        json_body = self.get_json_body(httpMessage)
 
-sbhPlugin = IntentParserServer()
-sbhPlugin.serverRunLoop()
+        data = json_body['data']
+
+        actions = self.create_sbh_stub(data)
+        self.send_response(200, 'OK', json.dumps(actions), sm,
+                           'application/json')
+
+
+    def process_add_to_syn_bio_hub(self, httpMessage, sm):
+        try:
+            json_body = self.get_json_body(httpMessage)
+
+            data = json_body['data']
+            start = data['start']
+            end = data['end']
+            document_id = json_body['documentId']
+
+            item_type_list = []
+            for sbol_type in self.item_types:
+                item_type_list += self.item_types[sbol_type].keys()
+
+            item_types_html = ''
+            for item_type in item_type_list:
+                item_types_html += '          '
+                item_types_html += '<option>'
+                item_types_html += item_type
+                item_types_html += '</option>\n'
+
+            try:
+                doc = self.google_accessor.get_document(
+                    document_id=document_id
+                )
+            except Exception as ex:
+                print(''.join(traceback.format_exception(etype=type(ex),
+                                                         value=ex,
+                                                         tb=ex.__traceback__)))
+                raise ConnectionException('404', 'Not Found',
+                                          'Failed to access document ' +
+                                          document_id)
+
+            body = doc.get('body');
+            doc_content = body.get('content')
+            paragraphs = self.get_paragraphs(doc_content)
+            start_paragraph = start['paragraphIndex'];
+            end_paragraph = end['paragraphIndex'];
+            paragraph_text = self.get_paragraph_text(
+                paragraphs[start_paragraph])
+
+            start_offset = start['offset']
+            end_offset = end['offset'] + 1
+            selection = paragraph_text[start_offset:end_offset]
+
+            html = self.add_html
+
+            # Update parameters in html
+            html = html.replace('${COMMONNAME}', selection)
+            html = html.replace('${STARTPARAGRAPH}', str(start_paragraph))
+            html = html.replace('${STARTOFFSET}', str(start_offset))
+            html = html.replace('${ENDPARAGRAPH}', str(end_paragraph))
+            html = html.replace('${ENDOFFSET}', str(end_offset))
+            html = html.replace('${ITEMTYPEOPTIONS}', item_types_html)
+
+            dialog_action = self.modal_dialog(html, 'Add to SynBioHub',
+                                              300, 150)
+            actions = [dialog_action]
+
+            self.send_response(200, 'OK', json.dumps(actions), sm,
+                               'application/json')
+        except Exception as e:
+            raise e
+
+
+    def sanitize_name_to_display_id(self, name):
+        # TODO
+        return name
+
+    def create_sbh_stub(self, data):
+        item_type = data['itemType']
+        item_name = data['commonName']
+
+        display_id = self.sanitize_name_to_display_id(item_name)
+
+        try:
+            document = sbol.Document()
+            document.addNamespace('http://sd2e.org#', 'sd2')
+
+            sbol_type = None
+            for sbol_type_key in self.item_types:
+                sbol_type_map = self.item_types[ sbol_type_key ]
+                if item_type in sbol_type_map:
+                    sbol_type = sbol_type_key
+                    break;
+
+            if sbol_type == 'component':
+                component = sbol.ComponentDefinition(display_id, sbol_type_map[ item_type ])
+                annotation = sbol.TextProperty(component, 'http://sd2e.org#stub_object',
+                                               '0', '1', 'true')
+                document.addComponentDefinition(component)
+                self.sbh.submit(document, self.sbh_collection_uri, 3)
+
+            elif sbol_type == 'module':
+                module = sbol.ModuleDefinition(display_id)
+                annotation = sbol.TextProperty(module, 'http://sd2e.org#stub_object',
+                                               '0', '1', 'true')
+                module.roles = sbol_type_map[ item_type ]
+                document.addModuleDefinition(module)
+                self.sbh.submit(document, self.sbh_collection_uri, 3)
+
+            else:
+                raise Exception()
+
+            document_url = self.sbh_uri_prefix + display_id + '/1'
+            paragraph_index = data['selectionStartParagraph']
+            offset = data['selectionStartOffset']
+            end_offset = data['selectionEndOffset']
+
+            action = self.link_text(paragraph_index, offset,
+                                    end_offset, document_url)
+
+            return [action]
+
+        except Exception as e:
+            print(''.join(traceback.format_exception(etype=type(e),
+                                                     value=e,
+                                                     tb=e.__traceback__)))
+
+            buttons = [('OK', 'process_nop')]
+
+            html  = '<center>'
+            html += 'Failed to add "' + display_id + '" to SynBioHub'
+            html += '</center>'
+            dialogAction = self.simple_modal_dialog(html, buttons, 'Error', 300, 150)
+
+            return [dialogAction]
+
+    def process_nop(self, httpMessage, sm):
+        return []
+
+def main(argv):
+    try:
+        opts, args = getopt.getopt(argv, "u:p:", ["username=", "password="])
+    except getopt.GetoptError:
+        print("intent_parser_server.py: -u <sbh username> -p <sbh password>")
+        sys.exit(2);
+
+    sbh_username = None
+    sbh_password = None
+    sbh_url='https://hub-staging.sd2e.org'
+    sbh_spoofing_prefix='https://hub.sd2e.org'
+    #sbh_collection='https://hub.sd2e.org/user/sd2e/scratch_test/scratch_test_collection/1'
+    sbh_collection='scratch_test'
+    sbh_collection_user='sd2e'
+    sbh_collection_version='1'
+
+    for opt,arg in opts:
+        if (opt == '-u') or (opt == '--username'):
+            sbh_username = arg
+        elif (opt == '-p') or (opt == '--password'):
+            sbh_password = arg
+
+    sbhPlugin = IntentParserServer(sbh_url=sbh_url,
+                                   sbh_spoofing_prefix=sbh_spoofing_prefix,
+                                   sbh_collection=sbh_collection,
+                                   sbh_collection_user=sbh_collection_user,
+                                   sbh_collection_version=sbh_collection_version,
+                                   sbh_username=sbh_username,
+                                   sbh_password=sbh_password)
+    sbhPlugin.serverRunLoop()
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
