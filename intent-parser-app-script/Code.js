@@ -33,7 +33,13 @@ function buttonClick(buttonName) {
   sendPost('/buttonClick', {'buttonId' : buttonName})
 }
 
-function processActions(actions) {
+function processActions(response) {
+  if( typeof(response.actions) == 'undefined' ) {
+    return
+  }
+
+  var actions = response.actions
+
   for( var actionKey in actions) {
     var actionDesc = actions[actionKey]
 
@@ -128,9 +134,11 @@ function sendPost(resource, data) {
 
   response = UrlFetchApp.fetch(serverURL + resource, options)
   var responseText = response.getContentText()
-  var actions = JSON.parse(responseText)
+  var responseOb = JSON.parse(responseText)
 
-  processActions(actions)
+  processActions(responseOb)
+
+  return responseOb.results
 }
 
 // Utility function to report an element type
@@ -475,5 +483,9 @@ function addToSynBioHub() {
 }
 
 function submitForm(formData) {
-  sendPost('/submitForm', formData)
+  return sendPost('/submitForm', formData)
+}
+
+function postFromClient(postInfo) {
+  return sendPost(postInfo.resource, postInfo.data)
 }

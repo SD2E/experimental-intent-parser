@@ -3,44 +3,141 @@
 <body>
 
   <script>
+    function onLoad() {
+        refreshList()
+    }
+
     function onSuccess() {
         google.script.host.close()
     }
 
-    function submitButton(parentNode) {
-        google.script.run.withSuccessHandler(onSuccess).
-            submitForm(parentNode)
-    }
-  </script>
-  
-<form action="/add">
-  <input type="hidden" name="selectionStartParagraph" value="${STARTPARAGRAPH}">
-  <input type="hidden" name="selectionStartOffset" value="${STARTOFFSET}">
-  <input type="hidden" name="selectionEndParagraph" value="${ENDPARAGRAPH}">
-  <input type="hidden" name="selectionEndOffset" value="${ENDOFFSET}">
-  <input type="hidden" name="formName" value="addToSynBioHub">
+    function linkItem(theForm, link) {
+        var extra = {'action' : 'link',
+                     'link' : link}
 
-  <table stype="width:100%">
-    <tr>
-      <th>Common Name</th>
-      <th>Item Type</th>
-    </tr>
-    <tr>
-      <td>
-        <input type="text" name="commonName" value="${COMMONNAME}">
-      </td>
-      <td>
-        <select id="itemTypeSelect" name="itemType">
-          ${ITEMTYPEOPTIONS}
-        </select>
-      </td>
-    </tr>
-  </table>
-  <br><br>
+        buttonPressed(theForm, extra)
+    }
+
+    function linkAll(theForm, link) {
+        var extra = {'action' : 'linkAll',
+                     'link' : link}
+
+        buttonPressed(theForm, extra)
+    }
+
+    function refreshList() {
+        var theForm = this.addToSynBioHubForm
+        var commonName = theForm.commonName.value
+
+        var searchParams = {'term': commonName}
+        var postRequest = {'resource': '/searchSynBioHub',
+                           'data': searchParams}
+
+        var table = document.getElementById('existingLinksTable')
+        table.innerHTML = '<i>Generating List...</i>'
+        theForm.refreshListButton.style.visibility = 'hidden'
+        console.log(theForm.submitButton)
+
+        google.script.run.withSuccessHandler(searchResponse).
+            postFromClient(postRequest)
+    }
+
+    function searchResponse(result) {
+        var theForm = this.addToSynBioHubForm
+        theForm.refreshListButton.style.visibility = ''
+
+        var table = document.getElementById('existingLinksTable')
+        table.innerHTML = result.table_html
+
+        console.log(theForm.refreshListButton)
+    }
+
+    function buttonPressed(theForm, extra) {
+        var formInfo = {'selectionStartParagraph' : theForm.selectionStartParagraph.value,
+                        'selectionStartOffset' : theForm.selectionStartOffset.value,
+                        'selectionEndParagraph' : theForm.selectionEndParagraph.value,
+                        'selectionEndOffset' : theForm.selectionEndOffset.value,
+                        'documentId' : theForm.documentId.value,
+                        'selectedTerm' : theForm.selectedTerm.value,
+                        'formName' : theForm.formName.value,
+                        'commonName' : theForm.commonName.value,
+                        'itemType' : theForm.itemTypeSelect.value,
+                        'definitionURI' : theForm.definitionURI.value,
+                        'labIdSelect': theForm.labIdSelect.value,
+                        'labId': theForm.labId.value}
+
+        if( extra != null) {
+            formInfo.extra = extra;
+        }
+
+        google.script.run.withSuccessHandler(onSuccess).
+            submitForm(formInfo)
+    }
+
+    this.onload = onLoad
+  </script>
+
   <center>
-    <input type="button" value="Submit"
-           onclick='submitButton(this.parentNode.parentNode)'>
+    <form name="addToSynBioHubForm" action="/add">
+      <input type="hidden" name="selectionStartParagraph" value="${STARTPARAGRAPH}">
+      <input type="hidden" name="selectionStartOffset" value="${STARTOFFSET}">
+      <input type="hidden" name="selectionEndParagraph" value="${ENDPARAGRAPH}">
+      <input type="hidden" name="selectionEndOffset" value="${ENDOFFSET}">
+      <input type="hidden" name="selectedTerm" value="${SELECTEDTERM}">
+      <input type="hidden" name="documentId" value="${DOCUMENTID}">
+      <input type="hidden" name="formName" value="addToSynBioHub">
+
+      <table stype="width:100%">
+        <tr>
+          <th align="right">Common Name: </th>
+          <td>
+            <input type="text" name="commonName" value="${COMMONNAME}">
+          </td>
+        </tr>
+        <tr>
+          <th align="right">Item Type: </th>
+          <td>
+            <select id="itemTypeSelect" name="itemType">
+              ${ITEMTYPEOPTIONS}
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <th align="right">Definition URI: </th>
+          <td>
+            <input type="text" name="definitionURI">
+          </td>
+        </tr>
+        <tr>
+          <td align="right">
+            <select id="labIdSelect" name="labIdsOptions">
+              ${LABIDSOPTIONS}
+            </select>
+          </td>
+          <td>
+            <input type="text" name="labId">
+          </td>
+        </tr>
+      </table>
+      <br>
+      <input type="button" value="Submit" id="submitButton"
+             onclick='buttonPressed(this.parentNode,
+             {"action": "submit"})'>
+      <hr>
+      <H4> Link to existing SynBioHub Entry :</H4>
+
+      <script>
+        var thisForm = addToSynBioHubForm
+      </script>
+
+      <table stype="width:100%" id="existingLinksTable">
+      </table>
+
+      <p>
+      <input type="button" value="Refresh List" id="refreshListButton"
+             onclick='refreshList()'>
+    </form>
   </center>
-</form> 
+
 </body>
 </html>
