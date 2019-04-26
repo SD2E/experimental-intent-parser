@@ -21,10 +21,10 @@ class ConnectionException(Exception):
 
 
 class IntentParserServer:
-    def __init__(self, bind_port=8080, bind_ip="0.0.0.0",
-                 sbh_url=None, sbh_spoofing_prefix=None,
-                 sbh_collection=None, sbh_collection_user=None,
-                 sbh_collection_version=None,
+    def __init__(self, *, bind_port=8080, bind_ip="0.0.0.0",
+                 sbh_url, sbh_spoofing_prefix=None,
+                 sbh_collection, sbh_collection_user='sd2e',
+                 sbh_collection_version='1', spreadsheet_id,
                  sbh_username=None, sbh_password=None):
 
         self.bind_port = bind_port
@@ -40,6 +40,8 @@ class IntentParserServer:
 
             self.sbh = sbol.PartShop(sbh_url)
             self.sbh_collection = sbh_collection
+            self.sbh_spoofing_prefix = sbh_spoofing_prefix
+            self.sbh_url = sbh_url
 
             if sbh_spoofing_prefix is not None:
                 self.sbh.spoof(sbh_spoofing_prefix)
@@ -61,9 +63,10 @@ class IntentParserServer:
                 + '/' + sbh_collection + '/'
 
             self.sbh.login(sbh_username, sbh_password)
+            print('Logged into {}'.format(sbh_url))
 
         self.google_accessor = GoogleAccessor.create()
-        self.spreadsheet_id = "1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g";
+        self.spreadsheet_id = spreadsheet_id
         self.google_accessor.set_spreadsheet_id(self.spreadsheet_id)
         self.spreadsheet_tabs = self.google_accessor.type_tabs.keys()
 
@@ -99,8 +102,18 @@ class IntentParserServer:
             }
         }
 
+        self.lab_ids_list = sorted(['BioFAB UID',
+                                    'Ginkgo UID',
+                                    'Transcriptic UID',
+                                    'LBNL UID',
+                                    'EmeraldCloud UID'])
+
         f = open('add.html', 'r')
         self.add_html = f.read()
+        f.close()
+
+        f = open('findSimilar.sparql', 'r')
+        self.sparql_query = f.read()
         f.close()
 
         print('listening on {}:{}'.format(bind_ip, bind_port))
@@ -167,6 +180,8 @@ class IntentParserServer:
             self.process_button_click(httpMessage, sm)
         elif resource == '/addToSynBioHub':
             self.process_add_to_syn_bio_hub(httpMessage, sm)
+        elif resource == '/searchSynBioHub':
+            self.process_search_syn_bio_hub(httpMessage, sm)
         elif resource == '/submitForm':
             self.process_submit_form(httpMessage, sm)
         else:
@@ -202,7 +217,8 @@ class IntentParserServer:
         method = getattr( self, buttonId )
 
         try:
-            actions = method(json_body, client_state)
+            actionList = method(json_body, client_state)
+            actions = {'actions': actionList}
             self.send_response(200, 'OK', json.dumps(actions), sm,
                                'application/json')
         except Exception as e:
@@ -302,7 +318,8 @@ class IntentParserServer:
             start_offset = 0
 
         try:
-            actions = self.analyze_document(client_state, doc, start_offset)
+            actionList = self.analyze_document(client_state, doc, start_offset)
+            actions = {'actions': actionList}
             self.send_response(200, 'OK', json.dumps(actions), sm,
                                'application/json')
 
@@ -313,17 +330,16 @@ class IntentParserServer:
             self.release_connection(client_state)
 
     def add_link(self, search_result):
-            paragraph_index = search_result['paragraph_index']
-            offset = search_result['offset']
-            term = search_result['term']
-            link = self.item_map[term]
-            end_offset = offset + len(term) - 1
-            search_result['link'] = link
+        paragraph_index = search_result['paragraph_index']
+        offset = search_result['offset']
+        end_offset = search_result['end_offset'] - 1
+        link = search_result['uri']
+        search_result['link'] = link
 
-            action = self.link_text(paragraph_index, offset,
-                                    end_offset, link)
+        action = self.link_text(paragraph_index, offset,
+                                end_offset, link)
 
-            return [action]
+        return [action]
 
 
     def report_search_results(self, client_state):
@@ -352,8 +368,6 @@ class IntentParserServer:
             highlightTextAction = self.highlight_text(paragraph_index, offset,
                                                       end_offset)
             actions.append(highlightTextAction)
-
-            use_sidebar = True
 
             html  = ''
             html += '<center>'
@@ -415,6 +429,7 @@ class IntentParserServer:
 
                 search_results.append({ 'paragraph_index': result[0],
                                         'offset': result[1],
+                                        'end_offset': result[1] + len(term),
                                         'term': term,
                                         'uri': self.item_map[term],
                                         'link': result[3],
@@ -695,25 +710,53 @@ class IntentParserServer:
         sheet_data = self.fetch_spreadsheet_data()
         for tab in sheet_data:
             for row in sheet_data[tab]:
-                if 'Common Name' in row and 'SynBioHub URI' in row:
-                    common_name = row['Common Name']
-                    uri = row['SynBioHub URI']
-                    item_map[common_name] = uri
+                if not 'Common Name' in row :
+                    continue
+
+                if len(row['Common Name']) == 0 :
+                    continue
+
+                if not 'SynBioHub URI' in row :
+                    continue
+
+                if len(row['SynBioHub URI']) == 0 :
+                    continue
+
+                common_name = row['Common Name']
+                uri = row['SynBioHub URI']
+                item_map[common_name] = uri
 
         #f = open('item-map.json', 'w')
         #f.write(json.dumps(item_map))
         #f.close()
         return item_map
 
-    def process_submit_form(self, httpMessage, sm):
-        json_body = self.get_json_body(httpMessage)
+    def generate_html_options(self, options):
+        options_html = ''
+        for item_type in options:
+            options_html += '          '
+            options_html += '<option>'
+            options_html += item_type
+            options_html += '</option>\n'
 
-        data = json_body['data']
+        return options_html
 
-        actions = self.create_sbh_stub(data)
-        self.send_response(200, 'OK', json.dumps(actions), sm,
-                           'application/json')
+    def generate_existing_link_html(self, title, target):
+        html  = '<tr>'
+        html += '  <td style="max-width: 250px; word-wrap: break-word;">'
+        html += '    <a href=' + target + ' target=_blank name="theLink">' + title + '</a>'
+        html += '  </td>'
+        html += '  <td>'
+        html += '    <input type="button" name=' + target + ' value="Link"'
+        html += '    onclick="linkItem(thisForm, this.name)">'
+        html += '  </td>'
+        html += '  <td>'
+        html += '    <input type="button" name=' + target + ' value="Link All"'
+        html += '    onclick="linkAll(thisForm, this.name)">'
+        html += '  </td>'
+        html += '</tr>'
 
+        return html
 
     def process_add_to_syn_bio_hub(self, httpMessage, sm):
         try:
@@ -728,12 +771,10 @@ class IntentParserServer:
             for sbol_type in self.item_types:
                 item_type_list += self.item_types[sbol_type].keys()
 
-            item_types_html = ''
-            for item_type in item_type_list:
-                item_types_html += '          '
-                item_types_html += '<option>'
-                item_types_html += item_type
-                item_types_html += '</option>\n'
+            item_type_list = sorted(item_type_list)
+            item_types_html = self.generate_html_options(item_type_list)
+
+            lab_ids_html = self.generate_html_options(self.lab_ids_list)
 
             try:
                 doc = self.google_accessor.get_document(
@@ -768,16 +809,35 @@ class IntentParserServer:
             html = html.replace('${ENDPARAGRAPH}', str(end_paragraph))
             html = html.replace('${ENDOFFSET}', str(end_offset))
             html = html.replace('${ITEMTYPEOPTIONS}', item_types_html)
+            html = html.replace('${LABIDSOPTIONS}', lab_ids_html)
+            html = html.replace('${SELECTEDTERM}', selection)
+            html = html.replace('${DOCUMENTID}', document_id)
 
             dialog_action = self.modal_dialog(html, 'Add to SynBioHub',
-                                              300, 150)
-            actions = [dialog_action]
+                                              400, 450)
+            actionList = [dialog_action]
+            actions = {'actions': actionList}
 
             self.send_response(200, 'OK', json.dumps(actions), sm,
                                'application/json')
         except Exception as e:
             raise e
 
+    def simple_syn_bio_hub_search(self, term):
+        sparql_query = self.sparql_query.replace('${TERM}', term)
+        query_results = self.sbh.sparqlQuery(sparql_query)
+        bindings = query_results['results']['bindings']
+
+        search_results = []
+        for binding in bindings:
+            title = binding['title']['value']
+            target = binding['member']['value']
+            if self.sbh_spoofing_prefix is not None:
+                target = target.replace(self.sbh_spoofing_prefix, self.sbh_url)
+            search_results.append({'title': title, 'target': target})
+
+
+        return search_results
 
     def sanitize_name_to_display_id(self, name):
         # TODO
@@ -826,8 +886,6 @@ class IntentParserServer:
             action = self.link_text(paragraph_index, offset,
                                     end_offset, document_url)
 
-            return [action]
-
         except Exception as e:
             print(''.join(traceback.format_exception(etype=type(e),
                                                      value=e,
@@ -838,12 +896,103 @@ class IntentParserServer:
             html  = '<center>'
             html += 'Failed to add "' + display_id + '" to SynBioHub'
             html += '</center>'
-            dialogAction = self.simple_modal_dialog(html, buttons, 'Error', 300, 150)
+            action = self.simple_modal_dialog(html, buttons, 'Error', 300, 150)
 
-            return [dialogAction]
+        actions = {'actions': [action]}
+
+        return actions
 
     def process_nop(self, httpMessage, sm):
         return []
+
+    def process_submit_form(self, httpMessage, sm):
+        json_body = self.get_json_body(httpMessage)
+        data = json_body['data']
+        action = data['extra']['action']
+
+        result = {}
+
+        if action == 'submit':
+            result = self.create_sbh_stub(data)
+
+        elif action == 'link':
+            search_result = \
+                {'paragraph_index' : data['selectionStartParagraph'],
+                 'offset'          : int(data['selectionStartOffset']),
+                 'end_offset'      : int(data['selectionEndOffset']),
+                 'uri'             : data['extra']['link']
+                }
+            actions = self.add_link(search_result)
+            result = {'actions': actions}
+
+        elif action == 'linkAll':
+            actions = self.process_link_all(data)
+            result = {'actions': actions}
+
+        else:
+            print('Unsupported form action: {}'.format(action))
+
+        self.send_response(200, 'OK', json.dumps(result), sm,
+                           'application/json')
+
+
+    def process_link_all(self, data):
+        document_id = data['documentId']
+        doc = self.google_accessor.get_document(
+            document_id=document_id
+        )
+        body = doc.get('body');
+        doc_content = body.get('content')
+        paragraphs = self.get_paragraphs(doc_content)
+        selected_term = data['selectedTerm']
+        uri = data['extra']['link']
+
+        actions = []
+        search_results = []
+        pos = 0
+        while True:
+            result = self.find_text(selected_term, pos, paragraphs)
+
+            if result is None:
+                break
+
+            search_result = { 'paragraph_index' : result[0],
+                              'offset'          : result[1],
+                              'end_offset'      : result[1] + len(selected_term),
+                              'term'            : selected_term,
+                              'uri'             : uri,
+                              'link'            : result[3],
+                              'text'            : result[4]}
+
+            actions += self.add_link(search_result)
+
+            pos = result[2] + len(selected_term)
+
+        return actions
+
+    def process_search_syn_bio_hub(self, httpMessage, sm):
+        json_body = self.get_json_body(httpMessage)
+        data = json_body['data']
+
+        search_results = self.simple_syn_bio_hub_search(data['term'])
+        if len(search_results) > 5:
+            search_results = search_results[0:5]
+
+        table_html = ''
+        for search_result in search_results:
+            title = search_result['title']
+            target = search_result['target']
+            table_html += self.generate_existing_link_html(title,
+                                                           target)
+
+        response = {'results':
+                    {'search_results': search_results,
+                     'table_html': table_html
+                    }}
+
+
+        self.send_response(200, 'OK', json.dumps(response), sm,
+                           'application/json')
 
 def main(argv):
     try:
@@ -854,9 +1003,9 @@ def main(argv):
 
     sbh_username = None
     sbh_password = None
+    spreadsheet_id = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g'
     sbh_url='https://hub-staging.sd2e.org'
     sbh_spoofing_prefix='https://hub.sd2e.org'
-    #sbh_collection='https://hub.sd2e.org/user/sd2e/scratch_test/scratch_test_collection/1'
     sbh_collection='scratch_test'
     sbh_collection_user='sd2e'
     sbh_collection_version='1'
@@ -873,7 +1022,8 @@ def main(argv):
                                    sbh_collection_user=sbh_collection_user,
                                    sbh_collection_version=sbh_collection_version,
                                    sbh_username=sbh_username,
-                                   sbh_password=sbh_password)
+                                   sbh_password=sbh_password,
+                                   spreadsheet_id=spreadsheet_id)
     sbhPlugin.serverRunLoop()
 
 
