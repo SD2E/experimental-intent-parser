@@ -95,7 +95,8 @@ class IntentParserServer:
                 'Solution' : 'http://purl.obolibrary.org/obo/NCIT_C70830'
             },
             'collection': {
-                'Challenge Problem' : ''
+                'Challenge Problem' : '',
+                'Collection' : ''
             },
             'external': {
                 'Attribute' : ''
@@ -843,15 +844,54 @@ class IntentParserServer:
         # TODO
         return name
 
+    def set_item_properties(self, entity, data):
+        item_type = data['itemType']
+        item_title = data['title']
+        item_definition_uri = data['definitionURI']
+        item_lab_ids = data['labId']
+
+        if len(item_title):
+            sbol.TextProperty(entity, 'http://purl.org/dc/terms/title', '0', '1',
+                              item_title)
+
+        if len(item_definition_uri) > 0:
+            if item_type == 'CHEBI':
+                if not item_definition_uri.startswith('http://identifiers.org/chebi/CHEBI'):
+                    item_definition_uri = 'http://identifiers.org/chebi/CHEBI:' + \
+                        item_definition_uri
+            else:
+                sbol.URIProperty(entity, 'http://www.w3.org/ns/prov#wasDerivedFrom',
+                                 '0', '1', item_definition_uri)
+
+        if len(item_lab_ids) > 0:
+            lab_id_tag = data['labIdSelect'].replace(' ', '_')
+            tp = None
+            for item_lab_id in item_lab_ids.split(','):
+                if tp is None:
+                    tp = sbol.TextProperty(entity, 'http://sd2e.org#' + lab_id_tag, '0', '1',
+                                           item_lab_id)
+                else:
+                    tp.add(item_lab_id)
+
     def create_sbh_stub(self, data):
         item_type = data['itemType']
         item_name = data['commonName']
+        item_title = data['title']
+        item_definition_uri = data['definitionURI']
 
         display_id = self.sanitize_name_to_display_id(item_name)
+        document_url = self.sbh_uri_prefix + display_id + '/1'
+
+        if self.sbh.exists(document_url):
+            return {'results': {'operationSucceeded': False,
+                                'message': display_id + ' already exists in SynBioHub'}
+                    }
 
         try:
             document = sbol.Document()
             document.addNamespace('http://sd2e.org#', 'sd2')
+            document.addNamespace('http://purl.org/dc/terms/', 'dcterms')
+            document.addNamespace('http://www.w3.org/ns/prov#', 'prov')
 
             sbol_type = None
             for sbol_type_key in self.item_types:
@@ -861,24 +901,52 @@ class IntentParserServer:
                     break;
 
             if sbol_type == 'component':
-                component = sbol.ComponentDefinition(display_id, sbol_type_map[ item_type ])
-                annotation = sbol.TextProperty(component, 'http://sd2e.org#stub_object',
-                                               '0', '1', 'true')
+                if item_type == 'CHEBI':
+                    if len(item_definition_uri) == 0:
+                        item_sbol_type = sbol_type_map[ item_type ]
+                    else:
+                        item_sbol_type = item_definition_uri
+
+                    if not item_sbol_type.startswith('http://identifiers.org/chebi/CHEBI'):
+                        item_sbol_type = 'http://identifiers.org/chebi/CHEBI:' + \
+                            item_sbol_type
+                    component = sbol.ComponentDefinition(display_id, item_sbol_type)
+                else:
+                    component = sbol.ComponentDefinition(display_id, sbol_type_map[ item_type ])
+
+                sbol.TextProperty(component, 'http://sd2e.org#stub_object', '0', '1', 'true')
+                self.set_item_properties(component, data)
+
                 document.addComponentDefinition(component)
-                self.sbh.submit(document, self.sbh_collection_uri, 3)
 
             elif sbol_type == 'module':
                 module = sbol.ModuleDefinition(display_id)
-                annotation = sbol.TextProperty(module, 'http://sd2e.org#stub_object',
-                                               '0', '1', 'true')
+                sbol.TextProperty(module, 'http://sd2e.org#stub_object', '0', '1', 'true')
+
                 module.roles = sbol_type_map[ item_type ]
+                self.set_item_properties(module, data)
+
                 document.addModuleDefinition(module)
-                self.sbh.submit(document, self.sbh_collection_uri, 3)
+
+            elif sbol_type == 'external':
+                top_level = sbol.TopLevel('http://http://sd2e.org/types/#attribute', display_id)
+                self.set_item_properties(top_level, data)
+
+                document.addTopLevel(top_level)
+
+            elif sbol_type == 'collection':
+                collection = sbol.Collection(display_id)
+                sbol.TextProperty(collection, 'http://sd2e.org#stub_object', '0', '1', 'true')
+                if len(item_title):
+                    sbol.TextProperty(top_level, 'http://purl.org/dc/terms/title', '0', '1',
+                                      item_title)
+                document.addCollection(collection)
 
             else:
                 raise Exception()
 
-            document_url = self.sbh_uri_prefix + display_id + '/1'
+            self.sbh.submit(document, self.sbh_collection_uri, 3)
+
             paragraph_index = data['selectionStartParagraph']
             offset = data['selectionStartOffset']
             end_offset = data['selectionEndOffset']
@@ -891,16 +959,16 @@ class IntentParserServer:
                                                      value=e,
                                                      tb=e.__traceback__)))
 
-            buttons = [('OK', 'process_nop')]
+            message = 'Failed to add "' + display_id + '" to SynBioHub'
+            return {'results': {'operationSucceeded': False,
+                                'message': message}
+                    }
 
-            html  = '<center>'
-            html += 'Failed to add "' + display_id + '" to SynBioHub'
-            html += '</center>'
-            action = self.simple_modal_dialog(html, buttons, 'Error', 300, 150)
+        return_info = {'actions': [action],
+                       'results': {'operationSucceeded': True}
+                      }
 
-        actions = {'actions': [action]}
-
-        return actions
+        return return_info
 
     def process_nop(self, httpMessage, sm):
         return []
@@ -923,11 +991,15 @@ class IntentParserServer:
                  'uri'             : data['extra']['link']
                 }
             actions = self.add_link(search_result)
-            result = {'actions': actions}
+            result = {'actions': actions,
+                      'results': {'operationSucceeded': True}
+            }
 
         elif action == 'linkAll':
             actions = self.process_link_all(data)
-            result = {'actions': actions}
+            result = {'actions': actions,
+                      'results': {'operationSucceeded': True}
+            }
 
         else:
             print('Unsupported form action: {}'.format(action))
