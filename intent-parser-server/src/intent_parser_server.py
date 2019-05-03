@@ -11,6 +11,9 @@ import sbol
 import sys
 import getopt
 import re
+import time
+from datetime import date
+from datetime import datetime
 from operator import itemgetter
 
 class ConnectionException(Exception):
@@ -723,9 +726,13 @@ class IntentParserServer:
     def generate_item_map(self):
         item_map = {}
 
-        f = open('item-map.json', 'r')
-        item_map = json.loads(f.read())
-        return item_map
+        try:
+            f = open('item-map.json', 'r')
+            item_map = json.loads(f.read())
+            return item_map
+
+        except:
+            pass
 
         sheet_data = self.fetch_spreadsheet_data()
         for tab in sheet_data:
@@ -746,9 +753,10 @@ class IntentParserServer:
                 uri = row['SynBioHub URI']
                 item_map[common_name] = uri
 
-        #f = open('item-map.json', 'w')
-        #f.write(json.dumps(item_map))
-        #f.close()
+        f = open('item-map.json', 'w')
+        f.write(json.dumps(item_map))
+        f.close()
+
         return item_map
 
     def generate_html_options(self, options):
@@ -893,6 +901,15 @@ class IntentParserServer:
 
         sbol.TextProperty(entity, 'http://purl.org/dc/terms/title', '0', '1',
                           item_name)
+
+        time_stamp = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S-00')
+        sbol.TextProperty(entity, 'http://purl.org/dc/terms/created', '0', '1',
+                          time_stamp)
+        sbol.TextProperty(entity, 'http://purl.org/dc/terms/modified', '0', '1',
+                          time_stamp)
+
+        if item_type in self.item_types['collection']:
+            return
 
         if len(item_definition_uri) > 0:
             if item_type == 'CHEBI':
@@ -1067,9 +1084,7 @@ class IntentParserServer:
 
             elif sbol_type == 'collection':
                 collection = sbol.Collection(display_id)
-                sbol.TextProperty(collection, 'http://sd2e.org#stub_object', '0', '1', 'true')
-                sbol.TextProperty(entity, 'http://purl.org/dc/terms/title', '0', '1',
-                                  item_name)
+                self.set_item_properties(collection, data)
                 document.addCollection(collection)
 
             else:
