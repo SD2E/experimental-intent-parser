@@ -45,6 +45,7 @@ class GoogleAccessor:
                                     'SynBioHub URI',
                                     'Stub Object?',
                                     'Definition URI',
+                                    'Definition URI / CHEBI ID',
                                     'Status']
 
         self.mapping_failures_headers = [
@@ -337,7 +338,7 @@ class GoogleAccessor:
         column headers to values
         """
         headers = self._get_tab_inverse_headers(tab)
-        row_data = [''] * max(headers.keys())
+        row_data = [''] * (max(headers.keys()) + 1)
 
         for index in headers.keys():
             header = headers[index]

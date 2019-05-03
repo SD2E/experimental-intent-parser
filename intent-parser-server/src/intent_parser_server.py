@@ -10,6 +10,7 @@ import functools
 import sbol
 import sys
 import getopt
+import re
 from operator import itemgetter
 
 class ConnectionException(Exception):
@@ -102,6 +103,12 @@ class IntentParserServer:
                 'Attribute' : ''
             }
         }
+
+        # Inverse map of typeTabs
+        self.type2tab = {}
+        for tab_name in self.google_accessor.type_tabs.keys():
+            for type_name in self.google_accessor.type_tabs[tab_name]:
+                self.type2tab[type_name] = tab_name
 
         self.lab_ids_list = sorted(['BioFAB UID',
                                     'Ginkgo UID',
@@ -247,14 +254,26 @@ class IntentParserServer:
         self.analyze_document(client_state, doc, 0)
 
         report = {}
-        terms = []
-        search_results = client_state['search_results']
-        for search_result in search_results:
-            term = {}
-            term['term'] = search_result['term']
-            terms.append(term)
+        report['challenge_problem_id'] = 'undefined'
+        report['experiment_reference_url'] = \
+            'https://docs.google.com/document/d/' + document_id
+        report['labs'] = []
 
-        report['terms'] = terms
+
+        mapped_names = []
+        search_results = client_state['search_results']
+        label_set = set()
+        for search_result in search_results:
+            mapped_name = {}
+            label = search_result['term']
+            if label in label_set:
+                continue
+            label_set.add( label )
+            mapped_name['label'] = label
+            mapped_name['sbh_uri'] = search_result['uri']
+            mapped_names.append(mapped_name)
+
+        report['mapped_names'] = mapped_names
 
         self.send_response(200, 'OK', json.dumps(report), sm,
                            'application/json')
@@ -800,11 +819,13 @@ class IntentParserServer:
             start_offset = start['offset']
             end_offset = end['offset'] + 1
             selection = paragraph_text[start_offset:end_offset]
+            display_id = self.sanitize_name_to_display_id(selection)
 
             html = self.add_html
 
             # Update parameters in html
             html = html.replace('${COMMONNAME}', selection)
+            html = html.replace('${DISPLAYID}', display_id)
             html = html.replace('${STARTPARAGRAPH}', str(start_paragraph))
             html = html.replace('${STARTOFFSET}', str(start_offset))
             html = html.replace('${ENDPARAGRAPH}', str(end_paragraph))
@@ -841,18 +862,37 @@ class IntentParserServer:
         return search_results
 
     def sanitize_name_to_display_id(self, name):
-        # TODO
-        return name
+        displayIDfirstChar = '[a-zA-Z_]'
+        displayIDlaterChar = '[a-zA-Z0-9_]'
+
+        sanitized = ''
+        for i in range(len(name)):
+            character = name[i]
+            if i==0:
+                if re.match(displayIDfirstChar, character):
+                    sanitized += character
+                else:
+                    sanitized += '_' # avoid starting with a number
+                    if re.match(displayIDlaterChar, character):
+                        sanitized += character
+                    else:
+                        sanitized += '0x{:x}'.format(ord(character))
+            else:
+                if re.match(displayIDlaterChar, character):
+                    sanitized += character;
+                else:
+                    sanitized += '0x{:x}'.format(ord(character))
+
+        return sanitized
 
     def set_item_properties(self, entity, data):
         item_type = data['itemType']
-        item_title = data['title']
+        item_name = data['commonName']
         item_definition_uri = data['definitionURI']
         item_lab_ids = data['labId']
 
-        if len(item_title):
-            sbol.TextProperty(entity, 'http://purl.org/dc/terms/title', '0', '1',
-                              item_title)
+        sbol.TextProperty(entity, 'http://purl.org/dc/terms/title', '0', '1',
+                          item_name)
 
         if len(item_definition_uri) > 0:
             if item_type == 'CHEBI':
@@ -873,46 +913,137 @@ class IntentParserServer:
                 else:
                     tp.add(item_lab_id)
 
-    def create_sbh_stub(self, data):
+    def operation_failed(self, message):
+        return {'results': {'operationSucceeded': False,
+                            'message': message}
+        }
+
+    def create_dictionary_entry(self, data, document_url, item_definition_uri):
         item_type = data['itemType']
         item_name = data['commonName']
-        item_title = data['title']
-        item_definition_uri = data['definitionURI']
+        item_lab_ids = data['labId']
+        item_lab_id_tag = data['labIdSelect']
 
-        display_id = self.sanitize_name_to_display_id(item_name)
+        sbh_uri_prefix = self.sbh_uri_prefix
+        if self.sbh_spoofing_prefix is not None:
+            item_uri = document_url.replace(self.sbh_url,
+                                            self.sbh_spoofing_prefix)
+        else:
+            item_uri = document_url
+
+        tab_name = self.type2tab[item_type]
+
+        try:
+            tab_data = self.google_accessor.get_row_data(tab=tab_name)
+        except:
+            raise Exception('Failed to access dictionary spreadsheet')
+
+        # Get common names
+        item_map = {}
+        for row_data in tab_data:
+            common_name = row_data['Common Name']
+            if common_name is None or len(common_name) == 0:
+                continue
+            item_map[common_name] = row_data
+
+        if item_name in item_map:
+            raise Exception('"' + item_name + '" already exists in dictionary spreadsheet')
+
+        dictionary_entry = {}
+        dictionary_entry['tab'] = tab_name
+        dictionary_entry['row'] = len(tab_data) + 3
+        dictionary_entry['Common Name'] = item_name
+        dictionary_entry['Type'] = item_type
+        if tab_name == 'Reagent':
+            dictionary_entry['Definition URI / CHEBI ID'] = \
+                item_definition_uri
+        else:
+            dictionary_entry['Definition URI'] = \
+                item_definition_uri
+
+        if item_type != 'Attribute':
+            dictionary_entry['Stub Object?'] = 'YES'
+
+        dictionary_entry[item_lab_id_tag] = item_lab_ids
+        dictionary_entry['SynBioHub URI'] = item_uri
+
+        try:
+            self.google_accessor.set_row_data(dictionary_entry)
+        except:
+            raise Exception('Failed to add entry to the dictionary spreadsheet')
+
+    def create_sbh_stub(self, data):
+        # Extract some fields from the form
+        try:
+            item_type = data['itemType']
+            item_name = data['commonName']
+            item_definition_uri = data['definitionURI']
+            item_display_id = data['displayId']
+
+        except Exception as e:
+            return self.operation_failed('Form sumission missing key: ' + str(e))
+
+        # Make sure Common Name was specified
+        if len(item_name) == 0:
+            return self.operation_failed('Common Name must be specified')
+
+        # Sanitize the display id
+        if len(item_display_id) > 0:
+             display_id = self.sanitize_name_to_display_id(item_display_id)
+             if display_id != item_display_id:
+                 return self.operation_failed('Illegal display_id')
+        else:
+            display_id = self.sanitize_name_to_display_id(item_name)
+
+        # Derive document URL
         document_url = self.sbh_uri_prefix + display_id + '/1'
 
-        if self.sbh.exists(document_url):
-            return {'results': {'operationSucceeded': False,
-                                'message': display_id + ' already exists in SynBioHub'}
-                    }
+        # Make sure document does not already exist
+        try:
+            if self.sbh.exists(document_url):
+                return self.operation_failed('"' + display_id +
+                                             '" already exists in SynBioHub')
+        except:
+            return self.operation_failed('Failed to access SynBioHub')
 
+        # Look up sbol type uri
+        sbol_type = None
+        for sbol_type_key in self.item_types:
+            sbol_type_map = self.item_types[ sbol_type_key ]
+            if item_type in sbol_type_map:
+                sbol_type = sbol_type_key
+                break;
+
+        # Fix CHEBI URI
+        if item_type == 'CHEBI':
+            if len(item_definition_uri) == 0:
+                 item_definition_uri = sbol_type_map[ item_type ]
+            else:
+                if not item_definition_uri.startswith('http://identifiers.org/chebi/CHEBI'):
+                    item_definition_uri = 'http://identifiers.org/chebi/CHEBI:' + \
+                        item_definition_uri
+
+        # Create a dictionary entry for the item
+        try:
+            self.create_dictionary_entry(data, document_url, item_definition_uri)
+
+        except Exception as e:
+            return self.operation_failed(str(e))
+
+        # Create an entry in SynBioHub
         try:
             document = sbol.Document()
             document.addNamespace('http://sd2e.org#', 'sd2')
             document.addNamespace('http://purl.org/dc/terms/', 'dcterms')
             document.addNamespace('http://www.w3.org/ns/prov#', 'prov')
 
-            sbol_type = None
-            for sbol_type_key in self.item_types:
-                sbol_type_map = self.item_types[ sbol_type_key ]
-                if item_type in sbol_type_map:
-                    sbol_type = sbol_type_key
-                    break;
-
             if sbol_type == 'component':
                 if item_type == 'CHEBI':
-                    if len(item_definition_uri) == 0:
-                        item_sbol_type = sbol_type_map[ item_type ]
-                    else:
-                        item_sbol_type = item_definition_uri
-
-                    if not item_sbol_type.startswith('http://identifiers.org/chebi/CHEBI'):
-                        item_sbol_type = 'http://identifiers.org/chebi/CHEBI:' + \
-                            item_sbol_type
-                    component = sbol.ComponentDefinition(display_id, item_sbol_type)
+                    item_sbol_type = item_definition_uri
                 else:
-                    component = sbol.ComponentDefinition(display_id, sbol_type_map[ item_type ])
+                    item_sbol_type = sbol_type_map[ item_type ]
+
+                component = sbol.ComponentDefinition(display_id, item_sbol_type)
 
                 sbol.TextProperty(component, 'http://sd2e.org#stub_object', '0', '1', 'true')
                 self.set_item_properties(component, data)
@@ -937,9 +1068,8 @@ class IntentParserServer:
             elif sbol_type == 'collection':
                 collection = sbol.Collection(display_id)
                 sbol.TextProperty(collection, 'http://sd2e.org#stub_object', '0', '1', 'true')
-                if len(item_title):
-                    sbol.TextProperty(top_level, 'http://purl.org/dc/terms/title', '0', '1',
-                                      item_title)
+                sbol.TextProperty(entity, 'http://purl.org/dc/terms/title', '0', '1',
+                                  item_name)
                 document.addCollection(collection)
 
             else:
@@ -960,9 +1090,7 @@ class IntentParserServer:
                                                      tb=e.__traceback__)))
 
             message = 'Failed to add "' + display_id + '" to SynBioHub'
-            return {'results': {'operationSucceeded': False,
-                                'message': message}
-                    }
+            return self.operation_failed(message)
 
         return_info = {'actions': [action],
                        'results': {'operationSucceeded': True}
@@ -1046,22 +1174,26 @@ class IntentParserServer:
         json_body = self.get_json_body(httpMessage)
         data = json_body['data']
 
-        search_results = self.simple_syn_bio_hub_search(data['term'])
-        if len(search_results) > 5:
-            search_results = search_results[0:5]
+        try:
+            search_results = self.simple_syn_bio_hub_search(data['term'])
 
-        table_html = ''
-        for search_result in search_results:
-            title = search_result['title']
-            target = search_result['target']
-            table_html += self.generate_existing_link_html(title,
-                                                           target)
+            if len(search_results) > 5:
+                search_results = search_results[0:5]
 
-        response = {'results':
-                    {'search_results': search_results,
-                     'table_html': table_html
-                    }}
+            table_html = ''
+            for search_result in search_results:
+                title = search_result['title']
+                target = search_result['target']
+                table_html += self.generate_existing_link_html(title,
+                                                               target)
 
+            response = {'results':
+                        {'operationSucceeded': True,
+                         'search_results': search_results,
+                         'table_html': table_html
+                        }}
+        except:
+            response = self.operation_failed('Failed to search SynBioHub')
 
         self.send_response(200, 'OK', json.dumps(response), sm,
                            'application/json')
@@ -1075,10 +1207,10 @@ def main(argv):
 
     sbh_username = None
     sbh_password = None
-    spreadsheet_id = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g'
+    spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk'
     sbh_url='https://hub-staging.sd2e.org'
     sbh_spoofing_prefix='https://hub.sd2e.org'
-    sbh_collection='scratch_test'
+    sbh_collection='intent_parser'
     sbh_collection_user='sd2e'
     sbh_collection_version='1'
 
