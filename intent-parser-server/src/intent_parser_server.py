@@ -37,10 +37,14 @@ class IntentParserServer:
         if sbh_url is not None:
             # log into Syn Bio Hub
             if sbh_username is None:
-                raise Exception('SBH username was not specified')
+                print('SynBioHub username was not specified')
+                usage()
+                sys.exit(2)
 
             if sbh_password is None:
-                raise Exception('SBH password was not speficied')
+                print('SynBioHub password was not speficied')
+                usage()
+                sys.exit(2)
 
             self.sbh = sbol.PartShop(sbh_url)
             self.sbh_collection = sbh_collection
@@ -1139,7 +1143,7 @@ class IntentParserServer:
             }
 
         elif action == 'linkAll':
-            actions = self.process_link_all(data)
+            actions = self.process_form_link_all(data)
             result = {'actions': actions,
                       'results': {'operationSucceeded': True}
             }
@@ -1151,7 +1155,7 @@ class IntentParserServer:
                            'application/json')
 
 
-    def process_link_all(self, data):
+    def process_form_link_all(self, data):
         document_id = data['documentId']
         doc = self.google_accessor.get_document(
             document_id=document_id
@@ -1213,27 +1217,94 @@ class IntentParserServer:
         self.send_response(200, 'OK', json.dumps(response), sm,
                            'application/json')
 
-def main(argv):
-    try:
-        opts, args = getopt.getopt(argv, "u:p:", ["username=", "password="])
-    except getopt.GetoptError:
-        print("intent_parser_server.py: -u <sbh username> -p <sbh password>")
-        sys.exit(2);
+spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk'
+sbh_spoofing_prefix=None
+sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
 
+def usage():
+    print('')
+    print('intent_parser_server.py: [options]')
+    print('')
+    print('    -h --help            - show this message')
+    print('    -p --pasword         - SynBioHub password')
+    print('    -u --username        - SynBioHub username')
+    print('    -c --collection      - collection url (default={})'. \
+          format(sbh_collection_uri))
+    print('    -i --spreadsheet-id  - dictionary spreadsheet id (default={})'. \
+          format(spreadsheet_id))
+    print('    -s --spoofing-prefix - SBH spoofing prefix (default={})'.
+          format(sbh_spoofing_prefix))
+    print('')
+
+def main(argv):
     sbh_username = None
     sbh_password = None
-    spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk'
-    sbh_url='https://hub-staging.sd2e.org'
-    sbh_spoofing_prefix='https://hub.sd2e.org'
-    sbh_collection='intent_parser'
-    sbh_collection_user='sd2e'
-    sbh_collection_version='1'
+
+    global spreadsheet_id
+    global sbh_spoofing_prefix
+    global sbh_collection_uri
+
+    try:
+        opts, args = getopt.getopt(argv, "u:p:hc:i:s:",
+                                   ["username=",
+                                    "password=",
+                                    "help",
+                                    "collection=",
+                                    "spreadsheet-id=",
+                                    "spoofing-prefix="])
+    except getopt.GetoptError as err:
+        print(str(err))
+        usage()
+        sys.exit(2);
 
     for opt,arg in opts:
-        if (opt == '-u') or (opt == '--username'):
+        if opt in ('-u', '--username'):
             sbh_username = arg
-        elif (opt == '-p') or (opt == '--password'):
+
+        elif opt in ('-p', '--password'):
             sbh_password = arg
+
+        elif opt in ('-h', '--help'):
+            usage()
+            sys.exit(0)
+
+        elif opt in ('-c', '--collection'):
+            sbh_collection_uri = arg
+
+        elif opt in ('-i', '--spreadsheet-id'):
+            spreadsheet_id = arg
+
+        elif opt in ('-s', '--spoofing-prefix'):
+            sbh_spoofing_prefix = arg
+
+    if sbh_collection_uri[:8] == 'https://':
+        sbh_url_protocol = 'https://'
+        sbh_collection_path = sbh_collection_uri[8:]
+
+    elif sbh_collection_uri[:7] == 'http://':
+        sbh_url_protocol = 'http://'
+        sbh_collection_path = sbh_collection_uri[7:]
+
+    else:
+        print('Invalid collection url: ' + sbh_collection_uri);
+        usage();
+        sys.exit(3)
+
+    sbh_collection_path_parts = sbh_collection_path.split('/')
+    if len(sbh_collection_path_parts) != 6:
+        print('Invalid collection url: ' + sbh_collection_uri);
+        usage()
+        sys.exit(4)
+
+    sbh_collection = sbh_collection_path_parts[3]
+    sbh_collection_user = sbh_collection_path_parts[2]
+    sbh_collection_version = sbh_collection_path_parts[5]
+    sbh_url = sbh_url_protocol + sbh_collection_path_parts[0]
+
+    if sbh_collection_path_parts[4] != (sbh_collection + '_collection'):
+        print('Invalid collection url: ' + sbh_collection_uri);
+        usage()
+        sys.exit(5)
 
     sbhPlugin = IntentParserServer(sbh_url=sbh_url,
                                    sbh_spoofing_prefix=sbh_spoofing_prefix,
