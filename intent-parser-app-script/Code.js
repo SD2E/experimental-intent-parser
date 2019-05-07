@@ -1,5 +1,3 @@
-var gItemMap = null
-var gCurrentRange = null
 var serverURL = 'http://intent-parser-server.bbn.com'
 
 function onOpen() {
