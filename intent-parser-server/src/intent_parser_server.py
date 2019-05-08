@@ -29,7 +29,9 @@ class IntentParserServer:
                  sbh_url, sbh_spoofing_prefix=None,
                  sbh_collection, sbh_collection_user='sd2e',
                  sbh_collection_version='1', spreadsheet_id,
-                 sbh_username=None, sbh_password=None):
+                 sbh_username=None, sbh_password=None,
+                 sbh_link_hosts=['hub-staging.sd2e.org',
+                                 'hub.sd2e.org']):
 
         self.bind_port = bind_port
         self.bind_ip = bind_ip
@@ -50,6 +52,7 @@ class IntentParserServer:
             self.sbh_collection = sbh_collection
             self.sbh_spoofing_prefix = sbh_spoofing_prefix
             self.sbh_url = sbh_url
+            self.sbh_link_hosts = sbh_link_hosts
 
             if sbh_spoofing_prefix is not None:
                 self.sbh.spoof(sbh_spoofing_prefix)
@@ -256,6 +259,40 @@ class IntentParserServer:
                                       'Failed to access document ' +
                                       document_id)
 
+        text_runs = self.get_element_type(doc, 'textRun')
+        text_runs = list(filter(lambda x: 'textStyle' in x,
+                                text_runs))
+        text_runs = list(filter(lambda x: 'link' in x['textStyle'],
+                                text_runs))
+        links_info = list(map(lambda x: (x['content'],
+                                         x['textStyle']['link']),
+                              text_runs))
+
+        mapped_names = []
+        term_map = {}
+        for link_info in links_info:
+            try:
+                term = link_info[0].strip()
+                url = link_info[1]['url']
+                if len(term) == 0:
+                    continue
+
+                if term in term_map:
+                    if term_map[term] == url:
+                        continue
+
+                url_host = url.split('/')[2]
+                if url_host not in self.sbh_link_hosts:
+                   continue
+
+                term_map[term] = url
+                mapped_name = {}
+                mapped_name['label'] = term
+                mapped_name['sbh_url'] = url
+                mapped_names.append(mapped_name)
+            except:
+                continue
+
         client_state = {}
         client_state['doc'] = doc
         self.analyze_document(client_state, doc, 0)
@@ -265,20 +302,6 @@ class IntentParserServer:
         report['experiment_reference_url'] = \
             'https://docs.google.com/document/d/' + document_id
         report['labs'] = []
-
-
-        mapped_names = []
-        search_results = client_state['search_results']
-        label_set = set()
-        for search_result in search_results:
-            mapped_name = {}
-            label = search_result['term']
-            if label in label_set:
-                continue
-            label_set.add( label )
-            mapped_name['label'] = label
-            mapped_name['sbh_uri'] = search_result['uri']
-            mapped_names.append(mapped_name)
 
         report['mapped_names'] = mapped_names
 
@@ -415,19 +438,24 @@ class IntentParserServer:
             return actions
 
     def get_paragraphs(self, element):
-        paragraphs = []
+        return self.get_element_type(element, 'paragraph')
+
+    def get_element_type(self, element, element_type):
+        elements = []
         if type(element) is dict:
             for key in element:
-                if key == 'paragraph':
-                    paragraphs.append(element[key])
+                if key == element_type:
+                    elements.append(element[key])
 
-                paragraphs += self.get_paragraphs(element[key])
+                elements += self.get_element_type(element[key],
+                                                  element_type)
 
         elif type(element) is list:
             for entry in element:
-                paragraphs += self.get_paragraphs(entry)
+                elements += self.get_element_type(entry,
+                                                  element_type)
 
-        return paragraphs
+        return elements
 
 
     def fetch_spreadsheet_data(self):
