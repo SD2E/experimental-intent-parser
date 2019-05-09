@@ -3,6 +3,7 @@ import threading
 import json
 from socket_manager import SocketManager
 from google_accessor import GoogleAccessor
+from sbh_accessor import SBHAccessor
 import http_message;
 import uuid
 import traceback
@@ -48,7 +49,7 @@ class IntentParserServer:
                 usage()
                 sys.exit(2)
 
-            self.sbh = sbol.PartShop(sbh_url)
+            self.sbh = SBHAccessor(sbh_url=sbh_url)
             self.sbh_collection = sbh_collection
             self.sbh_spoofing_prefix = sbh_spoofing_prefix
             self.sbh_url = sbh_url
@@ -83,7 +84,14 @@ class IntentParserServer:
 
         self.client_state_map = {}
         self.client_state_lock = threading.Lock()
-        self.item_map = self.generate_item_map()
+        self.item_map_lock = threading.Lock()
+        self.item_map_lock.acquire()
+        self.item_map = self.generate_item_map(use_cache=True)
+        self.item_map_lock.release()
+
+        self.housekeeping_thread = \
+            threading.Thread(target=self.housekeeping)
+        self.housekeeping_thread.start()
 
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -412,7 +420,11 @@ class IntentParserServer:
 
             actions = []
 
-            if link is not None and link == self.item_map[term]:
+            self.item_map_lock.acquire()
+            item_map = self.item_map
+            self.item_map_lock.release()
+
+            if link is not None and link == item_map[term]:
                 continue
 
             highlightTextAction = self.highlight_text(paragraph_index, offset,
@@ -474,8 +486,13 @@ class IntentParserServer:
 
         search_results = []
 
+
+        self.item_map_lock.acquire()
+        item_map = self.item_map
+        self.item_map_lock.release()
+
         itr = 0
-        for term in self.item_map.keys():
+        for term in item_map.keys():
             pos = start_offset
             while True:
                 result = self.find_text(term, pos, paragraphs)
@@ -486,7 +503,7 @@ class IntentParserServer:
                                         'offset': result[1],
                                         'end_offset': result[1] + len(term),
                                         'term': term,
-                                        'uri': self.item_map[term],
+                                        'uri': item_map[term],
                                         'link': result[3],
                                         'text': result[4]})
 
@@ -755,16 +772,34 @@ class IntentParserServer:
 
         self.client_state_lock.release()
 
-    def generate_item_map(self):
+    def housekeeping(self):
+        while True:
+            time.sleep(3600)
+            try:
+                item_map = self.generate_item_map(use_cache=False)
+
+            except Exception as ex:
+                print(''.join(traceback.format_exception(etype=type(ex),
+                                                         value=ex,
+                                                         tb=ex.__traceback__)))
+                continue
+
+            self.item_map_lock.acquire()
+            self.item_map = item_map
+            self.item_map_lock.release()
+
+
+    def generate_item_map(self, *, use_cache=True):
         item_map = {}
 
-        try:
-            f = open('item-map.json', 'r')
-            item_map = json.loads(f.read())
-            return item_map
+        if use_cache:
+            try:
+                f = open('item-map.json', 'r')
+                item_map = json.loads(f.read())
+                return item_map
 
-        except:
-            pass
+            except:
+                pass
 
         sheet_data = self.fetch_spreadsheet_data()
         for tab in sheet_data:
