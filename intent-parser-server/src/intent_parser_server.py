@@ -929,18 +929,21 @@ class IntentParserServer:
         try:
             json_body = self.get_json_body(http_message)
 
-            data = json_body['data']
             document_id = json_body['documentId']
             user = json_body['user']
             userEmail = json_body['userEmail']
 
             # TODO: Remove
-            print('user: ' + user + ", email: " + userEmail)
+            if user:
+                print('user keys: ' + ', '.join(user.keys))
+            print('user email: ' + userEmail)
 
             if not userEmail is '':
                 userId = userEmail
-            else:
+            elif user:
                 userId = user
+            else:
+                userId = document_id
 
             if not userId in self.spellCheckers:
                 self.spellCheckers[userId] = SpellChecker()
@@ -956,6 +959,21 @@ class IntentParserServer:
                 raise ConnectionException('404', 'Not Found',
                                           'Failed to access document ' +
                                           document_id)
+
+            if 'data' in json_body:
+                body = doc.get('body');
+                doc_content = body.get('content')
+                paragraphs = self.get_paragraphs(doc_content)
+
+                data = json_body['data']
+                paragraph_index = data['paragraphIndex']
+                offset = data['offset']
+                paragraph = paragraphs[ paragraph_index ]
+                first_element = paragraph['elements'][0]
+                paragraph_offset = first_element['startIndex']
+                start_offset = paragraph_offset + offset
+            else:
+                startOffset = 0
 
             client_state = self.new_connection(document_id)
             client_state['doc'] = doc
