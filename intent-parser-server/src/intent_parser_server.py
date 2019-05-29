@@ -45,7 +45,7 @@ class IntentParserServer:
                 sys.exit(2)
 
             if sbh_password is None:
-                print('SynBioHub password was not speficied')
+                print('SynBioHub password was not specified')
                 usage()
                 sys.exit(2)
 
@@ -622,8 +622,6 @@ class IntentParserServer:
 
         return self.modal_dialog(htmlMessage, title, width, height)
 
-        return action
-
     def modal_dialog(self, html, title, width, height):
         action = {}
         action['action'] = 'showModalDialog'
@@ -679,11 +677,11 @@ class IntentParserServer:
                 content = text_run['content']
                 offset = content.lower().find(text.lower(), find_start)
 
-                # Check for whitespece before found text
+                # Check for whitespace before found text
                 if offset > 0 and content[offset-1].isalpha():
                     continue
 
-                # Check for whitespece after found text
+                # Check for whitespace after found text
                 next_offset = offset + len(text)
                 if next_offset < len(content) and content[next_offset].isalpha():
                     continue
