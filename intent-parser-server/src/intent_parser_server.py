@@ -17,6 +17,8 @@ from datetime import date
 from datetime import datetime
 from operator import itemgetter
 
+from spellchecker import SpellChecker
+
 class ConnectionException(Exception):
     def __init__(self, code, message, content=""):
         super(ConnectionException, self).__init__(message);
@@ -144,6 +146,8 @@ class IntentParserServer:
 
         print('listening on {}:{}'.format(bind_ip, bind_port))
 
+        self.spellCheckers = {}
+
     def serverRunLoop(self):
         while True:
             client_sock, address = self.server.accept()
@@ -206,6 +210,8 @@ class IntentParserServer:
             self.process_button_click(httpMessage, sm)
         elif resource == '/addToSynBioHub':
             self.process_add_to_syn_bio_hub(httpMessage, sm)
+        elif resource == '/addBySpelling':
+            self.process_add_by_spelling(httpMessage, sm)
         elif resource == '/searchSynBioHub':
             self.process_search_syn_bio_hub(httpMessage, sm)
         elif resource == '/submitForm':
@@ -917,6 +923,104 @@ class IntentParserServer:
                                'application/json')
         except Exception as e:
             raise e
+
+
+    def process_add_by_spelling(self, http_message, sm):
+        try:
+            json_body = self.get_json_body(http_message)
+
+            data = json_body['data']
+            document_id = json_body['documentId']
+            user = json_body['user']
+            userEmail = json_body['userEmail']
+
+            # TODO: Remove
+            print('user: ' + user + ", email: " + userEmail)
+
+            if not userEmail is '':
+                userId = userEmail
+            else:
+                userId = user
+
+            if not userId in self.spellCheckers:
+                self.spellCheckers[userId] = SpellChecker()
+
+            try:
+                doc = self.google_accessor.get_document(
+                    document_id=document_id
+                )
+            except Exception as ex:
+                print(''.join(traceback.format_exception(etype=type(ex),
+                                                         value=ex,
+                                                         tb=ex.__traceback__)))
+                raise ConnectionException('404', 'Not Found',
+                                          'Failed to access document ' +
+                                          document_id)
+
+            client_state = self.new_connection(document_id)
+            client_state['doc'] = doc
+
+            body = doc.get('body');
+            doc_content = body.get('content')
+            paragraphs = self.get_paragraphs(doc_content)
+
+            start = time.time()
+
+            spellCheckResults = []
+            missedTerms = []
+
+            for pIdx in range(0, len(paragraphs)):
+                paragraph_text = self.get_paragraph_text(paragraphs[pIdx])
+                for word in paragraph_text.split():
+                    if not word in self.spellCheckers[userId]:
+                        result = {
+                           'term' : word,
+                           'paragraphIdx' : pIdx,
+                           'selectStart' : 0,
+                           'selectEnd' : 1 }
+                        spellCheckResults.append(result)
+                        missedTerms.append(word)
+
+            end = time.time()
+            print('Scanned entire document in %0.2fs' %((end - start) * 1000))
+
+            # If we have a spelling mistake, highlight text and update user
+            if len(spellCheckResults) > 0:
+                actionList = []
+                highlightTextAction = self.highlight_text(spellCheckResults[0]['paragraphIdx'], spellCheckResults[0]['selectStart'], spellCheckResults[0]['selectEnd'])
+                actionList.append(highlightTextAction)
+
+                html  = ''
+                html += '<center>'
+                html += 'Term ' + word + ' not found in dictionary, potential addition? ';
+                html += '</center>'
+
+                buttons = [('Ignore', 'spellcheck_add_ignore'),
+                           ('Add to SynBioHub', 'spellcheck_add_synbiohub'),
+                           ('Add to Dictionary', 'spellcheck_add_dictionary'),
+                           ('Include Previous Word', 'spellcheck_add_select_previous'),
+                           ('Include Next Word', 'spellcheck_add_select_next'),
+                           ('Remove First Word', 'spellcheck_add_drop_first'),
+                           ('Remove Last Word', 'spellcheck_add_drop_last')]
+
+                dialogAction = self.simple_sidebar_dialog(html, buttons)
+                actionList.append(dialogAction)
+
+                actions = {'actions': actionList}
+                self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+            else: # No spelling mistakes!
+                buttons = [('Ok', 'process_nop')]
+                dialog_action = self.simple_modal_dialog('Found no words not in spelling dictionary!', buttons, 'No misspellings!', 400, 450)
+                actionList = [dialog_action]
+                actions = {'actions': actionList}
+
+                self.send_response(200, 'OK', json.dumps(actions), sm,
+                                   'application/json')
+        except Exception as e:
+            raise e
+
+        finally:
+            self.release_connection(client_state)
 
     def simple_syn_bio_hub_search(self, term):
         sparql_query = self.sparql_query.replace('${TERM}', term)
