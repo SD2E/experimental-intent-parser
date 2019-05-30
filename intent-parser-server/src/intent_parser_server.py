@@ -150,6 +150,8 @@ class IntentParserServer:
         self.spellCheckers = {}
 
         self.dict_path = 'dictionaries'
+        if not os.path.exists(self.dict_path):
+           os.makedirs(self.dict_path)
 
     def serverRunLoop(self):
         while True:
