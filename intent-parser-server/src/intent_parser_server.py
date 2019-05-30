@@ -971,9 +971,9 @@ class IntentParserServer:
                 paragraph = paragraphs[ paragraph_index ]
                 first_element = paragraph['elements'][0]
                 paragraph_offset = first_element['startIndex']
-                start_offset = paragraph_offset + offset
+                starting_pos = paragraph_offset + offset
             else:
-                startOffset = 0
+                starting_pos = 0
 
             client_state = self.new_connection(document_id)
             client_state['doc'] = doc
@@ -988,17 +988,64 @@ class IntentParserServer:
             missedTerms = []
 
             for pIdx in range(0, len(paragraphs)):
-                paragraph_text = self.get_paragraph_text(paragraphs[pIdx])
-                for word in paragraph_text.split():
-                    if not word in self.spellCheckers[userId]:
-                        result = {
-                           'term' : word,
-                           'paragraphIdx' : pIdx,
-                           'selectStart' : 0,
-                           'selectEnd' : 1 }
-                        spellCheckResults.append(result)
-                        missedTerms.append(word)
+                paragraph = paragraphs[ pIdx ]
+                elements = paragraph['elements']
+                firstIdx = elements[0]['startIndex']
+                for element_index in range( len(elements) ):
+                    element = elements[ element_index ]
 
+                    if 'textRun' not in element:
+                        continue
+                    text_run = element['textRun']
+
+                    end_index = element['endIndex']
+                    if end_index < starting_pos:
+                        continue
+
+                    start_index = element['startIndex']
+
+                    if start_index < starting_pos:
+                        wordStart = starting_pos - start_index
+                    else:
+                        wordStart = 0
+
+                    content = text_run['content']
+                    endIdx = len(content);
+                    currIdx = wordStart + 1
+                    while currIdx < endIdx:
+                        # Check for end of word
+                        if content[currIdx].isspace():
+                            word = content[wordStart:currIdx]
+                            if not word in self.spellCheckers[userId]:
+                                absoluteIdx =  wordStart + (start_index - firstIdx)
+                                result = {
+                                   'term' : word,
+                                   'paragraphIdx' : pIdx,
+                                   'selectStart' : absoluteIdx,
+                                   'selectEnd' : absoluteIdx + len(word) - 1 }
+                                spellCheckResults.append(result)
+                                missedTerms.append(word)
+                            # Find start of next word
+                            while currIdx < endIdx and content[currIdx].isspace():
+                                currIdx += 1
+                            # Store word start
+                            wordStart = currIdx
+                            currIdx += 1
+                        else: # continue until we find word end
+                            currIdx += 1
+
+                    # Check for tailing word that wasn't processed
+                    if currIdx - wordStart > 1:
+                        word = content[wordStart:currIdx]
+                        if not word in self.spellCheckers[userId]:
+                            absoluteIdx =  wordStart + (start_index - firstIdx)
+                            result = {
+                               'term' : word,
+                               'paragraphIdx' : pIdx,
+                               'selectStart' : absoluteIdx,
+                               'selectEnd' : absoluteIdx + len(word) - 1}
+                            spellCheckResults.append(result)
+                            missedTerms.append(word)
             end = time.time()
             print('Scanned entire document in %0.2fs' %((end - start) * 1000))
 
