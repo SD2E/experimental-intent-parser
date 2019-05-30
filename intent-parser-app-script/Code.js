@@ -45,6 +45,22 @@ function processActions(response) {
     var actionDesc = actions[actionKey]
 
     switch(actionDesc['action']) {
+      case 'spelling_add_synbiohub':
+        // Extract element and offset from end of selection
+
+        var startPar = actionDesc['select_start']['paragraph_index']
+        var startOffset = actionDesc['select_start']['cursor_index']
+        var startLocation = {'paragraphIndex': startPar,'offset': startOffset}
+
+        var endPar = actionDesc['select_end']['paragraph_index']
+        var endOffset = actionDesc['select_end']['cursor_index']
+        var endLocation = {'paragraphIndex': endPar,'offset': endOffset}
+
+        var selection = {'start': startLocation,'end': endLocation}
+
+        sendPost('/addToSynBioHub', selection)
+        break
+
       case 'highlightText':
         var paragraphIndex = actionDesc['paragraph_index']
         var offset = actionDesc['offset']
