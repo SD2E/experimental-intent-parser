@@ -13,6 +13,7 @@ import sys
 import getopt
 import re
 import time
+import os
 from datetime import date
 from datetime import datetime
 from operator import itemgetter
@@ -147,6 +148,8 @@ class IntentParserServer:
         print('listening on {}:{}'.format(bind_ip, bind_port))
 
         self.spellCheckers = {}
+
+        self.dict_path = 'dictionaries'
 
     def serverRunLoop(self):
         while True:
@@ -297,7 +300,7 @@ class IntentParserServer:
 
                 url_host = url.split('/')[2]
                 if url_host not in self.sbh_link_hosts:
-                   continue
+                    continue
 
                 term_map[term] = url
                 mapped_name = {}
@@ -924,6 +927,8 @@ class IntentParserServer:
         except Exception as e:
             raise e
 
+    def char_is_not_wordpart(self, ch):
+        return ch is not '\'' and not ch.isalnum()
 
     def process_add_by_spelling(self, http_message, sm):
         try:
@@ -932,11 +937,6 @@ class IntentParserServer:
             document_id = json_body['documentId']
             user = json_body['user']
             userEmail = json_body['userEmail']
-
-            # TODO: Remove
-            if user:
-                print('user keys: ' + ', '.join(user.keys))
-            print('user email: ' + userEmail)
 
             if not userEmail is '':
                 userId = userEmail
@@ -947,6 +947,10 @@ class IntentParserServer:
 
             if not userId in self.spellCheckers:
                 self.spellCheckers[userId] = SpellChecker()
+                dict_path = os.path.join(self.dict_path, userId + '.json')
+                if os.path.exists(dict_path):
+                    print('Loaded dictionary for userId, path: %s' % dict_path)
+                    self.spellCheckers[userId].word_frequency().load_dictionary(dict_path)
 
             try:
                 doc = self.google_accessor.get_document(
@@ -977,6 +981,7 @@ class IntentParserServer:
 
             client_state = self.new_connection(document_id)
             client_state['doc'] = doc
+            client_state['user_id'] = userId
 
             body = doc.get('body');
             doc_content = body.get('content')
@@ -984,8 +989,9 @@ class IntentParserServer:
 
             start = time.time()
 
-            spellCheckResults = []
-            missedTerms = []
+            spellCheckResults = [] # Store results metadata
+            missedTerms = [] # keep track of lists of misspelt words
+            # Second list can help us remove results by word
 
             for pIdx in range(0, len(paragraphs)):
                 paragraph = paragraphs[ pIdx ]
@@ -1014,19 +1020,19 @@ class IntentParserServer:
                     currIdx = wordStart + 1
                     while currIdx < endIdx:
                         # Check for end of word
-                        if content[currIdx].isspace():
+                        if self.char_is_not_wordpart(content[currIdx]):
                             word = content[wordStart:currIdx]
                             if not word in self.spellCheckers[userId]:
                                 absoluteIdx =  wordStart + (start_index - firstIdx)
                                 result = {
                                    'term' : word,
-                                   'paragraphIdx' : pIdx,
-                                   'selectStart' : absoluteIdx,
-                                   'selectEnd' : absoluteIdx + len(word) - 1 }
+                                   'select_start' : {'paragraph_index' : pIdx, 'cursor_index' : absoluteIdx},
+                                   'select_end' : {'paragraph_index' : pIdx, 'cursor_index' : + len(word) - 1}
+                                   }
                                 spellCheckResults.append(result)
                                 missedTerms.append(word)
                             # Find start of next word
-                            while currIdx < endIdx and content[currIdx].isspace():
+                            while currIdx < endIdx and self.char_is_not_wordpart(content[currIdx]):
                                 currIdx += 1
                             # Store word start
                             wordStart = currIdx
@@ -1041,9 +1047,9 @@ class IntentParserServer:
                             absoluteIdx =  wordStart + (start_index - firstIdx)
                             result = {
                                'term' : word,
-                               'paragraphIdx' : pIdx,
-                               'selectStart' : absoluteIdx,
-                               'selectEnd' : absoluteIdx + len(word) - 1}
+                               'select_start' : {'paragraph_index' : pIdx, 'cursor_index' : absoluteIdx},
+                               'select_end' : {'paragraph_index' : pIdx, 'cursor_index' : + len(word) - 1}
+                               }
                             spellCheckResults.append(result)
                             missedTerms.append(word)
             end = time.time()
@@ -1051,26 +1057,10 @@ class IntentParserServer:
 
             # If we have a spelling mistake, highlight text and update user
             if len(spellCheckResults) > 0:
-                actionList = []
-                highlightTextAction = self.highlight_text(spellCheckResults[0]['paragraphIdx'], spellCheckResults[0]['selectStart'], spellCheckResults[0]['selectEnd'])
-                actionList.append(highlightTextAction)
-
-                html  = ''
-                html += '<center>'
-                html += 'Term ' + word + ' not found in dictionary, potential addition? ';
-                html += '</center>'
-
-                buttons = [('Ignore', 'spellcheck_add_ignore'),
-                           ('Add to SynBioHub', 'spellcheck_add_synbiohub'),
-                           ('Add to Dictionary', 'spellcheck_add_dictionary'),
-                           ('Include Previous Word', 'spellcheck_add_select_previous'),
-                           ('Include Next Word', 'spellcheck_add_select_next'),
-                           ('Remove First Word', 'spellcheck_add_drop_first'),
-                           ('Remove Last Word', 'spellcheck_add_drop_last')]
-
-                dialogAction = self.simple_sidebar_dialog(html, buttons)
-                actionList.append(dialogAction)
-
+                client_state['spelling_results'] = spellCheckResults
+                client_state['spelling_index'] = 0
+                client_state['spelling_size'] = len(spellCheckResults)
+                actionList = self.report_spelling_results(client_state)
                 actions = {'actions': actionList}
                 self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
             else: # No spelling mistakes!
@@ -1078,7 +1068,6 @@ class IntentParserServer:
                 dialog_action = self.simple_modal_dialog('Found no words not in spelling dictionary!', buttons, 'No misspellings!', 400, 450)
                 actionList = [dialog_action]
                 actions = {'actions': actionList}
-
                 self.send_response(200, 'OK', json.dumps(actions), sm,
                                    'application/json')
         except Exception as e:
@@ -1087,11 +1076,137 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
 
+    def report_spelling_results(self, client_state):
+        """Generate actions for client, given the current spelling results index
+        """
+        spellCheckResults = client_state['spelling_results']
+        resultIdx = client_state['spelling_index']
+
+        actionList = []
+
+        start_par = spellCheckResults[resultIdx]['select_start']['paragraph_index']
+        start_cursor = spellCheckResults[resultIdx]['select_start']['cursor_index']
+        end_par = spellCheckResults[resultIdx]['select_end']['paragraph_index']
+        end_cursor = spellCheckResults[resultIdx]['select_end']['cursor_index']
+        if not start_par == end_par:
+            print('Received a highlight request across paragraphs, which is currently unsupported!')
+        highlightTextAction = self.highlight_text(start_par, start_cursor, end_cursor)
+        actionList.append(highlightTextAction)
+
+        html  = ''
+        html += '<center>'
+        html += 'Term ' + spellCheckResults[0]['term'] + ' not found in dictionary, potential addition? ';
+        html += '</center>'
+
+        buttons = [('Ignore', 'spellcheck_add_ignore'),
+                   ('Ignore All', 'spellcheck_add_ignore_all'),
+                   ('Add to SynBioHub', 'spellcheck_add_synbiohub'),
+                   ('Add to Dictionary', 'spellcheck_add_dictionary'),
+                   ('Include Previous Word', 'spellcheck_add_select_previous'),
+                   ('Include Next Word', 'spellcheck_add_select_next'),
+                   ('Remove First Word', 'spellcheck_add_drop_first'),
+                   ('Remove Last Word', 'spellcheck_add_drop_last')]
+
+        dialogAction = self.simple_sidebar_dialog(html, buttons)
+        actionList.append(dialogAction)
+        return actionList
+
+    def spellcheck_add_ignore(self, json_body, client_state):
+        """ Ignore button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        client_state["spelling_index"] += 1
+        if client_state["spelling_index"] >= client_state['spelling_size']:
+            # We are at the end, nothing else to do
+            return []
+        else:
+            return self.report_spelling_results(self, client_state)
+
+    def spellcheck_add_ignore_all(self, json_body, client_state):
+        """ Ignore All button action for additions by spelling
+        """
+        json_body # Remove unused warning
+
+        next_idx = client_state['spelling_index'] + 1
+        # Are we at the end? Then just exist
+        if next_idx >= client_state['spelling_size']:
+            return []
+
+        term_to_ignore = client_state['spelling_results'][client_state['spelling_index']]['word']
+        # Generate results without term to ignore
+        new_spelling_results = [r for r in client_state['spelling_results'] if not r['word'] is term_to_ignore ]
+
+        # Find out what term to point to
+        next_term = client_state['spelling_results'][next_idx]['word']
+        new_idx = 0
+        while new_spelling_results[new_idx]['word'] is not next_term:
+            new_idx += 1
+        # Update client state
+        client_state['spelling_results'] = new_spelling_results
+        client_state['spelling_index'] = new_idx
+        client_state['spelling_size'] = len(new_spelling_results)
+
+        return self.report_spelling_results(self, client_state)
+
+
+    def spellcheck_add_synbiohub(self, json_body, client_state):
+        """ Add to SBH button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        spell_index = client_state['spelling_index']
+        spell_check_result = client_state['spelling_results'][spell_index]
+        select_start = spell_check_result['select_start']
+        select_end = spell_check_result['select_end']
+
+        action = {}
+        action['action'] = 'spelling_add_synbiohub'
+        action['select_start'] = select_start
+        action['select_end'] = select_end
+
+        return [action]
+
+    def spellcheck_add_dictionary(self, json_body, client_state):
+        """ Add to spelling dictionary button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        user_id = client_state['user_id']
+
+        spell_index = client_state['spelling_index']
+        spell_check_result = client_state['spelling_results'][spell_index]
+        new_word = spell_check_result[spell_index]['word']
+
+        # Add new word to frequency list
+        self.spellCheckers[user_id].word_frequency.add(new_word)
+
+        # Save updated frequency list for later loading
+        # We could probably do this later, but it ensures no updated state is lost
+        dict_path = os.path.join(self.dict_path, user_id + '.json')
+        self.spellCheckers[user_id].export(dict_path)
+
+    def spellcheck_add_select_previous(self, json_body, client_state):
+        """ Select previous word button action for additions by spelling
+        """
+        pass
+
+    def spellcheck_add_select_next(self, json_body, client_state):
+        """ Select next word button action for additions by spelling
+        """
+        pass
+
+    def spellcheck_add_drop_first(self, json_body, client_state):
+        """ Remove selection previous word button action for additions by spelling
+        """
+        pass
+
+    def spellcheck_add_drop_last(self, json_body, client_state):
+        """ Remove selection next word button action for additions by spelling
+        """
+        pass
+
     def simple_syn_bio_hub_search(self, term):
         sparql_query = self.sparql_query.replace('${TERM}', term)
         query_results = self.sbh.sparqlQuery(sparql_query)
         bindings = query_results['results']['bindings']
-
         search_results = []
         for binding in bindings:
             title = binding['title']['value']
