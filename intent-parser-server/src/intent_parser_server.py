@@ -1097,7 +1097,7 @@ class IntentParserServer:
 
         html  = ''
         html += '<center>'
-        html += 'Term ' + spellCheckResults[0]['term'] + ' not found in dictionary, potential addition? ';
+        html += 'Term ' + spellCheckResults[resultIdx]['term'] + ' not found in dictionary, potential addition? ';
         html += '</center>'
 
         buttons = [('Ignore', 'spellcheck_add_ignore'),
@@ -1122,7 +1122,7 @@ class IntentParserServer:
             # We are at the end, nothing else to do
             return []
         else:
-            return self.report_spelling_results(self, client_state)
+            return self.report_spelling_results(client_state)
 
     def spellcheck_add_ignore_all(self, json_body, client_state):
         """ Ignore All button action for additions by spelling
@@ -1134,21 +1134,21 @@ class IntentParserServer:
         if next_idx >= client_state['spelling_size']:
             return []
 
-        term_to_ignore = client_state['spelling_results'][client_state['spelling_index']]['word']
+        term_to_ignore = client_state['spelling_results'][client_state['spelling_index']]['term']
         # Generate results without term to ignore
-        new_spelling_results = [r for r in client_state['spelling_results'] if not r['word'] is term_to_ignore ]
+        new_spelling_results = [r for r in client_state['spelling_results'] if not r['term'] is term_to_ignore ]
 
         # Find out what term to point to
-        next_term = client_state['spelling_results'][next_idx]['word']
+        next_term = client_state['spelling_results'][next_idx]['term']
         new_idx = 0
-        while new_spelling_results[new_idx]['word'] is not next_term:
+        while new_spelling_results[new_idx]['term'] is not next_term:
             new_idx += 1
         # Update client state
         client_state['spelling_results'] = new_spelling_results
         client_state['spelling_index'] = new_idx
         client_state['spelling_size'] = len(new_spelling_results)
 
-        return self.report_spelling_results(self, client_state)
+        return self.report_spelling_results(client_state)
 
 
     def spellcheck_add_synbiohub(self, json_body, client_state):
@@ -1175,7 +1175,7 @@ class IntentParserServer:
 
         spell_index = client_state['spelling_index']
         spell_check_result = client_state['spelling_results'][spell_index]
-        new_word = spell_check_result[spell_index]['word']
+        new_word = spell_check_result[spell_index]['term']
 
         # Add new word to frequency list
         self.spellCheckers[user_id].word_frequency.add(new_word)
