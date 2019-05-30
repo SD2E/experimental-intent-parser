@@ -1029,7 +1029,7 @@ class IntentParserServer:
                                 result = {
                                    'term' : word,
                                    'select_start' : {'paragraph_index' : pIdx, 'cursor_index' : absoluteIdx},
-                                   'select_end' : {'paragraph_index' : pIdx, 'cursor_index' : + len(word) - 1}
+                                   'select_end' : {'paragraph_index' : pIdx, 'cursor_index' : absoluteIdx + len(word) - 1}
                                    }
                                 spellCheckResults.append(result)
                                 missedTerms.append(word)
@@ -1050,7 +1050,7 @@ class IntentParserServer:
                             result = {
                                'term' : word,
                                'select_start' : {'paragraph_index' : pIdx, 'cursor_index' : absoluteIdx},
-                               'select_end' : {'paragraph_index' : pIdx, 'cursor_index' : + len(word) - 1}
+                               'select_end' : {'paragraph_index' : pIdx, 'cursor_index' : absoluteIdx + len(word) - 1}
                                }
                             spellCheckResults.append(result)
                             missedTerms.append(word)
