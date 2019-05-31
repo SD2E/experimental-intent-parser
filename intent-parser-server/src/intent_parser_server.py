@@ -930,9 +930,51 @@ class IntentParserServer:
             raise e
 
     def char_is_not_wordpart(self, ch):
+        """ Determines if a character is part of a word or not
+        This is used when parsing the text to tokenize words.
+        """
         return ch is not '\'' and not ch.isalnum()
 
+    def strip_leading_trailing_punctuation(self, word):
+        """ Remove any leading of trailing punctuation (non-alphanumeric characters
+        """
+        start_index = 0
+        end_index = len(word)
+        while start_index < len(word) and not word[start_index].isalnum():
+            start_index +=1
+        while end_index > 0 and not word[end_index - 1].isalnum():
+            end_index -= 1
+
+        # If the word was only non-alphanumeric, we could get into a strange case
+        if (end_index <= start_index):
+            return ''
+        else:
+            return word[start_index:end_index]
+
+    def should_ignore_token(self, word):
+        """ Determines if a token/word should be ignored
+        For example, if a token contains no alphabet characters, we should ignore it.
+        """
+
+        contains_alpha = False
+        # This was way too slow
+        #term_exists_in_sbh = len(self.simple_syn_bio_hub_search(word)) > 0
+        term_exists_in_sbh = False
+        for ch in word:
+            contains_alpha |= ch.isalpha()
+
+        return not contains_alpha  or term_exists_in_sbh
+
     def process_add_by_spelling(self, http_message, sm):
+        """ Function that sets up the results for additions by spelling
+        This will start from a given offset (generally 0) and saerch the rest of the
+        document, looking for words that are not in the dictionary.  Any words that
+        don't match are then used as suggestions for additions to SynBioHub.
+
+        Users can add words to the dictionary, and added words are saved by a user id.
+        This comes from the email address, but if that's not available the document id
+        is used instead.
+        """
         try:
             json_body = self.get_json_body(http_message)
 
@@ -981,6 +1023,7 @@ class IntentParserServer:
             else:
                 starting_pos = 0
 
+            # Used to store session information
             client_state = self.new_connection(document_id)
             client_state['doc'] = doc
             client_state['user_id'] = userId
@@ -1024,12 +1067,18 @@ class IntentParserServer:
                         # Check for end of word
                         if self.char_is_not_wordpart(content[currIdx]):
                             word = content[wordStart:currIdx]
-                            if not word in self.spellCheckers[userId]:
+                            word = self.strip_leading_trailing_punctuation(word)
+                            word = word.lower()
+                            if not word in self.spellCheckers[userId] and not self.should_ignore_token(word):
                                 absoluteIdx =  wordStart + (start_index - firstIdx)
                                 result = {
                                    'term' : word,
-                                   'select_start' : {'paragraph_index' : pIdx, 'cursor_index' : absoluteIdx},
-                                   'select_end' : {'paragraph_index' : pIdx, 'cursor_index' : absoluteIdx + len(word) - 1}
+                                   'select_start' : {'paragraph_index' : pIdx,
+                                                        'cursor_index' : absoluteIdx,
+                                                        'element_index': element_index},
+                                   'select_end' : {'paragraph_index' : pIdx,
+                                                        'cursor_index' : absoluteIdx + len(word) - 1,
+                                                        'element_index': element_index}
                                    }
                                 spellCheckResults.append(result)
                                 missedTerms.append(word)
@@ -1049,8 +1098,12 @@ class IntentParserServer:
                             absoluteIdx =  wordStart + (start_index - firstIdx)
                             result = {
                                'term' : word,
-                               'select_start' : {'paragraph_index' : pIdx, 'cursor_index' : absoluteIdx},
-                               'select_end' : {'paragraph_index' : pIdx, 'cursor_index' : absoluteIdx + len(word) - 1}
+                               'select_start' : {'paragraph_index' : pIdx,
+                                                    'cursor_index' : absoluteIdx,
+                                                    'element_index': element_index},
+                               'select_end' : {'paragraph_index' : pIdx,
+                                                    'cursor_index' : absoluteIdx + len(word) - 1,
+                                                    'element_index': element_index}
                                }
                             spellCheckResults.append(result)
                             missedTerms.append(word)
@@ -1206,6 +1259,7 @@ class IntentParserServer:
         pass
 
     def simple_syn_bio_hub_search(self, term):
+        start = time.time()
         sparql_query = self.sparql_query.replace('${TERM}', term)
         query_results = self.sbh.sparqlQuery(sparql_query)
         bindings = query_results['results']['bindings']
@@ -1217,7 +1271,8 @@ class IntentParserServer:
                 target = target.replace(self.sbh_spoofing_prefix, self.sbh_url)
             search_results.append({'title': title, 'target': target})
 
-
+        end = time.time()
+        print('Simple SynbioHub search for %s took %0.2fs' %(term, (end - start) * 1000))
         return search_results
 
     def sanitize_name_to_display_id(self, name):
@@ -1541,6 +1596,7 @@ class IntentParserServer:
         data = json_body['data']
 
         try:
+
             search_results = self.simple_syn_bio_hub_search(data['term'])
 
             if len(search_results) > 5:
@@ -1558,6 +1614,8 @@ class IntentParserServer:
                          'search_results': search_results,
                          'table_html': table_html
                         }}
+
+
         except:
             response = self.operation_failed('Failed to search SynBioHub')
 
