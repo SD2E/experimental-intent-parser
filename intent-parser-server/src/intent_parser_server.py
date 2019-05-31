@@ -1241,7 +1241,48 @@ class IntentParserServer:
     def spellcheck_add_select_previous(self, json_body, client_state):
         """ Select previous word button action for additions by spelling
         """
-        pass
+        json_body # Remove unused warning
+        spell_index = client_state['spelling_index']
+        spell_check_result = client_state['spelling_results'][spell_index]
+        element_index = spell_check_result['select_start']['element_index']
+        starting_pos = spell_check_result['select_start']['cursor_index']
+        para_index = spell_check_result['select_start']['paragraph_index']
+        doc = client_state['doc']
+        body = doc.get('body');
+        doc_content = body.get('content')
+        paragraphs = self.get_paragraphs(doc_content)
+        paragraph = paragraphs[para_index]
+        elements = paragraph['elements']
+        element = elements[element_index]
+
+        if 'textRun' not in element:
+            print('Error: got request to select previous, but the element was not a textRun')
+            return
+
+        text_run = element['textRun']
+
+        end_index = element['endIndex']
+        if end_index < starting_pos:
+            print('Error: got request to select previous, but the starting_pos was past the end')
+            return
+
+        #start_index = element['startIndex']
+        content = text_run['content']
+        currIdx = starting_pos - 1
+        # Find the first word part
+        while currIdx > 0 and self.char_is_not_wordpart(content[currIdx]):
+            currIdx -= 1
+        # Now find the beginning of the word
+        while currIdx > 0 and not self.char_is_not_wordpart(content[currIdx]):
+            currIdx -= 1
+
+        # If we don't hit the beginning, we need to cut off the last space
+        if (currIdx > 0):
+            currIdx += 1
+
+        spell_check_result['select_start']['cursor_index'] = currIdx
+
+        return self.report_spelling_results(client_state)
 
     def spellcheck_add_select_next(self, json_body, client_state):
         """ Select next word button action for additions by spelling
