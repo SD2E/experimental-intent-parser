@@ -1070,6 +1070,8 @@ class IntentParserServer:
                             word = self.strip_leading_trailing_punctuation(word)
                             word = word.lower()
                             if not word in self.spellCheckers[userId] and not self.should_ignore_token(word):
+                                # Convert from an index into the content string,
+                                # to an offset into the paragraph string
                                 absoluteIdx =  wordStart + (start_index - firstIdx)
                                 result = {
                                    'term' : word,
@@ -1242,62 +1244,98 @@ class IntentParserServer:
         """ Select previous word button action for additions by spelling
         """
         json_body # Remove unused warning
-        spell_index = client_state['spelling_index']
-        spell_check_result = client_state['spelling_results'][spell_index]
-        element_index = spell_check_result['select_start']['element_index']
-        starting_pos = spell_check_result['select_start']['cursor_index']
-        para_index = spell_check_result['select_start']['paragraph_index']
-        doc = client_state['doc']
-        body = doc.get('body');
-        doc_content = body.get('content')
-        paragraphs = self.get_paragraphs(doc_content)
-        paragraph = paragraphs[para_index]
-        elements = paragraph['elements']
-        element = elements[element_index]
-
-        if 'textRun' not in element:
-            print('Error: got request to select previous, but the element was not a textRun')
-            return
-
-        text_run = element['textRun']
-
-        end_index = element['endIndex']
-        if end_index < starting_pos:
-            print('Error: got request to select previous, but the starting_pos was past the end')
-            return
-
-        #start_index = element['startIndex']
-        content = text_run['content']
-        currIdx = starting_pos - 1
-        # Find the first word part
-        while currIdx > 0 and self.char_is_not_wordpart(content[currIdx]):
-            currIdx -= 1
-        # Now find the beginning of the word
-        while currIdx > 0 and not self.char_is_not_wordpart(content[currIdx]):
-            currIdx -= 1
-
-        # If we don't hit the beginning, we need to cut off the last space
-        if (currIdx > 0):
-            currIdx += 1
-
-        spell_check_result['select_start']['cursor_index'] = currIdx
-
-        return self.report_spelling_results(client_state)
+        return self.spellcheck_select_word_from_text(client_state, True, True)
 
     def spellcheck_add_select_next(self, json_body, client_state):
         """ Select next word button action for additions by spelling
         """
-        pass
+        """ Select previous word button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, False, True)
 
     def spellcheck_add_drop_first(self, json_body, client_state):
         """ Remove selection previous word button action for additions by spelling
         """
-        pass
+        json_body # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, True, False)
 
     def spellcheck_add_drop_last(self, json_body, client_state):
         """ Remove selection next word button action for additions by spelling
         """
-        pass
+        json_body # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, False, False)
+
+    def spellcheck_select_word_from_text(self, client_state, isPrev, isSelect):
+        """ Given a client state with a selection from a spell check result,
+        select or remove the selection on the next or previous word, based upon parameters.
+        """
+        if isPrev:
+            select_key = 'select_start'
+        else:
+            select_key = 'select_end'
+
+        spell_index = client_state['spelling_index']
+        spell_check_result = client_state['spelling_results'][spell_index]
+
+        starting_pos = spell_check_result[select_key]['cursor_index']
+        para_index = spell_check_result[select_key]['paragraph_index']
+        doc = client_state['doc']
+        body = doc.get('body');
+        doc_content = body.get('content')
+        paragraphs = self.get_paragraphs(doc_content)
+        # work on the paragraph text directly
+        paragraph_text = self.get_paragraph_text(paragraphs[para_index])
+        para_text_len = len(paragraph_text)
+
+        # Determine which directions to search in, based on selection or removal, prev/next
+        if isSelect:
+            if isPrev:
+                edge_check = lambda x : x > 0
+                increment = -1
+            else:
+                edge_check = lambda x : x < para_text_len
+                increment = 1
+            firstCheck = self.char_is_not_wordpart
+            secondCheck = lambda x : not self.char_is_not_wordpart(x)
+        else:
+            if isPrev:
+                edge_check = lambda x : x < para_text_len
+                increment = 1
+            else:
+                edge_check = lambda x : x > 0
+                increment = -1
+            secondCheck = self.char_is_not_wordpart
+            firstCheck = lambda x : not self.char_is_not_wordpart(x)
+
+        if starting_pos < 0:
+            print('Error: got request to select previous, but the starting_pos was negative!')
+            return
+
+        if para_text_len < starting_pos:
+            print('Error: got request to select previous, but the starting_pos was past the end!')
+            return
+
+        # Move past the end/start of the current word
+        currIdx = starting_pos + increment
+
+        # Skip over space/non-word parts to the next word
+        while edge_check(currIdx) and firstCheck(paragraph_text[currIdx]):
+            currIdx += increment
+        # Find the beginning/end of word
+        while edge_check(currIdx) and secondCheck(paragraph_text[currIdx]):
+            currIdx += increment
+
+        # If we don't hit the beginning, we need to cut off the last space
+        if currIdx > 0 and isPrev and isSelect:
+            currIdx += 1
+
+        if not isPrev and isSelect and paragraph_text[currIdx].isspace():
+            currIdx += -1
+
+        spell_check_result[select_key]['cursor_index'] = currIdx
+
+        return self.report_spelling_results(client_state)
 
     def simple_syn_bio_hub_search(self, term):
         start = time.time()
