@@ -151,7 +151,7 @@ class IntentParserServer:
 
         self.dict_path = 'dictionaries'
         if not os.path.exists(self.dict_path):
-           os.makedirs(self.dict_path)
+            os.makedirs(self.dict_path)
 
     def serverRunLoop(self):
         while True:
@@ -871,6 +871,25 @@ class IntentParserServer:
             end = data['end']
             document_id = json_body['documentId']
 
+            start_paragraph = start['paragraphIndex'];
+            end_paragraph = end['paragraphIndex'];
+
+            start_offset = start['offset']
+            end_offset = end['offset'] + 1
+
+            dialog_action = self.internal_add_to_syn_bio_hub(document_id, start_paragraph, end_paragraph,
+                                                             start_offset, end_offset)
+            actionList = [dialog_action]
+            actions = {'actions': actionList}
+
+            self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+        except Exception as e:
+            raise e
+
+
+    def internal_add_to_syn_bio_hub(self, document_id, start_paragraph, end_paragraph, start_offset, end_offset):
+        try:
+
             item_type_list = []
             for sbol_type in self.item_types:
                 item_type_list += self.item_types[sbol_type].keys()
@@ -895,13 +914,11 @@ class IntentParserServer:
             body = doc.get('body');
             doc_content = body.get('content')
             paragraphs = self.get_paragraphs(doc_content)
-            start_paragraph = start['paragraphIndex'];
-            end_paragraph = end['paragraphIndex'];
+
             paragraph_text = self.get_paragraph_text(
                 paragraphs[start_paragraph])
 
-            start_offset = start['offset']
-            end_offset = end['offset'] + 1
+
             selection = paragraph_text[start_offset:end_offset]
             display_id = self.sanitize_name_to_display_id(selection)
 
@@ -921,11 +938,7 @@ class IntentParserServer:
 
             dialog_action = self.modal_dialog(html, 'Add to SynBioHub',
                                               400, 450)
-            actionList = [dialog_action]
-            actions = {'actions': actionList}
-
-            self.send_response(200, 'OK', json.dumps(actions), sm,
-                               'application/json')
+            return dialog_action
         except Exception as e:
             raise e
 
@@ -976,6 +989,7 @@ class IntentParserServer:
         is used instead.
         """
         try:
+            client_state = None
             json_body = self.get_json_body(http_message)
 
             document_id = json_body['documentId']
@@ -994,7 +1008,7 @@ class IntentParserServer:
                 dict_path = os.path.join(self.dict_path, userId + '.json')
                 if os.path.exists(dict_path):
                     print('Loaded dictionary for userId, path: %s' % dict_path)
-                    self.spellCheckers[userId].word_frequency().load_dictionary(dict_path)
+                    self.spellCheckers[userId].word_frequency.load_dictionary(dict_path)
 
             try:
                 doc = self.google_accessor.get_document(
@@ -1026,6 +1040,7 @@ class IntentParserServer:
             # Used to store session information
             client_state = self.new_connection(document_id)
             client_state['doc'] = doc
+            client_state['doc_id'] = document_id
             client_state['user_id'] = userId
 
             body = doc.get('body');
@@ -1131,7 +1146,8 @@ class IntentParserServer:
             raise e
 
         finally:
-            self.release_connection(client_state)
+            if not client_state is None:
+                self.release_connection(client_state)
 
     def report_spelling_results(self, client_state):
         """Generate actions for client, given the current spelling results index
@@ -1210,17 +1226,30 @@ class IntentParserServer:
         """ Add to SBH button action for additions by spelling
         """
         json_body # Remove unused warning
+        doc_id = client_state['doc_id']
         spell_index = client_state['spelling_index']
         spell_check_result = client_state['spelling_results'][spell_index]
         select_start = spell_check_result['select_start']
         select_end = spell_check_result['select_end']
 
-        action = {}
-        action['action'] = 'spelling_add_synbiohub'
-        action['select_start'] = select_start
-        action['select_end'] = select_end
+        start_paragraph = select_start['paragraph_index']
+        start_offset = select_start['cursor_index']
 
-        return [action]
+        end_paragraph = select_end['cursor_index']
+        end_offset = select_end['cursor_index']
+
+        dialog_action = self.internal_add_to_syn_bio_hub(doc_id, start_paragraph, end_paragraph,
+                                                             start_offset, end_offset)
+
+        actionList = [dialog_action]
+
+        client_state["spelling_index"] += 1
+        if client_state["spelling_index"] < client_state['spelling_size']:
+            print('test')
+            for action in self.report_spelling_results(client_state):
+                actionList.append(action)
+
+        return actionList
 
     def spellcheck_add_dictionary(self, json_body, client_state):
         """ Add to spelling dictionary button action for additions by spelling
@@ -1230,7 +1259,7 @@ class IntentParserServer:
 
         spell_index = client_state['spelling_index']
         spell_check_result = client_state['spelling_results'][spell_index]
-        new_word = spell_check_result[spell_index]['term']
+        new_word = spell_check_result['term']
 
         # Add new word to frequency list
         self.spellCheckers[user_id].word_frequency.add(new_word)
@@ -1239,6 +1268,13 @@ class IntentParserServer:
         # We could probably do this later, but it ensures no updated state is lost
         dict_path = os.path.join(self.dict_path, user_id + '.json')
         self.spellCheckers[user_id].export(dict_path)
+
+        client_state["spelling_index"] += 1
+        if client_state["spelling_index"] >= client_state['spelling_size']:
+            # We are at the end, nothing else to do
+            return []
+
+        return self.report_spelling_results(client_state)
 
     def spellcheck_add_select_previous(self, json_body, client_state):
         """ Select previous word button action for additions by spelling
