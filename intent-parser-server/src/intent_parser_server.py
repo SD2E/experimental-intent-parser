@@ -5,16 +5,13 @@ from socket_manager import SocketManager
 from google_accessor import GoogleAccessor
 from sbh_accessor import SBHAccessor
 import http_message;
-import uuid
 import traceback
-import functools
 import sbol
 import sys
 import getopt
 import re
 import time
 import os
-from datetime import date
 from datetime import datetime
 from operator import itemgetter
 
@@ -654,8 +651,8 @@ class IntentParserServer:
                 continue
             text_run = element['textRun']
 
-            end_index = element['endIndex']
-            start_index = element['startIndex']
+            #end_index = element['endIndex']
+            #start_index = element['startIndex']
 
             paragraph_text += text_run['content']
 
@@ -1527,9 +1524,9 @@ class IntentParserServer:
 
         # Sanitize the display id
         if len(item_display_id) > 0:
-             display_id = self.sanitize_name_to_display_id(item_display_id)
-             if display_id != item_display_id:
-                 return self.operation_failed('Illegal display_id')
+            display_id = self.sanitize_name_to_display_id(item_display_id)
+            if display_id != item_display_id:
+                return self.operation_failed('Illegal display_id')
         else:
             display_id = self.sanitize_name_to_display_id(item_name)
 
@@ -1555,7 +1552,7 @@ class IntentParserServer:
         # Fix CHEBI URI
         if item_type == 'CHEBI':
             if len(item_definition_uri) == 0:
-                 item_definition_uri = sbol_type_map[ item_type ]
+                item_definition_uri = sbol_type_map[ item_type ]
             else:
                 if not item_definition_uri.startswith('http://identifiers.org/chebi/CHEBI'):
                     item_definition_uri = 'http://identifiers.org/chebi/CHEBI:' + \
