@@ -33,8 +33,8 @@ class GoogleAccessor:
 
         self.type_tabs = {
             'Attribute': ['Attribute'],
-            'Reagent': ['Bead', 'CHEBI', 'DNA', 'Protein',
-                        'RNA', 'Media', 'Stain', 'Buffer',
+            'Reagent': ['Bead', 'CHEBI', 'Protein',
+                        'Media', 'Stain', 'Buffer',
                         'Solution'],
             'Genetic Construct': ['DNA', 'RNA'],
             'Strain': ['Strain'],
