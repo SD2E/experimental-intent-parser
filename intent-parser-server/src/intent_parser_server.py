@@ -917,6 +917,8 @@ class IntentParserServer:
 
 
             selection = paragraph_text[start_offset:end_offset]
+            # Remove leading/trailing space
+            selection = selection.strip()
             display_id = self.sanitize_name_to_display_id(selection)
 
             html = self.add_html
