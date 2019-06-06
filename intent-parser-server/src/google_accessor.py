@@ -8,6 +8,8 @@ import time
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets',
+          'https://www.googleapis.com/auth/drive',
+          'https://www.googleapis.com/auth/drive.appdata',
           'https://www.googleapis.com/auth/drive.file',
           'https://www.googleapis.com/auth/documents',]
 
@@ -113,16 +115,33 @@ class GoogleAccessor:
                                                     fields='spreadsheetId')
         return self._execute_request(create_sheets_request)
 
-    def delete_spreadsheet(self, spreadsheet_id: str):
-        """Delete an existing spreadsheet
+    def delete_file(self, file_id: str):
+        """Delete an existing file
           Arguements:
 
-            spreadsheet_id - the spreadsheet to delete
+            file_id - the file to delete
 
         """
         files = self._drive_service.files()
-        request = files.delete(fileId=spreadsheet_id)
+        request = files.delete(fileId=file_id)
         return self._execute_request(request)
+
+    def copy_file(self, file_id: str, new_title: str):
+        """Copyies an existing file
+          Arguements:
+
+            file_id   - the file to delete
+            new_title - title of new copy
+
+          Returns:
+
+            document id of new file
+
+        """
+        files = self._drive_service.files()
+        request = files.copy(fileId=file_id,
+                             body={'name': new_title})
+        return self._execute_request(request).get('id')
 
     def create_dictionary_sheets(self):
         """ Creates the standard tabs on the current spreadsheet.
@@ -353,3 +372,7 @@ class GoogleAccessor:
 
     def get_document(self, *, document_id):
         return self._docs_service.documents().get(documentId=document_id).execute()
+
+    def create_document(self, *, title):
+        body = { 'title': title }
+        return self._docs_service.documents().create(body=body).execute()
