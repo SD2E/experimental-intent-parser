@@ -1412,7 +1412,7 @@ def main(argv):
             bind_host = arg
 
         elif opt in ('-l', '--bind-port'):
-            bind_port = arg
+            bind_port = int(arg)
 
     try:
         sbhPlugin = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
