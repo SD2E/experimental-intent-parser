@@ -14,6 +14,7 @@ import getopt
 import re
 import time
 import os
+import signal
 from datetime import date
 from datetime import datetime
 from operator import itemgetter
@@ -196,7 +197,9 @@ class IntentParserServer:
             except ConnectionAbortedError:
                 # Shutting down
                 return
-
+            except InterruptedError:
+                # Received when server is shutting down
+                return
             except Exception as e:
                 raise e
 
@@ -1829,6 +1832,7 @@ def main(argv):
     global sbh_collection_uri
     global bind_port
     global bind_host
+    global sbhPlugin
 
     try:
         opts, args = getopt.getopt(argv, "u:p:hc:i:s:b:l:",
@@ -1885,6 +1889,19 @@ def main(argv):
         sys.exit(5)
 
     sbhPlugin.serverRunLoop()
+
+def signal_int_handler(sig, frame):
+    '''  Handling SIG_INT: shutdown intent parser server and wait for it to finish.
+    '''
+    global sbhPlugin
+    sig # Remove unused warning
+    frame # Remove unused warning
+    print('\nStopping intent parser server...')
+    sbhPlugin.stop()
+
+    #sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_int_handler)
 
 
 if __name__ == "__main__":
