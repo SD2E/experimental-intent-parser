@@ -1250,6 +1250,33 @@ class IntentParserServer:
         actionList.append(dialogAction)
         return actionList
 
+    def spellcheck_remove_term(self, client_state):
+        """ Removes the current term from the result set, returning True if a term was removed else False.
+        False will be returned if there are no terms after the term being removed.
+        """
+        curr_idx = client_state['spelling_index']
+        next_idx = curr_idx + 1
+        spelling_results = client_state['spelling_results']
+        while next_idx < client_state['spelling_size'] and spelling_results[curr_idx]['term'] == spelling_results[next_idx]['term']:
+            next_idx = next_idx + 1
+        # Are we at the end? Then just exit
+        if next_idx >= client_state['spelling_size']:
+            return False
+
+        term_to_ignore = spelling_results[curr_idx]['term']
+        # Generate results without term to ignore
+        new_spelling_results = [r for r in spelling_results if not r['term'] == term_to_ignore ]
+
+        # Find out what term to point to
+        next_term = spelling_results[next_idx]['term']
+        new_idx = 0
+        while not new_spelling_results[new_idx]['term'] == next_term:
+            new_idx += 1
+        # Update client state        client_state['spelling_results'] = new_spelling_results
+        client_state['spelling_index'] = new_idx
+        client_state['spelling_size'] = len(new_spelling_results)
+        return True
+
     def spellcheck_add_ignore(self, json_body, client_state):
         """ Ignore button action for additions by spelling
         """
@@ -1265,33 +1292,14 @@ class IntentParserServer:
         """ Ignore All button action for additions by spelling
         """
         json_body # Remove unused warning
-
-        next_idx = client_state['spelling_index'] + 1
-        # Are we at the end? Then just exist
-        if next_idx >= client_state['spelling_size']:
-            return []
-
-        term_to_ignore = client_state['spelling_results'][client_state['spelling_index']]['term']
-        # Generate results without term to ignore
-        new_spelling_results = [r for r in client_state['spelling_results'] if not r['term'] is term_to_ignore ]
-
-        # Find out what term to point to
-        next_term = client_state['spelling_results'][next_idx]['term']
-        new_idx = 0
-        while new_spelling_results[new_idx]['term'] is not next_term:
-            new_idx += 1
-        # Update client state
-        client_state['spelling_results'] = new_spelling_results
-        client_state['spelling_index'] = new_idx
-        client_state['spelling_size'] = len(new_spelling_results)
-
-        return self.report_spelling_results(client_state)
-
+        if self.spellcheck_remove_term(client_state):
+            return self.report_spelling_results(client_state)
 
     def spellcheck_add_synbiohub(self, json_body, client_state):
         """ Add to SBH button action for additions by spelling
         """
         json_body # Remove unused warning
+
         doc_id = client_state['doc_id']
         spell_index = client_state['spelling_index']
         spell_check_result = client_state['spelling_results'][spell_index]
