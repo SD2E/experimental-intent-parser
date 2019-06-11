@@ -1317,9 +1317,11 @@ class IntentParserServer:
 
         actionList = [dialog_action]
 
-        client_state["spelling_index"] += 1
+        # Since we are adding this term to the SBH dict, we want to ignore any other results
+        self.spellcheck_remove_term(client_state)
+        # Removing the term automatically updates the spelling index
+        #client_state["spelling_index"] += 1
         if client_state["spelling_index"] < client_state['spelling_size']:
-            print('test')
             for action in self.report_spelling_results(client_state):
                 actionList.append(action)
 
