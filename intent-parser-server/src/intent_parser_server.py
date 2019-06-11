@@ -1141,6 +1141,10 @@ class IntentParserServer:
                     else:
                         wordStart = 0
 
+                    # If this text run is already linked, we don't need to process it
+                    if 'textStyle' in text_run and 'link' in text_run['textStyle']:
+                        continue
+
                     content = text_run['content']
                     endIdx = len(content);
                     currIdx = wordStart + 1
