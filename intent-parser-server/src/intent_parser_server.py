@@ -829,14 +829,19 @@ class IntentParserServer:
         self.client_state_lock.release()
 
     def stop(self):
+        ''' Stop the intent parser server
+        '''
         if self.sbh is not None:
             self.sbh.stop()
 
+        print('Signaling shutdown...')
         self.shutdownThread = True
         self.event.set()
 
         if self.server is not None:
+            print('Closing server...')
             self.server.close()
+        print('Shutdown complete')
 
     def housekeeping(self):
         while True:
@@ -1894,14 +1899,22 @@ def signal_int_handler(sig, frame):
     '''  Handling SIG_INT: shutdown intent parser server and wait for it to finish.
     '''
     global sbhPlugin
+    global sigIntCount
+
+    sigIntCount += 1
     sig # Remove unused warning
     frame # Remove unused warning
-    print('\nStopping intent parser server...')
-    sbhPlugin.stop()
 
-    #sys.exit(0)
+    # Try to cleanly exit on the first try
+    if sigIntCount == 1:
+        print('\nStopping intent parser server...')
+        sbhPlugin.stop()
+    # If we receive enough SIGINTs, die
+    if sigIntCount > 3:
+        sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_int_handler)
+sigIntCount = 0
 
 
 if __name__ == "__main__":
