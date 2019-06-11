@@ -1310,7 +1310,7 @@ class IntentParserServer:
         start_offset = select_start['cursor_index']
 
         end_paragraph = select_end['cursor_index']
-        end_offset = select_end['cursor_index']
+        end_offset = select_end['cursor_index'] + 1
 
         dialog_action = self.internal_add_to_syn_bio_hub(doc_id, start_paragraph, end_paragraph,
                                                              start_offset, end_offset)
