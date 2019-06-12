@@ -41,9 +41,9 @@ class TestIntentParserServer(unittest.TestCase):
                                 category=ResourceWarning)
 
         self.google_accessor = GoogleAccessor.create()
-        f = open('test-doc.json', 'r')
-        doc_content = json.loads(f.read())
-        f.close()
+        #f = open('test-doc.json', 'r')
+        #doc_content = json.loads(f.read())
+        #f.close()
 
         self.bind_ip = 'localhost'
         self.bind_port = 8081
