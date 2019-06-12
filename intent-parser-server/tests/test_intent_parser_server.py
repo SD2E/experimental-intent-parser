@@ -7,7 +7,12 @@ import os
 import time
 import urllib.request
 
-from intent_parser_server import IntentParserServer
+try:
+    from intent_parser_server import IntentParserServer
+except Exception as e:
+    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'../src'))
+    from intent_parser_server import IntentParserServer
+
 from google_accessor import GoogleAccessor
 
 
