@@ -187,6 +187,16 @@ if __name__ == '__main__':
             usage()
             sys.exit(0)
 
+    if not hasattr(TestIntentParserServer, 'sbh_username'):
+        print('ERROR: Missing required parameter -u/--username!')
+        usage()
+        sys.exit(0)
+
+    if not hasattr(TestIntentParserServer, 'sbh_password'):
+        print('ERROR: Missing required parameter -p/--password!')
+        usage()
+        sys.exit(0)
+
     print('Run unit tests')
 
     unittest.main(argv=[sys.argv[0]])
