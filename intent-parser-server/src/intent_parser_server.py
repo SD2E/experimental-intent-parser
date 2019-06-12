@@ -183,11 +183,16 @@ class IntentParserServer:
         print('Start Listener')
         while True:
             try:
+                if self.shutdownThread:
+                    return
+
                 client_sock, address = self.server.accept()
             except ConnectionAbortedError:
                 # Shutting down
                 return
-
+            except OSError:
+                # Shutting down
+                return
             except Exception as e:
                 raise e
 
@@ -824,6 +829,7 @@ class IntentParserServer:
         self.event.set()
 
         if self.server is not None:
+            self.server.shutdown(socket.SHUT_RDWR)
             self.server.close()
 
     def housekeeping(self):
