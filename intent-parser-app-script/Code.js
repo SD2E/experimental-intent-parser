@@ -8,6 +8,9 @@ function onOpen() {
   menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor').addToUi()
   menu.addItem('Generate Report', 'sendGenerateReport').addToUi()
   menu.addItem('Add to SynBioHub', 'addToSynBioHub').addToUi()
+  menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling').addToUi()
+  menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor').addToUi()
+
 
   resetScan();
 }
@@ -114,9 +117,13 @@ function linkDocText(paragraphIndex, offset, endOffset, url) {
 
 function sendPost(resource, data) {
   var docId = DocumentApp.getActiveDocument().getId();
+  var user = Session.getActiveUser();
+  var userEmail = user.getEmail();
 
   var request = {
-    'documentId': docId
+    'documentId': docId,
+    'user': user,
+    'userEmail': userEmail
   }
 
   if( typeof(data) != 'undefined' ) {
@@ -377,6 +384,16 @@ function addToSynBioHub() {
                    'end': endLocation}
 
   sendPost('/addToSynBioHub', selection)
+}
+
+function addBySpelling() {
+  sendPost('/addBySpelling')
+}
+
+function addBySpellingFromCursor() {
+  var cursorLocation = findCursor()
+
+  sendPost('/addBySpelling', cursorLocation)
 }
 
 function submitForm(formData) {
