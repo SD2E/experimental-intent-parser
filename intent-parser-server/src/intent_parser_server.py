@@ -12,6 +12,7 @@ import getopt
 import re
 import time
 import os
+import signal
 from datetime import datetime
 from operator import itemgetter
 
@@ -27,16 +28,43 @@ class ConnectionException(Exception):
 
 class IntentParserServer:
     def __init__(self, *, bind_port=8080, bind_ip="0.0.0.0",
-                 sbh_url, sbh_spoofing_prefix=None,
-                 sbh_collection, sbh_collection_user='sd2e',
-                 sbh_collection_version='1', spreadsheet_id,
+                 sbh_collection_uri,
+                 sbh_spoofing_prefix=None,
+                 spreadsheet_id,
                  sbh_username=None, sbh_password=None,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org']):
 
-        self.bind_port = bind_port
-        self.bind_ip = bind_ip
+        self.shutdownThread = False
+        self.event = threading.Event()
+        self.my_path = os.path.dirname(os.path.realpath(__file__))
 
+        if sbh_collection_uri[:8] == 'https://':
+            sbh_url_protocol = 'https://'
+            sbh_collection_path = sbh_collection_uri[8:]
+
+        elif sbh_collection_uri[:7] == 'http://':
+            sbh_url_protocol = 'http://'
+            sbh_collection_path = sbh_collection_uri[7:]
+
+        else:
+            raise Exception('Invalid collection url: ' + sbh_collection_uri)
+
+        sbh_collection_path_parts = sbh_collection_path.split('/')
+        if len(sbh_collection_path_parts) != 6:
+            raise Exception('Invalid collection url: ' + sbh_collection_uri)
+
+        sbh_collection = sbh_collection_path_parts[3]
+        sbh_collection_user = sbh_collection_path_parts[2]
+        sbh_collection_version = sbh_collection_path_parts[5]
+        sbh_url = sbh_url_protocol + sbh_collection_path_parts[0]
+
+        if sbh_collection_path_parts[4] != (sbh_collection + '_collection'):
+            raise Exception('Invalid collection url: ' + sbh_collection_uri)
+            self.bind_port = bind_port
+            self.bind_ip = bind_ip
+
+        self.sbh = None
         if sbh_url is not None:
             # log into Syn Bio Hub
             if sbh_username is None:
@@ -74,9 +102,6 @@ class IntentParserServer:
                 + '/user/' + sbh_collection_user \
                 + '/' + sbh_collection + '/'
 
-            self.sbh.login(sbh_username, sbh_password)
-            print('Logged into {}'.format(sbh_url))
-
         self.google_accessor = GoogleAccessor.create()
         self.spreadsheet_id = spreadsheet_id
         self.google_accessor.set_spreadsheet_id(self.spreadsheet_id)
@@ -88,15 +113,6 @@ class IntentParserServer:
         self.item_map_lock.acquire()
         self.item_map = self.generate_item_map(use_cache=True)
         self.item_map_lock.release()
-
-        self.housekeeping_thread = \
-            threading.Thread(target=self.housekeeping)
-        self.housekeeping_thread.start()
-
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server.bind((bind_ip, bind_port))
-        self.server.listen(5)
 
         self.item_types = {
             'component': {
@@ -134,14 +150,27 @@ class IntentParserServer:
                                     'LBNL UID',
                                     'EmeraldCloud UID'])
 
-        f = open('add.html', 'r')
+        f = open(self.my_path + '/add.html', 'r')
         self.add_html = f.read()
         f.close()
 
-        f = open('findSimilar.sparql', 'r')
+        f = open(self.my_path + '/findSimilar.sparql', 'r')
         self.sparql_query = f.read()
         f.close()
 
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server.bind((bind_ip, bind_port))
+
+        if self.sbh is not None:
+            self.sbh.login(sbh_username, sbh_password)
+            print('Logged into {}'.format(sbh_url))
+
+        self.housekeeping_thread = \
+            threading.Thread(target=self.housekeeping)
+        self.housekeeping_thread.start()
+
+        self.server.listen(5)
         print('listening on {}:{}'.format(bind_ip, bind_port))
 
         self.spellCheckers = {}
@@ -150,9 +179,27 @@ class IntentParserServer:
         if not os.path.exists(self.dict_path):
             os.makedirs(self.dict_path)
 
-    def serverRunLoop(self):
+    def serverRunLoop(self, *, background=False):
+        if background:
+            run_thread = threading.Thread(target=self.serverRunLoop)
+            print('Start background thread')
+            run_thread.start()
+            return
+
+        print('Start Listener')
+
         while True:
-            client_sock, address = self.server.accept()
+            try:
+                client_sock, address = self.server.accept()
+            except ConnectionAbortedError:
+                # Shutting down
+                return
+            except InterruptedError:
+                # Received when server is shutting down
+                return
+            except Exception as e:
+                raise e
+
             client_handler = threading.Thread(
                 target=self.handle_client_connection,
                 args=(client_sock,)  # without comma you'd get a... TypeError: handle_client_connection() argument after * must be a sequence, not _socketobject
@@ -328,7 +375,7 @@ class IntentParserServer:
         json_body = self.get_json_body(httpMessage)
         if 'message' in json_body:
             print(json_body['message'])
-        self.send_response(200, 'OK', '[]', sm,
+        self.send_response(200, 'OK', '{}', sm,
                            'application/json')
 
 
@@ -778,9 +825,27 @@ class IntentParserServer:
 
         self.client_state_lock.release()
 
+    def stop(self):
+        ''' Stop the intent parser server
+        '''
+        if self.sbh is not None:
+            self.sbh.stop()
+
+        print('Signaling shutdown...')
+        self.shutdownThread = True
+        self.event.set()
+
+        if self.server is not None:
+            print('Closing server...')
+            self.server.close()
+        print('Shutdown complete')
+
     def housekeeping(self):
         while True:
-            time.sleep(3600)
+            self.event.wait(3600)
+            if self.shutdownThread:
+                return
+
             try:
                 item_map = self.generate_item_map(use_cache=False)
 
@@ -800,8 +865,9 @@ class IntentParserServer:
 
         if use_cache:
             try:
-                f = open('item-map.json', 'r')
+                f = open(self.my_path + '/item-map.json', 'r')
                 item_map = json.loads(f.read())
+                f.close()
                 return item_map
 
             except:
@@ -826,7 +892,7 @@ class IntentParserServer:
                 uri = row['SynBioHub URI']
                 item_map[common_name] = uri
 
-        f = open('item-map.json', 'w')
+        f = open(self.my_path + '/item-map.json', 'w')
         f.write(json.dumps(item_map))
         f.close()
 
@@ -1074,6 +1140,10 @@ class IntentParserServer:
                     else:
                         wordStart = 0
 
+                    # If this text run is already linked, we don't need to process it
+                    if 'textStyle' in text_run and 'link' in text_run['textStyle']:
+                        continue
+
                     content = text_run['content']
                     endIdx = len(content);
                     currIdx = wordStart + 1
@@ -1183,6 +1253,33 @@ class IntentParserServer:
         actionList.append(dialogAction)
         return actionList
 
+    def spellcheck_remove_term(self, client_state):
+        """ Removes the current term from the result set, returning True if a term was removed else False.
+        False will be returned if there are no terms after the term being removed.
+        """
+        curr_idx = client_state['spelling_index']
+        next_idx = curr_idx + 1
+        spelling_results = client_state['spelling_results']
+        while next_idx < client_state['spelling_size'] and spelling_results[curr_idx]['term'] == spelling_results[next_idx]['term']:
+            next_idx = next_idx + 1
+        # Are we at the end? Then just exit
+        if next_idx >= client_state['spelling_size']:
+            return False
+
+        term_to_ignore = spelling_results[curr_idx]['term']
+        # Generate results without term to ignore
+        new_spelling_results = [r for r in spelling_results if not r['term'] == term_to_ignore ]
+
+        # Find out what term to point to
+        next_term = spelling_results[next_idx]['term']
+        new_idx = 0
+        while not new_spelling_results[new_idx]['term'] == next_term:
+            new_idx += 1
+        # Update client state        client_state['spelling_results'] = new_spelling_results
+        client_state['spelling_index'] = new_idx
+        client_state['spelling_size'] = len(new_spelling_results)
+        return True
+
     def spellcheck_add_ignore(self, json_body, client_state):
         """ Ignore button action for additions by spelling
         """
@@ -1198,33 +1295,14 @@ class IntentParserServer:
         """ Ignore All button action for additions by spelling
         """
         json_body # Remove unused warning
-
-        next_idx = client_state['spelling_index'] + 1
-        # Are we at the end? Then just exist
-        if next_idx >= client_state['spelling_size']:
-            return []
-
-        term_to_ignore = client_state['spelling_results'][client_state['spelling_index']]['term']
-        # Generate results without term to ignore
-        new_spelling_results = [r for r in client_state['spelling_results'] if not r['term'] is term_to_ignore ]
-
-        # Find out what term to point to
-        next_term = client_state['spelling_results'][next_idx]['term']
-        new_idx = 0
-        while new_spelling_results[new_idx]['term'] is not next_term:
-            new_idx += 1
-        # Update client state
-        client_state['spelling_results'] = new_spelling_results
-        client_state['spelling_index'] = new_idx
-        client_state['spelling_size'] = len(new_spelling_results)
-
-        return self.report_spelling_results(client_state)
-
+        if self.spellcheck_remove_term(client_state):
+            return self.report_spelling_results(client_state)
 
     def spellcheck_add_synbiohub(self, json_body, client_state):
         """ Add to SBH button action for additions by spelling
         """
         json_body # Remove unused warning
+
         doc_id = client_state['doc_id']
         spell_index = client_state['spelling_index']
         spell_check_result = client_state['spelling_results'][spell_index]
@@ -1235,16 +1313,18 @@ class IntentParserServer:
         start_offset = select_start['cursor_index']
 
         end_paragraph = select_end['cursor_index']
-        end_offset = select_end['cursor_index']
+        end_offset = select_end['cursor_index'] + 1
 
         dialog_action = self.internal_add_to_syn_bio_hub(doc_id, start_paragraph, end_paragraph,
                                                              start_offset, end_offset)
 
         actionList = [dialog_action]
 
-        client_state["spelling_index"] += 1
+        # Since we are adding this term to the SBH dict, we want to ignore any other results
+        self.spellcheck_remove_term(client_state)
+        # Removing the term automatically updates the spelling index
+        #client_state["spelling_index"] += 1
         if client_state["spelling_index"] < client_state['spelling_size']:
-            print('test')
             for action in self.report_spelling_results(client_state):
                 actionList.append(action)
 
@@ -1739,6 +1819,8 @@ class IntentParserServer:
 spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk'
 sbh_spoofing_prefix=None
 sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
+bind_port = 8080
+bind_host = '0.0.0.0'
 
 def usage():
     print('')
@@ -1753,6 +1835,10 @@ def usage():
           format(spreadsheet_id))
     print('    -s --spoofing-prefix - SBH spoofing prefix (default={})'.
           format(sbh_spoofing_prefix))
+    print('    -b --bind-host       - IP address to bind to (default={})'.
+          format(bind_host))
+    print('    -l --bind-port       - TCP Port to listen on (default={})'.
+          format(bind_port))
     print('')
 
 def main(argv):
@@ -1762,15 +1848,20 @@ def main(argv):
     global spreadsheet_id
     global sbh_spoofing_prefix
     global sbh_collection_uri
+    global bind_port
+    global bind_host
+    global sbhPlugin
 
     try:
-        opts, args = getopt.getopt(argv, "u:p:hc:i:s:",
+        opts, args = getopt.getopt(argv, "u:p:hc:i:s:b:l:",
                                    ["username=",
                                     "password=",
                                     "help",
                                     "collection=",
                                     "spreadsheet-id=",
-                                    "spoofing-prefix="])
+                                    "spoofing-prefix=",
+                                    "bind-host=",
+                                    "bind-port="])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
@@ -1796,44 +1887,47 @@ def main(argv):
         elif opt in ('-s', '--spoofing-prefix'):
             sbh_spoofing_prefix = arg
 
-    if sbh_collection_uri[:8] == 'https://':
-        sbh_url_protocol = 'https://'
-        sbh_collection_path = sbh_collection_uri[8:]
+        elif opt in ('-b', '--bind-host'):
+            bind_host = arg
 
-    elif sbh_collection_uri[:7] == 'http://':
-        sbh_url_protocol = 'http://'
-        sbh_collection_path = sbh_collection_uri[7:]
+        elif opt in ('-l', '--bind-port'):
+            bind_port = int(arg)
 
-    else:
-        print('Invalid collection url: ' + sbh_collection_uri);
-        usage();
-        sys.exit(3)
-
-    sbh_collection_path_parts = sbh_collection_path.split('/')
-    if len(sbh_collection_path_parts) != 6:
-        print('Invalid collection url: ' + sbh_collection_uri);
-        usage()
-        sys.exit(4)
-
-    sbh_collection = sbh_collection_path_parts[3]
-    sbh_collection_user = sbh_collection_path_parts[2]
-    sbh_collection_version = sbh_collection_path_parts[5]
-    sbh_url = sbh_url_protocol + sbh_collection_path_parts[0]
-
-    if sbh_collection_path_parts[4] != (sbh_collection + '_collection'):
-        print('Invalid collection url: ' + sbh_collection_uri);
+    try:
+        sbhPlugin = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
+                                       sbh_spoofing_prefix=sbh_spoofing_prefix,
+                                       sbh_username=sbh_username,
+                                       sbh_password=sbh_password,
+                                       spreadsheet_id=spreadsheet_id,
+                                       bind_ip=bind_host,
+                                       bind_port=bind_port)
+    except Exception as e:
+        print(e)
         usage()
         sys.exit(5)
 
-    sbhPlugin = IntentParserServer(sbh_url=sbh_url,
-                                   sbh_spoofing_prefix=sbh_spoofing_prefix,
-                                   sbh_collection=sbh_collection,
-                                   sbh_collection_user=sbh_collection_user,
-                                   sbh_collection_version=sbh_collection_version,
-                                   sbh_username=sbh_username,
-                                   sbh_password=sbh_password,
-                                   spreadsheet_id=spreadsheet_id)
     sbhPlugin.serverRunLoop()
+
+def signal_int_handler(sig, frame):
+    '''  Handling SIG_INT: shutdown intent parser server and wait for it to finish.
+    '''
+    global sbhPlugin
+    global sigIntCount
+
+    sigIntCount += 1
+    sig # Remove unused warning
+    frame # Remove unused warning
+
+    # Try to cleanly exit on the first try
+    if sigIntCount == 1:
+        print('\nStopping intent parser server...')
+        sbhPlugin.stop()
+    # If we receive enough SIGINTs, die
+    if sigIntCount > 3:
+        sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_int_handler)
+sigIntCount = 0
 
 
 if __name__ == "__main__":

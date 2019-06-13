@@ -4,6 +4,8 @@ import time
 
 class SBHAccessor:
     def __init__(self, *, sbh_url):
+        self.shutdownThread = False
+        self.event = threading.Event()
         self.lock = threading.Lock()
         self.sbh = sbol.PartShop(sbh_url)
         self.sbh_username = None
@@ -12,7 +14,7 @@ class SBHAccessor:
         self.housekeeping_thread = \
             threading.Thread(target=self.housekeeping)
         self.housekeeping_thread.start()
-        
+
 
     def login(self, sbh_username, sbh_password):
         self.lock.acquire()
@@ -83,12 +85,18 @@ class SBHAccessor:
         self.lock.release()
         return fret
 
+    def stop(self):
+        self.shutdownThread = True
+        self.event.set()
 
     def housekeeping(self):
         while True:
-            time.sleep(3600 * 6)
-            
+            self.event.wait(3600)
+            if self.shutdownThread:
+                return
+
             self.lock.acquire()
+
 
             try:
                 if self.sbh_username is not None and \
