@@ -5,18 +5,18 @@ from socket_manager import SocketManager
 from google_accessor import GoogleAccessor
 from sbh_accessor import SBHAccessor
 import http_message;
-import uuid
 import traceback
-import functools
 import sbol
 import sys
 import getopt
 import re
 import time
 import os
-from datetime import date
+import signal
 from datetime import datetime
 from operator import itemgetter
+
+from spellchecker import SpellChecker
 
 class ConnectionException(Exception):
     def __init__(self, code, message, content=""):
@@ -73,7 +73,7 @@ class IntentParserServer:
                 sys.exit(2)
 
             if sbh_password is None:
-                print('SynBioHub password was not speficied')
+                print('SynBioHub password was not specified')
                 usage()
                 sys.exit(2)
 
@@ -173,6 +173,12 @@ class IntentParserServer:
         self.server.listen(5)
         print('listening on {}:{}'.format(bind_ip, bind_port))
 
+        self.spellCheckers = {}
+
+        self.dict_path = 'dictionaries'
+        if not os.path.exists(self.dict_path):
+            os.makedirs(self.dict_path)
+
     def serverRunLoop(self, *, background=False):
         if background:
             run_thread = threading.Thread(target=self.serverRunLoop)
@@ -181,6 +187,7 @@ class IntentParserServer:
             return
 
         print('Start Listener')
+
         while True:
             try:
                 if self.shutdownThread:
@@ -192,6 +199,9 @@ class IntentParserServer:
                 return
             except OSError:
                 # Shutting down
+                return
+            except InterruptedError:
+                # Received when server is shutting down
                 return
             except Exception as e:
                 raise e
@@ -255,6 +265,8 @@ class IntentParserServer:
             self.process_button_click(httpMessage, sm)
         elif resource == '/addToSynBioHub':
             self.process_add_to_syn_bio_hub(httpMessage, sm)
+        elif resource == '/addBySpelling':
+            self.process_add_by_spelling(httpMessage, sm)
         elif resource == '/searchSynBioHub':
             self.process_search_syn_bio_hub(httpMessage, sm)
         elif resource == '/submitForm':
@@ -340,7 +352,7 @@ class IntentParserServer:
 
                 url_host = url.split('/')[2]
                 if url_host not in self.sbh_link_hosts:
-                   continue
+                    continue
 
                 term_map[term] = url
                 mapped_name = {}
@@ -671,8 +683,6 @@ class IntentParserServer:
 
         return self.modal_dialog(htmlMessage, title, width, height)
 
-        return action
-
     def modal_dialog(self, html, title, width, height):
         action = {}
         action['action'] = 'showModalDialog'
@@ -694,8 +704,8 @@ class IntentParserServer:
                 continue
             text_run = element['textRun']
 
-            end_index = element['endIndex']
-            start_index = element['startIndex']
+            #end_index = element['endIndex']
+            #start_index = element['startIndex']
 
             paragraph_text += text_run['content']
 
@@ -728,11 +738,11 @@ class IntentParserServer:
                 content = text_run['content']
                 offset = content.lower().find(text.lower(), find_start)
 
-                # Check for whitespece before found text
+                # Check for whitespace before found text
                 if offset > 0 and content[offset-1].isalpha():
                     continue
 
-                # Check for whitespece after found text
+                # Check for whitespace after found text
                 next_offset = offset + len(text)
                 if next_offset < len(content) and content[next_offset].isalpha():
                     continue
@@ -822,15 +832,20 @@ class IntentParserServer:
         self.client_state_lock.release()
 
     def stop(self):
+        ''' Stop the intent parser server
+        '''
         if self.sbh is not None:
             self.sbh.stop()
 
+        print('Signaling shutdown...')
         self.shutdownThread = True
         self.event.set()
 
         if self.server is not None:
+            print('Closing server...')
             self.server.shutdown(socket.SHUT_RDWR)
             self.server.close()
+        print('Shutdown complete')
 
     def housekeeping(self):
         while True:
@@ -926,6 +941,25 @@ class IntentParserServer:
             end = data['end']
             document_id = json_body['documentId']
 
+            start_paragraph = start['paragraphIndex'];
+            end_paragraph = end['paragraphIndex'];
+
+            start_offset = start['offset']
+            end_offset = end['offset'] + 1
+
+            dialog_action = self.internal_add_to_syn_bio_hub(document_id, start_paragraph, end_paragraph,
+                                                             start_offset, end_offset)
+            actionList = [dialog_action]
+            actions = {'actions': actionList}
+
+            self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+        except Exception as e:
+            raise e
+
+
+    def internal_add_to_syn_bio_hub(self, document_id, start_paragraph, end_paragraph, start_offset, end_offset):
+        try:
+
             item_type_list = []
             for sbol_type in self.item_types:
                 item_type_list += self.item_types[sbol_type].keys()
@@ -950,14 +984,14 @@ class IntentParserServer:
             body = doc.get('body');
             doc_content = body.get('content')
             paragraphs = self.get_paragraphs(doc_content)
-            start_paragraph = start['paragraphIndex'];
-            end_paragraph = end['paragraphIndex'];
+
             paragraph_text = self.get_paragraph_text(
                 paragraphs[start_paragraph])
 
-            start_offset = start['offset']
-            end_offset = end['offset'] + 1
+
             selection = paragraph_text[start_offset:end_offset]
+            # Remove leading/trailing space
+            selection = selection.strip()
             display_id = self.sanitize_name_to_display_id(selection)
 
             html = self.add_html
@@ -976,19 +1010,460 @@ class IntentParserServer:
 
             dialog_action = self.modal_dialog(html, 'Add to SynBioHub',
                                               400, 450)
-            actionList = [dialog_action]
-            actions = {'actions': actionList}
-
-            self.send_response(200, 'OK', json.dumps(actions), sm,
-                               'application/json')
+            return dialog_action
         except Exception as e:
             raise e
 
+    def char_is_not_wordpart(self, ch):
+        """ Determines if a character is part of a word or not
+        This is used when parsing the text to tokenize words.
+        """
+        return ch is not '\'' and not ch.isalnum()
+
+    def strip_leading_trailing_punctuation(self, word):
+        """ Remove any leading of trailing punctuation (non-alphanumeric characters
+        """
+        start_index = 0
+        end_index = len(word)
+        while start_index < len(word) and not word[start_index].isalnum():
+            start_index +=1
+        while end_index > 0 and not word[end_index - 1].isalnum():
+            end_index -= 1
+
+        # If the word was only non-alphanumeric, we could get into a strange case
+        if (end_index <= start_index):
+            return ''
+        else:
+            return word[start_index:end_index]
+
+    def should_ignore_token(self, word):
+        """ Determines if a token/word should be ignored
+        For example, if a token contains no alphabet characters, we should ignore it.
+        """
+
+        contains_alpha = False
+        # This was way too slow
+        #term_exists_in_sbh = len(self.simple_syn_bio_hub_search(word)) > 0
+        term_exists_in_sbh = False
+        for ch in word:
+            contains_alpha |= ch.isalpha()
+
+        return not contains_alpha  or term_exists_in_sbh
+
+    def process_add_by_spelling(self, http_message, sm):
+        """ Function that sets up the results for additions by spelling
+        This will start from a given offset (generally 0) and saerch the rest of the
+        document, looking for words that are not in the dictionary.  Any words that
+        don't match are then used as suggestions for additions to SynBioHub.
+
+        Users can add words to the dictionary, and added words are saved by a user id.
+        This comes from the email address, but if that's not available the document id
+        is used instead.
+        """
+        try:
+            client_state = None
+            json_body = self.get_json_body(http_message)
+
+            document_id = json_body['documentId']
+            user = json_body['user']
+            userEmail = json_body['userEmail']
+
+            if not userEmail is '':
+                userId = userEmail
+            elif user:
+                userId = user
+            else:
+                userId = document_id
+
+            if not userId in self.spellCheckers:
+                self.spellCheckers[userId] = SpellChecker()
+                dict_path = os.path.join(self.dict_path, userId + '.json')
+                if os.path.exists(dict_path):
+                    print('Loaded dictionary for userId, path: %s' % dict_path)
+                    self.spellCheckers[userId].word_frequency.load_dictionary(dict_path)
+
+            try:
+                doc = self.google_accessor.get_document(
+                    document_id=document_id
+                )
+            except Exception as ex:
+                print(''.join(traceback.format_exception(etype=type(ex),
+                                                         value=ex,
+                                                         tb=ex.__traceback__)))
+                raise ConnectionException('404', 'Not Found',
+                                          'Failed to access document ' +
+                                          document_id)
+
+            if 'data' in json_body:
+                body = doc.get('body');
+                doc_content = body.get('content')
+                paragraphs = self.get_paragraphs(doc_content)
+
+                data = json_body['data']
+                paragraph_index = data['paragraphIndex']
+                offset = data['offset']
+                paragraph = paragraphs[ paragraph_index ]
+                first_element = paragraph['elements'][0]
+                paragraph_offset = first_element['startIndex']
+                starting_pos = paragraph_offset + offset
+            else:
+                starting_pos = 0
+
+            # Used to store session information
+            client_state = self.new_connection(document_id)
+            client_state['doc'] = doc
+            client_state['doc_id'] = document_id
+            client_state['user_id'] = userId
+
+            body = doc.get('body');
+            doc_content = body.get('content')
+            paragraphs = self.get_paragraphs(doc_content)
+
+            start = time.time()
+
+            spellCheckResults = [] # Store results metadata
+            missedTerms = [] # keep track of lists of misspelt words
+            # Second list can help us remove results by word
+
+            for pIdx in range(0, len(paragraphs)):
+                paragraph = paragraphs[ pIdx ]
+                elements = paragraph['elements']
+                firstIdx = elements[0]['startIndex']
+                for element_index in range( len(elements) ):
+                    element = elements[ element_index ]
+
+                    if 'textRun' not in element:
+                        continue
+                    text_run = element['textRun']
+
+                    end_index = element['endIndex']
+                    if end_index < starting_pos:
+                        continue
+
+                    start_index = element['startIndex']
+
+                    if start_index < starting_pos:
+                        wordStart = starting_pos - start_index
+                    else:
+                        wordStart = 0
+
+                    # If this text run is already linked, we don't need to process it
+                    if 'textStyle' in text_run and 'link' in text_run['textStyle']:
+                        continue
+
+                    content = text_run['content']
+                    endIdx = len(content);
+                    currIdx = wordStart + 1
+                    while currIdx < endIdx:
+                        # Check for end of word
+                        if self.char_is_not_wordpart(content[currIdx]):
+                            word = content[wordStart:currIdx]
+                            word = self.strip_leading_trailing_punctuation(word)
+                            word = word.lower()
+                            if not word in self.spellCheckers[userId] and not self.should_ignore_token(word):
+                                # Convert from an index into the content string,
+                                # to an offset into the paragraph string
+                                absoluteIdx =  wordStart + (start_index - firstIdx)
+                                result = {
+                                   'term' : word,
+                                   'select_start' : {'paragraph_index' : pIdx,
+                                                        'cursor_index' : absoluteIdx,
+                                                        'element_index': element_index},
+                                   'select_end' : {'paragraph_index' : pIdx,
+                                                        'cursor_index' : absoluteIdx + len(word) - 1,
+                                                        'element_index': element_index}
+                                   }
+                                spellCheckResults.append(result)
+                                missedTerms.append(word)
+                            # Find start of next word
+                            while currIdx < endIdx and self.char_is_not_wordpart(content[currIdx]):
+                                currIdx += 1
+                            # Store word start
+                            wordStart = currIdx
+                            currIdx += 1
+                        else: # continue until we find word end
+                            currIdx += 1
+
+                    # Check for tailing word that wasn't processed
+                    if currIdx - wordStart > 1:
+                        word = content[wordStart:currIdx]
+                        if not word in self.spellCheckers[userId]:
+                            absoluteIdx =  wordStart + (start_index - firstIdx)
+                            result = {
+                               'term' : word,
+                               'select_start' : {'paragraph_index' : pIdx,
+                                                    'cursor_index' : absoluteIdx,
+                                                    'element_index': element_index},
+                               'select_end' : {'paragraph_index' : pIdx,
+                                                    'cursor_index' : absoluteIdx + len(word) - 1,
+                                                    'element_index': element_index}
+                               }
+                            spellCheckResults.append(result)
+                            missedTerms.append(word)
+            end = time.time()
+            print('Scanned entire document in %0.2fs' %((end - start) * 1000))
+
+            # If we have a spelling mistake, highlight text and update user
+            if len(spellCheckResults) > 0:
+                client_state['spelling_results'] = spellCheckResults
+                client_state['spelling_index'] = 0
+                client_state['spelling_size'] = len(spellCheckResults)
+                actionList = self.report_spelling_results(client_state)
+                actions = {'actions': actionList}
+                self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+            else: # No spelling mistakes!
+                buttons = [('Ok', 'process_nop')]
+                dialog_action = self.simple_modal_dialog('Found no words not in spelling dictionary!', buttons, 'No misspellings!', 400, 450)
+                actionList = [dialog_action]
+                actions = {'actions': actionList}
+                self.send_response(200, 'OK', json.dumps(actions), sm,
+                                   'application/json')
+        except Exception as e:
+            raise e
+
+        finally:
+            if not client_state is None:
+                self.release_connection(client_state)
+
+    def report_spelling_results(self, client_state):
+        """Generate actions for client, given the current spelling results index
+        """
+        spellCheckResults = client_state['spelling_results']
+        resultIdx = client_state['spelling_index']
+
+        actionList = []
+
+        start_par = spellCheckResults[resultIdx]['select_start']['paragraph_index']
+        start_cursor = spellCheckResults[resultIdx]['select_start']['cursor_index']
+        end_par = spellCheckResults[resultIdx]['select_end']['paragraph_index']
+        end_cursor = spellCheckResults[resultIdx]['select_end']['cursor_index']
+        if not start_par == end_par:
+            print('Received a highlight request across paragraphs, which is currently unsupported!')
+        highlightTextAction = self.highlight_text(start_par, start_cursor, end_cursor)
+        actionList.append(highlightTextAction)
+
+        html  = ''
+        html += '<center>'
+        html += 'Term ' + spellCheckResults[resultIdx]['term'] + ' not found in dictionary, potential addition? ';
+        html += '</center>'
+
+        buttons = [('Ignore', 'spellcheck_add_ignore'),
+                   ('Ignore All', 'spellcheck_add_ignore_all'),
+                   ('Add to SynBioHub', 'spellcheck_add_synbiohub'),
+                   ('Add to Dictionary', 'spellcheck_add_dictionary'),
+                   ('Include Previous Word', 'spellcheck_add_select_previous'),
+                   ('Include Next Word', 'spellcheck_add_select_next'),
+                   ('Remove First Word', 'spellcheck_add_drop_first'),
+                   ('Remove Last Word', 'spellcheck_add_drop_last')]
+
+        dialogAction = self.simple_sidebar_dialog(html, buttons)
+        actionList.append(dialogAction)
+        return actionList
+
+    def spellcheck_remove_term(self, client_state):
+        """ Removes the current term from the result set, returning True if a term was removed else False.
+        False will be returned if there are no terms after the term being removed.
+        """
+        curr_idx = client_state['spelling_index']
+        next_idx = curr_idx + 1
+        spelling_results = client_state['spelling_results']
+        while next_idx < client_state['spelling_size'] and spelling_results[curr_idx]['term'] == spelling_results[next_idx]['term']:
+            next_idx = next_idx + 1
+        # Are we at the end? Then just exit
+        if next_idx >= client_state['spelling_size']:
+            return False
+
+        term_to_ignore = spelling_results[curr_idx]['term']
+        # Generate results without term to ignore
+        new_spelling_results = [r for r in spelling_results if not r['term'] == term_to_ignore ]
+
+        # Find out what term to point to
+        next_term = spelling_results[next_idx]['term']
+        new_idx = 0
+        while not new_spelling_results[new_idx]['term'] == next_term:
+            new_idx += 1
+        # Update client state        client_state['spelling_results'] = new_spelling_results
+        client_state['spelling_index'] = new_idx
+        client_state['spelling_size'] = len(new_spelling_results)
+        return True
+
+    def spellcheck_add_ignore(self, json_body, client_state):
+        """ Ignore button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        client_state["spelling_index"] += 1
+        if client_state["spelling_index"] >= client_state['spelling_size']:
+            # We are at the end, nothing else to do
+            return []
+        else:
+            return self.report_spelling_results(client_state)
+
+    def spellcheck_add_ignore_all(self, json_body, client_state):
+        """ Ignore All button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        if self.spellcheck_remove_term(client_state):
+            return self.report_spelling_results(client_state)
+
+    def spellcheck_add_synbiohub(self, json_body, client_state):
+        """ Add to SBH button action for additions by spelling
+        """
+        json_body # Remove unused warning
+
+        doc_id = client_state['doc_id']
+        spell_index = client_state['spelling_index']
+        spell_check_result = client_state['spelling_results'][spell_index]
+        select_start = spell_check_result['select_start']
+        select_end = spell_check_result['select_end']
+
+        start_paragraph = select_start['paragraph_index']
+        start_offset = select_start['cursor_index']
+
+        end_paragraph = select_end['cursor_index']
+        end_offset = select_end['cursor_index'] + 1
+
+        dialog_action = self.internal_add_to_syn_bio_hub(doc_id, start_paragraph, end_paragraph,
+                                                             start_offset, end_offset)
+
+        actionList = [dialog_action]
+
+        # Since we are adding this term to the SBH dict, we want to ignore any other results
+        self.spellcheck_remove_term(client_state)
+        # Removing the term automatically updates the spelling index
+        #client_state["spelling_index"] += 1
+        if client_state["spelling_index"] < client_state['spelling_size']:
+            for action in self.report_spelling_results(client_state):
+                actionList.append(action)
+
+        return actionList
+
+    def spellcheck_add_dictionary(self, json_body, client_state):
+        """ Add to spelling dictionary button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        user_id = client_state['user_id']
+
+        spell_index = client_state['spelling_index']
+        spell_check_result = client_state['spelling_results'][spell_index]
+        new_word = spell_check_result['term']
+
+        # Add new word to frequency list
+        self.spellCheckers[user_id].word_frequency.add(new_word)
+
+        # Save updated frequency list for later loading
+        # We could probably do this later, but it ensures no updated state is lost
+        dict_path = os.path.join(self.dict_path, user_id + '.json')
+        self.spellCheckers[user_id].export(dict_path)
+
+        client_state["spelling_index"] += 1
+        if client_state["spelling_index"] >= client_state['spelling_size']:
+            # We are at the end, nothing else to do
+            return []
+
+        return self.report_spelling_results(client_state)
+
+    def spellcheck_add_select_previous(self, json_body, client_state):
+        """ Select previous word button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, True, True)
+
+    def spellcheck_add_select_next(self, json_body, client_state):
+        """ Select next word button action for additions by spelling
+        """
+        """ Select previous word button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, False, True)
+
+    def spellcheck_add_drop_first(self, json_body, client_state):
+        """ Remove selection previous word button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, True, False)
+
+    def spellcheck_add_drop_last(self, json_body, client_state):
+        """ Remove selection next word button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, False, False)
+
+    def spellcheck_select_word_from_text(self, client_state, isPrev, isSelect):
+        """ Given a client state with a selection from a spell check result,
+        select or remove the selection on the next or previous word, based upon parameters.
+        """
+        if isPrev:
+            select_key = 'select_start'
+        else:
+            select_key = 'select_end'
+
+        spell_index = client_state['spelling_index']
+        spell_check_result = client_state['spelling_results'][spell_index]
+
+        starting_pos = spell_check_result[select_key]['cursor_index']
+        para_index = spell_check_result[select_key]['paragraph_index']
+        doc = client_state['doc']
+        body = doc.get('body');
+        doc_content = body.get('content')
+        paragraphs = self.get_paragraphs(doc_content)
+        # work on the paragraph text directly
+        paragraph_text = self.get_paragraph_text(paragraphs[para_index])
+        para_text_len = len(paragraph_text)
+
+        # Determine which directions to search in, based on selection or removal, prev/next
+        if isSelect:
+            if isPrev:
+                edge_check = lambda x : x > 0
+                increment = -1
+            else:
+                edge_check = lambda x : x < para_text_len
+                increment = 1
+            firstCheck = self.char_is_not_wordpart
+            secondCheck = lambda x : not self.char_is_not_wordpart(x)
+        else:
+            if isPrev:
+                edge_check = lambda x : x < para_text_len
+                increment = 1
+            else:
+                edge_check = lambda x : x > 0
+                increment = -1
+            secondCheck = self.char_is_not_wordpart
+            firstCheck = lambda x : not self.char_is_not_wordpart(x)
+
+        if starting_pos < 0:
+            print('Error: got request to select previous, but the starting_pos was negative!')
+            return
+
+        if para_text_len < starting_pos:
+            print('Error: got request to select previous, but the starting_pos was past the end!')
+            return
+
+        # Move past the end/start of the current word
+        currIdx = starting_pos + increment
+
+        # Skip over space/non-word parts to the next word
+        while edge_check(currIdx) and firstCheck(paragraph_text[currIdx]):
+            currIdx += increment
+        # Find the beginning/end of word
+        while edge_check(currIdx) and secondCheck(paragraph_text[currIdx]):
+            currIdx += increment
+
+        # If we don't hit the beginning, we need to cut off the last space
+        if currIdx > 0 and isPrev and isSelect:
+            currIdx += 1
+
+        if not isPrev and isSelect and paragraph_text[currIdx].isspace():
+            currIdx += -1
+
+        spell_check_result[select_key]['cursor_index'] = currIdx
+
+        return self.report_spelling_results(client_state)
+
     def simple_syn_bio_hub_search(self, term):
+        start = time.time()
         sparql_query = self.sparql_query.replace('${TERM}', term)
         query_results = self.sbh.sparqlQuery(sparql_query)
         bindings = query_results['results']['bindings']
-
         search_results = []
         for binding in bindings:
             title = binding['title']['value']
@@ -997,7 +1472,8 @@ class IntentParserServer:
                 target = target.replace(self.sbh_spoofing_prefix, self.sbh_url)
             search_results.append({'title': title, 'target': target})
 
-
+        end = time.time()
+        print('Simple SynbioHub search for %s took %0.2fs' %(term, (end - start) * 1000))
         return search_results
 
     def sanitize_name_to_display_id(self, name):
@@ -1137,9 +1613,9 @@ class IntentParserServer:
 
         # Sanitize the display id
         if len(item_display_id) > 0:
-             display_id = self.sanitize_name_to_display_id(item_display_id)
-             if display_id != item_display_id:
-                 return self.operation_failed('Illegal display_id')
+            display_id = self.sanitize_name_to_display_id(item_display_id)
+            if display_id != item_display_id:
+                return self.operation_failed('Illegal display_id')
         else:
             display_id = self.sanitize_name_to_display_id(item_name)
 
@@ -1165,7 +1641,7 @@ class IntentParserServer:
         # Fix CHEBI URI
         if item_type == 'CHEBI':
             if len(item_definition_uri) == 0:
-                 item_definition_uri = sbol_type_map[ item_type ]
+                item_definition_uri = sbol_type_map[ item_type ]
             else:
                 if not item_definition_uri.startswith('http://identifiers.org/chebi/CHEBI'):
                     item_definition_uri = 'http://identifiers.org/chebi/CHEBI:' + \
@@ -1321,6 +1797,7 @@ class IntentParserServer:
         data = json_body['data']
 
         try:
+
             search_results = self.simple_syn_bio_hub_search(data['term'])
 
             if len(search_results) > 5:
@@ -1338,6 +1815,8 @@ class IntentParserServer:
                          'search_results': search_results,
                          'table_html': table_html
                         }}
+
+
         except:
             response = self.operation_failed('Failed to search SynBioHub')
 
@@ -1378,6 +1857,7 @@ def main(argv):
     global sbh_collection_uri
     global bind_port
     global bind_host
+    global sbhPlugin
 
     try:
         opts, args = getopt.getopt(argv, "u:p:hc:i:s:b:l:",
@@ -1434,6 +1914,27 @@ def main(argv):
         sys.exit(5)
 
     sbhPlugin.serverRunLoop()
+
+def signal_int_handler(sig, frame):
+    '''  Handling SIG_INT: shutdown intent parser server and wait for it to finish.
+    '''
+    global sbhPlugin
+    global sigIntCount
+
+    sigIntCount += 1
+    sig # Remove unused warning
+    frame # Remove unused warning
+
+    # Try to cleanly exit on the first try
+    if sigIntCount == 1:
+        print('\nStopping intent parser server...')
+        sbhPlugin.stop()
+    # If we receive enough SIGINTs, die
+    if sigIntCount > 3:
+        sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_int_handler)
+sigIntCount = 0
 
 
 if __name__ == "__main__":
