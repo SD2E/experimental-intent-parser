@@ -179,6 +179,10 @@ class IntentParserServer:
         if not os.path.exists(self.dict_path):
             os.makedirs(self.dict_path)
 
+        # Define the percentage of length of the search term that must
+        # be matched in order to have a valid partial match
+        self.partial_match_thresh = 0.75
+
     def serverRunLoop(self, *, background=False):
         if background:
             run_thread = threading.Thread(target=self.serverRunLoop)
@@ -395,6 +399,7 @@ class IntentParserServer:
         return (json_body, client_state)
 
     def process_analyze_document(self, httpMessage, sm):
+        start = time.time()
         json_body = self.get_json_body(httpMessage)
 
         if 'documentId' not in json_body:
@@ -435,7 +440,8 @@ class IntentParserServer:
             actions = {'actions': actionList}
             self.send_response(200, 'OK', json.dumps(actions), sm,
                                'application/json')
-
+            end = time.time()
+            print('Analyzed entire document in %0.2fs' %((end - start) * 1000))
         except Exception as e:
             raise e
 
@@ -471,7 +477,7 @@ class IntentParserServer:
             uri = search_result['uri']
             link = search_result['link']
             content_term = search_result['text']
-            end_offset = offset + len(term) - 1
+            end_offset = search_result['end_offset']
 
             actions = []
 
@@ -546,23 +552,17 @@ class IntentParserServer:
         item_map = self.item_map
         self.item_map_lock.release()
 
-        itr = 0
         for term in item_map.keys():
-            pos = start_offset
-            while True:
-                result = self.find_text(term, pos, paragraphs)
-                if result is None:
-                    break;
-
-                search_results.append({ 'paragraph_index': result[0],
-                                        'offset': result[1],
-                                        'end_offset': result[1] + len(term),
-                                        'term': term,
-                                        'uri': item_map[term],
-                                        'link': result[3],
-                                        'text': result[4]})
-
-                pos = result[2] + len(term)
+            results = self.find_text(term, start_offset, paragraphs)
+            for result in results:
+                search_results.append(
+                                { 'paragraph_index' : result[0],
+                                  'offset'          : result[1],
+                                  'end_offset'      : result[2],
+                                  'term'            : term,
+                                  'uri'             : item_map[term],
+                                  'link'            : result[3],
+                                  'text'            : result[4]})
 
         if len(search_results) == 0:
             return []
@@ -705,7 +705,10 @@ class IntentParserServer:
 
         return paragraph_text
 
-    def find_text(self, text, starting_pos, paragraphs):
+    def find_exact_text(self, text, starting_pos, paragraphs):
+        """
+        Search through the whole document, beginning at starting_pos and return the first exact match to text.
+        """
         elements = []
 
         for paragraph_index in range( len(paragraphs )):
@@ -763,6 +766,107 @@ class IntentParserServer:
                         content_text)
 
         return None
+
+    def find_common_substrings(self, a, b):
+        """
+        Scan b finding any common substrings from b.  For each possible common substring, only the first one is found.
+        """
+        results = []
+        len1 = len(a)
+        len2 = len(b)
+        i = 0
+        while i < len1:
+            match_start = -1
+            matched_chars = 0
+            # Ignore white space
+            if a[i].isspace():
+                i += 1
+                continue;
+            match = None
+            for j in range(len2):
+                char_match = (i + j < len1 and a[i + matched_chars] == b[j])
+                if char_match and match_start == -1:
+                    match_start = j
+                elif match_start > -1 and not char_match:
+                    match = Match(i, match_start, j - match_start)
+                    break
+                if char_match:
+                    matched_chars += 1
+            # Check for match at the end
+            if match is None and match_start > -1:
+                match = Match(i, match_start, len2 - match_start)
+            # Process a match
+            if not match is None:
+                # Ignore matches if they aren't big enough
+                if match.size >= int(min(len1,len2) * self.partial_match_thresh):
+                    results.append(match)
+                i += match.size
+            else:
+                i += 1
+
+        return results
+
+    def find_text(self, text, abs_start_offset, paragraphs):
+        """
+        Search through the whole document and return a collection of matches, including partial, to the search term.
+        """
+        results = []
+        for paragraph_index in range( len(paragraphs )):
+            paragraph = paragraphs[ paragraph_index ]
+            elements = paragraph['elements']
+
+            for element_index in range( len(elements) ):
+                element = elements[ element_index ]
+
+                if 'textRun' not in element:
+                    continue
+                text_run = element['textRun']
+
+                # Don't start the search until after the starting position
+                end_index = element['endIndex']
+                if end_index < abs_start_offset:
+                    continue
+
+                start_index = element['startIndex']
+                content = text_run['content']
+
+                # Trim off content if it starts after the starting position
+                start_offset = max(0,abs_start_offset - start_index)
+                if start_offset > 0:
+                    content = content[start_offset:]
+
+                matches = self.find_common_substrings(content.lower(), text.lower())
+                for match in matches:
+                    # Need to exceed partial match threshold
+                    if match.size < int(len(text) * self.partial_match_thresh):
+                        continue
+
+                    offset = match.a
+
+                    # Check for whitespace before found text
+                    if offset > 0 and content[offset-1].isalpha():
+                        continue
+
+                    # Check for whitespace after found text
+                    next_offset = offset + match.size
+                    if next_offset < len(content) and content[next_offset].isalpha():
+                        continue
+
+                    content_text = content[offset:(offset + match.size)]
+
+                    first_index = elements[0]['startIndex']
+                    offset += (start_index + start_offset) - first_index
+
+                    link = None
+
+                    if 'textStyle' in text_run:
+                        text_style = text_run['textStyle']
+                        if 'link' in text_style:
+                            link = text_style['link']
+                            if 'url' in link:
+                                link = link['url']
+                    results.append((paragraph_index, offset, offset + match.size - 1, link, content_text))
+        return results
 
     def handleGET(self, httpMessage, sm):
         resource = httpMessage.get_path()
@@ -1763,10 +1867,9 @@ class IntentParserServer:
         uri = data['extra']['link']
 
         actions = []
-        search_results = []
         pos = 0
         while True:
-            result = self.find_text(selected_term, pos, paragraphs)
+            result = self.find_exact_text(selected_term, pos, paragraphs)
 
             if result is None:
                 break
