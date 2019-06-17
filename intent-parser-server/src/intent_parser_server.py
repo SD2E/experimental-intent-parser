@@ -1311,8 +1311,8 @@ class IntentParserServer:
         """ Ignore button action for additions by spelling
         """
         json_body # Remove unused warning
-        client_state["spelling_index"] += 1
-        if client_state["spelling_index"] >= client_state['spelling_size']:
+        client_state['spelling_index'] += 1
+        if client_state['spelling_index'] >= client_state['spelling_size']:
             # We are at the end, nothing else to do
             return []
         else:
@@ -1348,7 +1348,7 @@ class IntentParserServer:
         actionList = [dialog_action]
 
         client_state["spelling_index"] += 1
-        if client_state["spelling_index"] < client_state['spelling_size']:
+        if client_state['spelling_index'] < client_state['spelling_size']:
             for action in self.report_spelling_results(client_state):
                 actionList.append(action)
 
@@ -1376,7 +1376,7 @@ class IntentParserServer:
         self.spellcheck_remove_term(client_state)
         # Removing the term automatically updates the spelling index
         #client_state["spelling_index"] += 1
-        if client_state["spelling_index"] >= client_state['spelling_size']:
+        if client_state['spelling_index'] >= client_state['spelling_size']:
             # We are at the end, nothing else to do
             return []
 
