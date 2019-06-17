@@ -1250,7 +1250,7 @@ class IntentParserServer:
         buttons = [('Ignore', 'spellcheck_add_ignore'),
                    ('Ignore All', 'spellcheck_add_ignore_all'),
                    ('Add to SynBioHub', 'spellcheck_add_synbiohub'),
-                   ('Add to Dictionary', 'spellcheck_add_dictionary'),
+                   ('Add to Spellchecker Dictionary', 'spellcheck_add_dictionary'),
                    ('Include Previous Word', 'spellcheck_add_select_previous'),
                    ('Include Next Word', 'spellcheck_add_select_next'),
                    ('Remove First Word', 'spellcheck_add_drop_first'),
@@ -1327,10 +1327,7 @@ class IntentParserServer:
 
         actionList = [dialog_action]
 
-        # Since we are adding this term to the SBH dict, we want to ignore any other results
-        self.spellcheck_remove_term(client_state)
-        # Removing the term automatically updates the spelling index
-        #client_state["spelling_index"] += 1
+        client_state["spelling_index"] += 1
         if client_state["spelling_index"] < client_state['spelling_size']:
             for action in self.report_spelling_results(client_state):
                 actionList.append(action)
@@ -1355,7 +1352,10 @@ class IntentParserServer:
         dict_path = os.path.join(self.dict_path, user_id + '.json')
         self.spellCheckers[user_id].export(dict_path)
 
-        client_state["spelling_index"] += 1
+        # Since we are adding this term to the spelling dict, we want to ignore any other results
+        self.spellcheck_remove_term(client_state)
+        # Removing the term automatically updates the spelling index
+        #client_state["spelling_index"] += 1
         if client_state["spelling_index"] >= client_state['spelling_size']:
             # We are at the end, nothing else to do
             return []
