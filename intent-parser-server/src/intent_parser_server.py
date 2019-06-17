@@ -1133,7 +1133,6 @@ class IntentParserServer:
             # Used to store session information
             client_state = self.new_connection(document_id)
             client_state['doc'] = doc
-            client_state['doc_id'] = document_id
             client_state['user_id'] = userId
 
             body = doc.get('body');
@@ -1331,7 +1330,7 @@ class IntentParserServer:
         """
         json_body # Remove unused warning
 
-        doc_id = client_state['doc_id']
+        doc_id = client_state['document_id']
         spell_index = client_state['spelling_index']
         spell_check_result = client_state['spelling_results'][spell_index]
         select_start = spell_check_result['select_start']
