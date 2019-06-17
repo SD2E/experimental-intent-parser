@@ -27,14 +27,41 @@ class ConnectionException(Exception):
 
 
 class IntentParserServer:
-    def __init__(self, *, bind_port=8080, bind_ip="0.0.0.0",
+
+    dict_path = 'dictionaries'
+
+    def __init__(self, bind_port=8080, bind_ip="0.0.0.0",
+                 sbh_collection_uri=None,
+                 sbh_spoofing_prefix=None,
+                 spreadsheet_id=None,
+                 sbh_username=None, sbh_password=None,
+                 sbh_link_hosts=['hub-staging.sd2e.org',
+                                 'hub.sd2e.org'],
+                 initialize=True):
+
+        if initialize:
+            self.initialize_server(self, bind_port, bind_ip,
+                 sbh_collection_uri,
+                 sbh_spoofing_prefix,
+                 spreadsheet_id,
+                 sbh_username, sbh_password,
+                 sbh_link_hosts)
+
+        self.spellCheckers = {}
+
+        if not os.path.exists(self.dict_path):
+            os.makedirs(self.dict_path)
+
+    def initialize_server(self, *, bind_port=8080, bind_ip="0.0.0.0",
                  sbh_collection_uri,
                  sbh_spoofing_prefix=None,
                  spreadsheet_id,
                  sbh_username=None, sbh_password=None,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org']):
-
+        """
+        Initialize the server.
+        """
         self.shutdownThread = False
         self.event = threading.Event()
         self.my_path = os.path.dirname(os.path.realpath(__file__))
@@ -172,12 +199,6 @@ class IntentParserServer:
 
         self.server.listen(5)
         print('listening on {}:{}'.format(bind_ip, bind_port))
-
-        self.spellCheckers = {}
-
-        self.dict_path = 'dictionaries'
-        if not os.path.exists(self.dict_path):
-            os.makedirs(self.dict_path)
 
     def serverRunLoop(self, *, background=False):
         if background:
@@ -1052,7 +1073,7 @@ class IntentParserServer:
 
     def process_add_by_spelling(self, http_message, sm):
         """ Function that sets up the results for additions by spelling
-        This will start from a given offset (generally 0) and saerch the rest of the
+        This will start from a given offset (generally 0) and searches the rest of the
         document, looking for words that are not in the dictionary.  Any words that
         don't match are then used as suggestions for additions to SynBioHub.
 
