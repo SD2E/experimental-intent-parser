@@ -39,13 +39,18 @@ class IntentParserServer:
                                  'hub.sd2e.org'],
                  initialize=True):
 
+        self.sbh = None
+        self.server = None
+        self.shutdownThread = False
+        self.event = threading.Event()
+
         if initialize:
-            self.initialize_server(self, bind_port, bind_ip,
-                 sbh_collection_uri,
-                 sbh_spoofing_prefix,
-                 spreadsheet_id,
-                 sbh_username, sbh_password,
-                 sbh_link_hosts)
+            self.initialize_server(bind_port=bind_port, bind_ip=bind_ip,
+                 sbh_collection_uri=sbh_collection_uri,
+                 sbh_spoofing_prefix=sbh_spoofing_prefix,
+                 spreadsheet_id=spreadsheet_id,
+                 sbh_username=sbh_username, sbh_password=sbh_password,
+                 sbh_link_hosts=sbh_link_hosts)
 
         self.spellCheckers = {}
 
@@ -62,8 +67,6 @@ class IntentParserServer:
         """
         Initialize the server.
         """
-        self.shutdownThread = False
-        self.event = threading.Event()
         self.my_path = os.path.dirname(os.path.realpath(__file__))
 
         if sbh_collection_uri[:8] == 'https://':
