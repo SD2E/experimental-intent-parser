@@ -30,6 +30,36 @@ class IntentParserServer:
 
     dict_path = 'dictionaries'
 
+    lab_ids_list = sorted(['BioFAB UID',
+                            'Ginkgo UID',
+                            'Transcriptic UID',
+                            'LBNL UID',
+                            'EmeraldCloud UID'])
+
+    item_types = {
+            'component': {
+                'Bead'     : 'http://purl.obolibrary.org/obo/NCIT_C70671',
+                'CHEBI'    : 'http://identifiers.org/chebi/CHEBI:24431',
+                'DNA'      : 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
+                'Protein'  : 'http://www.biopax.org/release/biopax-level3.owl#Protein',
+                'RNA'      : 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
+            },
+            'module': {
+                'Strain'   : 'http://purl.obolibrary.org/obo/NCIT_C14419',
+                'Media'    : 'http://purl.obolibrary.org/obo/NCIT_C85504',
+                'Stain'    : 'http://purl.obolibrary.org/obo/NCIT_C841',
+                'Buffer'   : 'http://purl.obolibrary.org/obo/NCIT_C70815',
+                'Solution' : 'http://purl.obolibrary.org/obo/NCIT_C70830'
+            },
+            'collection': {
+                'Challenge Problem' : '',
+                'Collection' : ''
+            },
+            'external': {
+                'Attribute' : ''
+            }
+        }
+
     def __init__(self, bind_port=8080, bind_ip="0.0.0.0",
                  sbh_collection_uri=None,
                  sbh_spoofing_prefix=None,
@@ -37,14 +67,24 @@ class IntentParserServer:
                  sbh_username=None, sbh_password=None,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org'],
-                 initialize=True):
+                 init_server=True):
 
         self.sbh = None
         self.server = None
         self.shutdownThread = False
         self.event = threading.Event()
 
-        if initialize:
+        self.my_path = os.path.dirname(os.path.realpath(__file__))
+
+        f = open(self.my_path + '/add.html', 'r')
+        self.add_html = f.read()
+        f.close()
+
+        f = open(self.my_path + '/findSimilar.sparql', 'r')
+        self.sparql_query = f.read()
+        f.close()
+
+        if init_server:
             self.initialize_server(bind_port=bind_port, bind_ip=bind_ip,
                  sbh_collection_uri=sbh_collection_uri,
                  sbh_spoofing_prefix=sbh_spoofing_prefix,
@@ -67,7 +107,6 @@ class IntentParserServer:
         """
         Initialize the server.
         """
-        self.my_path = os.path.dirname(os.path.realpath(__file__))
 
         if sbh_collection_uri[:8] == 'https://':
             sbh_url_protocol = 'https://'
@@ -144,49 +183,11 @@ class IntentParserServer:
         self.item_map = self.generate_item_map(use_cache=True)
         self.item_map_lock.release()
 
-        self.item_types = {
-            'component': {
-                'Bead'     : 'http://purl.obolibrary.org/obo/NCIT_C70671',
-                'CHEBI'    : 'http://identifiers.org/chebi/CHEBI:24431',
-                'DNA'      : 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
-                'Protein'  : 'http://www.biopax.org/release/biopax-level3.owl#Protein',
-                'RNA'      : 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
-            },
-            'module': {
-                'Strain'   : 'http://purl.obolibrary.org/obo/NCIT_C14419',
-                'Media'    : 'http://purl.obolibrary.org/obo/NCIT_C85504',
-                'Stain'    : 'http://purl.obolibrary.org/obo/NCIT_C841',
-                'Buffer'   : 'http://purl.obolibrary.org/obo/NCIT_C70815',
-                'Solution' : 'http://purl.obolibrary.org/obo/NCIT_C70830'
-            },
-            'collection': {
-                'Challenge Problem' : '',
-                'Collection' : ''
-            },
-            'external': {
-                'Attribute' : ''
-            }
-        }
-
         # Inverse map of typeTabs
         self.type2tab = {}
         for tab_name in self.google_accessor.type_tabs.keys():
             for type_name in self.google_accessor.type_tabs[tab_name]:
                 self.type2tab[type_name] = tab_name
-
-        self.lab_ids_list = sorted(['BioFAB UID',
-                                    'Ginkgo UID',
-                                    'Transcriptic UID',
-                                    'LBNL UID',
-                                    'EmeraldCloud UID'])
-
-        f = open(self.my_path + '/add.html', 'r')
-        self.add_html = f.read()
-        f.close()
-
-        f = open(self.my_path + '/findSimilar.sparql', 'r')
-        self.sparql_query = f.read()
-        f.close()
 
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -1394,8 +1395,6 @@ class IntentParserServer:
 
     def spellcheck_add_select_next(self, json_body, client_state):
         """ Select next word button action for additions by spelling
-        """
-        """ Select previous word button action for additions by spelling
         """
         json_body # Remove unused warning
         return self.spellcheck_select_word_from_text(client_state, False, True)
