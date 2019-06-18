@@ -1302,7 +1302,8 @@ class IntentParserServer:
         new_idx = 0
         while not new_spelling_results[new_idx]['term'] == next_term:
             new_idx += 1
-        # Update client state        client_state['spelling_results'] = new_spelling_results
+        # Update client state
+        client_state['spelling_results'] = new_spelling_results
         client_state['spelling_index'] = new_idx
         client_state['spelling_size'] = len(new_spelling_results)
         return True
