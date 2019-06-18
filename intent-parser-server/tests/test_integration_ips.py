@@ -40,6 +40,13 @@ class TestIntentParserServer(unittest.TestCase):
         warnings.filterwarnings('ignore', message='unclosed <ssl.SSLSocket',
                                 category=ResourceWarning)
 
+        # If we don't have the necessary credentials, try reading them in from json
+        if not hasattr(TestIntentParserServer, 'sbh_username') or not hasattr(TestIntentParserServer, 'sbh_password'):
+            with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sbh_creds.json'), 'r') as fin:
+                creds = json.load(fin)
+                TestIntentParserServer.sbh_username = creds['username']
+                TestIntentParserServer.sbh_password = creds['password']
+
         self.google_accessor = GoogleAccessor.create()
         #f = open('test-doc.json', 'r')
         #doc_content = json.loads(f.read())
