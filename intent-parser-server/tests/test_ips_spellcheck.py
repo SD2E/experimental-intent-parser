@@ -130,7 +130,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.assertTrue(self.compare_spell_results(spelling_gt_no_prot, self.ips.client_state_map[self.doc_id]['spelling_results'])) 
 
     def tearDown(self):
-        pass
+        self.ips.stop()
 
 
 if __name__ == '__main__':
