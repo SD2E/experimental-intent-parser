@@ -7,7 +7,12 @@ import os
 import time
 import urllib.request
 
-from intent_parser_server import IntentParserServer
+try:
+    from intent_parser_server import IntentParserServer
+except Exception as e:
+    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'../src'))
+    from intent_parser_server import IntentParserServer
+
 from google_accessor import GoogleAccessor
 
 
@@ -35,15 +40,43 @@ class TestIntentParserServer(unittest.TestCase):
         warnings.filterwarnings('ignore', message='unclosed <ssl.SSLSocket',
                                 category=ResourceWarning)
 
+        # If we don't have the necessary credentials, try reading them in from json
+        if not hasattr(TestIntentParserServer, 'sbh_username') or not hasattr(TestIntentParserServer, 'sbh_password'):
+            with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sbh_creds.json'), 'r') as fin:
+                creds = json.load(fin)
+                TestIntentParserServer.sbh_username = creds['username']
+                TestIntentParserServer.sbh_password = creds['password']
+
         self.google_accessor = GoogleAccessor.create()
-        f = open('test-doc.json', 'r')
-        doc_content = json.loads(f.read())
-        f.close()
+        #f = open('test-doc.json', 'r')
+        #doc_content = json.loads(f.read())
+        #f.close()
 
         self.bind_ip = 'localhost'
         self.bind_port = 8081
         self.template_doc_id = '10HqgtfVCtYhk3kxIvQcwljIUonSNlSiLBC8UFmlwm1s'
-        self.template_spreadsheet_id = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g'
+        self.template_spreadsheet_id = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0'
+
+        self.template_doc_last_rev = '2019-01-30T17:45:49.339Z'
+        self.template_sheet_last_rev = '2019-06-12T20:29:13.519Z'
+
+        rev_results = self.google_accessor.get_document_revisions(document_id=self.template_doc_id)
+        if 'revisions' not in rev_results or len(rev_results['revisions']) < 1 :
+            print('ERROR: Failed to retrieve revisions for document template!')
+            raise Exception
+        last_rev = rev_results['revisions'][0]['modifiedTime']
+        if not last_rev == self.template_doc_last_rev:
+            print('ERROR: template document has been modified! Expected last revision: %s, received %s!' % (self.template_doc_last_rev, last_rev))
+            raise Exception
+
+        rev_results = self.google_accessor.get_document_revisions(document_id=self.template_spreadsheet_id)
+        if 'revisions' not in rev_results or len(rev_results['revisions']) < 1 :
+            print('ERROR: Failed to retrieve revisions for spreadsheet template!')
+            raise Exception
+        last_rev = rev_results['revisions'][0]['modifiedTime']
+        if not last_rev == self.template_sheet_last_rev:
+            print('ERROR: template spreadsheet has been modified! Expected last revision: %s, received %s!' % (self.template_sheet_last_rev, last_rev))
+            raise Exception
 
         self.server_url = 'http://' + self.bind_ip + ':' + str(self.bind_port)
 
@@ -181,6 +214,16 @@ if __name__ == '__main__':
         elif opt in ('-h', '--help'):
             usage()
             sys.exit(0)
+
+    if not hasattr(TestIntentParserServer, 'sbh_username'):
+        print('ERROR: Missing required parameter -u/--username!')
+        usage()
+        sys.exit(0)
+
+    if not hasattr(TestIntentParserServer, 'sbh_password'):
+        print('ERROR: Missing required parameter -p/--password!')
+        usage()
+        sys.exit(0)
 
     print('Run unit tests')
 
