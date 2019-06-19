@@ -11,6 +11,10 @@ SELECT DISTINCT ?member ?displayId ?title
 WHERE {{
     ?member sbol:displayId ?displayId .
     ?member dcterms:title ?title .
+    ?member rdf:type ?type
     FILTER( regex(lcase(?displayId), lcase("${TERM}")) ||
             regex(lcase(?title), lcase("${TERM}"))) .
+    FILTER( regex(?type, "ComponentDefinition")
+            || regex(?type, "ModuleDefinition")
+            || regex(?type, "Collection")) .
 }}
