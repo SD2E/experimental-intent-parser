@@ -27,17 +27,86 @@ class ConnectionException(Exception):
 
 
 class IntentParserServer:
-    def __init__(self, *, bind_port=8080, bind_ip="0.0.0.0",
+
+    dict_path = 'dictionaries'
+
+    lab_ids_list = sorted(['BioFAB UID',
+                            'Ginkgo UID',
+                            'Transcriptic UID',
+                            'LBNL UID',
+                            'EmeraldCloud UID'])
+
+    item_types = {
+            'component': {
+                'Bead'     : 'http://purl.obolibrary.org/obo/NCIT_C70671',
+                'CHEBI'    : 'http://identifiers.org/chebi/CHEBI:24431',
+                'DNA'      : 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
+                'Protein'  : 'http://www.biopax.org/release/biopax-level3.owl#Protein',
+                'RNA'      : 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
+            },
+            'module': {
+                'Strain'   : 'http://purl.obolibrary.org/obo/NCIT_C14419',
+                'Media'    : 'http://purl.obolibrary.org/obo/NCIT_C85504',
+                'Stain'    : 'http://purl.obolibrary.org/obo/NCIT_C841',
+                'Buffer'   : 'http://purl.obolibrary.org/obo/NCIT_C70815',
+                'Solution' : 'http://purl.obolibrary.org/obo/NCIT_C70830'
+            },
+            'collection': {
+                'Challenge Problem' : '',
+                'Collection' : ''
+            },
+            'external': {
+                'Attribute' : ''
+            }
+        }
+
+    def __init__(self, bind_port=8080, bind_ip="0.0.0.0",
+                 sbh_collection_uri=None,
+                 sbh_spoofing_prefix=None,
+                 spreadsheet_id=None,
+                 sbh_username=None, sbh_password=None,
+                 sbh_link_hosts=['hub-staging.sd2e.org',
+                                 'hub.sd2e.org'],
+                 init_server=True):
+
+        self.sbh = None
+        self.server = None
+        self.shutdownThread = False
+        self.event = threading.Event()
+
+        self.my_path = os.path.dirname(os.path.realpath(__file__))
+
+        f = open(self.my_path + '/add.html', 'r')
+        self.add_html = f.read()
+        f.close()
+
+        f = open(self.my_path + '/findSimilar.sparql', 'r')
+        self.sparql_query = f.read()
+        f.close()
+
+        if init_server:
+            self.initialize_server(bind_port=bind_port, bind_ip=bind_ip,
+                 sbh_collection_uri=sbh_collection_uri,
+                 sbh_spoofing_prefix=sbh_spoofing_prefix,
+                 spreadsheet_id=spreadsheet_id,
+                 sbh_username=sbh_username, sbh_password=sbh_password,
+                 sbh_link_hosts=sbh_link_hosts)
+
+        self.spellCheckers = {}
+
+        if not os.path.exists(self.dict_path):
+            os.makedirs(self.dict_path)
+
+    def initialize_server(self, *, bind_port=8080, bind_ip="0.0.0.0",
                  sbh_collection_uri,
                  sbh_spoofing_prefix=None,
                  spreadsheet_id,
                  sbh_username=None, sbh_password=None,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org']):
-
-        self.shutdownThread = False
-        self.event = threading.Event()
-        self.my_path = os.path.dirname(os.path.realpath(__file__))
+        """
+        Initialize the server.
+        """
 
         if sbh_collection_uri[:8] == 'https://':
             sbh_url_protocol = 'https://'
@@ -114,49 +183,11 @@ class IntentParserServer:
         self.item_map = self.generate_item_map(use_cache=True)
         self.item_map_lock.release()
 
-        self.item_types = {
-            'component': {
-                'Bead'     : 'http://purl.obolibrary.org/obo/NCIT_C70671',
-                'CHEBI'    : 'http://identifiers.org/chebi/CHEBI:24431',
-                'DNA'      : 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
-                'Protein'  : 'http://www.biopax.org/release/biopax-level3.owl#Protein',
-                'RNA'      : 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
-            },
-            'module': {
-                'Strain'   : 'http://purl.obolibrary.org/obo/NCIT_C14419',
-                'Media'    : 'http://purl.obolibrary.org/obo/NCIT_C85504',
-                'Stain'    : 'http://purl.obolibrary.org/obo/NCIT_C841',
-                'Buffer'   : 'http://purl.obolibrary.org/obo/NCIT_C70815',
-                'Solution' : 'http://purl.obolibrary.org/obo/NCIT_C70830'
-            },
-            'collection': {
-                'Challenge Problem' : '',
-                'Collection' : ''
-            },
-            'external': {
-                'Attribute' : ''
-            }
-        }
-
         # Inverse map of typeTabs
         self.type2tab = {}
         for tab_name in self.google_accessor.type_tabs.keys():
             for type_name in self.google_accessor.type_tabs[tab_name]:
                 self.type2tab[type_name] = tab_name
-
-        self.lab_ids_list = sorted(['BioFAB UID',
-                                    'Ginkgo UID',
-                                    'Transcriptic UID',
-                                    'LBNL UID',
-                                    'EmeraldCloud UID'])
-
-        f = open(self.my_path + '/add.html', 'r')
-        self.add_html = f.read()
-        f.close()
-
-        f = open(self.my_path + '/findSimilar.sparql', 'r')
-        self.sparql_query = f.read()
-        f.close()
 
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -173,12 +204,6 @@ class IntentParserServer:
         self.server.listen(5)
         print('listening on {}:{}'.format(bind_ip, bind_port))
 
-        self.spellCheckers = {}
-
-        self.dict_path = 'dictionaries'
-        if not os.path.exists(self.dict_path):
-            os.makedirs(self.dict_path)
-
     def serverRunLoop(self, *, background=False):
         if background:
             run_thread = threading.Thread(target=self.serverRunLoop)
@@ -190,8 +215,14 @@ class IntentParserServer:
 
         while True:
             try:
+                if self.shutdownThread:
+                    return
+
                 client_sock, address = self.server.accept()
             except ConnectionAbortedError:
+                # Shutting down
+                return
+            except OSError:
                 # Shutting down
                 return
             except InterruptedError:
@@ -837,6 +868,7 @@ class IntentParserServer:
 
         if self.server is not None:
             print('Closing server...')
+            self.server.shutdown(socket.SHUT_RDWR)
             self.server.close()
         print('Shutdown complete')
 
@@ -1045,7 +1077,7 @@ class IntentParserServer:
 
     def process_add_by_spelling(self, http_message, sm):
         """ Function that sets up the results for additions by spelling
-        This will start from a given offset (generally 0) and saerch the rest of the
+        This will start from a given offset (generally 0) and searches the rest of the
         document, looking for words that are not in the dictionary.  Any words that
         don't match are then used as suggestions for additions to SynBioHub.
 
@@ -1105,7 +1137,6 @@ class IntentParserServer:
             # Used to store session information
             client_state = self.new_connection(document_id)
             client_state['doc'] = doc
-            client_state['doc_id'] = document_id
             client_state['user_id'] = userId
 
             body = doc.get('body');
@@ -1285,8 +1316,8 @@ class IntentParserServer:
         """ Ignore button action for additions by spelling
         """
         json_body # Remove unused warning
-        client_state["spelling_index"] += 1
-        if client_state["spelling_index"] >= client_state['spelling_size']:
+        client_state['spelling_index'] += 1
+        if client_state['spelling_index'] >= client_state['spelling_size']:
             # We are at the end, nothing else to do
             return []
         else:
@@ -1304,7 +1335,7 @@ class IntentParserServer:
         """
         json_body # Remove unused warning
 
-        doc_id = client_state['doc_id']
+        doc_id = client_state['document_id']
         spell_index = client_state['spelling_index']
         spell_check_result = client_state['spelling_results'][spell_index]
         select_start = spell_check_result['select_start']
@@ -1322,7 +1353,7 @@ class IntentParserServer:
         actionList = [dialog_action]
 
         client_state["spelling_index"] += 1
-        if client_state["spelling_index"] < client_state['spelling_size']:
+        if client_state['spelling_index'] < client_state['spelling_size']:
             for action in self.report_spelling_results(client_state):
                 actionList.append(action)
 
@@ -1350,7 +1381,7 @@ class IntentParserServer:
         self.spellcheck_remove_term(client_state)
         # Removing the term automatically updates the spelling index
         #client_state["spelling_index"] += 1
-        if client_state["spelling_index"] >= client_state['spelling_size']:
+        if client_state['spelling_index'] >= client_state['spelling_size']:
             # We are at the end, nothing else to do
             return []
 
@@ -1364,8 +1395,6 @@ class IntentParserServer:
 
     def spellcheck_add_select_next(self, json_body, client_state):
         """ Select next word button action for additions by spelling
-        """
-        """ Select previous word button action for additions by spelling
         """
         json_body # Remove unused warning
         return self.spellcheck_select_word_from_text(client_state, False, True)
