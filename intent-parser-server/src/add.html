@@ -4,7 +4,7 @@
 
   <script>
     function onLoad() {
-        refreshList()
+        refreshList(0)
     }
 
     function onSuccess(result) {
@@ -17,15 +17,15 @@
         submitButtonTable.innerHTML = '<i><font color=red>' + result.message + '</font></i>'
         var theForm = this.addToSynBioHubForm
         theForm.submitButton.style.visibility = ''
-        refreshList()
+        refreshList(0)
     }
 
     // Search SynBioHub
     // Currently just searches for commonName
-    function refreshList() {
+    function refreshList(offset) {
         var theForm = this.addToSynBioHubForm
         var commonName = theForm.commonName.value
-        var searchParams = {'term': commonName}
+        var searchParams = {'term': commonName, 'offset' : offset}
         var postRequest = {'resource': '/searchSynBioHub',
                            'data': searchParams}
 
@@ -191,7 +191,7 @@
 
       <p>
       <input type="button" value="Refresh List" id="refreshListButton"
-             onclick='refreshList()'>
+             onclick='refreshList(0)'>
     </form>
   </center>
 

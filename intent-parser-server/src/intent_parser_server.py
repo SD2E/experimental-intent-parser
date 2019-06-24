@@ -67,7 +67,8 @@ class IntentParserServer:
                  sbh_username=None, sbh_password=None,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org'],
-                 init_server=True):
+                 init_server=True,
+                 init_sbh=True):
 
         self.sbh = None
         self.server = None
@@ -76,36 +77,47 @@ class IntentParserServer:
 
         self.my_path = os.path.dirname(os.path.realpath(__file__))
 
+        # How many results we allow
+        self.sparql_limit = 5
+
         f = open(self.my_path + '/add.html', 'r')
         self.add_html = f.read()
         f.close()
 
         f = open(self.my_path + '/findSimilar.sparql', 'r')
-        self.sparql_query = f.read()
+        self.sparql_similar_query = f.read()
         f.close()
 
-        if init_server:
-            self.initialize_server(bind_port=bind_port, bind_ip=bind_ip,
-                 sbh_collection_uri=sbh_collection_uri,
+        f = open(self.my_path + '/findSimilarCount.sparql', 'r')
+        self.sparql_similar_count = f.read()
+        f.close()
+
+        self.sparql_similar_count_cache = {}
+
+        if init_sbh:
+            self.initialize_sbh(sbh_collection_uri=sbh_collection_uri,
                  sbh_spoofing_prefix=sbh_spoofing_prefix,
                  spreadsheet_id=spreadsheet_id,
                  sbh_username=sbh_username, sbh_password=sbh_password,
                  sbh_link_hosts=sbh_link_hosts)
+
+        if init_server:
+            self.initialize_server(bind_port=bind_port, bind_ip=bind_ip)
 
         self.spellCheckers = {}
 
         if not os.path.exists(self.dict_path):
             os.makedirs(self.dict_path)
 
-    def initialize_server(self, *, bind_port=8080, bind_ip="0.0.0.0",
+    def initialize_sbh(self, *,
                  sbh_collection_uri,
-                 sbh_spoofing_prefix=None,
                  spreadsheet_id,
+                 sbh_spoofing_prefix=None,
                  sbh_username=None, sbh_password=None,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org']):
         """
-        Initialize the server.
+        Initialize the connection to SynbioHub.
         """
 
         if sbh_collection_uri[:8] == 'https://':
@@ -130,8 +142,6 @@ class IntentParserServer:
 
         if sbh_collection_path_parts[4] != (sbh_collection + '_collection'):
             raise Exception('Invalid collection url: ' + sbh_collection_uri)
-            self.bind_port = bind_port
-            self.bind_ip = bind_ip
 
         self.sbh = None
         if sbh_url is not None:
@@ -189,10 +199,6 @@ class IntentParserServer:
             for type_name in self.google_accessor.type_tabs[tab_name]:
                 self.type2tab[type_name] = tab_name
 
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server.bind((bind_ip, bind_port))
-
         if self.sbh is not None:
             self.sbh.login(sbh_username, sbh_password)
             print('Logged into {}'.format(sbh_url))
@@ -200,6 +206,15 @@ class IntentParserServer:
         self.housekeeping_thread = \
             threading.Thread(target=self.housekeeping)
         self.housekeeping_thread.start()
+
+    def initialize_server(self, *, bind_port=8080, bind_ip="0.0.0.0"):
+        """
+        Initialize the server.
+        """
+
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server.bind((bind_ip, bind_port))
 
         self.server.listen(5)
         print('listening on {}:{}'.format(bind_ip, bind_port))
@@ -981,19 +996,39 @@ class IntentParserServer:
         return options_html
 
     def generate_existing_link_html(self, title, target):
-        html  = '<tr>'
-        html += '  <td style="max-width: 250px; word-wrap: break-word;">'
-        html += '    <a href=' + target + ' target=_blank name="theLink">' + title + '</a>'
-        html += '  </td>'
-        html += '  <td>'
-        html += '    <input type="button" name=' + target + ' value="Link"'
-        html += '    onclick="linkItem(thisForm, this.name)">'
-        html += '  </td>'
-        html += '  <td>'
-        html += '    <input type="button" name=' + target + ' value="Link All"'
-        html += '    onclick="linkAll(thisForm, this.name)">'
-        html += '  </td>'
-        html += '</tr>'
+        html  = '<tr>\n'
+        html += '  <td style="max-width: 250px; word-wrap: break-word;">\n'
+        html += '    <a href=' + target + ' target=_blank name="theLink">' + title + '</a>\n'
+        html += '  </td>\n'
+        html += '  <td>\n'
+        html += '    <input type="button" name=' + target + ' value="Link"\n'
+        html += '    onclick="linkItem(thisForm, this.name)">\n'
+        html += '  </td>\n'
+        html += '  <td>\n'
+        html += '    <input type="button" name=' + target + ' value="Link All"\n'
+        html += '    onclick="linkAll(thisForm, this.name)">\n'
+        html += '  </td>\n'
+        html += '</tr>\n'
+
+        return html
+
+    def generate_results_pagination_html(self, offset, count):
+        curr_set_str = '%d - %d' % (offset, offset + self.sparql_limit)
+        firstHTML = '<a onclick="refreshList(%d)" href="#first" >First</a>' % 0
+        lastHTML  = '<a onclick="refreshList(%d)" href="#last" >Last</a>' % (count - self.sparql_limit)
+        prevHTML  = '<a onclick="refreshList(%d)" href="#previous" >Previous</a>' % max(0, offset - self.sparql_limit - 1)
+        nextHTML  = '<a onclick="refreshList(%d)" href="#next" >Next</a>'  % min(count - self.sparql_limit, offset + self.sparql_limit + 1)
+
+        html  = '<tr>\n'
+        html += '  <td align="center" colspan = 3 style="max-width: 250px; word-wrap: break-word;">\n'
+        html += '    Showing %s of %s\n' % (curr_set_str, count)
+        html += '  </td>\n'
+        html += '</tr>\n'
+        html += '<tr>\n'
+        html += '  <td align="center" colspan = 3 style="max-width: 250px; word-wrap: break-word;">\n'
+        html += '    %s, %s, %s, %s\n' % (firstHTML, prevHTML, nextHTML, lastHTML)
+        html += '  </td>\n'
+        html += '</tr>\n'
 
         return html
 
@@ -1074,7 +1109,7 @@ class IntentParserServer:
             html = html.replace('${DOCUMENTID}', document_id)
 
             dialog_action = self.modal_dialog(html, 'Add to SynBioHub',
-                                              400, 450)
+                                              600, 600)
             return dialog_action
         except Exception as e:
             raise e
@@ -1522,9 +1557,22 @@ class IntentParserServer:
 
         return self.report_spelling_results(client_state)
 
-    def simple_syn_bio_hub_search(self, term):
+    def simple_syn_bio_hub_search(self, term, offset=0):
+        """
+        Search for similar terms in SynbioHub, using the cached sparql similarity query.
+        This query requires the specification of a term, a limit on the number of results, and an offset.
+        """
+        if offset == 0 or not term in self.sparql_similar_count_cache:
+            start = time.time()
+            sparql_count = self.sparql_similar_count.replace('${TERM}', term)
+            query_results = self.sbh.sparqlQuery(sparql_count)
+            bindings = query_results['results']['bindings']
+            self.sparql_similar_count_cache[term] = bindings[0]['count']['value']
+            end = time.time()
+            print('Simple SynbioHub count for %s took %0.2fs (found %s results)' %(term, (end - start) * 1000, bindings[0]['count']['value']))
+
         start = time.time()
-        sparql_query = self.sparql_query.replace('${TERM}', term)
+        sparql_query = self.sparql_similar_query.replace('${TERM}', term).replace('${LIMIT}', str(self.sparql_limit)).replace('${OFFSET}', str(offset))
         query_results = self.sbh.sparqlQuery(sparql_query)
         bindings = query_results['results']['bindings']
         search_results = []
@@ -1537,7 +1585,7 @@ class IntentParserServer:
 
         end = time.time()
         print('Simple SynbioHub search for %s took %0.2fs' %(term, (end - start) * 1000))
-        return search_results
+        return search_results, self.sparql_similar_count_cache[term]
 
     def sanitize_name_to_display_id(self, name):
         displayIDfirstChar = '[a-zA-Z_]'
@@ -1862,18 +1910,29 @@ class IntentParserServer:
         data = json_body['data']
 
         try:
+            offset = 0
+            if 'offset' in data:
+                offset = int(data['offset'])
+            # Bounds check offset value
+            if offset < 0:
+                offset = 0
+            if data['term'] in self.sparql_similar_count_cache:
+                # Ensure offset isn't past the end of the results
+                if offset > int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit:
+                    offset = int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit
+            else:
+                # Don't allow a non-zero offset if we haven't cached the size of the query
+                if offset > 0:
+                    offset = 0
 
-            search_results = self.simple_syn_bio_hub_search(data['term'])
-
-            if len(search_results) > 5:
-                search_results = search_results[0:5]
+            search_results, results_count = self.simple_syn_bio_hub_search(data['term'], offset)
 
             table_html = ''
             for search_result in search_results:
                 title = search_result['title']
                 target = search_result['target']
-                table_html += self.generate_existing_link_html(title,
-                                                               target)
+                table_html += self.generate_existing_link_html(title, target)
+            table_html += self.generate_results_pagination_html(offset, int(results_count))
 
             response = {'results':
                         {'operationSucceeded': True,
@@ -1882,7 +1941,8 @@ class IntentParserServer:
                         }}
 
 
-        except:
+        except Exception as err:
+            print(str(err))
             response = self.operation_failed('Failed to search SynBioHub')
 
         self.send_response(200, 'OK', json.dumps(response), sm,
