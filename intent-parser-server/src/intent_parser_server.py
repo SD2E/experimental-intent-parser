@@ -1871,10 +1871,19 @@ class IntentParserServer:
             offset = 0
             if 'offset' in data:
                 offset = int(data['offset'])
-            search_results, results_count = self.simple_syn_bio_hub_search(data['term'], offset)
+            # Bounds check offset value
+            if offset < 0:
+                offset = 0
+            if data['term'] in self.sparql_similar_count_cache:
+                # Ensure offset isn't past the end of the results
+                if offset > int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit:
+                    offset = int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit
+            else:
+                # Don't allow a non-zero offset if we haven't cached the size of the query
+                if offset > 0:
+                    offset = 0
 
-            if len(search_results) > 5:
-                search_results = search_results[0:5]
+            search_results, results_count = self.simple_syn_bio_hub_search(data['term'], offset)
 
             table_html = ''
             for search_result in search_results:
