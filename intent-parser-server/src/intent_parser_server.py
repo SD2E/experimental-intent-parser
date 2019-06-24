@@ -67,7 +67,8 @@ class IntentParserServer:
                  sbh_username=None, sbh_password=None,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org'],
-                 init_server=True):
+                 init_server=True,
+                 init_sbh=True):
 
         self.sbh = None
         self.server = None
@@ -93,28 +94,30 @@ class IntentParserServer:
 
         self.sparql_similar_count_cache = {}
 
-        if init_server:
-            self.initialize_server(bind_port=bind_port, bind_ip=bind_ip,
-                 sbh_collection_uri=sbh_collection_uri,
+        if init_sbh:
+            self.initialize_sbh(sbh_collection_uri=sbh_collection_uri,
                  sbh_spoofing_prefix=sbh_spoofing_prefix,
                  spreadsheet_id=spreadsheet_id,
                  sbh_username=sbh_username, sbh_password=sbh_password,
                  sbh_link_hosts=sbh_link_hosts)
+
+        if init_server:
+            self.initialize_server(bind_port=bind_port, bind_ip=bind_ip)
 
         self.spellCheckers = {}
 
         if not os.path.exists(self.dict_path):
             os.makedirs(self.dict_path)
 
-    def initialize_server(self, *, bind_port=8080, bind_ip="0.0.0.0",
+    def initialize_sbh(self, *,
                  sbh_collection_uri,
-                 sbh_spoofing_prefix=None,
                  spreadsheet_id,
+                 sbh_spoofing_prefix=None,
                  sbh_username=None, sbh_password=None,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org']):
         """
-        Initialize the server.
+        Initialize the connection to SynbioHub.
         """
 
         if sbh_collection_uri[:8] == 'https://':
@@ -139,8 +142,6 @@ class IntentParserServer:
 
         if sbh_collection_path_parts[4] != (sbh_collection + '_collection'):
             raise Exception('Invalid collection url: ' + sbh_collection_uri)
-            self.bind_port = bind_port
-            self.bind_ip = bind_ip
 
         self.sbh = None
         if sbh_url is not None:
@@ -198,10 +199,6 @@ class IntentParserServer:
             for type_name in self.google_accessor.type_tabs[tab_name]:
                 self.type2tab[type_name] = tab_name
 
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server.bind((bind_ip, bind_port))
-
         if self.sbh is not None:
             self.sbh.login(sbh_username, sbh_password)
             print('Logged into {}'.format(sbh_url))
@@ -209,6 +206,15 @@ class IntentParserServer:
         self.housekeeping_thread = \
             threading.Thread(target=self.housekeeping)
         self.housekeeping_thread.start()
+
+    def initialize_server(self, *, bind_port=8080, bind_ip="0.0.0.0"):
+        """
+        Initialize the server.
+        """
+
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server.bind((bind_ip, bind_port))
 
         self.server.listen(5)
         print('listening on {}:{}'.format(bind_ip, bind_port))
