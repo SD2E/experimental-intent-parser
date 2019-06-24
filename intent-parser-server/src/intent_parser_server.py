@@ -527,7 +527,8 @@ class IntentParserServer:
 
             buttons = [('Yes', 'process_analyze_yes'),
                        ('No', 'process_analyze_no'),
-                       ('Link All', 'process_link_all')]
+                       ('Link All', 'process_link_all'),
+                       ('No to All', 'process_no_to_all')]
 
             dialogAction = self.simple_sidebar_dialog(html, buttons)
 
@@ -607,7 +608,9 @@ class IntentParserServer:
         return self.report_search_results(client_state)
 
     def process_analyze_yes(self, json_body, client_state):
-
+        """
+        Handle "Yes" button as part of analyze document.
+        """
         json_body # Remove unused warning
         search_results = client_state['search_results']
         search_result_index = client_state['search_result_index'] - 1
@@ -618,11 +621,17 @@ class IntentParserServer:
         return actions
 
     def process_analyze_no(self, json_body, client_state):
+        """
+        Handle "No" button as part of analyze document.
+        """
         json_body # Remove unused warning
         return self.report_search_results(client_state)
 
 
     def process_link_all(self, json_body, client_state):
+        """
+        Handle "Link all" button as part of analyze document.
+        """
         json_body # Remove unused warning
         search_results = client_state['search_results']
         search_result_index = client_state['search_result_index'] - 1
@@ -639,6 +648,35 @@ class IntentParserServer:
         actions += self.report_search_results(client_state)
 
         return actions
+
+    def process_no_to_all(self, json_body, client_state):
+        """
+        Handle "No to all" button as part of analyze document.
+        """
+        json_body # Remove unused warning
+        curr_idx = client_state['search_result_index'] - 1
+        next_idx = curr_idx + 1
+        search_results = client_state['search_results']
+        while next_idx < len(search_results) and search_results[curr_idx]['term'] == search_results[next_idx]['term']:
+            next_idx = next_idx + 1
+        # Are we at the end? Then just exit
+        if next_idx >= len(search_results):
+            return []
+
+        term_to_ignore = search_results[curr_idx]['term']
+        # Generate results without term to ignore
+        new_search_results = [r for r in search_results if not r['term'] == term_to_ignore ]
+
+        # Find out what term to point to
+        next_term = search_results[next_idx]['term']
+        new_idx = curr_idx
+        while not new_search_results[new_idx]['term'] == next_term:
+            new_idx += 1
+        # Update client state
+        client_state['search_results'] = new_search_results
+        client_state['search_result_index'] = new_idx
+
+        return self.report_search_results(client_state)
 
 
     def highlight_text(self, paragraph_index, offset, end_offset):
