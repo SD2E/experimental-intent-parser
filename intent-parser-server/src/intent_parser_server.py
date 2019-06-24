@@ -218,7 +218,7 @@ class IntentParserServer:
                 if self.shutdownThread:
                     return
 
-                client_sock, address = self.server.accept()
+                client_sock, __ = self.server.accept()
             except ConnectionAbortedError:
                 # Shutting down
                 return
@@ -341,7 +341,7 @@ class IntentParserServer:
     def process_generate_report(self, httpMessage, sm):
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
-        client_state = {}
+        #client_state = {}
 
         try:
             doc = self.google_accessor.get_document(
@@ -572,12 +572,10 @@ class IntentParserServer:
 
         search_results = []
 
-
         self.item_map_lock.acquire()
         item_map = self.item_map
         self.item_map_lock.release()
 
-        itr = 0
         for term in item_map.keys():
             pos = start_offset
             while True:
@@ -609,6 +607,8 @@ class IntentParserServer:
         return self.report_search_results(client_state)
 
     def process_analyze_yes(self, json_body, client_state):
+
+        json_body # Remove unused warning
         search_results = client_state['search_results']
         search_result_index = client_state['search_result_index'] - 1
         search_result = search_results[search_result_index]
@@ -618,10 +618,12 @@ class IntentParserServer:
         return actions
 
     def process_analyze_no(self, json_body, client_state):
+        json_body # Remove unused warning
         return self.report_search_results(client_state)
 
 
     def process_link_all(self, json_body, client_state):
+        json_body # Remove unused warning
         search_results = client_state['search_results']
         search_result_index = client_state['search_result_index'] - 1
         search_result = search_results[search_result_index]
@@ -1571,7 +1573,7 @@ class IntentParserServer:
         item_lab_ids = data['labId']
         item_lab_id_tag = data['labIdSelect']
 
-        sbh_uri_prefix = self.sbh_uri_prefix
+        #sbh_uri_prefix = self.sbh_uri_prefix
         if self.sbh_spoofing_prefix is not None:
             item_uri = document_url.replace(self.sbh_url,
                                             self.sbh_spoofing_prefix)
@@ -1744,6 +1746,8 @@ class IntentParserServer:
         return return_info
 
     def process_nop(self, httpMessage, sm):
+        httpMessage # Fix unused warning
+        sm # Fix unused warning
         return []
 
     def process_submit_form(self, httpMessage, sm):
@@ -1793,7 +1797,7 @@ class IntentParserServer:
         uri = data['extra']['link']
 
         actions = []
-        search_results = []
+        #search_results = []
         pos = 0
         while True:
             result = self.find_text(selected_term, pos, paragraphs)
@@ -1883,7 +1887,7 @@ def main(argv):
     global sbhPlugin
 
     try:
-        opts, args = getopt.getopt(argv, "u:p:hc:i:s:b:l:",
+        opts, __ = getopt.getopt(argv, "u:p:hc:i:s:b:l:",
                                    ["username=",
                                     "password=",
                                     "help",
