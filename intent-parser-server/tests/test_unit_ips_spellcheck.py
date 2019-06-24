@@ -94,7 +94,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.user_email = 'test@bbn.com'
         self.json_body = {'documentId' : self.doc_id, 'user' : self.user, 'userEmail' : self.user_email}
 
-        self.ips = IntentParserServer(init_server=False)
+        self.ips = IntentParserServer(init_server=False, init_sbh=False)
         self.ips.client_state_lock = Mock()
         self.ips.client_state_map = {}
         self.ips.google_accessor = Mock()
