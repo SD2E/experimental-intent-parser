@@ -1303,7 +1303,7 @@ class IntentParserServer:
 
         # Find out what term to point to
         next_term = spelling_results[next_idx]['term']
-        new_idx = 0
+        new_idx = curr_idx
         while not new_spelling_results[new_idx]['term'] == next_term:
             new_idx += 1
         # Update client state
