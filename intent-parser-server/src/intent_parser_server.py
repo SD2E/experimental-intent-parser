@@ -218,7 +218,7 @@ class IntentParserServer:
                 if self.shutdownThread:
                     return
 
-                client_sock, address = self.server.accept()
+                client_sock, __ = self.server.accept()
             except ConnectionAbortedError:
                 # Shutting down
                 return
@@ -341,7 +341,7 @@ class IntentParserServer:
     def process_generate_report(self, httpMessage, sm):
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
-        client_state = {}
+        #client_state = {}
 
         try:
             doc = self.google_accessor.get_document(
@@ -527,7 +527,8 @@ class IntentParserServer:
 
             buttons = [('Yes', 'process_analyze_yes'),
                        ('No', 'process_analyze_no'),
-                       ('Link All', 'process_link_all')]
+                       ('Link All', 'process_link_all'),
+                       ('No to All', 'process_no_to_all')]
 
             dialogAction = self.simple_sidebar_dialog(html, buttons)
 
@@ -572,12 +573,10 @@ class IntentParserServer:
 
         search_results = []
 
-
         self.item_map_lock.acquire()
         item_map = self.item_map
         self.item_map_lock.release()
 
-        itr = 0
         for term in item_map.keys():
             pos = start_offset
             while True:
@@ -609,6 +608,10 @@ class IntentParserServer:
         return self.report_search_results(client_state)
 
     def process_analyze_yes(self, json_body, client_state):
+        """
+        Handle "Yes" button as part of analyze document.
+        """
+        json_body # Remove unused warning
         search_results = client_state['search_results']
         search_result_index = client_state['search_result_index'] - 1
         search_result = search_results[search_result_index]
@@ -618,10 +621,18 @@ class IntentParserServer:
         return actions
 
     def process_analyze_no(self, json_body, client_state):
+        """
+        Handle "No" button as part of analyze document.
+        """
+        json_body # Remove unused warning
         return self.report_search_results(client_state)
 
 
     def process_link_all(self, json_body, client_state):
+        """
+        Handle "Link all" button as part of analyze document.
+        """
+        json_body # Remove unused warning
         search_results = client_state['search_results']
         search_result_index = client_state['search_result_index'] - 1
         search_result = search_results[search_result_index]
@@ -637,6 +648,35 @@ class IntentParserServer:
         actions += self.report_search_results(client_state)
 
         return actions
+
+    def process_no_to_all(self, json_body, client_state):
+        """
+        Handle "No to all" button as part of analyze document.
+        """
+        json_body # Remove unused warning
+        curr_idx = client_state['search_result_index'] - 1
+        next_idx = curr_idx + 1
+        search_results = client_state['search_results']
+        while next_idx < len(search_results) and search_results[curr_idx]['term'] == search_results[next_idx]['term']:
+            next_idx = next_idx + 1
+        # Are we at the end? Then just exit
+        if next_idx >= len(search_results):
+            return []
+
+        term_to_ignore = search_results[curr_idx]['term']
+        # Generate results without term to ignore
+        new_search_results = [r for r in search_results if not r['term'] == term_to_ignore ]
+
+        # Find out what term to point to
+        next_term = search_results[next_idx]['term']
+        new_idx = curr_idx
+        while not new_search_results[new_idx]['term'] == next_term:
+            new_idx += 1
+        # Update client state
+        client_state['search_results'] = new_search_results
+        client_state['search_result_index'] = new_idx
+
+        return self.report_search_results(client_state)
 
 
     def highlight_text(self, paragraph_index, offset, end_offset):
@@ -1571,7 +1611,7 @@ class IntentParserServer:
         item_lab_ids = data['labId']
         item_lab_id_tag = data['labIdSelect']
 
-        sbh_uri_prefix = self.sbh_uri_prefix
+        #sbh_uri_prefix = self.sbh_uri_prefix
         if self.sbh_spoofing_prefix is not None:
             item_uri = document_url.replace(self.sbh_url,
                                             self.sbh_spoofing_prefix)
@@ -1744,6 +1784,8 @@ class IntentParserServer:
         return return_info
 
     def process_nop(self, httpMessage, sm):
+        httpMessage # Fix unused warning
+        sm # Fix unused warning
         return []
 
     def process_submit_form(self, httpMessage, sm):
@@ -1793,7 +1835,7 @@ class IntentParserServer:
         uri = data['extra']['link']
 
         actions = []
-        search_results = []
+        #search_results = []
         pos = 0
         while True:
             result = self.find_text(selected_term, pos, paragraphs)
@@ -1883,7 +1925,7 @@ def main(argv):
     global sbhPlugin
 
     try:
-        opts, args = getopt.getopt(argv, "u:p:hc:i:s:b:l:",
+        opts, __ = getopt.getopt(argv, "u:p:hc:i:s:b:l:",
                                    ["username=",
                                     "password=",
                                     "help",
