@@ -14,3 +14,6 @@ WHERE {{
     FILTER( regex(lcase(?displayId), lcase("${TERM}")) ||
             regex(lcase(?title), lcase("${TERM}"))) .
 }}
+ORDER BY ?title
+LIMIT ${LIMIT}
+OFFSET ${OFFSET}
