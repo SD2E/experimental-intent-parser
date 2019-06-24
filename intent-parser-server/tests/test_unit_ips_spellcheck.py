@@ -23,6 +23,8 @@ class TestIntentParserServer(unittest.TestCase):
 
     spellcheckFile = 'doc_1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA.json'
 
+    expected_spelling_size = 166
+
     spellcheckResults = 'spell_results.pickle'
 
     dataDir = 'data'
@@ -103,7 +105,11 @@ class TestIntentParserServer(unittest.TestCase):
         self.ips.get_json_body = Mock(return_value=self.json_body)
 
         self.ips.process_add_by_spelling([], [])
-
+        
+        # Code to save the GT spelling results, when the test doc has been updated
+        with open(os.path.join(self.dataDir, self.spellcheckResults), 'wb') as fout:
+            pickle.dump(self.ips.client_state_map[self.doc_id]['spelling_results'], fout)
+            
         self.spelling_gt = None
         with open(os.path.join(self.dataDir, self.spellcheckResults), 'rb') as fin:
             self.spelling_gt = pickle.load(fin)
@@ -118,7 +124,7 @@ class TestIntentParserServer(unittest.TestCase):
         # Basic sanity checks
         self.assertTrue(self.ips.client_state_map[self.doc_id]['user_id'] == self.user_email)
         self.assertTrue(self.ips.client_state_map[self.doc_id]['document_id'] == self.doc_id)
-        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_size'] is 164)
+        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_size'] is self.expected_spelling_size)
         self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'] is 0)
         self.assertTrue(self.compare_spell_results(self.spelling_gt, self.ips.client_state_map[self.doc_id]['spelling_results']), 'Spelling result sets do not match!')
     
@@ -140,7 +146,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.assertFalse(self.compare_spell_results(self.spelling_gt, self.ips.client_state_map[self.doc_id]['spelling_results']), 'Spelling result sets should not match!')
 
         # We expected to remove 15 results
-        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_size'] is 149)
+        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_size'] is (self.expected_spelling_size - 15))
 
         # Compare to removed entry
         spelling_gt_no_prot = [res for res in self.spelling_gt if not res['term'] == remove_term]
@@ -162,6 +168,24 @@ class TestIntentParserServer(unittest.TestCase):
         result = self.ips.spellcheck_add_ignore([], self.ips.client_state_map[self.doc_id])
         self.assertTrue(len(result) == 0 )
 
+    def test_spellcheck_add_ignore_all_monotinicity(self):
+        """
+        This tests a bug that was found where the ignore all feature could cause the results index to not increase monotonically.
+        In the case where the next term matched a previously skipped result, the index would jump back to the earlier index.
+        For instance, if we had arabinose, proteomic, arabinose, and the order of operations was Ignore, Ignore All, the index would jump back to 0 instead of 1 (since proteomic is removed).
+        """
+
+        # Ignore result one, which is arabinose in the test document
+        result = self.ips.spellcheck_add_ignore([], self.ips.client_state_map[self.doc_id])
+        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'], 1)
+        self.assertTrue(len(result) == 2 )
+
+        # Remove proteomics
+        result = self.ips.spellcheck_add_ignore_all([], self.ips.client_state_map[self.doc_id])
+        # The index should remove the same, not get smaller
+        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'], 1)
+        self.assertTrue(len(result) == 2 )
+        
     def test_spellcheck_add_ignore_all(self):
         """
         """
@@ -179,7 +203,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.assertFalse(self.compare_spell_results(self.spelling_gt, self.ips.client_state_map[self.doc_id]['spelling_results']), 'Spelling result sets should not match!')
 
         # We expected to remove 15 results
-        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_size'] is 149)
+        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_size'] is (self.expected_spelling_size - 15))
 
         # Compare to removed entry
         spelling_gt_no_prot = [res for res in self.spelling_gt if not res['term'] == remove_term]
@@ -203,7 +227,9 @@ class TestIntentParserServer(unittest.TestCase):
         """
         Select previous word button action for additions by spelling
         """
-        # Skip first three results
+        # Skip first five results
+        self.ips.spellcheck_add_ignore([], self.ips.client_state_map[self.doc_id])
+        self.ips.spellcheck_add_ignore([], self.ips.client_state_map[self.doc_id])
         self.ips.spellcheck_add_ignore([], self.ips.client_state_map[self.doc_id])
         self.ips.spellcheck_add_ignore([], self.ips.client_state_map[self.doc_id])
         self.ips.spellcheck_add_ignore([], self.ips.client_state_map[self.doc_id])
