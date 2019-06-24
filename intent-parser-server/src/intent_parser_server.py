@@ -76,13 +76,22 @@ class IntentParserServer:
 
         self.my_path = os.path.dirname(os.path.realpath(__file__))
 
+        # How many results we allow
+        self.sparql_limit = 5
+
         f = open(self.my_path + '/add.html', 'r')
         self.add_html = f.read()
         f.close()
 
         f = open(self.my_path + '/findSimilar.sparql', 'r')
-        self.sparql_query = f.read()
+        self.sparql_similar_query = f.read()
         f.close()
+
+        f = open(self.my_path + '/findSimilarCount.sparql', 'r')
+        self.sparql_similar_count = f.read()
+        f.close()
+
+        self.sparql_similar_count_cache = {}
 
         if init_server:
             self.initialize_server(bind_port=bind_port, bind_ip=bind_ip,
@@ -957,6 +966,26 @@ class IntentParserServer:
 
         return html
 
+    def generate_results_pagination_html(self, offset, count):
+        curr_set_str = '%d - %d' % (offset, offset + self.sparql_limit)
+        firstHTML = '<a onclick="refreshList(%d)" href="#first" >First</a>' % 0
+        lastHTML  = '<a onclick="refreshList(%d)" href="#last" >Last</a>' % (count - self.sparql_limit)
+        prevHTML  = '<a onclick="refreshList(%d)" href="#previous" >Previous</a>' % max(0, offset - self.sparql_limit - 1)
+        nextHTML  = '<a onclick="refreshList(%d)" href="#next" >Next</a>'  % min(count - self.sparql_limit, offset + self.sparql_limit + 1)
+
+        html  = '<tr>'
+        html += '  <td align="center" colspan = 3 style="max-width: 250px; word-wrap: break-word;">'
+        html += '    Showing %s of %s' % (curr_set_str, count)
+        html += '  </td>'
+        html += '</tr>'
+        html += '<tr>'
+        html += '  <td align="center" colspan = 3 style="max-width: 250px; word-wrap: break-word;">'
+        html += '    %s, %s, %s, %s' % (firstHTML, prevHTML, nextHTML, lastHTML)
+        html += '  </td>'
+        html += '</tr>'
+
+        return html
+
     def process_add_to_syn_bio_hub(self, httpMessage, sm):
         try:
             json_body = self.get_json_body(httpMessage)
@@ -1034,7 +1063,7 @@ class IntentParserServer:
             html = html.replace('${DOCUMENTID}', document_id)
 
             dialog_action = self.modal_dialog(html, 'Add to SynBioHub',
-                                              400, 450)
+                                              600, 600)
             return dialog_action
         except Exception as e:
             raise e
@@ -1482,9 +1511,22 @@ class IntentParserServer:
 
         return self.report_spelling_results(client_state)
 
-    def simple_syn_bio_hub_search(self, term):
+    def simple_syn_bio_hub_search(self, term, offset=0):
+        """
+        Search for similar terms in SynbioHub, using the cached sparql similarity query.
+        This query requires the specification of a term, a limit on the number of results, and an offset.
+        """
+        if offset == 0 or not term in self.sparql_similar_count_cache:
+            start = time.time()
+            sparql_count = self.sparql_similar_count.replace('${TERM}', term)
+            query_results = self.sbh.sparqlQuery(sparql_count)
+            bindings = query_results['results']['bindings']
+            self.sparql_similar_count_cache[term] = bindings[0]['count']['value']
+            end = time.time()
+            print('Simple SynbioHub count for %s took %0.2fs (found %s results)' %(term, (end - start) * 1000, bindings[0]['count']['value']))
+
         start = time.time()
-        sparql_query = self.sparql_query.replace('${TERM}', term)
+        sparql_query = self.sparql_similar_query.replace('${TERM}', term).replace('${LIMIT}', str(self.sparql_limit)).replace('${OFFSET}', str(offset))
         query_results = self.sbh.sparqlQuery(sparql_query)
         bindings = query_results['results']['bindings']
         search_results = []
@@ -1497,7 +1539,7 @@ class IntentParserServer:
 
         end = time.time()
         print('Simple SynbioHub search for %s took %0.2fs' %(term, (end - start) * 1000))
-        return search_results
+        return search_results, self.sparql_similar_count_cache[term]
 
     def sanitize_name_to_display_id(self, name):
         displayIDfirstChar = '[a-zA-Z_]'
@@ -1820,8 +1862,10 @@ class IntentParserServer:
         data = json_body['data']
 
         try:
-
-            search_results = self.simple_syn_bio_hub_search(data['term'])
+            offset = 0
+            if 'offset' in data:
+                offset = int(data['offset'])
+            search_results, results_count = self.simple_syn_bio_hub_search(data['term'], offset)
 
             if len(search_results) > 5:
                 search_results = search_results[0:5]
@@ -1830,8 +1874,8 @@ class IntentParserServer:
             for search_result in search_results:
                 title = search_result['title']
                 target = search_result['target']
-                table_html += self.generate_existing_link_html(title,
-                                                               target)
+                table_html += self.generate_existing_link_html(title, target)
+            table_html += self.generate_results_pagination_html(offset, int(results_count))
 
             response = {'results':
                         {'operationSucceeded': True,
@@ -1840,7 +1884,8 @@ class IntentParserServer:
                         }}
 
 
-        except:
+        except Exception as err:
+            print(str(err))
             response = self.operation_failed('Failed to search SynBioHub')
 
         self.send_response(200, 'OK', json.dumps(response), sm,
