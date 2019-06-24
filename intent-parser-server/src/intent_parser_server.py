@@ -956,19 +956,19 @@ class IntentParserServer:
         return options_html
 
     def generate_existing_link_html(self, title, target):
-        html  = '<tr>'
-        html += '  <td style="max-width: 250px; word-wrap: break-word;">'
-        html += '    <a href=' + target + ' target=_blank name="theLink">' + title + '</a>'
-        html += '  </td>'
-        html += '  <td>'
-        html += '    <input type="button" name=' + target + ' value="Link"'
-        html += '    onclick="linkItem(thisForm, this.name)">'
-        html += '  </td>'
-        html += '  <td>'
-        html += '    <input type="button" name=' + target + ' value="Link All"'
-        html += '    onclick="linkAll(thisForm, this.name)">'
-        html += '  </td>'
-        html += '</tr>'
+        html  = '<tr>\n'
+        html += '  <td style="max-width: 250px; word-wrap: break-word;">\n'
+        html += '    <a href=' + target + ' target=_blank name="theLink">' + title + '</a>\n'
+        html += '  </td>\n'
+        html += '  <td>\n'
+        html += '    <input type="button" name=' + target + ' value="Link"\n'
+        html += '    onclick="linkItem(thisForm, this.name)">\n'
+        html += '  </td>\n'
+        html += '  <td>\n'
+        html += '    <input type="button" name=' + target + ' value="Link All"\n'
+        html += '    onclick="linkAll(thisForm, this.name)">\n'
+        html += '  </td>\n'
+        html += '</tr>\n'
 
         return html
 
@@ -979,16 +979,16 @@ class IntentParserServer:
         prevHTML  = '<a onclick="refreshList(%d)" href="#previous" >Previous</a>' % max(0, offset - self.sparql_limit - 1)
         nextHTML  = '<a onclick="refreshList(%d)" href="#next" >Next</a>'  % min(count - self.sparql_limit, offset + self.sparql_limit + 1)
 
-        html  = '<tr>'
-        html += '  <td align="center" colspan = 3 style="max-width: 250px; word-wrap: break-word;">'
-        html += '    Showing %s of %s' % (curr_set_str, count)
-        html += '  </td>'
-        html += '</tr>'
-        html += '<tr>'
-        html += '  <td align="center" colspan = 3 style="max-width: 250px; word-wrap: break-word;">'
-        html += '    %s, %s, %s, %s' % (firstHTML, prevHTML, nextHTML, lastHTML)
-        html += '  </td>'
-        html += '</tr>'
+        html  = '<tr>\n'
+        html += '  <td align="center" colspan = 3 style="max-width: 250px; word-wrap: break-word;">\n'
+        html += '    Showing %s of %s\n' % (curr_set_str, count)
+        html += '  </td>\n'
+        html += '</tr>\n'
+        html += '<tr>\n'
+        html += '  <td align="center" colspan = 3 style="max-width: 250px; word-wrap: break-word;">\n'
+        html += '    %s, %s, %s, %s\n' % (firstHTML, prevHTML, nextHTML, lastHTML)
+        html += '  </td>\n'
+        html += '</tr>\n'
 
         return html
 
