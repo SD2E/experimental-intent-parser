@@ -162,11 +162,11 @@ class TestIntentParserServer(unittest.TestCase):
         numResults = self.ips.client_state_map[self.doc_id]['spelling_size']
         for idx in range(1, numResults):
             result = self.ips.spellcheck_add_ignore([], self.ips.client_state_map[self.doc_id])
-            self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'], idx)
+            self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'] == idx)
             self.assertTrue(len(result) == 2 )
 
         result = self.ips.spellcheck_add_ignore([], self.ips.client_state_map[self.doc_id])
-        self.assertTrue(len(result) == 0 )
+        self.assertTrue(len(result) == 0)
 
     def test_spellcheck_add_ignore_all_monotinicity(self):
         """
@@ -177,14 +177,14 @@ class TestIntentParserServer(unittest.TestCase):
 
         # Ignore result one, which is arabinose in the test document
         result = self.ips.spellcheck_add_ignore([], self.ips.client_state_map[self.doc_id])
-        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'], 1)
-        self.assertTrue(len(result) == 2 )
+        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'] == 1)
+        self.assertTrue(len(result) == 2)
 
         # Remove proteomics
         result = self.ips.spellcheck_add_ignore_all([], self.ips.client_state_map[self.doc_id])
         # The index should remove the same, not get smaller
-        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'], 1)
-        self.assertTrue(len(result) == 2 )
+        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'] == 1)
+        self.assertTrue(len(result) == 2)
         
     def test_spellcheck_add_ignore_all(self):
         """
