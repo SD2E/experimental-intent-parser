@@ -1,3 +1,5 @@
 __pycache__
 token.pickle
 item-map.json
+sbh_creds.json
+*.pyc

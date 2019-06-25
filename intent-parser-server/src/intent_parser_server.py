@@ -27,17 +27,98 @@ class ConnectionException(Exception):
 
 
 class IntentParserServer:
-    def __init__(self, *, bind_port=8080, bind_ip="0.0.0.0",
-                 sbh_collection_uri,
+
+    dict_path = 'dictionaries'
+
+    lab_ids_list = sorted(['BioFAB UID',
+                            'Ginkgo UID',
+                            'Transcriptic UID',
+                            'LBNL UID',
+                            'EmeraldCloud UID'])
+
+    item_types = {
+            'component': {
+                'Bead'     : 'http://purl.obolibrary.org/obo/NCIT_C70671',
+                'CHEBI'    : 'http://identifiers.org/chebi/CHEBI:24431',
+                'DNA'      : 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
+                'Protein'  : 'http://www.biopax.org/release/biopax-level3.owl#Protein',
+                'RNA'      : 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
+            },
+            'module': {
+                'Strain'   : 'http://purl.obolibrary.org/obo/NCIT_C14419',
+                'Media'    : 'http://purl.obolibrary.org/obo/NCIT_C85504',
+                'Stain'    : 'http://purl.obolibrary.org/obo/NCIT_C841',
+                'Buffer'   : 'http://purl.obolibrary.org/obo/NCIT_C70815',
+                'Solution' : 'http://purl.obolibrary.org/obo/NCIT_C70830'
+            },
+            'collection': {
+                'Challenge Problem' : '',
+                'Collection' : ''
+            },
+            'external': {
+                'Attribute' : ''
+            }
+        }
+
+    def __init__(self, bind_port=8080, bind_ip="0.0.0.0",
+                 sbh_collection_uri=None,
                  sbh_spoofing_prefix=None,
+                 spreadsheet_id=None,
+                 sbh_username=None, sbh_password=None,
+                 sbh_link_hosts=['hub-staging.sd2e.org',
+                                 'hub.sd2e.org'],
+                 init_server=True,
+                 init_sbh=True):
+
+        self.sbh = None
+        self.server = None
+        self.shutdownThread = False
+        self.event = threading.Event()
+
+        self.my_path = os.path.dirname(os.path.realpath(__file__))
+
+        # How many results we allow
+        self.sparql_limit = 5
+
+        f = open(self.my_path + '/add.html', 'r')
+        self.add_html = f.read()
+        f.close()
+
+        f = open(self.my_path + '/findSimilar.sparql', 'r')
+        self.sparql_similar_query = f.read()
+        f.close()
+
+        f = open(self.my_path + '/findSimilarCount.sparql', 'r')
+        self.sparql_similar_count = f.read()
+        f.close()
+
+        self.sparql_similar_count_cache = {}
+
+        if init_sbh:
+            self.initialize_sbh(sbh_collection_uri=sbh_collection_uri,
+                 sbh_spoofing_prefix=sbh_spoofing_prefix,
+                 spreadsheet_id=spreadsheet_id,
+                 sbh_username=sbh_username, sbh_password=sbh_password,
+                 sbh_link_hosts=sbh_link_hosts)
+
+        if init_server:
+            self.initialize_server(bind_port=bind_port, bind_ip=bind_ip)
+
+        self.spellCheckers = {}
+
+        if not os.path.exists(self.dict_path):
+            os.makedirs(self.dict_path)
+
+    def initialize_sbh(self, *,
+                 sbh_collection_uri,
                  spreadsheet_id,
+                 sbh_spoofing_prefix=None,
                  sbh_username=None, sbh_password=None,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org']):
-
-        self.shutdownThread = False
-        self.event = threading.Event()
-        self.my_path = os.path.dirname(os.path.realpath(__file__))
+        """
+        Initialize the connection to SynbioHub.
+        """
 
         if sbh_collection_uri[:8] == 'https://':
             sbh_url_protocol = 'https://'
@@ -61,8 +142,6 @@ class IntentParserServer:
 
         if sbh_collection_path_parts[4] != (sbh_collection + '_collection'):
             raise Exception('Invalid collection url: ' + sbh_collection_uri)
-            self.bind_port = bind_port
-            self.bind_ip = bind_ip
 
         self.sbh = None
         if sbh_url is not None:
@@ -114,53 +193,11 @@ class IntentParserServer:
         self.item_map = self.generate_item_map(use_cache=True)
         self.item_map_lock.release()
 
-        self.item_types = {
-            'component': {
-                'Bead'     : 'http://purl.obolibrary.org/obo/NCIT_C70671',
-                'CHEBI'    : 'http://identifiers.org/chebi/CHEBI:24431',
-                'DNA'      : 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
-                'Protein'  : 'http://www.biopax.org/release/biopax-level3.owl#Protein',
-                'RNA'      : 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
-            },
-            'module': {
-                'Strain'   : 'http://purl.obolibrary.org/obo/NCIT_C14419',
-                'Media'    : 'http://purl.obolibrary.org/obo/NCIT_C85504',
-                'Stain'    : 'http://purl.obolibrary.org/obo/NCIT_C841',
-                'Buffer'   : 'http://purl.obolibrary.org/obo/NCIT_C70815',
-                'Solution' : 'http://purl.obolibrary.org/obo/NCIT_C70830'
-            },
-            'collection': {
-                'Challenge Problem' : '',
-                'Collection' : ''
-            },
-            'external': {
-                'Attribute' : ''
-            }
-        }
-
         # Inverse map of typeTabs
         self.type2tab = {}
         for tab_name in self.google_accessor.type_tabs.keys():
             for type_name in self.google_accessor.type_tabs[tab_name]:
                 self.type2tab[type_name] = tab_name
-
-        self.lab_ids_list = sorted(['BioFAB UID',
-                                    'Ginkgo UID',
-                                    'Transcriptic UID',
-                                    'LBNL UID',
-                                    'EmeraldCloud UID'])
-
-        f = open(self.my_path + '/add.html', 'r')
-        self.add_html = f.read()
-        f.close()
-
-        f = open(self.my_path + '/findSimilar.sparql', 'r')
-        self.sparql_query = f.read()
-        f.close()
-
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server.bind((bind_ip, bind_port))
 
         if self.sbh is not None:
             self.sbh.login(sbh_username, sbh_password)
@@ -170,14 +207,17 @@ class IntentParserServer:
             threading.Thread(target=self.housekeeping)
         self.housekeeping_thread.start()
 
+    def initialize_server(self, *, bind_port=8080, bind_ip="0.0.0.0"):
+        """
+        Initialize the server.
+        """
+
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server.bind((bind_ip, bind_port))
+
         self.server.listen(5)
         print('listening on {}:{}'.format(bind_ip, bind_port))
-
-        self.spellCheckers = {}
-
-        self.dict_path = 'dictionaries'
-        if not os.path.exists(self.dict_path):
-            os.makedirs(self.dict_path)
 
         # Define the percentage of length of the search term that must
         # be matched in order to have a valid partial match
@@ -194,8 +234,14 @@ class IntentParserServer:
 
         while True:
             try:
-                client_sock, address = self.server.accept()
+                if self.shutdownThread:
+                    return
+
+                client_sock, __ = self.server.accept()
             except ConnectionAbortedError:
+                # Shutting down
+                return
+            except OSError:
                 # Shutting down
                 return
             except InterruptedError:
@@ -314,7 +360,7 @@ class IntentParserServer:
     def process_generate_report(self, httpMessage, sm):
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
-        client_state = {}
+        #client_state = {}
 
         try:
             doc = self.google_accessor.get_document(
@@ -502,7 +548,8 @@ class IntentParserServer:
 
             buttons = [('Yes', 'process_analyze_yes'),
                        ('No', 'process_analyze_no'),
-                       ('Link All', 'process_link_all')]
+                       ('Link All', 'process_link_all'),
+                       ('No to All', 'process_no_to_all')]
 
             dialogAction = self.simple_sidebar_dialog(html, buttons)
 
@@ -547,7 +594,6 @@ class IntentParserServer:
 
         search_results = []
 
-
         self.item_map_lock.acquire()
         item_map = self.item_map
         self.item_map_lock.release()
@@ -578,6 +624,10 @@ class IntentParserServer:
         return self.report_search_results(client_state)
 
     def process_analyze_yes(self, json_body, client_state):
+        """
+        Handle "Yes" button as part of analyze document.
+        """
+        json_body # Remove unused warning
         search_results = client_state['search_results']
         search_result_index = client_state['search_result_index'] - 1
         search_result = search_results[search_result_index]
@@ -587,10 +637,18 @@ class IntentParserServer:
         return actions
 
     def process_analyze_no(self, json_body, client_state):
+        """
+        Handle "No" button as part of analyze document.
+        """
+        json_body # Remove unused warning
         return self.report_search_results(client_state)
 
 
     def process_link_all(self, json_body, client_state):
+        """
+        Handle "Link all" button as part of analyze document.
+        """
+        json_body # Remove unused warning
         search_results = client_state['search_results']
         search_result_index = client_state['search_result_index'] - 1
         search_result = search_results[search_result_index]
@@ -606,6 +664,35 @@ class IntentParserServer:
         actions += self.report_search_results(client_state)
 
         return actions
+
+    def process_no_to_all(self, json_body, client_state):
+        """
+        Handle "No to all" button as part of analyze document.
+        """
+        json_body # Remove unused warning
+        curr_idx = client_state['search_result_index'] - 1
+        next_idx = curr_idx + 1
+        search_results = client_state['search_results']
+        while next_idx < len(search_results) and search_results[curr_idx]['term'] == search_results[next_idx]['term']:
+            next_idx = next_idx + 1
+        # Are we at the end? Then just exit
+        if next_idx >= len(search_results):
+            return []
+
+        term_to_ignore = search_results[curr_idx]['term']
+        # Generate results without term to ignore
+        new_search_results = [r for r in search_results if not r['term'] == term_to_ignore ]
+
+        # Find out what term to point to
+        next_term = search_results[next_idx]['term']
+        new_idx = curr_idx
+        while not new_search_results[new_idx]['term'] == next_term:
+            new_idx += 1
+        # Update client state
+        client_state['search_results'] = new_search_results
+        client_state['search_result_index'] = new_idx
+
+        return self.report_search_results(client_state)
 
 
     def highlight_text(self, paragraph_index, offset, end_offset):
@@ -941,6 +1028,7 @@ class IntentParserServer:
 
         if self.server is not None:
             print('Closing server...')
+            self.server.shutdown(socket.SHUT_RDWR)
             self.server.close()
         print('Shutdown complete')
 
@@ -1013,19 +1101,39 @@ class IntentParserServer:
         return options_html
 
     def generate_existing_link_html(self, title, target):
-        html  = '<tr>'
-        html += '  <td style="max-width: 250px; word-wrap: break-word;">'
-        html += '    <a href=' + target + ' target=_blank name="theLink">' + title + '</a>'
-        html += '  </td>'
-        html += '  <td>'
-        html += '    <input type="button" name=' + target + ' value="Link"'
-        html += '    onclick="linkItem(thisForm, this.name)">'
-        html += '  </td>'
-        html += '  <td>'
-        html += '    <input type="button" name=' + target + ' value="Link All"'
-        html += '    onclick="linkAll(thisForm, this.name)">'
-        html += '  </td>'
-        html += '</tr>'
+        html  = '<tr>\n'
+        html += '  <td style="max-width: 250px; word-wrap: break-word;">\n'
+        html += '    <a href=' + target + ' target=_blank name="theLink">' + title + '</a>\n'
+        html += '  </td>\n'
+        html += '  <td>\n'
+        html += '    <input type="button" name=' + target + ' value="Link"\n'
+        html += '    onclick="linkItem(thisForm, this.name)">\n'
+        html += '  </td>\n'
+        html += '  <td>\n'
+        html += '    <input type="button" name=' + target + ' value="Link All"\n'
+        html += '    onclick="linkAll(thisForm, this.name)">\n'
+        html += '  </td>\n'
+        html += '</tr>\n'
+
+        return html
+
+    def generate_results_pagination_html(self, offset, count):
+        curr_set_str = '%d - %d' % (offset, offset + self.sparql_limit)
+        firstHTML = '<a onclick="refreshList(%d)" href="#first" >First</a>' % 0
+        lastHTML  = '<a onclick="refreshList(%d)" href="#last" >Last</a>' % (count - self.sparql_limit)
+        prevHTML  = '<a onclick="refreshList(%d)" href="#previous" >Previous</a>' % max(0, offset - self.sparql_limit - 1)
+        nextHTML  = '<a onclick="refreshList(%d)" href="#next" >Next</a>'  % min(count - self.sparql_limit, offset + self.sparql_limit + 1)
+
+        html  = '<tr>\n'
+        html += '  <td align="center" colspan = 3 style="max-width: 250px; word-wrap: break-word;">\n'
+        html += '    Showing %s of %s\n' % (curr_set_str, count)
+        html += '  </td>\n'
+        html += '</tr>\n'
+        html += '<tr>\n'
+        html += '  <td align="center" colspan = 3 style="max-width: 250px; word-wrap: break-word;">\n'
+        html += '    %s, %s, %s, %s\n' % (firstHTML, prevHTML, nextHTML, lastHTML)
+        html += '  </td>\n'
+        html += '</tr>\n'
 
         return html
 
@@ -1106,7 +1214,7 @@ class IntentParserServer:
             html = html.replace('${DOCUMENTID}', document_id)
 
             dialog_action = self.modal_dialog(html, 'Add to SynBioHub',
-                                              400, 450)
+                                              600, 600)
             return dialog_action
         except Exception as e:
             raise e
@@ -1149,7 +1257,7 @@ class IntentParserServer:
 
     def process_add_by_spelling(self, http_message, sm):
         """ Function that sets up the results for additions by spelling
-        This will start from a given offset (generally 0) and saerch the rest of the
+        This will start from a given offset (generally 0) and searches the rest of the
         document, looking for words that are not in the dictionary.  Any words that
         don't match are then used as suggestions for additions to SynBioHub.
 
@@ -1209,7 +1317,6 @@ class IntentParserServer:
             # Used to store session information
             client_state = self.new_connection(document_id)
             client_state['doc'] = doc
-            client_state['doc_id'] = document_id
             client_state['user_id'] = userId
 
             body = doc.get('body');
@@ -1298,7 +1405,7 @@ class IntentParserServer:
                             spellCheckResults.append(result)
                             missedTerms.append(word)
             end = time.time()
-            print('Scanned entire document in %0.2fs' %((end - start) * 1000))
+            print('Scanned entire document in %0.2fms' %((end - start) * 1000))
 
             # If we have a spelling mistake, highlight text and update user
             if len(spellCheckResults) > 0:
@@ -1347,7 +1454,7 @@ class IntentParserServer:
         buttons = [('Ignore', 'spellcheck_add_ignore'),
                    ('Ignore All', 'spellcheck_add_ignore_all'),
                    ('Add to SynBioHub', 'spellcheck_add_synbiohub'),
-                   ('Add to Dictionary', 'spellcheck_add_dictionary'),
+                   ('Add to Spellchecker Dictionary', 'spellcheck_add_dictionary'),
                    ('Include Previous Word', 'spellcheck_add_select_previous'),
                    ('Include Next Word', 'spellcheck_add_select_next'),
                    ('Remove First Word', 'spellcheck_add_drop_first'),
@@ -1376,10 +1483,11 @@ class IntentParserServer:
 
         # Find out what term to point to
         next_term = spelling_results[next_idx]['term']
-        new_idx = 0
+        new_idx = curr_idx
         while not new_spelling_results[new_idx]['term'] == next_term:
             new_idx += 1
-        # Update client state        client_state['spelling_results'] = new_spelling_results
+        # Update client state
+        client_state['spelling_results'] = new_spelling_results
         client_state['spelling_index'] = new_idx
         client_state['spelling_size'] = len(new_spelling_results)
         return True
@@ -1388,8 +1496,8 @@ class IntentParserServer:
         """ Ignore button action for additions by spelling
         """
         json_body # Remove unused warning
-        client_state["spelling_index"] += 1
-        if client_state["spelling_index"] >= client_state['spelling_size']:
+        client_state['spelling_index'] += 1
+        if client_state['spelling_index'] >= client_state['spelling_size']:
             # We are at the end, nothing else to do
             return []
         else:
@@ -1407,7 +1515,7 @@ class IntentParserServer:
         """
         json_body # Remove unused warning
 
-        doc_id = client_state['doc_id']
+        doc_id = client_state['document_id']
         spell_index = client_state['spelling_index']
         spell_check_result = client_state['spelling_results'][spell_index]
         select_start = spell_check_result['select_start']
@@ -1424,11 +1532,8 @@ class IntentParserServer:
 
         actionList = [dialog_action]
 
-        # Since we are adding this term to the SBH dict, we want to ignore any other results
-        self.spellcheck_remove_term(client_state)
-        # Removing the term automatically updates the spelling index
-        #client_state["spelling_index"] += 1
-        if client_state["spelling_index"] < client_state['spelling_size']:
+        client_state["spelling_index"] += 1
+        if client_state['spelling_index'] < client_state['spelling_size']:
             for action in self.report_spelling_results(client_state):
                 actionList.append(action)
 
@@ -1452,8 +1557,11 @@ class IntentParserServer:
         dict_path = os.path.join(self.dict_path, user_id + '.json')
         self.spellCheckers[user_id].export(dict_path)
 
-        client_state["spelling_index"] += 1
-        if client_state["spelling_index"] >= client_state['spelling_size']:
+        # Since we are adding this term to the spelling dict, we want to ignore any other results
+        self.spellcheck_remove_term(client_state)
+        # Removing the term automatically updates the spelling index
+        #client_state["spelling_index"] += 1
+        if client_state['spelling_index'] >= client_state['spelling_size']:
             # We are at the end, nothing else to do
             return []
 
@@ -1467,8 +1575,6 @@ class IntentParserServer:
 
     def spellcheck_add_select_next(self, json_body, client_state):
         """ Select next word button action for additions by spelling
-        """
-        """ Select previous word button action for additions by spelling
         """
         json_body # Remove unused warning
         return self.spellcheck_select_word_from_text(client_state, False, True)
@@ -1556,9 +1662,22 @@ class IntentParserServer:
 
         return self.report_spelling_results(client_state)
 
-    def simple_syn_bio_hub_search(self, term):
+    def simple_syn_bio_hub_search(self, term, offset=0):
+        """
+        Search for similar terms in SynbioHub, using the cached sparql similarity query.
+        This query requires the specification of a term, a limit on the number of results, and an offset.
+        """
+        if offset == 0 or not term in self.sparql_similar_count_cache:
+            start = time.time()
+            sparql_count = self.sparql_similar_count.replace('${TERM}', term)
+            query_results = self.sbh.sparqlQuery(sparql_count)
+            bindings = query_results['results']['bindings']
+            self.sparql_similar_count_cache[term] = bindings[0]['count']['value']
+            end = time.time()
+            print('Simple SynbioHub count for %s took %0.2fms (found %s results)' %(term, (end - start) * 1000, bindings[0]['count']['value']))
+
         start = time.time()
-        sparql_query = self.sparql_query.replace('${TERM}', term)
+        sparql_query = self.sparql_similar_query.replace('${TERM}', term).replace('${LIMIT}', str(self.sparql_limit)).replace('${OFFSET}', str(offset))
         query_results = self.sbh.sparqlQuery(sparql_query)
         bindings = query_results['results']['bindings']
         search_results = []
@@ -1570,8 +1689,8 @@ class IntentParserServer:
             search_results.append({'title': title, 'target': target})
 
         end = time.time()
-        print('Simple SynbioHub search for %s took %0.2fs' %(term, (end - start) * 1000))
-        return search_results
+        print('Simple SynbioHub search for %s took %0.2fms' %(term, (end - start) * 1000))
+        return search_results, self.sparql_similar_count_cache[term]
 
     def sanitize_name_to_display_id(self, name):
         displayIDfirstChar = '[a-zA-Z_]'
@@ -1645,7 +1764,7 @@ class IntentParserServer:
         item_lab_ids = data['labId']
         item_lab_id_tag = data['labIdSelect']
 
-        sbh_uri_prefix = self.sbh_uri_prefix
+        #sbh_uri_prefix = self.sbh_uri_prefix
         if self.sbh_spoofing_prefix is not None:
             item_uri = document_url.replace(self.sbh_url,
                                             self.sbh_spoofing_prefix)
@@ -1818,6 +1937,8 @@ class IntentParserServer:
         return return_info
 
     def process_nop(self, httpMessage, sm):
+        httpMessage # Fix unused warning
+        sm # Fix unused warning
         return []
 
     def process_submit_form(self, httpMessage, sm):
@@ -1867,6 +1988,7 @@ class IntentParserServer:
         uri = data['extra']['link']
 
         actions = []
+
         pos = 0
         while True:
             result = self.find_exact_text(selected_term, pos, paragraphs)
@@ -1893,18 +2015,29 @@ class IntentParserServer:
         data = json_body['data']
 
         try:
+            offset = 0
+            if 'offset' in data:
+                offset = int(data['offset'])
+            # Bounds check offset value
+            if offset < 0:
+                offset = 0
+            if data['term'] in self.sparql_similar_count_cache:
+                # Ensure offset isn't past the end of the results
+                if offset > int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit:
+                    offset = int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit
+            else:
+                # Don't allow a non-zero offset if we haven't cached the size of the query
+                if offset > 0:
+                    offset = 0
 
-            search_results = self.simple_syn_bio_hub_search(data['term'])
-
-            if len(search_results) > 5:
-                search_results = search_results[0:5]
+            search_results, results_count = self.simple_syn_bio_hub_search(data['term'], offset)
 
             table_html = ''
             for search_result in search_results:
                 title = search_result['title']
                 target = search_result['target']
-                table_html += self.generate_existing_link_html(title,
-                                                               target)
+                table_html += self.generate_existing_link_html(title, target)
+            table_html += self.generate_results_pagination_html(offset, int(results_count))
 
             response = {'results':
                         {'operationSucceeded': True,
@@ -1913,7 +2046,8 @@ class IntentParserServer:
                         }}
 
 
-        except:
+        except Exception as err:
+            print(str(err))
             response = self.operation_failed('Failed to search SynBioHub')
 
         self.send_response(200, 'OK', json.dumps(response), sm,
@@ -1956,7 +2090,7 @@ def main(argv):
     global sbhPlugin
 
     try:
-        opts, args = getopt.getopt(argv, "u:p:hc:i:s:b:l:",
+        opts, __ = getopt.getopt(argv, "u:p:hc:i:s:b:l:",
                                    ["username=",
                                     "password=",
                                     "help",

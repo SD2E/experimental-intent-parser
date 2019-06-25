@@ -7,13 +7,10 @@ PREFIX sbol: <http://sbols.org/v2#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX purl: <http://purl.obolibrary.org/obo/>
-SELECT DISTINCT ?member ?displayId ?title
+SELECT (COUNT(*) AS ?count)
 WHERE {{
     ?member sbol:displayId ?displayId .
     ?member dcterms:title ?title .
     FILTER( regex(lcase(?displayId), lcase("${TERM}")) ||
             regex(lcase(?title), lcase("${TERM}"))) .
 }}
-ORDER BY ?title
-LIMIT ${LIMIT}
-OFFSET ${OFFSET}

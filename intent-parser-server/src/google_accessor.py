@@ -376,3 +376,9 @@ class GoogleAccessor:
     def create_document(self, *, title):
         body = { 'title': title }
         return self._docs_service.documents().create(body=body).execute()
+
+    def get_document_revisions(self, *, document_id):
+        """
+        Returns the list of revisions for the given document_id
+        """
+        return self._drive_service.revisions().list(fileId=document_id).execute()
