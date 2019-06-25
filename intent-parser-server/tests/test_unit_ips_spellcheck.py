@@ -107,8 +107,8 @@ class TestIntentParserServer(unittest.TestCase):
         self.ips.process_add_by_spelling([], [])
         
         # Code to save the GT spelling results, when the test doc has been updated
-        with open(os.path.join(self.dataDir, self.spellcheckResults), 'wb') as fout:
-            pickle.dump(self.ips.client_state_map[self.doc_id]['spelling_results'], fout)
+        #with open(os.path.join(self.dataDir, self.spellcheckResults), 'wb') as fout:
+        #    pickle.dump(self.ips.client_state_map[self.doc_id]['spelling_results'], fout)
             
         self.spelling_gt = None
         with open(os.path.join(self.dataDir, self.spellcheckResults), 'rb') as fin:
