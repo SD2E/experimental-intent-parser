@@ -25,7 +25,9 @@ class TestIntentParserServer(unittest.TestCase):
 
     searchResults = 'search_results.pickle'
     
-    expected_search_size = 19
+    expected_search_size = 22
+
+    proteomics_search_size = 19
     
     items_json = 'item-map.json'
 
@@ -181,7 +183,7 @@ class TestIntentParserServer(unittest.TestCase):
         result = self.ips.process_link_all([], self.ips.client_state_map[self.doc_id])
         # We should have a link action for each of the 16 instances of proteomics in the results.
         # Plus a highlight text and showSidebar for the last remaining engineered result
-        self.assertTrue(len(result) == 18)
+        self.assertTrue(len(result) == self.proteomics_search_size + 2)
 
     def tearDown(self):
         """
