@@ -25,12 +25,12 @@ class TestIntentParserServer(unittest.TestCase):
 
     searchResults = 'search_results.pickle'
     
-    expected_search_size = 17
+    expected_search_size = 19
     
     items_json = 'item-map.json'
 
     dataDir = 'data'
-    
+
     def get_currently_selected_text(self):
         """
         Given select start and end dicts from spelling results, retrieve the text from the test document.
@@ -79,6 +79,7 @@ class TestIntentParserServer(unittest.TestCase):
         """
         Configure an instance of IntentParserServer for spellcheck testing.
         """
+
         self.doc_content = None
         with open(os.path.join(self.dataDir,self.spellcheckFile), 'r') as fin:
             self.doc_content = json.loads(fin.read())
@@ -91,7 +92,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.user_email = 'test@bbn.com'
         self.json_body = {'documentId' : self.doc_id, 'user' : self.user, 'userEmail' : self.user_email}
 
-        self.ips = IntentParserServer(init_server=False)
+        self.ips = IntentParserServer(init_server=False, init_sbh=False)
         self.ips.client_state_lock = Mock()
         self.ips.client_state_map = {}
         self.ips.google_accessor = Mock()
@@ -161,10 +162,13 @@ class TestIntentParserServer(unittest.TestCase):
         self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'], 1)
         self.assertTrue(len(result) == 2 )
 
-        remove_term = 'proteomics'
+        # Ignore the next term, proteomics
         result = self.ips.process_no_to_all([], self.ips.client_state_map[self.doc_id])
-        # We should have no results left after ignoring the 16 instances of proteomics in the results.
-        self.assertTrue(len(result) == 0)
+        # We should have one result left after ignoring the 16 instances of proteomics in the results.
+        self.assertTrue(len(result) == 2)
+        # We should have no results left after ignoring the last item
+        result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
+        self.assertTrue(len(result) == 0 )
 
     def test_analyze_link_all(self):
         """
@@ -176,7 +180,8 @@ class TestIntentParserServer(unittest.TestCase):
 
         result = self.ips.process_link_all([], self.ips.client_state_map[self.doc_id])
         # We should have a link action for each of the 16 instances of proteomics in the results.
-        self.assertTrue(len(result) == 16)
+        # Plus a highlight text and showSidebar for the last remaining engineered result
+        self.assertTrue(len(result) == 18)
 
     def tearDown(self):
         """
