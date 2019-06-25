@@ -66,6 +66,9 @@ class IntentParserServer:
     # be matched in order to have a valid partial match
     partial_match_thresh = 0.75
 
+    # Terms below a certain size should be force to have an exact match
+    partial_match_min_size = 3
+
     def __init__(self, bind_port=8080, bind_ip="0.0.0.0",
                  sbh_collection_uri=None,
                  sbh_spoofing_prefix=None,
@@ -856,24 +859,24 @@ class IntentParserServer:
 
         return None
 
-    def find_common_substrings(self, a, b):
+    def find_common_substrings(self, content, dict_term):
         """
-        Scan b finding any common substrings from b.  For each possible common substring, only the first one is found.
+        Scan dict_term finding any common substrings from dict_term.  For each possible common substring, only the first one is found.
         """
         results = []
-        len1 = len(a)
-        len2 = len(b)
+        len_content = len(content)
+        len_term = len(dict_term)
         i = 0
-        while i < len1:
+        while i < len_content:
             match_start = -1
             matched_chars = 0
             # Ignore white space
-            if a[i].isspace():
+            if content[i].isspace():
                 i += 1
                 continue;
             match = None
-            for j in range(len2):
-                char_match = (i + j < len1 and a[i + matched_chars] == b[j])
+            for j in range(len_term):
+                char_match = (i + j < len_content and content[i + matched_chars] == dict_term[j])
                 if char_match and match_start == -1:
                     match_start = j
                 elif match_start > -1 and not char_match:
@@ -883,11 +886,16 @@ class IntentParserServer:
                     matched_chars += 1
             # Check for match at the end
             if match is None and match_start > -1:
-                match = Match(i, match_start, len2 - match_start)
-            # Process a match
+                match = Match(i, match_start, len_term - match_start)
+            # Process content match
             if not match is None:
                 # Ignore matches if they aren't big enough
-                if match.size >= int(min(len1,len2) * self.partial_match_thresh):
+                # No partial matches for small terms
+                if len_term <= self.partial_match_min_size:
+                    if match.size >= len_term:
+                        results.append(match)
+                # If the term is larger, we can have content partial match
+                elif match.size >= int(len_term * self.partial_match_thresh):
                     results.append(match)
                 i += match.size
             else:

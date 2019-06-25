@@ -25,7 +25,7 @@ class TestIntentParserServer(unittest.TestCase):
 
     searchResults = 'search_results.pickle'
     
-    expected_search_size = 22
+    expected_search_size = 37
 
     proteomics_search_size = 19
     
@@ -136,9 +136,9 @@ class TestIntentParserServer(unittest.TestCase):
         """
         """
         numResults = len(self.ips.client_state_map[self.doc_id]['search_results'])
-        for idx in range(1, numResults - 1):
+        while self.ips.client_state_map[self.doc_id]['search_result_index'] < numResults :
             result = self.ips.process_analyze_yes([], self.ips.client_state_map[self.doc_id])
-            self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'], idx)
+            #self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'], idx)
             self.assertTrue(len(result) == 3)
 
         result = self.ips.process_analyze_yes([], self.ips.client_state_map[self.doc_id])
@@ -148,9 +148,9 @@ class TestIntentParserServer(unittest.TestCase):
         """
         """
         numResults = len(self.ips.client_state_map[self.doc_id]['search_results'])
-        for idx in range(1, numResults - 1):
+        while self.ips.client_state_map[self.doc_id]['search_result_index'] < numResults :
             result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
-            self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'], idx)
+            #self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'] == idx + 1)
             self.assertTrue(len(result) == 2 )
 
         result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
@@ -161,7 +161,7 @@ class TestIntentParserServer(unittest.TestCase):
         """
         # Skip first term, engineered
         result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
-        self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'], 1)
+        self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'] == 2)
         self.assertTrue(len(result) == 2 )
 
         # Ignore the next term, proteomics
@@ -169,16 +169,22 @@ class TestIntentParserServer(unittest.TestCase):
         # We should have one result left after ignoring the 16 instances of proteomics in the results.
         self.assertTrue(len(result) == 2)
         # We should have no results left after ignoring the last item
+        numResults = len(self.ips.client_state_map[self.doc_id]['search_results'])
+        while self.ips.client_state_map[self.doc_id]['search_result_index'] < numResults :
+            result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
+            #self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'] == idx + 1)
+            self.assertTrue(len(result) == 2 )
+
         result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
-        self.assertTrue(len(result) == 0 )
+        self.assertTrue(len(result) == 0)
 
     def test_analyze_link_all(self):
         """
         """
         # Skip first term, engineered
-        result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
-        self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'], 1)
-        self.assertTrue(len(result) == 2 )
+        #result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
+        #self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'] == 1)
+        #self.assertTrue(len(result) == 2)
 
         result = self.ips.process_link_all([], self.ips.client_state_map[self.doc_id])
         # We should have a link action for each of the 16 instances of proteomics in the results.
