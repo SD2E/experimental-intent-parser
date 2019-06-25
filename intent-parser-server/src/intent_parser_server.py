@@ -1300,7 +1300,7 @@ class IntentParserServer:
                             spellCheckResults.append(result)
                             missedTerms.append(word)
             end = time.time()
-            print('Scanned entire document in %0.2fs' %((end - start) * 1000))
+            print('Scanned entire document in %0.2fms' %((end - start) * 1000))
 
             # If we have a spelling mistake, highlight text and update user
             if len(spellCheckResults) > 0:
@@ -1569,7 +1569,7 @@ class IntentParserServer:
             bindings = query_results['results']['bindings']
             self.sparql_similar_count_cache[term] = bindings[0]['count']['value']
             end = time.time()
-            print('Simple SynbioHub count for %s took %0.2fs (found %s results)' %(term, (end - start) * 1000, bindings[0]['count']['value']))
+            print('Simple SynbioHub count for %s took %0.2fms (found %s results)' %(term, (end - start) * 1000, bindings[0]['count']['value']))
 
         start = time.time()
         sparql_query = self.sparql_similar_query.replace('${TERM}', term).replace('${LIMIT}', str(self.sparql_limit)).replace('${OFFSET}', str(offset))
@@ -1584,7 +1584,7 @@ class IntentParserServer:
             search_results.append({'title': title, 'target': target})
 
         end = time.time()
-        print('Simple SynbioHub search for %s took %0.2fs' %(term, (end - start) * 1000))
+        print('Simple SynbioHub search for %s took %0.2fms' %(term, (end - start) * 1000))
         return search_results, self.sparql_similar_count_cache[term]
 
     def sanitize_name_to_display_id(self, name):
