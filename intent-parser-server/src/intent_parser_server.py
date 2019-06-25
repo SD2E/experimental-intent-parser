@@ -856,24 +856,24 @@ class IntentParserServer:
 
         return None
 
-    def find_common_substrings(self, a, b):
+    def find_common_substrings(self, content, dict_term):
         """
-        Scan b finding any common substrings from b.  For each possible common substring, only the first one is found.
+        Scan dict_term finding any common substrings from dict_term.  For each possible common substring, only the first one is found.
         """
         results = []
-        len1 = len(a)
-        len2 = len(b)
+        len1 = len(content)
+        len2 = len(dict_term)
         i = 0
         while i < len1:
             match_start = -1
             matched_chars = 0
             # Ignore white space
-            if a[i].isspace():
+            if content[i].isspace():
                 i += 1
                 continue;
             match = None
             for j in range(len2):
-                char_match = (i + j < len1 and a[i + matched_chars] == b[j])
+                char_match = (i + j < len1 and content[i + matched_chars] == dict_term[j])
                 if char_match and match_start == -1:
                     match_start = j
                 elif match_start > -1 and not char_match:
@@ -884,10 +884,16 @@ class IntentParserServer:
             # Check for match at the end
             if match is None and match_start > -1:
                 match = Match(i, match_start, len2 - match_start)
-            # Process a match
+            # Process content match
             if not match is None:
                 # Ignore matches if they aren't big enough
-                if match.size >= int(min(len1,len2) * self.partial_match_thresh):
+                length = min(len1,len2)
+                # No partial matches for small terms
+                if length <= self.partial_match_min_size:
+                    if match.size >= length:
+                        results.append(match)
+                # If the term is larger, we can have content partial match  
+                elif match.size >= int(length * self.partial_match_thresh):
                     results.append(match)
                 i += match.size
             else:
