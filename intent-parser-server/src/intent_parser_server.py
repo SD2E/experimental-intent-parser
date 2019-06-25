@@ -18,6 +18,8 @@ from operator import itemgetter
 
 from spellchecker import SpellChecker
 
+from difflib import Match
+
 class ConnectionException(Exception):
     def __init__(self, code, message, content=""):
         super(ConnectionException, self).__init__(message);
@@ -59,6 +61,10 @@ class IntentParserServer:
                 'Attribute' : ''
             }
         }
+
+    # Define the percentage of length of the search term that must
+    # be matched in order to have a valid partial match
+    partial_match_thresh = 0.75
 
     def __init__(self, bind_port=8080, bind_ip="0.0.0.0",
                  sbh_collection_uri=None,
@@ -218,10 +224,6 @@ class IntentParserServer:
 
         self.server.listen(5)
         print('listening on {}:{}'.format(bind_ip, bind_port))
-
-        # Define the percentage of length of the search term that must
-        # be matched in order to have a valid partial match
-        self.partial_match_thresh = 0.75
 
     def serverRunLoop(self, *, background=False):
         if background:
