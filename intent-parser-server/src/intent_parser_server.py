@@ -685,7 +685,7 @@ class IntentParserServer:
 
         # Find out what term to point to
         next_term = search_results[next_idx]['term']
-        new_idx = curr_idx
+        new_idx = curr_idx + 1
         while not new_search_results[new_idx]['term'] == next_term:
             new_idx += 1
         # Update client state
