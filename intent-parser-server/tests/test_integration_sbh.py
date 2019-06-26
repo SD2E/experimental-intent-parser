@@ -90,7 +90,7 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == self.ips.sparql_limit)
+        self.assertTrue(len(actions['results']['search_results']) == 0)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
@@ -104,7 +104,7 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == self.ips.sparql_limit)
+        self.assertTrue(len(actions['results']['search_results']) == 0)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
@@ -118,7 +118,7 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == self.ips.sparql_limit)
+        self.assertTrue(len(actions['results']['search_results']) == 0)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
@@ -132,7 +132,7 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == self.ips.sparql_limit)
+        self.assertTrue(len(actions['results']['search_results']) == 0)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
@@ -146,7 +146,7 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == self.ips.sparql_limit)
+        self.assertTrue(len(actions['results']['search_results']) == 0)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
@@ -160,7 +160,7 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == self.ips.sparql_limit)
+        self.assertTrue(len(actions['results']['search_results']) == 0)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
@@ -174,7 +174,7 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == self.ips.sparql_limit)
+        self.assertTrue(len(actions['results']['search_results']) == 0)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
