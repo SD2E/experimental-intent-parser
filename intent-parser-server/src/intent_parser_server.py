@@ -492,7 +492,7 @@ class IntentParserServer:
             self.send_response(200, 'OK', json.dumps(actions), sm,
                                'application/json')
             end = time.time()
-            print('Analyzed entire document in %0.2fs' %((end - start) * 1000))
+            print('Analyzed entire document in %0.2fms' %((end - start) * 1000))
         except Exception as e:
             raise e
 
