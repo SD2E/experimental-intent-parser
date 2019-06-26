@@ -737,10 +737,7 @@ class IntentParserServer:
         new_search_results = [r for r in search_results if not r['term'] == term_to_ignore ]
 
         # Find out what term to point to
-        next_term = search_results[next_idx]['term']
-        new_idx = curr_idx + 1
-        while not new_search_results[new_idx]['term'] == next_term:
-            new_idx += 1
+        new_idx = new_search_results.index(search_results[next_idx])
         # Update client state
         client_state['search_results'] = new_search_results
         client_state['search_result_index'] = new_idx
@@ -1540,10 +1537,7 @@ class IntentParserServer:
         new_spelling_results = [r for r in spelling_results if not r['term'] == term_to_ignore ]
 
         # Find out what term to point to
-        next_term = spelling_results[next_idx]['term']
-        new_idx = curr_idx
-        while not new_spelling_results[new_idx]['term'] == next_term:
-            new_idx += 1
+        new_idx = new_spelling_results.index(spelling_results[next_idx])
         # Update client state
         client_state['spelling_results'] = new_spelling_results
         client_state['spelling_index'] = new_idx
