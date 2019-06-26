@@ -618,6 +618,9 @@ class IntentParserServer:
         if len(search_results) == 0:
             return []
 
+        # Remove any matches that overlap, taking the longest match
+        search_results = self.cull_overlapping(search_results);
+
         search_results = sorted(search_results,
                                 key=itemgetter('paragraph_index',
                                                'offset')
@@ -628,40 +631,50 @@ class IntentParserServer:
 
         return self.report_search_results(client_state)
 
-    def find_overlaps(self, start_idx, search_results):
+    def cull_overlapping(self, search_results):
+        """
+        Find any results that overlap and take the one with the largest term.
+        """
+        new_results = []
+        ignore_idx = set()
+        for idx in range(0, len(search_results)):
+            if idx in ignore_idx:
+                continue;
+
+            overlaps, max_idx, overlap_idx = self.find_overlaps(idx, search_results, ignore_idx)
+            if len(overlaps) > 1:
+                new_results.append(search_results[max_idx])
+                ignore_idx = ignore_idx.union(overlap_idx)
+            else:
+                new_results.append(search_results[idx])
+        return new_results
+
+    def find_overlaps(self, start_idx, search_results, ignore_idx = set()):
         """
         Given a start index, find any entries in the results that overlap with the result at the start index
         """
         query = search_results[start_idx]
         overlaps = [query]
+        overlap_idx = [start_idx]
         max_overlap_idx = start_idx
         max_overlap_len = query['end_offset'] - query['offset']
         for idx in range(start_idx + 1, len(search_results)):
+
+            if idx in ignore_idx:
+                continue;
             comp = search_results[idx]
 
             if not comp['paragraph_index'] == query['paragraph_index']:
                 continue
-            overlap = False
-            # query inside comp
-            if query['offset'] > comp['offset'] and query['end_offset'] < comp['end_offset']:
-                overlap = True
-            # comp inside query
-            if query['offset'] < comp['offset'] and query['end_offset'] > comp['end_offset']:
-                overlap = True
-            # Comp overlaps end of query
-            if comp['offset'] > query['offset'] and comp['offset'] < query['end_offset'] and comp['end_offset'] > query['end_offset']:
-                overlap = True
-            # Query overlaps end of comp
-            if query['offset'] > comp['offset'] and query['offset'] < comp['end_offset'] and query['end_offset'] > comp['end_offset']:
-                overlap = True
-
+            overlap = max(0, min(comp['end_offset'], query['end_offset']) - max(comp['offset'], query['offset'])) > 0
             if overlap:
                 overlaps.append(comp)
+                overlap_idx.append(idx)
                 if comp['end_offset'] - comp['offset'] > max_overlap_len:
                     max_overlap_idx = idx
                     max_overlap_len = comp['end_offset'] - comp['offset']
 
-        return overlaps, max_overlap_idx
+        return overlaps, max_overlap_idx, overlap_idx
 
     def process_analyze_yes(self, json_body, client_state):
         """
