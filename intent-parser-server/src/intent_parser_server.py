@@ -628,6 +628,41 @@ class IntentParserServer:
 
         return self.report_search_results(client_state)
 
+    def find_overlaps(self, start_idx, search_results):
+        """
+        Given a start index, find any entries in the results that overlap with the result at the start index
+        """
+        query = search_results[start_idx]
+        overlaps = [query]
+        max_overlap_idx = start_idx
+        max_overlap_len = query['end_offset'] - query['offset']
+        for idx in range(start_idx + 1, len(search_results)):
+            comp = search_results[idx]
+
+            if not comp['paragraph_index'] == query['paragraph_index']:
+                continue
+            overlap = False
+            # query inside comp
+            if query['offset'] > comp['offset'] and query['end_offset'] < comp['end_offset']:
+                overlap = True
+            # comp inside query
+            if query['offset'] < comp['offset'] and query['end_offset'] > comp['end_offset']:
+                overlap = True
+            # Comp overlaps end of query
+            if comp['offset'] > query['offset'] and comp['offset'] < query['end_offset'] and comp['end_offset'] > query['end_offset']:
+                overlap = True
+            # Query overlaps end of comp
+            if query['offset'] > comp['offset'] and query['offset'] < comp['end_offset'] and query['end_offset'] > comp['end_offset']:
+                overlap = True
+
+            if overlap:
+                overlaps.append(comp)
+                if comp['end_offset'] - comp['offset'] > max_overlap_len:
+                    max_overlap_idx = idx
+                    max_overlap_len = comp['end_offset'] - comp['offset']
+
+        return overlaps, max_overlap_idx
+
     def process_analyze_yes(self, json_body, client_state):
         """
         Handle "Yes" button as part of analyze document.
