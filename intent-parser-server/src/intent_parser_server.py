@@ -502,7 +502,7 @@ class IntentParserServer:
     def add_link(self, search_result):
         paragraph_index = search_result['paragraph_index']
         offset = search_result['offset']
-        end_offset = search_result['end_offset'] - 1
+        end_offset = search_result['end_offset']
         link = search_result['uri']
         search_result['link'] = link
 
