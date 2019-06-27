@@ -31,7 +31,7 @@ class TestIntentParserServer(unittest.TestCase):
 
     proteomics_search_size = 19
     
-    items_json = 'item-map.json'
+    items_json = 'item-map-test.json'
 
     dataDir = 'data'
 
