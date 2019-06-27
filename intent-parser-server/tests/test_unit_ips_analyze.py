@@ -61,7 +61,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.ips.get_json_body = Mock(return_value=self.json_body)
         
         self.ips.item_map_lock = Mock()
-        with open(os.path.join(self.dataDir, self.items_json), 'rb') as fin:
+        with open(os.path.join(self.dataDir, self.items_json), 'r') as fin:
             self.ips.item_map = json.load(fin)
 
         self.ips.process_analyze_document([], [])

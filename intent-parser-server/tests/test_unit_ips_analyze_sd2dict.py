@@ -61,14 +61,14 @@ class TestIntentParserServer(unittest.TestCase):
         self.ips.get_json_body = Mock(return_value=self.json_body)
         
         self.ips.item_map_lock = Mock()
-        with open(os.path.join(self.dataDir, self.items_json), 'rb') as fin:
+        with open(os.path.join(self.dataDir, self.items_json), 'r') as fin:
             self.ips.item_map = json.load(fin)
 
         self.ips.process_analyze_document([], [])
 
         # Code to generate GT search results, for when test doc is updated
-        with open(os.path.join(self.dataDir, self.searchResults), 'wb') as fout:
-            pickle.dump(self.ips.client_state_map[self.doc_id]['search_results'], fout)
+        #with open(os.path.join(self.dataDir, self.searchResults), 'wb') as fout:
+        #    pickle.dump(self.ips.client_state_map[self.doc_id]['search_results'], fout)
 
         self.search_gt = None
         with open(os.path.join(self.dataDir, self.searchResults), 'rb') as fin:

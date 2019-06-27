@@ -108,7 +108,7 @@ class TestIntentParserServer(unittest.TestCase):
         response = urllib.request.urlopen(self.server_url + '/analyzeDocument',
                                           data=payload_bytes,
                                           timeout=60)
-        result = json.loads(response.read())
+        result = response.json
         assert 'actions' in result
         actions = result['actions']
         assert len(actions) > 0
