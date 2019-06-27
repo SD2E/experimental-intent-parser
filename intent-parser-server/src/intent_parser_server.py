@@ -93,6 +93,10 @@ class IntentParserServer:
         self.add_html = f.read()
         f.close()
 
+        f = open(self.my_path + '/analyze_sidebar.html', 'r')
+        self.analyze_html = f.read()
+        f.close()
+
         f = open(self.my_path + '/findSimilar.sparql', 'r')
         self.sparql_similar_query = f.read()
         f.close()
@@ -348,7 +352,11 @@ class IntentParserServer:
         if 'buttonId' not in data:
             errorMessage = 'data missing buttonId'
             raise ConnectionException(400, 'Bad Request', errorMessage)
-        buttonId = data['buttonId']
+        if type(data['buttonId']) is dict:
+            buttonDat = data['buttonId']
+            buttonId = buttonDat['buttonId']
+        else:
+            buttonId = data['buttonId']
 
         method = getattr( self, buttonId )
 
@@ -499,11 +507,14 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
 
-    def add_link(self, search_result):
+    def add_link(self, search_result, new_link=None):
         paragraph_index = search_result['paragraph_index']
         offset = search_result['offset']
         end_offset = search_result['end_offset']
-        link = search_result['uri']
+        if new_link is None:
+            link = search_result['uri']
+        else:
+            link = new_link
         search_result['link'] = link
 
         action = self.link_text(paragraph_index, offset,
@@ -556,7 +567,30 @@ class IntentParserServer:
                        ('Link All', 'process_link_all'),
                        ('No to All', 'process_no_to_all')]
 
-            dialogAction = self.simple_sidebar_dialog(html, buttons)
+            buttonHTML = ''
+            buttonScript = ''
+            for button in buttons:
+                buttonHTML += '<input id=' + button[1] + 'Button value="'
+                buttonHTML += button[0] + '" type="button" onclick="'
+                buttonHTML += button[1] + 'Click()" />\n'
+
+                buttonScript += 'function ' + button[1] + 'Click() {\n'
+                buttonScript += '  google.script.run.withSuccessHandler'
+                buttonScript += '(onSuccess).buttonClick(\''
+                buttonScript += button[1]  + '\')\n'
+                buttonScript += '}\n\n'
+
+            html = self.analyze_html
+
+            # Update parameters in html
+            html = html.replace('${SELECTEDTERM}', term)
+            html = html.replace('${CONTENT_TERM}', content_term)
+            html = html.replace('${TERM_URI}', uri)
+            html = html.replace('${DOCUMENTID}', client_state['document_id'])
+            html = html.replace('${BUTTONS}', buttonHTML)
+            html = html.replace('${BUTTONS_SCRIPT}', buttonScript)
+
+            dialogAction = self.sidebar_dialog(html)
 
             actions.append(dialogAction)
 
@@ -680,12 +714,14 @@ class IntentParserServer:
         """
         Handle "Yes" button as part of analyze document.
         """
-        json_body # Remove unused warning
         search_results = client_state['search_results']
         search_result_index = client_state['search_result_index'] - 1
         search_result = search_results[search_result_index]
 
-        actions = self.add_link(search_result);
+        if type(json_body['data']['buttonId']) is dict:
+            new_link = json_body['data']['buttonId']['link']
+
+        actions = self.add_link(search_result, new_link);
         actions += self.report_search_results(client_state)
         return actions
 
@@ -696,12 +732,10 @@ class IntentParserServer:
         json_body # Remove unused warning
         return self.report_search_results(client_state)
 
-
     def process_link_all(self, json_body, client_state):
         """
         Handle "Link all" button as part of analyze document.
         """
-        json_body # Remove unused warning
         search_results = client_state['search_results']
         search_result_index = client_state['search_result_index'] - 1
         search_result = search_results[search_result_index]
@@ -709,10 +743,13 @@ class IntentParserServer:
         term_search_results = list(filter(lambda x : x['term'] == term,
                                           search_results))
 
+        if type(json_body['data']['buttonId']) is dict:
+            new_link = json_body['data']['buttonId']['link']
+
         actions = []
 
         for term_result in term_search_results:
-            actions += self.add_link(term_result);
+            actions += self.add_link(term_result, new_link);
 
         actions += self.report_search_results(client_state)
 
@@ -765,7 +802,7 @@ class IntentParserServer:
         return link_text
 
     def simple_sidebar_dialog(self, message, buttons):
-        htmlMessage = '<script>\n\n'
+        htmlMessage  = '<script>\n\n'
         htmlMessage += 'function onSuccess() { \n\
                          google.script.host.close()\n\
                       }\n\n'
@@ -821,6 +858,13 @@ class IntentParserServer:
         action['title'] = title
         action['width'] = width
         action['height'] = height
+
+        return action
+
+    def sidebar_dialog(self, htmlMessage):
+        action = {}
+        action['action'] = 'showSidebar'
+        action['html'] = htmlMessage
 
         return action
 
@@ -1155,7 +1199,7 @@ class IntentParserServer:
 
         return options_html
 
-    def generate_existing_link_html(self, title, target):
+    def generate_existing_link_html(self, title, target, two_col = False):
         html  = '<tr>\n'
         html += '  <td style="max-width: 250px; word-wrap: break-word;">\n'
         html += '    <a href=' + target + ' target=_blank name="theLink">' + title + '</a>\n'
@@ -1163,8 +1207,11 @@ class IntentParserServer:
         html += '  <td>\n'
         html += '    <input type="button" name=' + target + ' value="Link"\n'
         html += '    onclick="linkItem(thisForm, this.name)">\n'
-        html += '  </td>\n'
-        html += '  <td>\n'
+        if not two_col:
+            html += '  </td>\n'
+            html += '  <td>\n'
+        else:
+            html += '  <br/>'
         html += '    <input type="button" name=' + target + ' value="Link All"\n'
         html += '    onclick="linkAll(thisForm, this.name)">\n'
         html += '  </td>\n'
@@ -2076,7 +2123,7 @@ class IntentParserServer:
             if data['term'] in self.sparql_similar_count_cache:
                 # Ensure offset isn't past the end of the results
                 if offset > int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit:
-                    offset = int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit
+                    offset = max(0,int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit)
             else:
                 # Don't allow a non-zero offset if we haven't cached the size of the query
                 if offset > 0:
@@ -2084,11 +2131,16 @@ class IntentParserServer:
 
             search_results, results_count = self.simple_syn_bio_hub_search(data['term'], offset)
 
+            if 'analyze' in data:
+                analyze = True
+            else:
+                analyze = False
+
             table_html = ''
             for search_result in search_results:
                 title = search_result['title']
                 target = search_result['target']
-                table_html += self.generate_existing_link_html(title, target)
+                table_html += self.generate_existing_link_html(title, target, analyze)
             table_html += self.generate_results_pagination_html(offset, int(results_count))
 
             response = {'results':
