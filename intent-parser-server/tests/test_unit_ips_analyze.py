@@ -8,6 +8,8 @@ import time
 import urllib.request
 import pickle
 
+from ips_test_utils import compare_search_results
+
 from unittest.mock import Mock, patch, DEFAULT
 
 try:
@@ -32,50 +34,6 @@ class TestIntentParserServer(unittest.TestCase):
     items_json = 'item-map.json'
 
     dataDir = 'data'
-
-    def get_currently_selected_text(self):
-        """
-        Given select start and end dicts from spelling results, retrieve the text from the test document.
-        """
-        spelling_index = self.ips.client_state_map[self.doc_id]['spelling_index']
-        spelling_result = self.ips.client_state_map[self.doc_id]['spelling_results'][spelling_index]
-        select_start = spelling_result['select_start']
-        select_end = spelling_result['select_end']
-
-        if not select_start['paragraph_index'] == select_end['paragraph_index']:
-            self.fail('Selection starting and ending paragraphs differ! Not supported!')
-
-        paragraphs = self.ips.get_paragraphs(self.doc_content)
-        paragraph = paragraphs[select_start['paragraph_index']]
-        para_text = self.ips.get_paragraph_text(paragraph)
-        return para_text[select_start['cursor_index']:(select_end['cursor_index'] + 1)]
-
-    def compare_search_results(self, r1, r2):
-        """
-        Compares two spellcheck search results to see if they are equal.
-        r1 and r2 are lists of search results, where each result contains a term, selection start, and selection end.
-        """
-        if not len(r1) == len(r2):
-            return False
-
-        for idx in range(len(r1)):
-            entry1 = r1[idx]
-            entry2 = r2[idx]
-            if not entry1['term'] == entry2['term']:
-                return False
-            if not entry1['paragraph_index'] == entry2['paragraph_index']:
-                return False
-            if not entry1['offset'] == entry2['offset']:
-                return False
-            if not entry1['end_offset'] == entry2['end_offset']:
-                return False
-            if not entry1['uri'] == entry2['uri']:
-                return False
-            if not entry1['link'] == entry2['link']:
-                return False
-            if not entry1['text'] == entry2['text']:
-                return False
-        return True
 
     def setUp(self):
         """
@@ -119,7 +77,7 @@ class TestIntentParserServer(unittest.TestCase):
         if self.search_gt is None:
             self.fail('Failed to read in spelling results! Path: ' + os.join(self.dataDir, self.spellcheckResults))
             
-        self.compare_search_results(self.search_gt, self.ips.client_state_map[self.doc_id]['search_results'])
+        compare_search_results(self.search_gt, self.ips.client_state_map[self.doc_id]['search_results'])
 
     def return_value(self, value):
         return value
@@ -134,7 +92,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.ips.process_analyze_document([], [])
         unculled_results = self.ips.client_state_map[self.doc_id]['search_results']
 
-        self.assertFalse(self.compare_search_results(unculled_results, culled_results))
+        self.assertFalse(compare_search_results(unculled_results, culled_results))
 
     def test_analyze_basic(self):
         """
@@ -145,7 +103,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'] is 1)
         self.assertTrue(len(self.ips.client_state_map[self.doc_id]['search_results']) is self.expected_search_size)
         
-        self.assertTrue(self.compare_search_results(self.search_gt, self.ips.client_state_map[self.doc_id]['search_results']), 'Search result sets do not match!')
+        self.assertTrue(compare_search_results(self.search_gt, self.ips.client_state_map[self.doc_id]['search_results']), 'Search result sets do not match!')
 
     def test_analyze_yes(self):
         """
