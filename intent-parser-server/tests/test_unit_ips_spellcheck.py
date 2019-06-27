@@ -8,6 +8,9 @@ import time
 import urllib.request
 import pickle
 
+from ips_test_utils import compare_spell_results
+from ips_test_utils import get_currently_selected_text
+
 from unittest.mock import Mock, patch, DEFAULT
 
 try:
@@ -18,7 +21,6 @@ except Exception as e:
 
 from google_accessor import GoogleAccessor
 
-
 class TestIntentParserServer(unittest.TestCase):
 
     spellcheckFile = 'doc_1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA.json'
@@ -28,51 +30,6 @@ class TestIntentParserServer(unittest.TestCase):
     spellcheckResults = 'spell_results.pickle'
 
     dataDir = 'data'
-    
-    def get_currently_selected_text(self):
-        """
-        Given select start and end dicts from spelling results, retrieve the text from the test document.
-        """
-        spelling_index = self.ips.client_state_map[self.doc_id]['spelling_index']
-        spelling_result = self.ips.client_state_map[self.doc_id]['spelling_results'][spelling_index]
-        select_start = spelling_result['select_start']
-        select_end = spelling_result['select_end']
-
-        if not select_start['paragraph_index'] == select_end['paragraph_index']:
-            self.fail('Selection starting and ending paragraphs differ! Not supported!')
-
-        paragraphs = self.ips.get_paragraphs(self.doc_content)
-        paragraph = paragraphs[select_start['paragraph_index']]
-        para_text = self.ips.get_paragraph_text(paragraph)
-        return para_text[select_start['cursor_index']:(select_end['cursor_index'] + 1)]
-
-    def compare_spell_results(self, r1, r2):
-        """
-        Compares two spellcheck search results to see if they are equal.
-        r1 and r2 are lists of search results, where each result contains a term, selection start, and selection end.
-        """
-        if not len(r1) == len(r2):
-            return False
-
-        for idx in range(len(r1)):
-            entry1 = r1[idx]
-            entry2 = r2[idx]
-            if not entry1['term'] == entry2['term']:
-                return False
-            if not entry1['select_start']['paragraph_index'] == entry2['select_start']['paragraph_index']:
-                return False
-            if not entry1['select_start']['cursor_index']    == entry2['select_start']['cursor_index']:
-                return False
-            if not entry1['select_start']['element_index']   == entry2['select_start']['element_index']:
-                return False
-            if not entry1['select_end']['paragraph_index'] == entry2['select_end']['paragraph_index']:
-                return False
-            if not entry1['select_end']['cursor_index']    == entry2['select_end']['cursor_index']:
-                return False
-            if not entry1['select_end']['element_index']   == entry2['select_end']['element_index']:
-                return False
-
-        return True
 
     def setUp(self):
         """
@@ -126,7 +83,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.assertTrue(self.ips.client_state_map[self.doc_id]['document_id'] == self.doc_id)
         self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_size'] is self.expected_spelling_size)
         self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'] is 0)
-        self.assertTrue(self.compare_spell_results(self.spelling_gt, self.ips.client_state_map[self.doc_id]['spelling_results']), 'Spelling result sets do not match!')
+        self.assertTrue(compare_spell_results(self.spelling_gt, self.ips.client_state_map[self.doc_id]['spelling_results']), 'Spelling result sets do not match!')
     
     def test_spellcheck_add_dictionary(self):
         """
@@ -143,14 +100,14 @@ class TestIntentParserServer(unittest.TestCase):
         self.ips.spellcheck_add_dictionary([], self.ips.client_state_map[self.doc_id])
 
         # The GT should not match
-        self.assertFalse(self.compare_spell_results(self.spelling_gt, self.ips.client_state_map[self.doc_id]['spelling_results']), 'Spelling result sets should not match!')
+        self.assertFalse(compare_spell_results(self.spelling_gt, self.ips.client_state_map[self.doc_id]['spelling_results']), 'Spelling result sets should not match!')
 
         # We expected to remove 15 results
         self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_size'] is (self.expected_spelling_size - 15))
 
         # Compare to removed entry
         spelling_gt_no_prot = [res for res in self.spelling_gt if not res['term'] == remove_term]
-        self.assertTrue(self.compare_spell_results(spelling_gt_no_prot, self.ips.client_state_map[self.doc_id]['spelling_results']))
+        self.assertTrue(compare_spell_results(spelling_gt_no_prot, self.ips.client_state_map[self.doc_id]['spelling_results']))
 
         # Check that a spelling dictionary was saved, to store the users preferences
         dict_path = os.path.join(self.ips.dict_path, self.user_email + '.json')
@@ -200,14 +157,14 @@ class TestIntentParserServer(unittest.TestCase):
         self.ips.spellcheck_add_ignore_all([], self.ips.client_state_map[self.doc_id])
 
         # The GT should not match
-        self.assertFalse(self.compare_spell_results(self.spelling_gt, self.ips.client_state_map[self.doc_id]['spelling_results']), 'Spelling result sets should not match!')
+        self.assertFalse(compare_spell_results(self.spelling_gt, self.ips.client_state_map[self.doc_id]['spelling_results']), 'Spelling result sets should not match!')
 
         # We expected to remove 15 results
         self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_size'] is (self.expected_spelling_size - 15))
 
         # Compare to removed entry
         spelling_gt_no_prot = [res for res in self.spelling_gt if not res['term'] == remove_term]
-        self.assertTrue(self.compare_spell_results(spelling_gt_no_prot, self.ips.client_state_map[self.doc_id]['spelling_results']))
+        self.assertTrue(compare_spell_results(spelling_gt_no_prot, self.ips.client_state_map[self.doc_id]['spelling_results']))
 
     def test_spellcheck_add_synbiohub(self):
         """
@@ -236,24 +193,24 @@ class TestIntentParserServer(unittest.TestCase):
 
         #or subgoals
         result = self.ips.spellcheck_add_select_previous([], self.ips.client_state_map[self.doc_id])
-        selected_text = self.get_currently_selected_text()
+        selected_text = get_currently_selected_text(self, self.ips, self.doc_id, self.doc_content)
         self.assertTrue(selected_text == 'or subgoals')
 
         #goal (or subgoals
         result = self.ips.spellcheck_add_select_previous([], self.ips.client_state_map[self.doc_id])
-        selected_text = self.get_currently_selected_text()
+        selected_text = get_currently_selected_text(self, self.ips, self.doc_id, self.doc_content)
         self.assertTrue(selected_text == 'goal (or subgoals')
 
         result = self.ips.spellcheck_add_select_next([], self.ips.client_state_map[self.doc_id])
-        selected_text = self.get_currently_selected_text()
+        selected_text = get_currently_selected_text(self, self.ips, self.doc_id, self.doc_content)
         self.assertTrue(selected_text == 'goal (or subgoals). Include')
 
         result = self.ips.spellcheck_add_drop_first([], self.ips.client_state_map[self.doc_id])
-        selected_text = self.get_currently_selected_text()
+        selected_text = get_currently_selected_text(self, self.ips, self.doc_id, self.doc_content)
         self.assertTrue(selected_text == 'or subgoals). Include')
 
         result = self.ips.spellcheck_add_drop_last([], self.ips.client_state_map[self.doc_id])
-        selected_text = self.get_currently_selected_text()
+        selected_text = get_currently_selected_text(self, self.ips, self.doc_id, self.doc_content)
         self.assertTrue(selected_text == 'or subgoals')
 
     def tearDown(self):
