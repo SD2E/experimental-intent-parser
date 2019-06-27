@@ -25,13 +25,13 @@ class TestIntentParserServer(unittest.TestCase):
 
     spellcheckFile = 'doc_1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA.json'
 
-    searchResults = 'search_results.pickle'
+    searchResults = 'search_results_sd2dict.pickle'
     
-    expected_search_size = 33
+    expected_search_size = 62
 
     proteomics_search_size = 19
     
-    items_json = 'item-map-test.json'
+    items_json = 'item-map-sd2dict.json'
 
     dataDir = 'data'
 
@@ -67,8 +67,8 @@ class TestIntentParserServer(unittest.TestCase):
         self.ips.process_analyze_document([], [])
 
         # Code to generate GT search results, for when test doc is updated
-        #with open(os.path.join(self.dataDir, self.searchResults), 'wb') as fout:
-        #    pickle.dump(self.ips.client_state_map[self.doc_id]['search_results'], fout)
+        with open(os.path.join(self.dataDir, self.searchResults), 'wb') as fout:
+            pickle.dump(self.ips.client_state_map[self.doc_id]['search_results'], fout)
 
         self.search_gt = None
         with open(os.path.join(self.dataDir, self.searchResults), 'rb') as fin:
@@ -105,6 +105,22 @@ class TestIntentParserServer(unittest.TestCase):
         
         self.assertTrue(compare_search_results(self.search_gt, self.ips.client_state_map[self.doc_id]['search_results']), 'Search result sets do not match!')
 
+    def test_analyze_process(self):
+        """
+        Test that goes through the whole results in some fashion
+        """
+        result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_analyze_yes([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_analyze_yes([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_no_to_all([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_analyze_yes([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_link_all([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
+        
     def test_analyze_yes(self):
         """
         """
@@ -158,11 +174,24 @@ class TestIntentParserServer(unittest.TestCase):
         #result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
         #self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'] == 1)
         #self.assertTrue(len(result) == 2)
-
-        result = self.ips.process_link_all([], self.ips.client_state_map[self.doc_id])
-        # We should have a link action for each of the 16 instances of proteomics in the results.
-        # Plus a highlight text and showSidebar for the last remaining engineered result
-        self.assertTrue(len(result) == self.proteomics_search_size + 2)
+        
+        numResults = len(self.ips.client_state_map[self.doc_id]['search_results'])
+        while self.ips.client_state_map[self.doc_id]['search_result_index'] < (numResults - 1):
+            search_idx = self.ips.client_state_map[self.doc_id]['search_result_index'] - 1
+            term = self.ips.client_state_map[self.doc_id]['search_results'][search_idx]['term']
+            term_results = [t for t in self.ips.client_state_map[self.doc_id]['search_results'] if t['term'] == term]
+    
+            result = self.ips.process_link_all([], self.ips.client_state_map[self.doc_id])
+            # We should have a link action for each of the 16 instances of proteomics in the results.
+            # Plus a highlight text and showSidebar for the last remaining engineered result
+            self.assertTrue(len(result) == len(term_results) + 2)
+            for idx in range(len(result) - 2):
+                lr = result[idx]
+                sr = term_results[idx]
+                self.assertTrue(lr['action'] == 'linkText')
+                self.assertTrue(lr['paragraph_index'] == sr['paragraph_index'])
+                self.assertTrue(lr['offset'] == sr['offset'])
+                self.assertTrue(lr['end_offset'] == sr['end_offset'])
 
     def get_idx_for_search(self, search_results, comp):
         """
