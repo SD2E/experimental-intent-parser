@@ -23,7 +23,7 @@
     // Currently just searches for commonName
     function refreshList(offset) {
         var theForm = this.analyzeResultsForm
-        var commonName = theForm.selectedTerm.value
+        var commonName = theForm.contentTerm.value
         var searchParams = {'term': commonName, 'offset' : offset, 'analyze' : true}
         var postRequest = {'resource': '/searchSynBioHub',
                            'data': searchParams}
@@ -92,6 +92,7 @@
   <center>
     <form name="analyzeResultsForm" action="/add">
       <input type="hidden" name="selectedTerm" value="${SELECTEDTERM}">
+      <input type="hidden" name="contentTerm" value="${CONTENT_TERM}">
       <input type="hidden" name="documentId" value="${DOCUMENTID}">
       <input type="hidden" name="formName" value="analyzeResultsForm">
 
