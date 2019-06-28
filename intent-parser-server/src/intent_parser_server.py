@@ -721,6 +721,8 @@ class IntentParserServer:
 
         if type(json_body['data']['buttonId']) is dict:
             new_link = json_body['data']['buttonId']['link']
+        else:
+            new_link = None
 
         actions = self.add_link(search_result, new_link);
         actions += self.report_search_results(client_state)
@@ -746,6 +748,8 @@ class IntentParserServer:
 
         if type(json_body['data']['buttonId']) is dict:
             new_link = json_body['data']['buttonId']['link']
+        else:
+            new_link = None
 
         actions = []
 
