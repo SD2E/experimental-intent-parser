@@ -69,6 +69,9 @@ class IntentParserServer:
     # Terms below a certain size should be force to have an exact match
     partial_match_min_size = 3
 
+    # How many results we allow
+    sparql_limit = 5
+
     def __init__(self, bind_port=8080, bind_ip="0.0.0.0",
                  sbh_collection_uri=None,
                  sbh_spoofing_prefix=None,
@@ -85,9 +88,6 @@ class IntentParserServer:
         self.event = threading.Event()
 
         self.my_path = os.path.dirname(os.path.realpath(__file__))
-
-        # How many results we allow
-        self.sparql_limit = 5
 
         f = open(self.my_path + '/add.html', 'r')
         self.add_html = f.read()
