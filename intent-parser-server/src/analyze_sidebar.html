@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+  <script>
+    function onLoad() {
+        refreshList(0)
+    }
+
+    function onSuccess(result) {
+        if(result.operationSucceeded) {
+            google.script.host.close()
+            return
+        }
+
+        // Operation Failed
+        submitButtonTable.innerHTML = '<i><font color=red>' + result.message + '</font></i>'
+        var theForm = this.analyzeResultsForm
+        refreshList(0)
+    }
+
+    // Search SynBioHub
+    // Currently just searches for commonName
+    function refreshList(offset) {
+        var theForm = this.analyzeResultsForm
+        var commonName = theForm.contentTerm.value
+        var selectedURI = theForm.selectedURI.value
+        var searchParams = {'term': commonName, 'offset' : offset, 'analyze' : true, 'selected_uri' : selectedURI}
+        var postRequest = {'resource': '/searchSynBioHub',
+                           'data': searchParams}
+
+        var table = document.getElementById('existingLinksTable')
+
+        if(commonName == '') {
+            table.innerHTML = ''
+            return
+        }
+
+        table.innerHTML = '<i>Generating List...</i>'
+        theForm.refreshListButton.style.visibility = 'hidden'
+
+        google.script.run.withSuccessHandler(searchResponse).
+            postFromClient(postRequest)
+    }
+
+    function searchResponse(result) {
+        var theForm = this.analyzeResultsForm
+
+        theForm.refreshListButton.style.visibility = ''
+
+        var table = document.getElementById('existingLinksTable')
+
+        if(result.operationSucceeded) {
+            table.innerHTML = result.table_html
+        } else {
+            table.innerHTML = '<i><font color=red>' + result.message + '</font></i>'
+        }
+    }
+
+    function busy(message) {
+        var theForm = this.analyzeResultsForm
+        var submitButtonTable = document.getElementById('submitButtonTable')
+        var table = document.getElementById('existingLinksTable')
+
+        submitButtonTable.innerHTML = '<tr><td><i>' + message + '</i></td></tr>'
+        table.innerHTML = ''
+        theForm.refreshListButton.style.visibility = 'hidden'
+    }
+
+    function linkItem(theForm, link) {
+        var data = {'buttonId' : 'process_analyze_yes',
+                     'link' : link}
+        busy('Linking to exsiting SynBioHub entry')
+
+        google.script.run.withSuccessHandler(onSuccess).
+            buttonClick(data)
+    }
+
+    function linkAll(theForm, link) {
+        var data = {'buttonId' : 'process_link_all',
+                     'link' : link}
+        busy('Linking all occurrences to exsiting SynBioHub entry')
+
+        google.script.run.withSuccessHandler(onSuccess).
+            buttonClick(data)
+    }
+
+    ${BUTTONS_SCRIPT}
+
+    this.onload = onLoad
+  </script>
+
+  <center>
+    <form name="analyzeResultsForm" action="/add">
+      <input type="hidden" name="selectedTerm" value="${SELECTEDTERM}">
+      <input type="hidden" name="selectedURI" value="${SELECTEDURI}">
+      <input type="hidden" name="contentTerm" value="${CONTENT_TERM}">
+      <input type="hidden" name="documentId" value="${DOCUMENTID}">
+      <input type="hidden" name="formName" value="analyzeResultsForm">
+
+        <center>
+          Link ${CONTENT_TERM} to <a href='${TERM_URI}' target=_blank>${SELECTEDTERM}</a>
+        </center>
+
+      ${BUTTONS}
+
+      <hr>
+
+      <table id='submitButtonTable'>
+      </table>
+
+      <H4> Other suggestions:</H4>
+
+      <script>
+        var thisForm = analyzeResultsForm
+      </script>
+
+      <table stype="width:100%" id="existingLinksTable">
+      </table>
+
+      <p>
+      <input type="button" value="Refresh List" id="refreshListButton"
+             onclick='refreshList(0)'>
+    </form>
+  </center>
+
+</body>
+</html>

@@ -110,11 +110,11 @@ class TestIntentParserServer(unittest.TestCase):
         """
         numResults = len(self.ips.client_state_map[self.doc_id]['search_results'])
         while self.ips.client_state_map[self.doc_id]['search_result_index'] < numResults :
-            result = self.ips.process_analyze_yes([], self.ips.client_state_map[self.doc_id])
+            result = self.ips.process_analyze_yes({'data' : {'buttonId' : 'test'}}, self.ips.client_state_map[self.doc_id])
             #self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'], idx)
             self.assertTrue(len(result) == 3)
 
-        result = self.ips.process_analyze_yes([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_analyze_yes({'data' : {'buttonId' : 'test'}}, self.ips.client_state_map[self.doc_id])
         self.assertTrue(len(result) == 1)
         
     def test_analyze_no(self):
@@ -159,7 +159,7 @@ class TestIntentParserServer(unittest.TestCase):
         #self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'] == 1)
         #self.assertTrue(len(result) == 2)
 
-        result = self.ips.process_link_all([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_link_all({'data' : {'buttonId' : 'test'}}, self.ips.client_state_map[self.doc_id])
         # We should have a link action for each of the 16 instances of proteomics in the results.
         # Plus a highlight text and showSidebar for the last remaining engineered result
         self.assertTrue(len(result) == self.proteomics_search_size + 2)
