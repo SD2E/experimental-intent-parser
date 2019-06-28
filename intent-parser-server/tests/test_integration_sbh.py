@@ -196,7 +196,30 @@ class TestIntentParserServer(unittest.TestCase):
         for line in actions['results']['table_html'].split('\n'):
             if 'Showing' in line:
                 self.assertTrue(line.strip() == 'Showing 0 - 5 of %d' % results_count)
-        
+
+
+    def test_count_matches_results(self):
+        """
+        We run two SPARQL queries, one to get the count of results, and one to get a set limited to a value.
+        We should ensure that the count query matches the result set query, otherwise badness can ensue.
+        """
+
+        # This is easiest is we find something with a result set that is less than the query limit
+        # For this, I found L-arabinose works well
+        term = 'L-arabinose'
+        data = {'term' : term, 'offset' : 0}
+        self.json_body = {'data' : data}
+        self.ips.get_json_body = Mock(return_value=self.json_body)
+
+        self.ips.process_search_syn_bio_hub([],[])
+
+        results_count = self.ips.sparql_similar_count_cache[term]
+        results_count = int(results_count)
+
+        actions = json.loads(self.ips.send_response.call_args[0][2])
+        self.assertTrue(results_count < IntentParserServer.sparql_limit)
+        self.assertTrue(len(actions['results']['search_results']) == results_count)
+
     def tearDown(self):
         """
         Perform teardown.
