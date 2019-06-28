@@ -8,6 +8,7 @@ import time
 import urllib.request
 
 from unittest.mock import Mock, patch, DEFAULT
+from intent_parser_server import IntentParserServer
 
 try:
     from intent_parser_server import IntentParserServer
@@ -73,11 +74,26 @@ class TestIntentParserServer(unittest.TestCase):
         self.ips.google_accessor.get_document = Mock(return_value=self.doc_content)
         self.ips.send_response = Mock()
 
-    def test_add_sbh(self):
+    def test_add_sbh_no_results(self):
         """
         Integration test for Add to SynbioHub feature
         """
+        expected_results = 0
         term = 'proteomics'
+        self.add_sbh_test_func(term, expected_results)
+
+    def test_add_sbh_with_results(self):
+        """
+        Integration test for Add to SynbioHub feature
+        """
+        expected_results = IntentParserServer.sparql_limit
+        term = 'MG1655'
+        self.add_sbh_test_func(term, expected_results)
+
+    def add_sbh_test_func(self, term, expected_results):
+        """
+        Integration test for Add to SynbioHub feature
+        """
         data = {'term' : term, 'offset' : 0}
         self.json_body = {'data' : data}
         self.ips.get_json_body = Mock(return_value=self.json_body)
@@ -90,7 +106,7 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == 0)
+        self.assertTrue(len(actions['results']['search_results']) == expected_results)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
@@ -104,12 +120,12 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == 0)
+        self.assertTrue(len(actions['results']['search_results']) == expected_results)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
             if 'Showing' in line:
-                self.assertTrue(line.strip() == 'Showing %d - %d of %s' % (results_count - self.ips.sparql_limit, results_count, results_count))
+                self.assertTrue(line.strip() == 'Showing %d - %d of %s' % (max(0,results_count - self.ips.sparql_limit), max(5,results_count), results_count))
                 
         # Simulate "last"
         data['offset'] = results_count - self.ips.sparql_limit
@@ -118,12 +134,12 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == 0)
+        self.assertTrue(len(actions['results']['search_results']) == expected_results)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
             if 'Showing' in line:
-                self.assertTrue(line.strip() == 'Showing %d - %d of %s' % (results_count - self.ips.sparql_limit, results_count, results_count))
+                self.assertTrue(line.strip() == 'Showing %d - %d of %s' % (max(0,results_count - self.ips.sparql_limit), max(5,results_count), results_count))
                 
         # Previous
         data['offset'] = data['offset'] - self.ips.sparql_limit
@@ -132,12 +148,12 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == 0)
+        self.assertTrue(len(actions['results']['search_results']) == expected_results)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
             if 'Showing' in line:
-                self.assertTrue(line.strip() == 'Showing %d - %d of %s' % (results_count -  2 * self.ips.sparql_limit, results_count -  1 * self.ips.sparql_limit, results_count))
+                self.assertTrue(line.strip() == 'Showing %d - %d of %s' % (max(0,results_count - 2 * self.ips.sparql_limit), max(5,results_count -  1 * self.ips.sparql_limit), results_count))
                 
         # Previous
         data['offset'] = data['offset'] - self.ips.sparql_limit
@@ -146,12 +162,12 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == 0)
+        self.assertTrue(len(actions['results']['search_results']) == expected_results)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
             if 'Showing' in line:
-                self.assertTrue(line.strip() == 'Showing %d - %d of %s' % (results_count -  3 * self.ips.sparql_limit, results_count -  2 * self.ips.sparql_limit, results_count))
+                self.assertTrue(line.strip() == 'Showing %d - %d of %s' % (max(0,results_count - 3 * self.ips.sparql_limit), max(5,results_count -  2 * self.ips.sparql_limit), results_count))
                 
         # Next
         data['offset'] = data['offset'] + self.ips.sparql_limit
@@ -160,12 +176,12 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == 0)
+        self.assertTrue(len(actions['results']['search_results']) == expected_results)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
             if 'Showing' in line:
-                self.assertTrue(line.strip() == 'Showing %d - %d of %s' % (results_count -  2 * self.ips.sparql_limit, results_count -  1 * self.ips.sparql_limit, results_count))
+                self.assertTrue(line.strip() == 'Showing %d - %d of %s' % (max(0,results_count - 2 * self.ips.sparql_limit), max(5,results_count -  1 * self.ips.sparql_limit), results_count))
                 
         # First
         data['offset'] = 0
@@ -174,7 +190,7 @@ class TestIntentParserServer(unittest.TestCase):
         actions = json.loads(self.ips.send_response.call_args[0][2])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
-        self.assertTrue(len(actions['results']['search_results']) == 0)
+        self.assertTrue(len(actions['results']['search_results']) == expected_results)
         self.assertTrue(actions['results']['operationSucceeded'])
         
         for line in actions['results']['table_html'].split('\n'):
