@@ -584,6 +584,7 @@ class IntentParserServer:
 
             # Update parameters in html
             html = html.replace('${SELECTEDTERM}', term)
+            html = html.replace('${SELECTEDURI}', uri)
             html = html.replace('${CONTENT_TERM}', content_term)
             html = html.replace('${TERM_URI}', uri)
             html = html.replace('${DOCUMENTID}', client_state['document_id'])
@@ -1761,14 +1762,19 @@ class IntentParserServer:
 
         return self.report_spelling_results(client_state)
 
-    def simple_syn_bio_hub_search(self, term, offset=0):
+    def simple_syn_bio_hub_search(self, term, offset=0, filter_uri=None):
         """
         Search for similar terms in SynbioHub, using the cached sparql similarity query.
         This query requires the specification of a term, a limit on the number of results, and an offset.
         """
+        if filter_uri is None:
+            extra_filter = ''
+        else:
+            extra_filter = 'FILTER( !regex(?member, "%s"))' % filter_uri
+
         if offset == 0 or not term in self.sparql_similar_count_cache:
             start = time.time()
-            sparql_count = self.sparql_similar_count.replace('${TERM}', term)
+            sparql_count = self.sparql_similar_count.replace('${TERM}', term).replace('${EXTRA_FILTER}', extra_filter)
             query_results = self.sbh.sparqlQuery(sparql_count)
             bindings = query_results['results']['bindings']
             self.sparql_similar_count_cache[term] = bindings[0]['count']['value']
@@ -1776,7 +1782,7 @@ class IntentParserServer:
             print('Simple SynbioHub count for %s took %0.2fms (found %s results)' %(term, (end - start) * 1000, bindings[0]['count']['value']))
 
         start = time.time()
-        sparql_query = self.sparql_similar_query.replace('${TERM}', term).replace('${LIMIT}', str(self.sparql_limit)).replace('${OFFSET}', str(offset))
+        sparql_query = self.sparql_similar_query.replace('${TERM}', term).replace('${LIMIT}', str(self.sparql_limit)).replace('${OFFSET}', str(offset)).replace('${EXTRA_FILTER}', extra_filter)
         query_results = self.sbh.sparqlQuery(sparql_query)
         bindings = query_results['results']['bindings']
         search_results = []
@@ -2129,12 +2135,14 @@ class IntentParserServer:
                 if offset > 0:
                     offset = 0
 
-            search_results, results_count = self.simple_syn_bio_hub_search(data['term'], offset)
-
             if 'analyze' in data:
                 analyze = True
+                filter_uri = data['selected_uri']
             else:
                 analyze = False
+                filter_uri = None
+
+            search_results, results_count = self.simple_syn_bio_hub_search(data['term'], offset, filter_uri)
 
             table_html = ''
             for search_result in search_results:

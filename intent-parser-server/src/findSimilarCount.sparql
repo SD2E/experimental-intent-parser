@@ -17,4 +17,5 @@ WHERE {{
     FILTER( regex(?type, "ComponentDefinition")
             || regex(?type, "ModuleDefinition")
             || regex(?type, "Collection")) .
+    ${EXTRA_FILTER}
 }}
