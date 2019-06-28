@@ -112,12 +112,12 @@ class TestIntentParserServer(unittest.TestCase):
         result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
         result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
         result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
-        result = self.ips.process_analyze_yes([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_analyze_yes({'data' : {'buttonId' : 'test'}}, self.ips.client_state_map[self.doc_id])
         result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
-        result = self.ips.process_analyze_yes([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_analyze_yes({'data' : {'buttonId' : 'test'}}, self.ips.client_state_map[self.doc_id])
         result = self.ips.process_no_to_all([], self.ips.client_state_map[self.doc_id])
-        result = self.ips.process_analyze_yes([], self.ips.client_state_map[self.doc_id])
-        result = self.ips.process_link_all([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_analyze_yes({'data' : {'buttonId' : 'test'}}, self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_link_all({'data' : {'buttonId' : 'test'}}, self.ips.client_state_map[self.doc_id])
         result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
         result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
         
@@ -126,11 +126,11 @@ class TestIntentParserServer(unittest.TestCase):
         """
         numResults = len(self.ips.client_state_map[self.doc_id]['search_results'])
         while self.ips.client_state_map[self.doc_id]['search_result_index'] < numResults :
-            result = self.ips.process_analyze_yes([], self.ips.client_state_map[self.doc_id])
+            result = self.ips.process_analyze_yes({'data' : {'buttonId' : 'test'}}, self.ips.client_state_map[self.doc_id])
             #self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'], idx)
             self.assertTrue(len(result) == 3)
 
-        result = self.ips.process_analyze_yes([], self.ips.client_state_map[self.doc_id])
+        result = self.ips.process_analyze_yes({'data' : {'buttonId' : 'test'}}, self.ips.client_state_map[self.doc_id])
         self.assertTrue(len(result) == 1)
         
     def test_analyze_no(self):
@@ -181,7 +181,7 @@ class TestIntentParserServer(unittest.TestCase):
             term = self.ips.client_state_map[self.doc_id]['search_results'][search_idx]['term']
             term_results = [t for t in self.ips.client_state_map[self.doc_id]['search_results'] if t['term'] == term]
     
-            result = self.ips.process_link_all([], self.ips.client_state_map[self.doc_id])
+            result = self.ips.process_link_all({'data' : {'buttonId' : 'test'}}, self.ips.client_state_map[self.doc_id])
             # We should have a link action for each of the 16 instances of proteomics in the results.
             # Plus a highlight text and showSidebar for the last remaining engineered result
             self.assertTrue(len(result) == len(term_results) + 2)
