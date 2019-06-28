@@ -2076,7 +2076,7 @@ class IntentParserServer:
             if data['term'] in self.sparql_similar_count_cache:
                 # Ensure offset isn't past the end of the results
                 if offset > int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit:
-                    offset = int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit
+                    offset = max(0, int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit)
             else:
                 # Don't allow a non-zero offset if we haven't cached the size of the query
                 if offset > 0:
