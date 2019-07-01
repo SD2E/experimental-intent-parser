@@ -3,6 +3,20 @@
 <body>
 
   <script>
+
+    function EnterLinkClick() {
+        google.script.run.withSuccessHandler(enterLinkHandler).enterLinkPrompt('Manually enter a SynbioHub link for this term.', 'Enter URI:');
+    }
+
+    function enterLinkHandler(result) {
+        var shouldProcess = result[0];
+        var text = result[1];
+        if (shouldProcess) {
+            var theForm = this.analyzeResultsForm
+            linkItem(theForm, text)
+        }
+    }
+
     function onLoad() {
         refreshList(0)
     }
