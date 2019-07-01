@@ -580,6 +580,9 @@ class IntentParserServer:
                 buttonScript += button[1]  + '\')\n'
                 buttonScript += '}\n\n'
 
+            buttonHTML += '<input id=EnterLinkButton value="Manually Enter Link" type="button" onclick="EnterLinkClick()" />'
+            # Script for the EnterLinkButton is already in the HTML
+
             html = self.analyze_html
 
             # Update parameters in html
@@ -806,25 +809,34 @@ class IntentParserServer:
 
         return link_text
 
-    def simple_sidebar_dialog(self, message, buttons):
+    def simple_sidebar_dialog(self, message, buttons, specialButtons=[]):
         htmlMessage  = '<script>\n\n'
         htmlMessage += 'function onSuccess() { \n\
                          google.script.host.close()\n\
                       }\n\n'
         for button in buttons:
-            htmlMessage += 'function ' + button[1] + 'Click() {\n'
-            htmlMessage += '  google.script.run.withSuccessHandler'
-            htmlMessage += '(onSuccess).buttonClick(\''
-            htmlMessage += button[1]  + '\')\n'
-            htmlMessage += '}\n\n'
+            # Regular buttons, generate script automatically
+            if button[2] == 0:
+                htmlMessage += 'function ' + button[1] + 'Click() {\n'
+                htmlMessage += '  google.script.run.withSuccessHandler'
+                htmlMessage += '(onSuccess).buttonClick(\''
+                htmlMessage += button[1]  + '\')\n'
+                htmlMessage += '}\n\n'
+            elif button[2] == 1: # Special buttons, define own script
+                htmlMessage += button[1]
         htmlMessage += '</script>\n\n'
 
         htmlMessage += '<p>' + message + '<p>\n'
         htmlMessage += '<center>'
         for button in buttons:
-            htmlMessage += '<input id=' + button[1] + 'Button value="'
-            htmlMessage += button[0] + '" type="button" onclick="'
-            htmlMessage += button[1] + 'Click()" />\n'
+            if button[2] == 0:
+                htmlMessage += '<input id=' + button[1] + 'Button value="'
+                htmlMessage += button[0] + '" type="button" onclick="'
+                htmlMessage += button[1] + 'Click()" />\n'
+            elif button[2] == 1: # Special buttons, define own script
+                htmlMessage += '<input id=' + button[3] + 'Button value="'
+                htmlMessage += button[0] + '" type="button" onclick="'
+                htmlMessage += button[3] + 'Click()" />\n'
         htmlMessage += '</center>'
 
         action = {}
@@ -1558,14 +1570,33 @@ class IntentParserServer:
         html += 'Term ' + spellCheckResults[resultIdx]['term'] + ' not found in dictionary, potential addition? ';
         html += '</center>'
 
-        buttons = [('Ignore', 'spellcheck_add_ignore'),
-                   ('Ignore All', 'spellcheck_add_ignore_all'),
-                   ('Add to SynBioHub', 'spellcheck_add_synbiohub'),
-                   ('Add to Spellchecker Dictionary', 'spellcheck_add_dictionary'),
-                   ('Include Previous Word', 'spellcheck_add_select_previous'),
-                   ('Include Next Word', 'spellcheck_add_select_next'),
-                   ('Remove First Word', 'spellcheck_add_drop_first'),
-                   ('Remove Last Word', 'spellcheck_add_drop_last')]
+        manualLinkScript = """
+
+    function EnterLinkClick() {
+        google.script.run.withSuccessHandler(enterLinkHandler).enterLinkPrompt('Manually enter a SynbioHub link for this term.', 'Enter URI:');
+    }
+
+    function enterLinkHandler(result) {
+        var shouldProcess = result[0];
+        var text = result[1];
+        if (shouldProcess) {
+            var data = {'buttonId' : 'spellcheck_link',
+                     'link' : text}
+            google.script.run.withSuccessHandler(onSuccess).buttonClick(data)
+        }
+    }
+
+        """
+
+        buttons = [('Ignore', 'spellcheck_add_ignore', 0),
+                   ('Ignore All', 'spellcheck_add_ignore_all', 0),
+                   ('Add to SynBioHub', 'spellcheck_add_synbiohub', 0),
+                   ('Add to Spellchecker Dictionary', 'spellcheck_add_dictionary', 0),
+                   ('Manually Enter Link', manualLinkScript, 1, 'EnterLink'),
+                   ('Include Previous Word', 'spellcheck_add_select_previous', 0),
+                   ('Include Next Word', 'spellcheck_add_select_next', 0),
+                   ('Remove First Word', 'spellcheck_add_drop_first', 0),
+                   ('Remove Last Word', 'spellcheck_add_drop_last', 0)]
 
         dialogAction = self.simple_sidebar_dialog(html, buttons)
         actionList.append(dialogAction)
@@ -1670,6 +1701,30 @@ class IntentParserServer:
             return []
 
         return self.report_spelling_results(client_state)
+
+    def spellcheck_link(self, json_body, client_state):
+        """
+        Handle creating a link button as part of additions by spelling.
+        """
+        spell_index = client_state['spelling_index']
+        spell_check_result = client_state['spelling_results'][spell_index]
+
+        if type(json_body['data']['buttonId']) is dict:
+            new_link = json_body['data']['buttonId']['link']
+        else:
+            new_link = None
+            print('spellcheck_link received a json_body without a link in it!')
+
+        start_par = spell_check_result['select_start']['paragraph_index']
+        start_cursor = spell_check_result['select_start']['cursor_index']
+        end_cursor = spell_check_result['select_end']['cursor_index']
+
+        actions = [self.link_text(start_par, start_cursor, end_cursor, new_link)]
+        client_state['spelling_index'] += 1
+        if client_state['spelling_index'] < client_state['spelling_size']:
+            for action in self.report_spelling_results(client_state):
+                actions.append(action)
+        return actions
 
     def spellcheck_add_select_previous(self, json_body, client_state):
         """ Select previous word button action for additions by spelling
