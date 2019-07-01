@@ -32,7 +32,7 @@ class GoogleAccessor:
         self.MAPPING_FAILURES = 'Mapping Failures'
 
         self.type_tabs = {
-            'Attribute': ['Attribute'],
+            #'Attribute': ['Attribute'],  We don't want to parse this tab
             'Reagent': ['Bead', 'CHEBI', 'Protein',
                         'Media', 'Stain', 'Buffer',
                         'Solution'],
