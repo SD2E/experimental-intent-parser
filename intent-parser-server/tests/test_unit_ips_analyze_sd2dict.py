@@ -27,7 +27,7 @@ class TestIntentParserServer(unittest.TestCase):
 
     searchResults = 'search_results_sd2dict.pickle'
     
-    expected_search_size = 62
+    expected_search_size = 36
 
     proteomics_search_size = 19
     
