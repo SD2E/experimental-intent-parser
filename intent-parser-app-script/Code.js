@@ -15,6 +15,38 @@ function onOpen() {
   resetScan();
 }
 
+function validate_uri(uri) {
+    try {
+        var response = UrlFetchApp.fetch(uri)
+        if (response.getResponseCode() == 200) {
+            return true
+        } else {
+            return false
+        }
+    } catch (e) {
+        return false
+    }
+}
+
+function enterLinkPrompt(title, msg) {
+    var ui = DocumentApp.getUi();
+
+    var result = ui.prompt(title, msg, ui.ButtonSet.OK_CANCEL);
+    // Process the user's response.
+    var button = result.getSelectedButton();
+    var text = result.getResponseText();
+    while (button == ui.Button.OK) {
+        if (validate_uri(text)) {
+            return [true, text]
+        } else { // If URI is invalid, reprompt
+            var result = ui.prompt('Entered URI was invalid!\n' + title, msg, ui.ButtonSet.OK_CANCEL);
+            button = result.getSelectedButton();
+            text = result.getResponseText()
+        }
+    }
+    return [false, text]
+}
+
 function sendMessage(message) {
   var request = {
     'message': message
