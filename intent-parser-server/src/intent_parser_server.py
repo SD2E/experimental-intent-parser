@@ -2177,7 +2177,7 @@ class IntentParserServer:
 
             search_result = { 'paragraph_index' : result[0],
                               'offset'          : result[1],
-                              'end_offset'      : result[1] + len(selected_term),
+                              'end_offset'      : result[1] + len(selected_term) - 1,
                               'term'            : selected_term,
                               'uri'             : uri,
                               'link'            : result[3],
