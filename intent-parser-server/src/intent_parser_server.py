@@ -1678,14 +1678,14 @@ class IntentParserServer:
         end_offset = select_end['cursor_index'] + 1
 
         dialog_action = self.internal_add_to_syn_bio_hub(doc_id, start_paragraph, end_paragraph,
-                                                             start_offset, end_offset)
+                                                             start_offset, end_offset, isSpellcheck=True)
 
         actionList = [dialog_action]
 
-        client_state["spelling_index"] += 1
-        if client_state['spelling_index'] < client_state['spelling_size']:
-            for action in self.report_spelling_results(client_state):
-                actionList.append(action)
+        # Show side bar with current entry, in case the dialog is canceled
+        # If the form is successully submitted, the next term will get displayed at that time
+        for action in self.report_spelling_results(client_state):
+            actionList.append(action)
 
         return actionList
 
@@ -2121,39 +2121,70 @@ class IntentParserServer:
         return []
 
     def process_submit_form(self, httpMessage, sm):
-        json_body = self.get_json_body(httpMessage)
-        data = json_body['data']
-        action = data['extra']['action']
+        (json_body, client_state) = self.get_client_state(httpMessage)
+        try:
+            data = json_body['data']
+            action = data['extra']['action']
 
-        result = {}
+            result = {}
 
-        if action == 'submit':
-            result = self.create_sbh_stub(data)
-
-        elif action == 'link':
-            search_result = \
-                {'paragraph_index' : data['selectionStartParagraph'],
-                 'offset'          : int(data['selectionStartOffset']),
-                 'end_offset'      : int(data['selectionEndOffset']),
-                 'uri'             : data['extra']['link']
+            if action == 'submit':
+                result = self.create_sbh_stub(data)
+                if result['results']['operationSucceeded'] and data['isSpellcheck'] == 'True':
+                    client_state["spelling_index"] += 1
+                    if client_state['spelling_index'] < client_state['spelling_size']:
+                        for action in self.report_spelling_results(client_state):
+                            result['actions'].append(action)
+            elif action == 'submitLinkAll':
+                result = self.create_sbh_stub(data)
+                if result['results']['operationSucceeded']:
+                    uri = result['actions'][0]['url']
+                    data['extra']['link'] = uri
+                    linkActions = self.process_form_link_all(data)
+                    for action in linkActions:
+                        result['actions'].append(action)
+                    if bool(data['isSpellcheck']):
+                        client_state["spelling_index"] += 1
+                        if client_state['spelling_index'] < client_state['spelling_size']:
+                            for action in self.report_spelling_results(client_state):
+                                result['actions'].append(action)
+            elif action == 'link':
+                search_result = \
+                    {'paragraph_index' : data['selectionStartParagraph'],
+                     'offset'          : int(data['selectionStartOffset']),
+                     'end_offset'      : int(data['selectionEndOffset']),
+                     'uri'             : data['extra']['link']
+                    }
+                # The end offsets are exclusive in spellcheck search, so subtract one
+                if data['isSpellcheck'] == 'True':
+                    search_result['end_offset'] -= 1
+                actions = self.add_link(search_result)
+                result = {'actions': actions,
+                          'results': {'operationSucceeded': True}
                 }
-            actions = self.add_link(search_result)
-            result = {'actions': actions,
-                      'results': {'operationSucceeded': True}
-            }
+                if data['isSpellcheck'] == 'True':
+                    client_state["spelling_index"] += 1
+                    if client_state['spelling_index'] < client_state['spelling_size']:
+                        for action in self.report_spelling_results(client_state):
+                            result['actions'].append(action)
+            elif action == 'linkAll':
+                actions = self.process_form_link_all(data)
+                result = {'actions': actions,
+                          'results': {'operationSucceeded': True}
+                }
+                if data['isSpellcheck'] == 'True':
+                    if self.spellcheck_remove_term(client_state):
+                        reportActions = self.report_spelling_results(client_state)
+                        for action in reportActions:
+                            result['actions'].append(action)
 
-        elif action == 'linkAll':
-            actions = self.process_form_link_all(data)
-            result = {'actions': actions,
-                      'results': {'operationSucceeded': True}
-            }
+            else:
+                print('Unsupported form action: {}'.format(action))
 
-        else:
-            print('Unsupported form action: {}'.format(action))
-
-        self.send_response(200, 'OK', json.dumps(result), sm,
-                           'application/json')
-
+            self.send_response(200, 'OK', json.dumps(result), sm,
+                               'application/json')
+        finally:
+            self.release_connection(client_state)
 
     def process_form_link_all(self, data):
         document_id = data['documentId']
