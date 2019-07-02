@@ -1217,8 +1217,13 @@ class IntentParserServer:
         return options_html
 
     def generate_existing_link_html(self, title, target, two_col = False):
+        if two_col:
+            width = 175
+        else:
+            width = 350
+
         html  = '<tr>\n'
-        html += '  <td style="max-width: 250px; word-wrap: break-word;">\n'
+        html += '  <td style="max-width: %dpx; word-wrap: break-word; padding:5px">\n' % width
         html += '    <a href=' + target + ' target=_blank name="theLink">' + title + '</a>\n'
         html += '  </td>\n'
         html += '  <td>\n'
