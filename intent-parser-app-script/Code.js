@@ -354,13 +354,31 @@ function getLocation(el, offset) {
 }
 
 function sendAnalyzeFromTop() {
+  closeSidebar()
   sendPost('/analyzeDocument')
 }
 
 function sendAnalyzeFromCursor() {
+  closeSidebar()
   var cursorLocation = findCursor()
 
   sendPost('/analyzeDocument', cursorLocation)
+}
+
+function closeSidebar() {
+  var html = ''
+  html += '<script>\n'
+  html += 'function onLoad() {\n'
+  html += '  google.script.host.close()\n'
+  html += '}\n'
+  html += 'this.onload = onLoad'
+  html += '</script>\n'
+  html += '\n'
+  html += '<p>'
+
+  var ui = DocumentApp.getUi()
+  var htmlOutput = HtmlService.createHtmlOutput(html)
+  ui.showSidebar(htmlOutput)
 }
 
 function sendGenerateReport() {
@@ -419,10 +437,12 @@ function addToSynBioHub() {
 }
 
 function addBySpelling() {
+  closeSidebar()
   sendPost('/addBySpelling')
 }
 
 function addBySpellingFromCursor() {
+  closeSidebar()
   var cursorLocation = findCursor()
 
   sendPost('/addBySpelling', cursorLocation)
