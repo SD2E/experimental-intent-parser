@@ -97,6 +97,13 @@
         buttonPressed(extra)
     }
 
+    function submitToSynBioHubAndLinkAll() {
+        var extra = {"action": "submitLinkAll"}
+        busy('Creating entry in SynBioHub')
+
+        buttonPressed(extra)
+    }
+
     function buttonPressed(extra) {
         var theForm = this.addToSynBioHubForm
         var formInfo = {'selectionStartParagraph' : theForm.selectionStartParagraph.value,
