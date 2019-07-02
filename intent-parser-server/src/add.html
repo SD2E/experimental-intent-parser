@@ -14,9 +14,9 @@
         }
 
         // Operation Failed
-        submitButtonTable.innerHTML = '<i><font color=red>' + result.message + '</font></i>'
+        submitButtonMsgTable.innerHTML = '<i><font color=red>' + result.message + '</font></i>'
         var theForm = this.addToSynBioHubForm
-        theForm.submitButton.style.visibility = ''
+        theForm.submitButtonFieldset.style.visibility = ''
         refreshList(0)
     }
 
@@ -46,7 +46,7 @@
     function searchResponse(result) {
         var theForm = this.addToSynBioHubForm
 
-        if( theForm.submitButton.style.visibility == 'hidden') {
+        if( theForm.submitButtonFieldset.style.visibility == 'hidden') {
             // The entry is currently being added to SynBioHub
             console.log('Not displaying search results')
             return
@@ -65,11 +65,11 @@
 
     function busy(message) {
         var theForm = this.addToSynBioHubForm
-        var submitButtonTable = document.getElementById('submitButtonTable')
+        var submitButtonMsgTable = document.getElementById('submitButtonMsgTable')
         var table = document.getElementById('existingLinksTable')
 
-        submitButtonTable.innerHTML = '<i>' + message + '</i>'
-        theForm.submitButton.style.visibility = 'hidden'
+        submitButtonMsgTable.innerHTML = '<i>' + message + '</i>'
+        theForm.submitButtonFieldset.style.visibility = 'hidden'
         table.innerHTML = ''
         theForm.refreshListButton.style.visibility = 'hidden'
     }
@@ -174,11 +174,13 @@
       </table>
       <br>
 
-      <table id='submitButtonTable'>
+      <table id='submitButtonMsgTable'>
       </table>
 
-      <input type="button" value="Submit" id="submitButton"
-             onclick='submitToSynBioHub()'>
+      <fieldset style="border: none" id='submitButtonFieldset'>
+      ${SUBMIT_BUTTON}
+      </fieldset>
+
       <hr>
       <H4> Link to existing SynBioHub Entry :</H4>
 
