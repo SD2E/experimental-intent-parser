@@ -1286,7 +1286,7 @@ class IntentParserServer:
             raise e
 
 
-    def internal_add_to_syn_bio_hub(self, document_id, start_paragraph, end_paragraph, start_offset, end_offset):
+    def internal_add_to_syn_bio_hub(self, document_id, start_paragraph, end_paragraph, start_offset, end_offset, isSpellcheck=False):
         try:
 
             item_type_list = []
@@ -1336,6 +1336,16 @@ class IntentParserServer:
             html = html.replace('${LABIDSOPTIONS}', lab_ids_html)
             html = html.replace('${SELECTEDTERM}', selection)
             html = html.replace('${DOCUMENTID}', document_id)
+            html = html.replace('${ISSPELLCHECK}', str(isSpellcheck))
+
+            if isSpellcheck:
+                replaceButtonHtml = """
+        <input type="button" value="Submit" id="submitButton" onclick="submitToSynBioHub()">
+        <input type="button" value="Submit, Link All" id="submitButtonLinkAll" onclick="submitToSynBioHubAndLinkAll()">
+                """
+                html = html.replace('${SUBMIT_BUTTON}', replaceButtonHtml)
+            else:
+                html = html.replace('${SUBMIT_BUTTON}', '        <input type="button" value="Submit" id="submitButton" onclick="submitToSynBioHub()">')
 
             dialog_action = self.modal_dialog(html, 'Add to SynBioHub',
                                               600, 600)
