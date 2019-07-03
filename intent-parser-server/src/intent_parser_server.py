@@ -982,7 +982,7 @@ class IntentParserServer:
                 continue;
             match = None
             for j in range(len_term):
-                char_match = (i + j < len_content and content[i + matched_chars] == dict_term[j])
+                char_match = (i + matched_chars < len_content and content[i + matched_chars] == dict_term[j])
                 if char_match and match_start == -1:
                     match_start = j
                 elif match_start > -1 and not char_match:
