@@ -12,6 +12,8 @@ from ips_test_utils import compare_search_results
 
 from unittest.mock import Mock, patch, DEFAULT
 
+from difflib import Match
+
 try:
     from intent_parser_server import IntentParserServer
 except Exception as e:
@@ -479,6 +481,36 @@ class TestIntentParserServer(unittest.TestCase):
             self.assertTrue(overlaps == self.get_idx_for_search(search_results, overlap_idx))
             self.assertTrue(len(overlaps) == 1)
             self.assertTrue(overlaps[0] == search_results[start_idx])
+
+    def test_find_common_substrings(self):
+        """
+        """
+        ############
+        content = 'Dna roteomics arabinose proteom arabinose\n'
+        term = 'L-arabinose'
+        matches = self.ips.find_common_substrings(content.lower(), term.lower())
+
+        gt_match = [Match(a=14, b=2, size=9), Match(a=32, b=2, size=9)]
+        self.assertTrue(len(matches) == 2)
+        self.assertTrue(gt_match == matches)
+
+        ############
+        content = 'Dna roteomics arabinose proteom arabinose\n'
+        term = 'proteomics'
+        matches = self.ips.find_common_substrings(content.lower(), term.lower())
+
+        gt_match = [Match(a=4, b=1, size=9), Match(a=24, b=0, size=7)]
+        self.assertTrue(len(matches) == 2)
+        self.assertTrue(gt_match == matches)
+
+        ############
+        content = 'arabinose\n'
+        term = 'L-arabinose'
+        matches = self.ips.find_common_substrings(content.lower(), term.lower())
+
+        gt_match = [Match(a=0, b=2, size=9)]
+        self.assertTrue(len(matches) == 1)
+        self.assertTrue(gt_match == matches)
 
     def tearDown(self):
         """
