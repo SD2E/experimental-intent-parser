@@ -2213,8 +2213,9 @@ class IntentParserServer:
                               'uri'             : uri,
                               'link'            : result[3],
                               'text'            : result[4]}
-
-            actions += self.add_link(search_result)
+            # Only link terms that don't already have links
+            if  search_result['link'] is None:
+                actions += self.add_link(search_result)
 
             pos = result[2] + len(selected_term)
 
