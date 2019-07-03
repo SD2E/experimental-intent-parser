@@ -1525,6 +1525,8 @@ class IntentParserServer:
                     # Check for tailing word that wasn't processed
                     if currIdx - wordStart > 1:
                         word = content[wordStart:currIdx]
+                        word = self.strip_leading_trailing_punctuation(word)
+                        word = word.lower()
                         if not word in self.spellCheckers[userId]:
                             absoluteIdx =  wordStart + (start_index - firstIdx)
                             result = {
