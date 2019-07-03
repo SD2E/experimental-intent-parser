@@ -2143,6 +2143,8 @@ class IntentParserServer:
                 if result['results']['operationSucceeded']:
                     uri = result['actions'][0]['url']
                     data['extra']['link'] = uri
+                    # Drop the link action, since we will add it again
+                    result['actions'] = []
                     linkActions = self.process_form_link_all(data)
                     for action in linkActions:
                         result['actions'].append(action)
