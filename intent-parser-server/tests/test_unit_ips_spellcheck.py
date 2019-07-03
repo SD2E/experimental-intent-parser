@@ -166,19 +166,246 @@ class TestIntentParserServer(unittest.TestCase):
         spelling_gt_no_prot = [res for res in self.spelling_gt if not res['term'] == remove_term]
         self.assertTrue(compare_spell_results(spelling_gt_no_prot, self.ips.client_state_map[self.doc_id]['spelling_results']))
 
-    def test_spellcheck_add_synbiohub(self):
+    def test_spellcheck_add_synbiohub_link(self):
         """
+        Test the Link button for SBH Add dialog, SPARQL query results Link
+        This will try to link each result in the spelling results set.
+        The expectation is that each entry will result in 3 actions from the first call (SBH Add dialog, highlight, sidebar).
+        Each time the link action is taken, another 3 actions should be generated, and the index increased (Link action, highlight, sidebar)
         """
         self.item_types = []
-
+        self.json_body['data'] = {}
+        self.json_body['data']['isSpellcheck'] = 'True'
+        self.json_body['data']['extra'] = {}
         numResults = self.ips.client_state_map[self.doc_id]['spelling_size']
         for idx in range(1, numResults):
             result = self.ips.spellcheck_add_synbiohub([], self.ips.client_state_map[self.doc_id])
-            self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'], idx)
-            self.assertTrue(len(result) == 3 )
 
+            search_result = self.ips.client_state_map[self.doc_id]['spelling_results'][self.ips.client_state_map[self.doc_id]['spelling_index']]
+            self.json_body['data']['extra']['action'] = 'link'
+            self.json_body['data']['extra']['link'] = 'test'
+            self.json_body['data']['selectionStartParagraph'] = search_result['select_start']['paragraph_index']
+            self.json_body['data']['selectionStartOffset'] = search_result['select_start']['cursor_index']
+            self.json_body['data']['selectionEndOffset'] = search_result['select_end']['cursor_index'] + 1
+
+            self.ips.process_submit_form([], [])
+
+            add_results = json.loads(self.ips.send_response.call_args[0][2])
+            actions = add_results['actions']
+
+            self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'] == idx, 'Failed on index %d of %d' % (idx, numResults))
+            self.assertTrue(len(result) == 3, 'Failed on index %d of %d' % (idx, numResults))
+            self.assertTrue(len(actions) == 3, 'Failed on index %d of %d' % (idx, numResults))
+            self.assertTrue(add_results['results']['operationSucceeded'], 'Failed on index %d of %d' % (idx, numResults))
+
+        # Last Result
         result = self.ips.spellcheck_add_synbiohub([], self.ips.client_state_map[self.doc_id])
-        self.assertTrue(len(result) == 1 )
+
+        search_result = self.ips.client_state_map[self.doc_id]['spelling_results'][self.ips.client_state_map[self.doc_id]['spelling_index']]
+        self.json_body['data']['extra']['action'] = 'link'
+        self.json_body['data']['extra']['link'] = 'test'
+        self.json_body['data']['selectionStartParagraph'] = search_result['select_start']['paragraph_index']
+        self.json_body['data']['selectionStartOffset'] = search_result['select_start']['cursor_index']
+        self.json_body['data']['selectionEndOffset'] = search_result['select_end']['cursor_index'] + 1
+
+        self.ips.process_submit_form([], [])
+
+        add_results = json.loads(self.ips.send_response.call_args[0][2])
+        actions = add_results['actions']
+
+        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'] == numResults, 'Failed on index %d of %d' % (idx, numResults))
+        self.assertTrue(len(result) == 3, 'Failed on index %d of %d' % (idx, numResults))
+        self.assertTrue(len(actions) == 1, 'Failed on index %d of %d' % (idx, numResults))
+        self.assertTrue(add_results['results']['operationSucceeded'], 'Failed on index %d of %d' % (idx, numResults))
+
+    def test_spellcheck_add_synbiohub_link_all(self):
+        """
+        Test the Link All button for SBH Add dialog, SPARQL query results Link
+        This will try to link each result in the spelling results set.
+        The expectation is that each entry will result in 3 actions from the first call (SBH Add dialog, highlight, sidebar).
+        Each time the link all action is taken, another 2 + N actions should be generated, and the index increased ( N Link actions, highlight, sidebar)
+        The number of iterations will depend on how many results get removed each time Link All is called.
+        """
+        self.item_types = []
+        self.json_body['data'] = {}
+        self.json_body['data']['isSpellcheck'] = 'True'
+        self.json_body['data']['extra'] = {}
+        it_count = 0
+        while self.ips.client_state_map[self.doc_id]['spelling_index'] < self.ips.client_state_map[self.doc_id]['spelling_size']:
+            search_result = self.ips.client_state_map[self.doc_id]['spelling_results'][self.ips.client_state_map[self.doc_id]['spelling_index']]
+            term = search_result['term']
+            matching_results = [t for t in self.ips.client_state_map[self.doc_id]['spelling_results'] if t['term'] == term]
+            count_of_matches = len(matching_results)
+
+            result = self.ips.spellcheck_add_synbiohub([], self.ips.client_state_map[self.doc_id])
+
+            self.json_body['data']['extra']['action'] = 'linkAll'
+            self.json_body['data']['extra']['link'] = 'test'
+            self.json_body['data']['selectedTerm'] = term
+            self.json_body['data']['documentId'] = self.json_body['documentId']
+
+            self.ips.process_submit_form([], [])
+
+            add_results = json.loads(self.ips.send_response.call_args[0][2])
+            actions = add_results['actions']
+
+            if self.ips.client_state_map[self.doc_id]['spelling_index'] + len(actions) < self.ips.client_state_map[self.doc_id]['spelling_size']:
+                num_other_actions = 2
+            else:
+                num_other_actions = 0
+
+            self.assertTrue(len(result) == 3, 'Failed on iteration %d' % (it_count))
+            self.assertTrue(len(actions) == num_other_actions + count_of_matches, 'Failed on iteration %d' % (it_count))
+            self.assertTrue(add_results['results']['operationSucceeded'], 'Failed on iteration %d' % (it_count))
+            it_count += 1
+
+    def test_spellcheck_add_synbiohub_submit(self):
+        """
+        Test the Submit button for SBH Add dialog
+        This will try to link each result in the spelling results set to a new SBH entry.
+        The expectation is that each entry will result in 3 actions from the first call (SBH Add dialog, highlight, sidebar).
+        Each time the link action is taken, another 3 actions should be generated, and the index increased (Link action, highlight, sidebar)
+        """
+        self.ips.sbh = Mock()
+        self.ips.sbh.submit = Mock()
+        self.ips.sbh.exists = Mock(return_value = False)
+        self.ips.create_dictionary_entry = Mock()
+        self.ips.sbh_uri_prefix = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/'
+        self.ips.sbh_collection_uri = 'https://hub.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
+
+        item_type_list = []
+        for sbol_type in self.ips.item_types:
+            item_type_list += self.ips.item_types[sbol_type].keys()
+
+        self.item_types = []
+        self.json_body['data'] = {}
+        self.json_body['data']['isSpellcheck'] = 'True'
+        self.json_body['data']['extra'] = {}
+        numResults = self.ips.client_state_map[self.doc_id]['spelling_size']
+        for idx in range(1, numResults):
+            result = self.ips.spellcheck_add_synbiohub([], self.ips.client_state_map[self.doc_id])
+
+            search_result = self.ips.client_state_map[self.doc_id]['spelling_results'][self.ips.client_state_map[self.doc_id]['spelling_index']]
+            self.json_body['data']['extra']['action'] = 'submit'
+            self.json_body['data']['extra']['link'] = 'test_link'
+            self.json_body['data']['selectionStartParagraph'] = search_result['select_start']['paragraph_index']
+            self.json_body['data']['selectionStartOffset'] = search_result['select_start']['cursor_index']
+            self.json_body['data']['selectionEndParagraph'] = search_result['select_start']['paragraph_index']
+            self.json_body['data']['selectionEndOffset'] = search_result['select_end']['cursor_index'] + 1
+            self.json_body['data']['documentId'] = self.doc_id
+            self.json_body['data']['selectedTerm'] = search_result['term']
+            self.json_body['data']['formName'] = 'addToSynBioHub'
+            self.json_body['data']['commonName'] = search_result['term']
+            self.json_body['data']['displayId'] = self.ips.sanitize_name_to_display_id(search_result['term'])
+            self.json_body['data']['itemType'] = item_type_list[idx % len(item_type_list)]
+            self.json_body['data']['definitionURI'] = 'test_defn_uri'
+            self.json_body['data']['labIdSelect'] = self.ips.lab_ids_list[idx % len(self.ips.lab_ids_list)]
+            self.json_body['data']['labId'] = 'test_lab_id'
+
+            self.ips.process_submit_form([], [])
+
+            add_results = json.loads(self.ips.send_response.call_args[0][2])
+            self.assertTrue('actions' in add_results, 'Failed on index %d of %d' % (idx, numResults))
+            actions = add_results['actions']
+
+            self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'] == idx, 'Failed on index %d of %d' % (idx, numResults))
+            self.assertTrue(len(result) == 3, 'Failed on index %d of %d' % (idx, numResults))
+            self.assertTrue(len(actions) == 3, 'Failed on index %d of %d' % (idx, numResults))
+            self.assertTrue(add_results['results']['operationSucceeded'], 'Failed on index %d of %d' % (idx, numResults))
+
+        # Last Result
+        result = self.ips.spellcheck_add_synbiohub([], self.ips.client_state_map[self.doc_id])
+
+        search_result = self.ips.client_state_map[self.doc_id]['spelling_results'][self.ips.client_state_map[self.doc_id]['spelling_index']]
+        self.json_body['data']['extra']['action'] = 'submit'
+        self.json_body['data']['extra']['link'] = 'test_link'
+        self.json_body['data']['selectionStartParagraph'] = search_result['select_start']['paragraph_index']
+        self.json_body['data']['selectionStartOffset'] = search_result['select_start']['cursor_index']
+        self.json_body['data']['selectionEndParagraph'] = search_result['select_start']['paragraph_index']
+        self.json_body['data']['selectionEndOffset'] = search_result['select_end']['cursor_index'] + 1
+        self.json_body['data']['documentId'] = self.doc_id
+        self.json_body['data']['selectedTerm'] = search_result['term']
+        self.json_body['data']['formName'] = 'addToSynBioHub'
+        self.json_body['data']['commonName'] = search_result['term']
+        self.json_body['data']['displayId'] = search_result['term']
+        self.json_body['data']['itemType'] = item_type_list[idx % len(item_type_list)]
+        self.json_body['data']['definitionURI'] = 'test_defn_uri'
+        self.json_body['data']['labIdSelect'] = self.ips.lab_ids_list[idx % len(self.ips.lab_ids_list)]
+        self.json_body['data']['labId'] = 'test_lab_id'
+
+        self.ips.process_submit_form([], [])
+
+        add_results = json.loads(self.ips.send_response.call_args[0][2])
+        actions = add_results['actions']
+
+        self.assertTrue(self.ips.client_state_map[self.doc_id]['spelling_index'] == numResults, 'Failed on index %d of %d' % (idx, numResults))
+        self.assertTrue(len(result) == 3, 'Failed on index %d of %d' % (idx, numResults))
+        self.assertTrue(len(actions) == 1, 'Failed on index %d of %d' % (idx, numResults))
+        self.assertTrue(add_results['results']['operationSucceeded'], 'Failed on index %d of %d' % (idx, numResults))
+
+    def test_spellcheck_add_synbiohub_submit_link_all(self):
+        """
+        Test the Link All button for SBH Add dialog, SPARQL query results Link
+        This will try to link each result in the spelling results set.
+        The expectation is that each entry will result in 3 actions from the first call (SBH Add dialog, highlight, sidebar).
+        Each time the link all action is taken, another 2 + N actions should be generated, and the index increased ( N Link actions, highlight, sidebar)
+        The number of iterations will depend on how many results get removed each time Link All is called.
+        """
+        self.ips.sbh = Mock()
+        self.ips.sbh.submit = Mock()
+        self.ips.sbh.exists = Mock(return_value = False)
+        self.ips.create_dictionary_entry = Mock()
+        self.ips.sbh_uri_prefix = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/'
+        self.ips.sbh_collection_uri = 'https://hub.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
+
+        item_type_list = []
+        for sbol_type in self.ips.item_types:
+            item_type_list += self.ips.item_types[sbol_type].keys()
+
+        self.item_types = []
+        self.json_body['data'] = {}
+        self.json_body['data']['isSpellcheck'] = 'True'
+        self.json_body['data']['extra'] = {}
+        it_count = 0
+        while self.ips.client_state_map[self.doc_id]['spelling_index'] < self.ips.client_state_map[self.doc_id]['spelling_size']:
+            search_result = self.ips.client_state_map[self.doc_id]['spelling_results'][self.ips.client_state_map[self.doc_id]['spelling_index']]
+            term = search_result['term']
+            matching_results = [t for t in self.ips.client_state_map[self.doc_id]['spelling_results'] if t['term'] == term]
+            count_of_matches = len(matching_results)
+
+            result = self.ips.spellcheck_add_synbiohub([], self.ips.client_state_map[self.doc_id])
+
+            search_result = self.ips.client_state_map[self.doc_id]['spelling_results'][self.ips.client_state_map[self.doc_id]['spelling_index']]
+            self.json_body['data']['extra']['action'] = 'submitLinkAll'
+            self.json_body['data']['extra']['link'] = 'test_link'
+            self.json_body['data']['selectionStartParagraph'] = search_result['select_start']['paragraph_index']
+            self.json_body['data']['selectionStartOffset'] = search_result['select_start']['cursor_index']
+            self.json_body['data']['selectionEndParagraph'] = search_result['select_start']['paragraph_index']
+            self.json_body['data']['selectionEndOffset'] = search_result['select_end']['cursor_index'] + 1
+            self.json_body['data']['documentId'] = self.doc_id
+            self.json_body['data']['selectedTerm'] = search_result['term']
+            self.json_body['data']['formName'] = 'addToSynBioHub'
+            self.json_body['data']['commonName'] = search_result['term']
+            self.json_body['data']['displayId'] = self.ips.sanitize_name_to_display_id(search_result['term'])
+            self.json_body['data']['itemType'] = item_type_list[it_count % len(item_type_list)]
+            self.json_body['data']['definitionURI'] = 'test_defn_uri'
+            self.json_body['data']['labIdSelect'] = self.ips.lab_ids_list[it_count % len(self.ips.lab_ids_list)]
+            self.json_body['data']['labId'] = 'test_lab_id'
+
+            self.ips.process_submit_form([], [])
+
+            add_results = json.loads(self.ips.send_response.call_args[0][2])
+            actions = add_results['actions']
+
+            if self.ips.client_state_map[self.doc_id]['spelling_index'] + len(actions) < self.ips.client_state_map[self.doc_id]['spelling_size']:
+                num_other_actions = 2
+            else:
+                num_other_actions = 0
+
+            self.assertTrue(len(result) == 3, 'Failed on iteration %d' % (it_count))
+            self.assertTrue(len(actions) == num_other_actions + count_of_matches, 'Failed on iteration %d' % (it_count))
+            self.assertTrue(add_results['results']['operationSucceeded'], 'Failed on iteration %d' % (it_count))
+            it_count += 1
 
     def test_spellcheck_add_select_functions(self):
         """

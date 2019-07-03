@@ -1286,7 +1286,7 @@ class IntentParserServer:
             raise e
 
 
-    def internal_add_to_syn_bio_hub(self, document_id, start_paragraph, end_paragraph, start_offset, end_offset):
+    def internal_add_to_syn_bio_hub(self, document_id, start_paragraph, end_paragraph, start_offset, end_offset, isSpellcheck=False):
         try:
 
             item_type_list = []
@@ -1336,6 +1336,16 @@ class IntentParserServer:
             html = html.replace('${LABIDSOPTIONS}', lab_ids_html)
             html = html.replace('${SELECTEDTERM}', selection)
             html = html.replace('${DOCUMENTID}', document_id)
+            html = html.replace('${ISSPELLCHECK}', str(isSpellcheck))
+
+            if isSpellcheck:
+                replaceButtonHtml = """
+        <input type="button" value="Submit" id="submitButton" onclick="submitToSynBioHub()">
+        <input type="button" value="Submit, Link All" id="submitButtonLinkAll" onclick="submitToSynBioHubAndLinkAll()">
+                """
+                html = html.replace('${SUBMIT_BUTTON}', replaceButtonHtml)
+            else:
+                html = html.replace('${SUBMIT_BUTTON}', '        <input type="button" value="Submit" id="submitButton" onclick="submitToSynBioHub()">')
 
             dialog_action = self.modal_dialog(html, 'Add to SynBioHub',
                                               600, 600)
@@ -1515,6 +1525,8 @@ class IntentParserServer:
                     # Check for tailing word that wasn't processed
                     if currIdx - wordStart > 1:
                         word = content[wordStart:currIdx]
+                        word = self.strip_leading_trailing_punctuation(word)
+                        word = word.lower()
                         if not word in self.spellCheckers[userId]:
                             absoluteIdx =  wordStart + (start_index - firstIdx)
                             result = {
@@ -1618,6 +1630,7 @@ class IntentParserServer:
             next_idx = next_idx + 1
         # Are we at the end? Then just exit
         if next_idx >= client_state['spelling_size']:
+            client_state['spelling_index'] = client_state['spelling_size']
             return False
 
         term_to_ignore = spelling_results[curr_idx]['term']
@@ -1668,14 +1681,14 @@ class IntentParserServer:
         end_offset = select_end['cursor_index'] + 1
 
         dialog_action = self.internal_add_to_syn_bio_hub(doc_id, start_paragraph, end_paragraph,
-                                                             start_offset, end_offset)
+                                                             start_offset, end_offset, isSpellcheck=True)
 
         actionList = [dialog_action]
 
-        client_state["spelling_index"] += 1
-        if client_state['spelling_index'] < client_state['spelling_size']:
-            for action in self.report_spelling_results(client_state):
-                actionList.append(action)
+        # Show side bar with current entry, in case the dialog is canceled
+        # If the form is successully submitted, the next term will get displayed at that time
+        for action in self.report_spelling_results(client_state):
+            actionList.append(action)
 
         return actionList
 
@@ -2111,39 +2124,72 @@ class IntentParserServer:
         return []
 
     def process_submit_form(self, httpMessage, sm):
-        json_body = self.get_json_body(httpMessage)
-        data = json_body['data']
-        action = data['extra']['action']
+        (json_body, client_state) = self.get_client_state(httpMessage)
+        try:
+            data = json_body['data']
+            action = data['extra']['action']
 
-        result = {}
+            result = {}
 
-        if action == 'submit':
-            result = self.create_sbh_stub(data)
-
-        elif action == 'link':
-            search_result = \
-                {'paragraph_index' : data['selectionStartParagraph'],
-                 'offset'          : int(data['selectionStartOffset']),
-                 'end_offset'      : int(data['selectionEndOffset']),
-                 'uri'             : data['extra']['link']
+            if action == 'submit':
+                result = self.create_sbh_stub(data)
+                if result['results']['operationSucceeded'] and data['isSpellcheck'] == 'True':
+                    client_state["spelling_index"] += 1
+                    if client_state['spelling_index'] < client_state['spelling_size']:
+                        for action in self.report_spelling_results(client_state):
+                            result['actions'].append(action)
+            elif action == 'submitLinkAll':
+                result = self.create_sbh_stub(data)
+                if result['results']['operationSucceeded']:
+                    uri = result['actions'][0]['url']
+                    data['extra']['link'] = uri
+                    # Drop the link action, since we will add it again
+                    result['actions'] = []
+                    linkActions = self.process_form_link_all(data)
+                    for action in linkActions:
+                        result['actions'].append(action)
+                    if bool(data['isSpellcheck']):
+                        if self.spellcheck_remove_term(client_state):
+                            reportActions = self.report_spelling_results(client_state)
+                            for action in reportActions:
+                                result['actions'].append(action)
+            elif action == 'link':
+                search_result = \
+                    {'paragraph_index' : data['selectionStartParagraph'],
+                     'offset'          : int(data['selectionStartOffset']),
+                     'end_offset'      : int(data['selectionEndOffset']),
+                     'uri'             : data['extra']['link']
+                    }
+                # The end offsets are exclusive in spellcheck search, so subtract one
+                if data['isSpellcheck'] == 'True':
+                    search_result['end_offset'] -= 1
+                actions = self.add_link(search_result)
+                result = {'actions': actions,
+                          'results': {'operationSucceeded': True}
                 }
-            actions = self.add_link(search_result)
-            result = {'actions': actions,
-                      'results': {'operationSucceeded': True}
-            }
+                if data['isSpellcheck'] == 'True':
+                    client_state["spelling_index"] += 1
+                    if client_state['spelling_index'] < client_state['spelling_size']:
+                        for action in self.report_spelling_results(client_state):
+                            result['actions'].append(action)
+            elif action == 'linkAll':
+                actions = self.process_form_link_all(data)
+                result = {'actions': actions,
+                          'results': {'operationSucceeded': True}
+                }
+                if data['isSpellcheck'] == 'True':
+                    if self.spellcheck_remove_term(client_state):
+                        reportActions = self.report_spelling_results(client_state)
+                        for action in reportActions:
+                            result['actions'].append(action)
 
-        elif action == 'linkAll':
-            actions = self.process_form_link_all(data)
-            result = {'actions': actions,
-                      'results': {'operationSucceeded': True}
-            }
+            else:
+                print('Unsupported form action: {}'.format(action))
 
-        else:
-            print('Unsupported form action: {}'.format(action))
-
-        self.send_response(200, 'OK', json.dumps(result), sm,
-                           'application/json')
-
+            self.send_response(200, 'OK', json.dumps(result), sm,
+                               'application/json')
+        finally:
+            self.release_connection(client_state)
 
     def process_form_link_all(self, data):
         document_id = data['documentId']
@@ -2167,13 +2213,14 @@ class IntentParserServer:
 
             search_result = { 'paragraph_index' : result[0],
                               'offset'          : result[1],
-                              'end_offset'      : result[1] + len(selected_term),
+                              'end_offset'      : result[1] + len(selected_term) - 1,
                               'term'            : selected_term,
                               'uri'             : uri,
                               'link'            : result[3],
                               'text'            : result[4]}
-
-            actions += self.add_link(search_result)
+            # Only link terms that don't already have links
+            if  search_result['link'] is None:
+                actions += self.add_link(search_result)
 
             pos = result[2] + len(selected_term)
 
