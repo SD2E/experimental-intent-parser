@@ -2149,9 +2149,9 @@ class IntentParserServer:
                     for action in linkActions:
                         result['actions'].append(action)
                     if bool(data['isSpellcheck']):
-                        client_state["spelling_index"] += 1
-                        if client_state['spelling_index'] < client_state['spelling_size']:
-                            for action in self.report_spelling_results(client_state):
+                        if self.spellcheck_remove_term(client_state):
+                            reportActions = self.report_spelling_results(client_state)
+                            for action in reportActions:
                                 result['actions'].append(action)
             elif action == 'link':
                 search_result = \
