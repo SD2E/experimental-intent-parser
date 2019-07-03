@@ -1,18 +1,36 @@
 var serverURL = 'http://intent-parser-server.bbn.com'
 
+var versionString = '1.0-git'
+
 function onOpen() {
   var ui = DocumentApp.getUi()
   var menu = ui.createMenu('Parse Intent')
 
   menu.addItem('Analyze from top', 'sendAnalyzeFromTop').addToUi()
   menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor').addToUi()
-  menu.addItem('Generate Report', 'sendGenerateReport').addToUi()
   menu.addItem('Add to SynBioHub', 'addToSynBioHub').addToUi()
   menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling').addToUi()
   menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor').addToUi()
-
+  menu.addItem('Generate Report', 'sendGenerateReport').addToUi()
+  menu.addItem('Help', 'showHelp').addToUi()
 
   resetScan();
+}
+
+function showHelp() {
+  helpHTML = '\
+<p>\
+Intent Parser version %s\
+</p>\
+<p>\
+The purpose of the intent parser add-on is to create a suite of tools that aids the user in creating well documented experimental plans.\
+</p>\
+<p>\
+Right now, there are three different actions that can be performed to help the user.  The first action is <i>analyzing</i> the document, which searches for terms present in the SD2 spreadsheet dictionary and offers to insert links to the SynbioHub definition of those terms.  Additionally, the document can be scanned for terms that do not exist in the <i>spelling</i> dictionary and suggest them as terms to possibly add into the SD2 spreadsheet dictionary or to have a link manually added.  Users can also highlight arbitrary terms and <i>add</i> a definition to SynbioHub for that term.  This <i>add</i> dialog will also query SynbioHub for matches to the selected term and links to those terms can be added.\
+</p>\
+'
+  verFormattedHTML = Utilities.formatString(helpHTML, versionString)
+  showModalDialog(verFormattedHTML, 'Help', 600, 600)
 }
 
 function validate_uri(uri) {
