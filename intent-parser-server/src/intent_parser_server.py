@@ -1630,6 +1630,7 @@ class IntentParserServer:
             next_idx = next_idx + 1
         # Are we at the end? Then just exit
         if next_idx >= client_state['spelling_size']:
+            client_state['spelling_index'] = client_state['spelling_size']
             return False
 
         term_to_ignore = spelling_results[curr_idx]['term']
