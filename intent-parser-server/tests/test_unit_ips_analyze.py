@@ -7,6 +7,7 @@ import os
 import time
 import urllib.request
 import pickle
+import intent_parser_utils
 
 from ips_test_utils import compare_search_results
 
@@ -488,7 +489,7 @@ class TestIntentParserServer(unittest.TestCase):
         ############
         content = 'Dna roteomics arabinose proteom arabinose\n'
         term = 'L-arabinose'
-        matches = self.ips.find_common_substrings(content.lower(), term.lower())
+        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), self.ips.partial_match_min_size, self.ips.partial_match_thresh)
 
         gt_match = [Match(a=14, b=2, size=9), Match(a=32, b=2, size=9)]
         self.assertTrue(len(matches) == 2)
@@ -497,7 +498,7 @@ class TestIntentParserServer(unittest.TestCase):
         ############
         content = 'Dna roteomics arabinose proteom arabinose\n'
         term = 'proteomics'
-        matches = self.ips.find_common_substrings(content.lower(), term.lower())
+        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), self.ips.partial_match_min_size, self.ips.partial_match_thresh)
 
         gt_match = [Match(a=4, b=1, size=9), Match(a=24, b=0, size=7)]
         self.assertTrue(len(matches) == 2)
@@ -506,7 +507,7 @@ class TestIntentParserServer(unittest.TestCase):
         ############
         content = 'arabinose\n'
         term = 'L-arabinose'
-        matches = self.ips.find_common_substrings(content.lower(), term.lower())
+        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), self.ips.partial_match_min_size, self.ips.partial_match_thresh)
 
         gt_match = [Match(a=0, b=2, size=9)]
         self.assertTrue(len(matches) == 1)
