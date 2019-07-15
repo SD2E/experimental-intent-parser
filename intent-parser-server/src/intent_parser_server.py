@@ -15,10 +15,9 @@ import os
 import signal
 from datetime import datetime
 from operator import itemgetter
-
 from spellchecker import SpellChecker
-
-from difflib import Match
+from multiprocessing import Pool
+import intent_parser_utils
 
 class ConnectionException(Exception):
     def __init__(self, code, message, content=""):
@@ -26,7 +25,6 @@ class ConnectionException(Exception):
         self.code = code
         self.message = message
         self.content = content
-
 
 class IntentParserServer:
 
@@ -71,6 +69,9 @@ class IntentParserServer:
 
     # How many results we allow
     sparql_limit = 5
+
+    # Defines how many processes are in the pool, for parallelism
+    multiprocessing_pool_size = 8
 
     def __init__(self, bind_port=8080, bind_ip="0.0.0.0",
                  sbh_collection_uri=None,
@@ -629,30 +630,20 @@ class IntentParserServer:
 
         return tab_data
 
-
     def analyze_document(self, client_state, doc, start_offset):
         body = doc.get('body');
         doc_content = body.get('content')
         paragraphs = self.get_paragraphs(doc_content)
 
-        search_results = []
-
         self.item_map_lock.acquire()
         item_map = self.item_map
         self.item_map_lock.release()
-
+        analyze_inputs = []
         for term in item_map.keys():
-            results = self.find_text(term, start_offset, paragraphs)
-            for result in results:
-                search_results.append(
-                                { 'paragraph_index' : result[0],
-                                  'offset'          : result[1],
-                                  'end_offset'      : result[2],
-                                  'term'            : term,
-                                  'uri'             : item_map[term],
-                                  'link'            : result[3],
-                                  'text'            : result[4]})
-
+            analyze_inputs.append([term, start_offset, paragraphs, self.partial_match_min_size, self.partial_match_thresh, item_map[term]])
+        with Pool(self.multiprocessing_pool_size) as p:
+            search_results = p.map(intent_parser_utils.analyze_term, analyze_inputs)
+        search_results = [res for res_list in search_results if len(res_list) > 0 for res in res_list]
         if len(search_results) == 0:
             return []
 
