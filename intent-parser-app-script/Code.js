@@ -1,6 +1,8 @@
-var serverURL = 'http://intent-parser-server.bbn.com'
+var serverURL = 'http://intent-parser-server.bbn.com:8081'
 
-var versionString = '1.0-git'
+var versionString = '1.1-git'
+
+var analyzeProgress
 
 function onOpen() {
   var ui = DocumentApp.getUi()
