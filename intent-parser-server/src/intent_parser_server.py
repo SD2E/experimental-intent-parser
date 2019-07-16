@@ -221,7 +221,7 @@ class IntentParserServer:
             threading.Thread(target=self.housekeeping)
         self.housekeeping_thread.start()
 
-    def initialize_server(self, *, bind_port=8080, bind_ip="0.0.0.0"):
+    def initialize_server(self, *, bind_port=8081, bind_ip="0.0.0.0"):
         """
         Initialize the server.
         """
@@ -2164,7 +2164,7 @@ class IntentParserServer:
 spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk'
 sbh_spoofing_prefix=None
 sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
-bind_port = 8080
+bind_port = 8081
 bind_host = '0.0.0.0'
 
 def usage():
