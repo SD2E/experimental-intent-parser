@@ -74,7 +74,10 @@ class IntentParserServer:
     # Defines how many processes are in the pool, for parallelism
     multiprocessing_pool_size = 8
 
-    def __init__(self, bind_port=8080, bind_ip="0.0.0.0",
+    # Defines a period of time to wait to send analyze progress updates, in seconds
+    analyze_progress_period = 2.5
+
+    def __init__(self, bind_port=8081, bind_ip="0.0.0.0",
                  sbh_collection_uri=None,
                  sbh_spoofing_prefix=None,
                  spreadsheet_id=None,
@@ -201,6 +204,9 @@ class IntentParserServer:
         self.google_accessor.set_spreadsheet_id(self.spreadsheet_id)
         self.spreadsheet_tabs = self.google_accessor.type_tabs.keys()
 
+        self.analyze_processing_map = {}
+        self.analyze_processing_map_lock = threading.Lock() # Used to lock the map
+        self.analyze_processing_lock = {} # Used to indicate if the processing thread has finished, mapped to each doc_id
         self.client_state_map = {}
         self.client_state_lock = threading.Lock()
         self.item_map_lock = threading.Lock()
@@ -460,7 +466,11 @@ class IntentParserServer:
         return (json_body, client_state)
 
     def process_analyze_document(self, httpMessage, sm):
-        start = time.time()
+        """
+        This function will initiate an analysis if the document isn't currently being analyzed and
+        then it will report on the progress of that document's analysis until it is done.  Once it's done
+        this function will notify the client that the document is ready.
+        """
         json_body = self.get_json_body(httpMessage)
 
         if 'documentId' not in json_body:
@@ -468,15 +478,68 @@ class IntentParserServer:
                                       'Missing documentId')
         document_id = json_body['documentId']
 
+        self.analyze_processing_map_lock.acquire()
+        docBeingProcessed = document_id in self.analyze_processing_map
+        self.analyze_processing_map_lock.release()
+
+        if docBeingProcessed: # Doc being processed, check progress
+            time.sleep(self.analyze_progress_period)
+
+            self.analyze_processing_map_lock.acquire()
+            progress_percent = self.analyze_processing_map[document_id]
+            self.analyze_processing_map_lock.release()
+
+            if progress_percent < 100: # Not done yet, update client
+                action = {}
+                action['action'] = 'updateProgress'
+                action['progress'] = str(progress_percent)
+                actions = {'actions': [action]}
+                self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+            else: # Document is analyzed, start navigating results
+                try:
+                    self.analyze_processing_lock[document_id].acquire() # This ensures we've waited for the processing thread to release the client connection
+                    (__, client_state) = self.get_client_state(httpMessage)
+                    actionList = self.report_search_results(client_state)
+                    actions = {'actions': actionList}
+                    self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+                    self.analyze_processing_map.pop(document_id)
+                finally:
+                    self.analyze_processing_lock[document_id].release()
+                    self.release_connection(client_state)
+        else: # Doc not being processed, spawn new processing thread
+            self.analyze_processing_map[document_id] = 0
+            analyze_thread = threading.Thread(
+                target=self.process_analyze_document_thread,
+                args=(httpMessage,)  # without comma you'd get a... TypeError
+            )
+            analyze_thread.start()
+            dialogAction = self.progress_sidebar_dialog()
+            actions = {'actions': [dialogAction]}
+            self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+
+    def process_analyze_document_thread(self, httpMessage):
+        """
+        This function does the actual work of analyzing the document, and is designed to be run in a separate thread.
+        This will process the document and update a status container.  The client will keep pinging the server for status
+        while the document is being analyzed and the server will either return the progress percentage, or indicate that the
+        results are ready.
+        """
+
+        start = time.time()
+        json_body = self.get_json_body(httpMessage)
+
+        if 'documentId' not in json_body:
+            raise ConnectionException('400', 'Bad Request', 'Missing documentId')
+        document_id = json_body['documentId']
+
         try:
-            doc = self.google_accessor.get_document(
-                document_id=document_id
-                )
+            doc = self.google_accessor.get_document(document_id=document_id)
         except Exception as ex:
             print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
-            raise ConnectionException('404', 'Not Found',
-                                      'Failed to access document ' +
-                                      document_id)
+            raise ConnectionException('404', 'Not Found', 'Failed to access document ' + document_id)
+
+        self.analyze_processing_lock[document_id] = threading.Lock()
+        self.analyze_processing_lock[document_id].acquire()
 
         client_state = self.new_connection(document_id)
         client_state['doc'] = doc
@@ -497,19 +560,25 @@ class IntentParserServer:
             start_offset = 0
 
         try:
-            actionList = self.analyze_document(client_state, doc, start_offset)
-            actions = {'actions': actionList}
-            self.send_response(200, 'OK', json.dumps(actions), sm,
-                               'application/json')
+            self.analyze_document(client_state, doc, start_offset)
             end = time.time()
             print('Analyzed entire document in %0.2fms' %((end - start) * 1000))
         except Exception as e:
             raise e
 
         finally:
+            # Just in case analyze_document failed and didn't finish
+            # this will prevent an endless wait
+            self.analyze_processing_map_lock.acquire()
+            self.analyze_processing_map[client_state['document_id']] = 100
+            self.analyze_processing_map_lock.release()
+
             self.release_connection(client_state)
+            self.analyze_processing_lock[document_id].release()
 
     def add_link(self, search_result, new_link=None):
+        """
+        """
         paragraph_index = search_result['paragraph_index']
         offset = search_result['offset']
         end_offset = search_result['end_offset']
@@ -633,6 +702,10 @@ class IntentParserServer:
         return tab_data
 
     def analyze_document(self, client_state, doc, start_offset):
+        self.analyze_processing_map_lock.acquire()
+        self.analyze_processing_map[client_state['document_id']] = 0
+        self.analyze_processing_map_lock.release()
+
         body = doc.get('body');
         doc_content = body.get('content')
         paragraphs = self.get_paragraphs(doc_content)
@@ -660,7 +733,9 @@ class IntentParserServer:
         client_state['search_results'] = search_results
         client_state['search_result_index'] = 0
 
-        return self.report_search_results(client_state)
+        self.analyze_processing_map_lock.acquire()
+        self.analyze_processing_map[client_state['document_id']] = 100
+        self.analyze_processing_map_lock.release()
 
     def cull_overlapping(self, search_results):
         """
@@ -801,6 +876,47 @@ class IntentParserServer:
         link_text['url'] = url
 
         return link_text
+
+    def progress_sidebar_dialog(self):
+        """
+        Generate the HTML to display analyze progress in a sidebar.
+        """
+        htmlMessage  = '''
+<script>
+    var interval = 1250; // ms
+    var expected = Date.now() + interval;
+    setTimeout(progressUpdate, interval);
+    function progressUpdate() {
+        var dt = Date.now() - expected; // the drift (positive for overshooting)
+        if (dt > interval) {
+            // something really bad happened. Maybe the browser (tab) was inactive?
+            // possibly special handling to avoid futile "catch up" run
+        }
+
+        google.script.run.withSuccessHandler(refreshProgress).getAnalyzeProgress();
+
+        expected += interval;
+        setTimeout(progressUpdate, Math.max(0, interval - dt)); // take into account drift
+    }
+
+    function refreshProgress(prog) {
+        var table = document.getElementById('progressTable')
+        table.innerHTML = '<i>Analyzing document, ' + prog + '\% complete</i>'
+    }
+</script>
+
+<center>
+  <table stype="width:100%" id="existingLinksTable">
+    <i>Analyzing document, 0% complete</i>
+  </table>
+</center>
+        '''
+
+        action = {}
+        action['action'] = 'showProgressbar'
+        action['html'] = htmlMessage
+
+        return action
 
     def simple_sidebar_dialog(self, message, buttons, specialButtons=[]):
         htmlMessage  = '<script>\n\n'
