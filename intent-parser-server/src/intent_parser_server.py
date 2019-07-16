@@ -13,6 +13,7 @@ import re
 import time
 import os
 import signal
+import inspect
 from datetime import datetime
 from operator import itemgetter
 from spellchecker import SpellChecker
@@ -523,8 +524,9 @@ class IntentParserServer:
 
         return [action]
 
-
     def report_search_results(self, client_state):
+        """
+        """
         while True:
             search_results = client_state['search_results']
             search_result_index = client_state['search_result_index']
@@ -1013,6 +1015,8 @@ class IntentParserServer:
 
         if document_id in self.client_state_map:
             client_state = self.client_state_map[document_id]
+            if not client_state['locked']:
+                print('Error: releasing client_state, but it is not locked! doc_id: %s, called by %s' % (document_id, inspect.currentframe().f_back.f_code.co_name))
             client_state['locked'] = False
 
         self.client_state_lock.release()
