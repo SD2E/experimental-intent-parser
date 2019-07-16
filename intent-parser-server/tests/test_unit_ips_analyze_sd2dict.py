@@ -53,18 +53,34 @@ class TestIntentParserServer(unittest.TestCase):
         self.json_body = {'documentId' : self.doc_id, 'user' : self.user, 'userEmail' : self.user_email}
 
         self.ips = IntentParserServer(init_server=False, init_sbh=False)
+        self.ips.analyze_processing_map_lock = Mock()
         self.ips.client_state_lock = Mock()
         self.ips.client_state_map = {}
         self.ips.google_accessor = Mock()
         self.ips.google_accessor.get_document = Mock(return_value=self.doc_content)
         self.ips.send_response = Mock()
         self.ips.get_json_body = Mock(return_value=self.json_body)
+        self.ips.analyze_processing_map = {}
+        self.ips.analyze_processing_lock = {}
         
         self.ips.item_map_lock = Mock()
         with open(os.path.join(self.dataDir, self.items_json), 'r') as fin:
             self.ips.item_map = json.load(fin)
 
         self.ips.process_analyze_document([], [])
+        pa_results = json.loads(self.ips.send_response.call_args[0][2])
+        actions = pa_results['actions']
+        self.assertTrue(actions[0]['action'] == 'showProgressbar')
+
+        startTime = time.time()
+        while actions[0]['action'] != 'highlightText' and (time.time() - startTime < 100):
+            self.ips.process_analyze_document([], [])
+            pa_results = json.loads(self.ips.send_response.call_args[0][2])
+            actions = pa_results['actions']
+            self.assertTrue(actions[0]['action'] == 'highlightText' or actions[0]['action'] == 'updateProgress')
+
+        self.assertTrue(actions[0]['action'] == 'highlightText')
+        self.assertTrue(actions[1]['action'] == 'showSidebar')
 
         # Code to generate GT search results, for when test doc is updated
         #with open(os.path.join(self.dataDir, self.searchResults), 'wb') as fout:
@@ -90,6 +106,20 @@ class TestIntentParserServer(unittest.TestCase):
         self.ips.cull_overlapping = Mock(side_effect=self.return_value)
 
         self.ips.process_analyze_document([], [])
+        pa_results = json.loads(self.ips.send_response.call_args[0][2])
+        actions = pa_results['actions']
+        self.assertTrue(actions[0]['action'] == 'showProgressbar')
+
+        startTime = time.time()
+        while actions[0]['action'] != 'highlightText' and (time.time() - startTime < 100):
+            self.ips.process_analyze_document([], [])
+            pa_results = json.loads(self.ips.send_response.call_args[0][2])
+            actions = pa_results['actions']
+            self.assertTrue(actions[0]['action'] == 'highlightText' or actions[0]['action'] == 'updateProgress')
+
+        self.assertTrue(actions[0]['action'] == 'highlightText')
+        self.assertTrue(actions[1]['action'] == 'showSidebar')
+
         unculled_results = self.ips.client_state_map[self.doc_id]['search_results']
 
         self.assertFalse(compare_search_results(unculled_results, culled_results))
