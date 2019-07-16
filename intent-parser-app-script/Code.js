@@ -92,7 +92,7 @@ function processActions(response) {
   }
 
   var actions = response.actions
-
+  waitForMoreActions = false
   for( var actionKey in actions) {
     var actionDesc = actions[actionKey]
 
@@ -115,7 +115,15 @@ function processActions(response) {
       case 'showSidebar':
         showSidebar(actionDesc['html'])
         break
-
+      case 'showProgressbar':
+        showSidebar(actionDesc['html'])
+        analyzeProgress = '0'
+        waitForMoreActions = true
+        break
+      case 'updateProgress':
+        waitForMoreActions = true
+        analyzeProgress = actionDesc['progress']
+        break
       case 'reportContent':
         processReportContent(actionDesc['report'])
         break
@@ -129,6 +137,11 @@ function processActions(response) {
         break
     }
   }
+  return waitForMoreActions
+}
+
+function getAnalyzeProgress() {
+    return analyzeProgress
 }
 
 function showSidebar(html) {
@@ -189,11 +202,14 @@ function sendPost(resource, data) {
     'payload' : requestJSON
   };
 
-  response = UrlFetchApp.fetch(serverURL + resource, options)
-  var responseText = response.getContentText()
-  var responseOb = JSON.parse(responseText)
+  shouldProcessActions = true
+  while (shouldProcessActions) {
+    response = UrlFetchApp.fetch(serverURL + resource, options)
+    var responseText = response.getContentText()
+    var responseOb = JSON.parse(responseText)
 
-  processActions(responseOb)
+    shouldProcessActions = processActions(responseOb)
+  }
 
   return responseOb.results
 }
