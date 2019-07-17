@@ -78,6 +78,7 @@ class TestIntentParserServer(unittest.TestCase):
             pa_results = json.loads(self.ips.send_response.call_args[0][2])
             actions = pa_results['actions']
             self.assertTrue(actions[0]['action'] == 'highlightText' or actions[0]['action'] == 'updateProgress')
+            time.sleep(0.25)
 
         self.assertTrue(actions[0]['action'] == 'highlightText')
         self.assertTrue(actions[1]['action'] == 'showSidebar')
@@ -116,6 +117,7 @@ class TestIntentParserServer(unittest.TestCase):
             pa_results = json.loads(self.ips.send_response.call_args[0][2])
             actions = pa_results['actions']
             self.assertTrue(actions[0]['action'] == 'highlightText' or actions[0]['action'] == 'updateProgress')
+            time.sleep(0.25)
 
         self.assertTrue(actions[0]['action'] == 'highlightText')
         self.assertTrue(actions[1]['action'] == 'showSidebar')
