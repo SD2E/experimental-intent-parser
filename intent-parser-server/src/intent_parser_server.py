@@ -744,15 +744,17 @@ class IntentParserServer:
         new_results = []
         ignore_idx = set()
         for idx in range(0, len(search_results)):
-            if idx in ignore_idx:
-                continue;
+            #if idx in ignore_idx:
+            #    continue;
 
-            overlaps, max_idx, overlap_idx = self.find_overlaps(idx, search_results, ignore_idx)
+            overlaps, max_idx, overlap_idx = self.find_overlaps(idx, search_results)
             if len(overlaps) > 1:
-                new_results.append(search_results[max_idx])
+                if max_idx not in ignore_idx:
+                    new_results.append(search_results[max_idx])
                 ignore_idx = ignore_idx.union(overlap_idx)
             else:
-                new_results.append(search_results[idx])
+                if idx not in ignore_idx:
+                    new_results.append(search_results[idx])
         return new_results
 
     def find_overlaps(self, start_idx, search_results, ignore_idx = set()):
