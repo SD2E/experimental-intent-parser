@@ -1,6 +1,6 @@
-var serverURL = 'http://intent-parser-server.bbn.com'
+var serverURL = 'http://intent-parser-server.bbn.com:8081'
 
-var versionString = '1.0-git'
+var versionString = '1.1-git'
 
 function onOpen() {
   var ui = DocumentApp.getUi()
@@ -13,8 +13,6 @@ function onOpen() {
   menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor').addToUi()
   menu.addItem('Generate Report', 'sendGenerateReport').addToUi()
   menu.addItem('Help', 'showHelp').addToUi()
-
-  resetScan();
 }
 
 function showHelp() {
@@ -90,7 +88,7 @@ function processActions(response) {
   }
 
   var actions = response.actions
-
+  waitForMoreActions = false
   for( var actionKey in actions) {
     var actionDesc = actions[actionKey]
 
@@ -113,7 +111,17 @@ function processActions(response) {
       case 'showSidebar':
         showSidebar(actionDesc['html'])
         break
-
+      case 'showProgressbar':
+        showSidebar(actionDesc['html'])
+        var p = PropertiesService.getDocumentProperties();
+        p.setProperty("analyze_progress", '0')
+        waitForMoreActions = true
+        break
+      case 'updateProgress':
+        waitForMoreActions = true
+        var p = PropertiesService.getDocumentProperties();
+        p.setProperty("analyze_progress", actionDesc['progress'])
+        break
       case 'reportContent':
         processReportContent(actionDesc['report'])
         break
@@ -127,6 +135,12 @@ function processActions(response) {
         break
     }
   }
+  return waitForMoreActions
+}
+
+function getAnalyzeProgress() {
+  var p = PropertiesService.getDocumentProperties();
+  return p.getProperty("analyze_progress")
 }
 
 function showSidebar(html) {
@@ -187,11 +201,14 @@ function sendPost(resource, data) {
     'payload' : requestJSON
   };
 
-  response = UrlFetchApp.fetch(serverURL + resource, options)
-  var responseText = response.getContentText()
-  var responseOb = JSON.parse(responseText)
+  shouldProcessActions = true
+  while (shouldProcessActions) {
+    response = UrlFetchApp.fetch(serverURL + resource, options)
+    var responseText = response.getContentText()
+    var responseOb = JSON.parse(responseText)
 
-  processActions(responseOb)
+    shouldProcessActions = processActions(responseOb)
+  }
 
   return responseOb.results
 }
