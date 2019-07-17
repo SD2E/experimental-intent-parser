@@ -9,6 +9,8 @@ import urllib.request
 import pickle
 import intent_parser_utils
 
+from operator import itemgetter
+
 from ips_test_utils import compare_search_results
 
 from unittest.mock import Mock, patch, DEFAULT
@@ -128,6 +130,91 @@ class TestIntentParserServer(unittest.TestCase):
         unculled_results = self.ips.client_state_map[self.doc_id]['search_results']
 
         self.assertFalse(compare_search_results(unculled_results, culled_results))
+
+    def test_maximal_search_ordering(self):
+        """
+        I found that with a certain order, some overlaps weren't being found.
+        The issue is that, lets say indices 1&2 and 2&3 overlap.
+        If 2 is the maximal, then it will get removed when it overlaps with 1, but then won't get considered as overlapping with 3, so 3 won't be removed.
+        This test case covers that sitaution
+        """
+
+        # Hand-coded test case based on real data.  I found that the order of the results mattered for culling.
+        unculled_input = [{'paragraph_index': 5, 'offset': 24, 'end_offset': 25, 'term': 'M9', 'uri': 'https://hub.sd2e.org/user/sd2e/design/M9/1', 'link': None, 'text': 'M9'},
+ {'paragraph_index': 167, 'offset': 0, 'end_offset': 1, 'term': 'M9', 'uri': 'https://hub.sd2e.org/user/sd2e/design/M9/1', 'link': None, 'text': 'M9'},
+ {'paragraph_index': 168, 'offset': 0, 'end_offset': 1, 'term': 'M9', 'uri': 'https://hub.sd2e.org/user/sd2e/design/M9/1', 'link': 'https://hub.sd2e.org/user/sd2e/design/teknova_M1902/1', 'text': 'M9'},
+ {'paragraph_index': 5, 'offset': 24, 'end_offset': 37, 'term': 'M9 Media Salts', 'uri': 'https://hub.sd2e.org/user/sd2e/design/teknova_M1902/1', 'link': None, 'text': 'M9 media salts'},
+ {'paragraph_index': 168, 'offset': 0, 'end_offset': 13, 'term': 'M9 Media Salts', 'uri': 'https://hub.sd2e.org/user/sd2e/design/teknova_M1902/1', 'link': 'https://hub.sd2e.org/user/sd2e/design/teknova_M1902/1', 'text': 'M9 media salts'},
+ {'paragraph_index': 162, 'offset': 13, 'end_offset': 17, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'Media'},
+ {'paragraph_index': 166, 'offset': 14, 'end_offset': 18, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'Media'},
+ {'paragraph_index': 193, 'offset': 15, 'end_offset': 19, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'Media'},
+ {'paragraph_index': 32, 'offset': 146, 'end_offset': 155, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 198, 'offset': 57, 'end_offset': 66, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 203, 'offset': 19, 'end_offset': 28, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 203, 'offset': 73, 'end_offset': 82, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 203, 'offset': 89, 'end_offset': 98, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 205, 'offset': 59, 'end_offset': 68, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 229, 'offset': 27, 'end_offset': 36, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 273, 'offset': 17, 'end_offset': 26, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 280, 'offset': 9, 'end_offset': 18, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 7, 'offset': 69, 'end_offset': 78, 'term': 'engineered', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/engineered/1', 'link': None, 'text': 'engineered'},
+ {'paragraph_index': 12, 'offset': 0, 'end_offset': 9, 'term': 'engineered', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/engineered/1', 'link': None, 'text': 'engineered'},
+ {'paragraph_index': 218, 'offset': 0, 'end_offset': 9, 'term': 'engineered', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/engineered/1', 'link': None, 'text': 'engineered'},
+ {'paragraph_index': 5, 'offset': 27, 'end_offset': 31, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'media'},
+ {'paragraph_index': 163, 'offset': 34, 'end_offset': 38, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'media'},
+ {'paragraph_index': 164, 'offset': 31, 'end_offset': 35, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'media'},
+ {'paragraph_index': 168, 'offset': 3, 'end_offset': 7, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': 'https://hub.sd2e.org/user/sd2e/design/teknova_M1902/1', 'text': 'media'},
+ {'paragraph_index': 185, 'offset': 71, 'end_offset': 75, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'media'},
+ {'paragraph_index': 186, 'offset': 37, 'end_offset': 41, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'media'},
+ {'paragraph_index': 212, 'offset': 172, 'end_offset': 176, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'media'},
+ {'paragraph_index': 5, 'offset': 39, 'end_offset': 45, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteom'},
+ {'paragraph_index': 25, 'offset': 31, 'end_offset': 39, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomic'},
+ {'paragraph_index': 8, 'offset': 138, 'end_offset': 147, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomics'},
+ {'paragraph_index': 25, 'offset': 41, 'end_offset': 50, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomics'},
+ {'paragraph_index': 27, 'offset': 196, 'end_offset': 205, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomics'},
+ {'paragraph_index': 30, 'offset': 98, 'end_offset': 107, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomics'},
+ {'paragraph_index': 32, 'offset': 9, 'end_offset': 18, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'text': 'proteomics'},
+ {'paragraph_index': 126, 'offset': 41, 'end_offset': 50, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomics'},
+ {'paragraph_index': 158, 'offset': 58, 'end_offset': 67, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomics'},
+ {'paragraph_index': 5, 'offset': 4, 'end_offset': 12, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'roteomics'}]
+
+        culled_gt =  [{'paragraph_index': 5, 'offset': 4, 'end_offset': 12, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'roteomics'},
+ {'paragraph_index': 5, 'offset': 24, 'end_offset': 37, 'term': 'M9 Media Salts', 'uri': 'https://hub.sd2e.org/user/sd2e/design/teknova_M1902/1', 'link': None, 'text': 'M9 media salts'},
+ {'paragraph_index': 5, 'offset': 39, 'end_offset': 45, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteom'},
+ {'paragraph_index': 7, 'offset': 69, 'end_offset': 78, 'term': 'engineered', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/engineered/1', 'link': None, 'text': 'engineered'},
+ {'paragraph_index': 8, 'offset': 138, 'end_offset': 147, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomics'},
+ {'paragraph_index': 12, 'offset': 0, 'end_offset': 9, 'term': 'engineered', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/engineered/1', 'link': None, 'text': 'engineered'},
+ {'paragraph_index': 25, 'offset': 31, 'end_offset': 39, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomic'},
+ {'paragraph_index': 25, 'offset': 41, 'end_offset': 50, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomics'},
+ {'paragraph_index': 27, 'offset': 196, 'end_offset': 205, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomics'},
+ {'paragraph_index': 30, 'offset': 98, 'end_offset': 107, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomics'},
+ {'paragraph_index': 32, 'offset': 9, 'end_offset': 18, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'text': 'proteomics'},
+ {'paragraph_index': 32, 'offset': 146, 'end_offset': 155, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 126, 'offset': 41, 'end_offset': 50, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomics'},
+ {'paragraph_index': 158, 'offset': 58, 'end_offset': 67, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'proteomics'},
+ {'paragraph_index': 162, 'offset': 13, 'end_offset': 17, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'Media'},
+ {'paragraph_index': 163, 'offset': 34, 'end_offset': 38, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'media'},
+ {'paragraph_index': 164, 'offset': 31, 'end_offset': 35, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'media'},
+ {'paragraph_index': 166, 'offset': 14, 'end_offset': 18, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'Media'},
+ {'paragraph_index': 167, 'offset': 0, 'end_offset': 1, 'term': 'M9', 'uri': 'https://hub.sd2e.org/user/sd2e/design/M9/1', 'link': None, 'text': 'M9'},
+ {'paragraph_index': 168, 'offset': 0, 'end_offset': 13, 'term': 'M9 Media Salts', 'uri': 'https://hub.sd2e.org/user/sd2e/design/teknova_M1902/1', 'link': 'https://hub.sd2e.org/user/sd2e/design/teknova_M1902/1', 'text': 'M9 media salts'},
+ {'paragraph_index': 185, 'offset': 71, 'end_offset': 75, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'media'},
+ {'paragraph_index': 186, 'offset': 37, 'end_offset': 41, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'media'},
+ {'paragraph_index': 193, 'offset': 15, 'end_offset': 19, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'Media'},
+ {'paragraph_index': 198, 'offset': 57, 'end_offset': 66, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 203, 'offset': 19, 'end_offset': 28, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 203, 'offset': 73, 'end_offset': 82, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 203, 'offset': 89, 'end_offset': 98, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 205, 'offset': 59, 'end_offset': 68, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 212, 'offset': 172, 'end_offset': 176, 'term': 'Media', 'uri': 'https://hub.sd2e.org/user/sd2e/design/Media/1', 'link': None, 'text': 'media'},
+ {'paragraph_index': 218, 'offset': 0, 'end_offset': 9, 'term': 'engineered', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/engineered/1', 'link': None, 'text': 'engineered'},
+ {'paragraph_index': 229, 'offset': 27, 'end_offset': 36, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 273, 'offset': 17, 'end_offset': 26, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'},
+ {'paragraph_index': 280, 'offset': 9, 'end_offset': 18, 'term': 'proteomics', 'uri': 'https://hub.sd2e.org/user/sd2e/intent_parser/proteomics/1', 'link': None, 'text': 'Proteomics'}]
+
+        culled_result = self.ips.cull_overlapping(unculled_input)
+        culled_result = sorted(culled_result,key=itemgetter('paragraph_index','offset'))
+        self.assertTrue(compare_search_results(culled_result, culled_gt))
 
     def test_analyze_basic(self):
         """
