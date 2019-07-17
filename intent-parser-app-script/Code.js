@@ -13,8 +13,6 @@ function onOpen() {
   menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor').addToUi()
   menu.addItem('Generate Report', 'sendGenerateReport').addToUi()
   menu.addItem('Help', 'showHelp').addToUi()
-
-  resetScan();
 }
 
 function showHelp() {
