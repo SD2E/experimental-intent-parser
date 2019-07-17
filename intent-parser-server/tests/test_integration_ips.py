@@ -111,7 +111,24 @@ class TestIntentParserServer(unittest.TestCase):
         result = json.loads(response.read().decode('utf-8'))
         self.assertTrue('actions' in result)
         actions = result['actions']
-        assert len(actions) > 0
+
+
+        # Confirm we got a progress part
+        self.assertTrue(len(actions) == 1)
+        actions[0]['action'] == 'showProgressbar'
+
+        startTime = time.time()
+        while actions[0]['action'] != 'highlightText' and (time.time() - startTime < 100):
+            # Send a request to analyze the document
+            response = urllib.request.urlopen(self.server_url + '/analyzeDocument',
+                                              data=payload_bytes,
+                                              timeout=60)
+            result = json.loads(response.read().decode('utf-8'))
+            self.assertTrue('actions' in result)
+            actions = result['actions']
+            self.assertTrue(len(actions) > 0)
+            self.assertTrue(actions[0]['action'] == 'highlightText' or actions[0]['action'] == 'updateProgress')
+            time.sleep(0.25)
 
         # Confirm the server found a term to highlight
         highlight_action = None
