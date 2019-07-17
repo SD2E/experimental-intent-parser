@@ -492,7 +492,7 @@ class IntentParserServer:
             if progress_percent < 100: # Not done yet, update client
                 action = {}
                 action['action'] = 'updateProgress'
-                action['progress'] = str(progress_percent)
+                action['progress'] = str(int(progress_percent * 100))
                 actions = {'actions': [action]}
                 self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
             else: # Document is analyzed, start navigating results
@@ -708,27 +708,36 @@ class IntentParserServer:
 
         body = doc.get('body');
         doc_content = body.get('content')
+        doc_id = client_state['document_id']
         paragraphs = self.get_paragraphs(doc_content)
 
         self.item_map_lock.acquire()
         item_map = self.item_map
         self.item_map_lock.release()
         analyze_inputs = []
+        progress_per_term = 1.0 / len(item_map)
         for term in item_map.keys():
             analyze_inputs.append([term, start_offset, paragraphs, self.partial_match_min_size, self.partial_match_thresh, item_map[term]])
+        search_results = []
         with Pool(self.multiprocessing_pool_size) as p:
-            search_results = p.map(intent_parser_utils.analyze_term, analyze_inputs)
-        search_results = [res for res_list in search_results if len(res_list) > 0 for res in res_list]
+            for __, result in enumerate(p.imap_unordered(intent_parser_utils.analyze_term, analyze_inputs), 1):
+                if len(result) > 0:
+                    for r in result:
+                        search_results.append(r)
+                self.analyze_processing_map_lock.acquire()
+                self.analyze_processing_map[doc_id] += progress_per_term
+                self.analyze_processing_map[doc_id] = min(100, self.analyze_processing_map[doc_id])
+                self.analyze_processing_map_lock.release()
+            p.close()
+            p.join()
+
         if len(search_results) == 0:
             return []
 
         # Remove any matches that overlap, taking the longest match
         search_results = self.cull_overlapping(search_results);
 
-        search_results = sorted(search_results,
-                                key=itemgetter('paragraph_index',
-                                               'offset')
-                                )
+        search_results = sorted(search_results,key=itemgetter('paragraph_index','offset'))
 
         client_state['search_results'] = search_results
         client_state['search_result_index'] = 0
@@ -887,7 +896,7 @@ class IntentParserServer:
 <script>
     var interval = 1250; // ms
     var expected = Date.now() + interval;
-    setTimeout(progressUpdate, interval);
+    setTimeout(progressUpdate, 10);
     function progressUpdate() {
         var dt = Date.now() - expected; // the drift (positive for overshooting)
         if (dt > interval) {
@@ -903,13 +912,15 @@ class IntentParserServer:
 
     function refreshProgress(prog) {
         var table = document.getElementById('progressTable')
-        table.innerHTML = '<i>Analyzing document, ' + prog + '\% complete</i>'
+        table.innerHTML = '<i>Analyzing, ' + prog + '% complete</i>'
     }
+
+    var table = document.getElementById('progressTable')
+    table.innerHTML = '<i>Analyzing, 0% complete</i>'
 </script>
 
 <center>
-  <table stype="width:100%" id="existingLinksTable">
-    <i>Analyzing document, 0% complete</i>
+  <table stype="width:100%" id="progressTable">
   </table>
 </center>
         '''
@@ -920,7 +931,7 @@ class IntentParserServer:
 
         return action
 
-    def simple_sidebar_dialog(self, message, buttons, specialButtons=[]):
+    def simple_sidebar_dialog(self, message, buttons):
         htmlMessage  = '<script>\n\n'
         htmlMessage += 'function onSuccess() { \n\
                          google.script.host.close()\n\
