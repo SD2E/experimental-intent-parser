@@ -2,8 +2,6 @@ var serverURL = 'http://intent-parser-server.bbn.com:8081'
 
 var versionString = '1.1-git'
 
-var analyzeProgress
-
 function onOpen() {
   var ui = DocumentApp.getUi()
   var menu = ui.createMenu('Parse Intent')
@@ -117,12 +115,14 @@ function processActions(response) {
         break
       case 'showProgressbar':
         showSidebar(actionDesc['html'])
-        analyzeProgress = '0'
+        var p = PropertiesService.getDocumentProperties();
+        p.setProperty("analyze_progress", '0')
         waitForMoreActions = true
         break
       case 'updateProgress':
         waitForMoreActions = true
-        analyzeProgress = actionDesc['progress']
+        var p = PropertiesService.getDocumentProperties();
+        p.setProperty("analyze_progress", actionDesc['progress'])
         break
       case 'reportContent':
         processReportContent(actionDesc['report'])
@@ -141,7 +141,8 @@ function processActions(response) {
 }
 
 function getAnalyzeProgress() {
-    return analyzeProgress
+  var p = PropertiesService.getDocumentProperties();
+  return p.getProperty("analyze_progress")
 }
 
 function showSidebar(html) {
