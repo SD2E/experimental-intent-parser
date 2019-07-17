@@ -109,7 +109,7 @@ class TestIntentParserServer(unittest.TestCase):
                                           data=payload_bytes,
                                           timeout=60)
         result = json.loads(response.read().decode('utf-8'))
-        assert 'actions' in result
+        self.assertTrue('actions' in result)
         actions = result['actions']
         assert len(actions) > 0
 
@@ -119,7 +119,7 @@ class TestIntentParserServer(unittest.TestCase):
             if action['action'] == 'highlightText':
                 highlight_action = action
 
-        assert highlight_action is not None
+        self.assertTrue(highlight_action is not None)
 
         # Simulate a click of the "no" button
         payload['data'] = {'buttonId': 'process_analyze_no'}
@@ -129,9 +129,9 @@ class TestIntentParserServer(unittest.TestCase):
                                           data=payload_bytes,
                                           timeout=60)
         result = json.loads(response.read())
-        assert 'actions' in result
+        self.assertTrue('actions' in result)
         actions = result['actions']
-        assert len(actions) > 0
+        self.assertTrue(len(actions) > 0)
 
         # Confirm the server found a term to highlight
         # but did not create an html link
@@ -143,8 +143,8 @@ class TestIntentParserServer(unittest.TestCase):
             elif action['action'] == 'linkText':
                 link_action = action
 
-        assert highlight_action is not None
-        assert link_action is None
+        self.assertTrue(highlight_action is not None)
+        self.assertTrue(link_action is None)
 
         # Simulate a click of the "yes" button
         payload['data'] = {'buttonId': 'process_analyze_yes'}
@@ -154,9 +154,9 @@ class TestIntentParserServer(unittest.TestCase):
                                           data=payload_bytes,
                                           timeout=60)
         result = json.loads(response.read())
-        assert 'actions' in result
+        self.assertTrue('actions' in result)
         actions = result['actions']
-        assert len(actions) > 0
+        self.assertTrue(len(actions) > 0)
 
         # Confirm the server found another term to highlight
         # and created an html link
@@ -168,8 +168,8 @@ class TestIntentParserServer(unittest.TestCase):
             elif action['action'] == 'linkText':
                 link_action = action
 
-        assert highlight_action is not None
-        assert link_action is not None
+        self.assertTrue(highlight_action is not None)
+        self.assertTrue(link_action is not None)
 
     @classmethod
     def tearDownClass(self):
