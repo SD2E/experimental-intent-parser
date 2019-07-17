@@ -109,9 +109,26 @@ class TestIntentParserServer(unittest.TestCase):
                                           data=payload_bytes,
                                           timeout=60)
         result = json.loads(response.read().decode('utf-8'))
-        assert 'actions' in result
+        self.assertTrue('actions' in result)
         actions = result['actions']
-        assert len(actions) > 0
+
+
+        # Confirm we got a progress part
+        self.assertTrue(len(actions) == 1)
+        actions[0]['action'] == 'showProgressbar'
+
+        startTime = time.time()
+        while actions[0]['action'] != 'highlightText' and (time.time() - startTime < 100):
+            # Send a request to analyze the document
+            response = urllib.request.urlopen(self.server_url + '/analyzeDocument',
+                                              data=payload_bytes,
+                                              timeout=60)
+            result = json.loads(response.read().decode('utf-8'))
+            self.assertTrue('actions' in result)
+            actions = result['actions']
+            self.assertTrue(len(actions) > 0)
+            self.assertTrue(actions[0]['action'] == 'highlightText' or actions[0]['action'] == 'updateProgress')
+            time.sleep(0.25)
 
         # Confirm the server found a term to highlight
         highlight_action = None
@@ -119,7 +136,7 @@ class TestIntentParserServer(unittest.TestCase):
             if action['action'] == 'highlightText':
                 highlight_action = action
 
-        assert highlight_action is not None
+        self.assertTrue(highlight_action is not None)
 
         # Simulate a click of the "no" button
         payload['data'] = {'buttonId': 'process_analyze_no'}
@@ -129,9 +146,9 @@ class TestIntentParserServer(unittest.TestCase):
                                           data=payload_bytes,
                                           timeout=60)
         result = json.loads(response.read())
-        assert 'actions' in result
+        self.assertTrue('actions' in result)
         actions = result['actions']
-        assert len(actions) > 0
+        self.assertTrue(len(actions) > 0)
 
         # Confirm the server found a term to highlight
         # but did not create an html link
@@ -143,8 +160,8 @@ class TestIntentParserServer(unittest.TestCase):
             elif action['action'] == 'linkText':
                 link_action = action
 
-        assert highlight_action is not None
-        assert link_action is None
+        self.assertTrue(highlight_action is not None)
+        self.assertTrue(link_action is None)
 
         # Simulate a click of the "yes" button
         payload['data'] = {'buttonId': 'process_analyze_yes'}
@@ -154,9 +171,9 @@ class TestIntentParserServer(unittest.TestCase):
                                           data=payload_bytes,
                                           timeout=60)
         result = json.loads(response.read())
-        assert 'actions' in result
+        self.assertTrue('actions' in result)
         actions = result['actions']
-        assert len(actions) > 0
+        self.assertTrue(len(actions) > 0)
 
         # Confirm the server found another term to highlight
         # and created an html link
@@ -168,8 +185,8 @@ class TestIntentParserServer(unittest.TestCase):
             elif action['action'] == 'linkText':
                 link_action = action
 
-        assert highlight_action is not None
-        assert link_action is not None
+        self.assertTrue(highlight_action is not None)
+        self.assertTrue(link_action is not None)
 
     @classmethod
     def tearDownClass(self):
