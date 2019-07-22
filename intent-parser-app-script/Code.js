@@ -1,6 +1,6 @@
 var serverURL = 'http://intent-parser-server.bbn.com:8081'
 
-var versionString = '1.1-git'
+var versionString = '1.1-git-session'
 
 function onOpen() {
   var ui = DocumentApp.getUi()
@@ -138,12 +138,66 @@ function processActions(response) {
   return waitForMoreActions
 }
 
+function heartbeat(id) {
+    var p = PropertiesService.getDocumentProperties();
+    p.setProperty(id + '_heartbeat', (new Date()).getTime().toString())
+}
+
+// See if there is an active session for a particular document
+var sessionTimeout = 2000
+function isSessionActive() {
+    var docProps = PropertiesService.getDocumentProperties();
+    var docKeys = docProps.getKeys()
+    keysToRemove = new Array()
+    var nowTime = (new Date()).getTime()
+    var activeSession = false
+    for (var key in docKeys) {
+        // Only consider heartbeat related keys
+        if (key.includes('heartbeat')) {
+            heartBeatTime = docProps[key].parseInt()
+            var timeDiff = nowTime - heartBeatTime
+            // If the timeout isn't reached, active session
+            if (timeDiff < sessionTimeout) {
+                activeSession = true
+            } else { // Queue up inactive sessions for removal
+                keysToRemove.push(key)
+            }
+        }
+    }
+    for (var key in keysToRemove) {
+        docProps.deleteProperty(key)
+    }
+    return activeSession
+}
+
 function getAnalyzeProgress() {
   var p = PropertiesService.getDocumentProperties();
   return p.getProperty("analyze_progress")
 }
 
 function showSidebar(html) {
+    var userEmail = user.getEmail();
+    // Inject a heartbeat timer script at the end of any sidebar
+    // This pings the GAS code to indicate that the sidebar is still open
+    html += '\
+\
+<script>\
+    var interval = 1000; // ms\
+    var expected = Date.now() + interval;\
+    setTimeout(heartbeat, interval);\
+    function heartbeat() {\
+        var dt = Date.now() - expected; // the drift (positive for overshooting)\
+        if (dt > interval) {\
+            // something really bad happened. Maybe the browser (tab) was inactive?\
+            // possibly special handling to avoid futile "catch up" run\
+        }\
+        google.script.run.heartbeat(' + userEmail + ')\
+        expected += interval;\
+        setTimeout(heartbeat, Math.max(0, interval - dt)); // take into account drift\
+    }\
+</script>\
+'
+
     var ui = DocumentApp.getUi()
     var htmlOutput = HtmlService.createHtmlOutput(html)
     ui.showSidebar(htmlOutput)
