@@ -153,10 +153,11 @@ function isSessionActive() {
     keysToRemove = new Array()
     var nowTime = (new Date()).getTime()
     var activeSession = false
-    for (var key in docKeys) {
+    for (i = 0; i < docKeys.length; i++) {
+        var key = docKeys[i]
         // Only consider heartbeat related keys
-        if (key.includes('heartbeat')) {
-            heartBeatTime = docProps[key].parseInt()
+        if (key.indexOf('heartbeat') > -1) {
+            heartBeatTime = + docProps.getProperty(key)
             var timeDiff = nowTime - heartBeatTime
             // If the timeout isn't reached, active session
             if (timeDiff < sessionTimeout) {
@@ -166,8 +167,8 @@ function isSessionActive() {
             }
         }
     }
-    for (var key in keysToRemove) {
-        docProps.deleteProperty(key)
+    for (i = 0; i < keysToRemove.length; i++) {
+        docProps.deleteProperty(keysToRemove[i])
     }
     return activeSession
 }
