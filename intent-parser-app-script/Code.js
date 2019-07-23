@@ -140,7 +140,9 @@ function processActions(response) {
 
 function heartbeat(id) {
     var p = PropertiesService.getDocumentProperties();
-    p.setProperty(id + '_heartbeat', (new Date()).getTime().toString())
+    var date = new Date
+    var timeMS = date.getTime()
+    p.setProperty(id + '_heartbeat', timeMS)
 }
 
 // See if there is an active session for a particular document
