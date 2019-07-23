@@ -179,6 +179,7 @@ function getAnalyzeProgress() {
 }
 
 function showSidebar(html) {
+    var user = Session.getActiveUser();
     var userEmail = user.getEmail();
     // Inject a heartbeat timer script at the end of any sidebar
     // This pings the GAS code to indicate that the sidebar is still open
