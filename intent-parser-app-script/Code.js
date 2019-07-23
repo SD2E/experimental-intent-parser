@@ -178,6 +178,17 @@ function getAnalyzeProgress() {
   return p.getProperty("analyze_progress")
 }
 
+// Open a sidebar that consists of nothing but a script to close the sidebar
+// There's no direct way to close the sidebar, so we have to take this indirect approach
+function closeSidebar() {
+    var html = ''
+    html += '<script>google.script.host.close()\n</script>\n'
+
+    var ui = DocumentApp.getUi()
+    var htmlOutput = HtmlService.createHtmlOutput(html)
+    ui.showSidebar(htmlOutput)
+}
+
 function showSidebar(html) {
     var user = Session.getActiveUser();
     var userEmail = user.getEmail();
@@ -447,10 +458,16 @@ function getLocation(el, offset) {
 }
 
 function sendAnalyzeFromTop() {
+  if (isSessionActive()) {
+    closeSidebar()
+  }
   sendPost('/analyzeDocument')
 }
 
 function sendAnalyzeFromCursor() {
+  if (isSessionActive()) {
+    closeSidebar()
+  }
   var cursorLocation = findCursor()
 
   sendPost('/analyzeDocument', cursorLocation)
@@ -512,10 +529,16 @@ function addToSynBioHub() {
 }
 
 function addBySpelling() {
+  if (isSessionActive()) {
+    closeSidebar()
+  }
   sendPost('/addBySpelling')
 }
 
 function addBySpellingFromCursor() {
+  if (isSessionActive()) {
+    closeSidebar()
+  }
   var cursorLocation = findCursor()
 
   sendPost('/addBySpelling', cursorLocation)
