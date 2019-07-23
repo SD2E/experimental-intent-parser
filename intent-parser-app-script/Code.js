@@ -184,22 +184,22 @@ function showSidebar(html) {
     // Inject a heartbeat timer script at the end of any sidebar
     // This pings the GAS code to indicate that the sidebar is still open
     html += '\
-\
-<script>\
-    var interval = 1000; // ms\
-    var expected = Date.now() + interval;\
-    setTimeout(heartbeat, interval);\
-    function heartbeat() {\
-        var dt = Date.now() - expected; // the drift (positive for overshooting)\
-        if (dt > interval) {\
-            // something really bad happened. Maybe the browser (tab) was inactive?\
-            // possibly special handling to avoid futile "catch up" run\
-        }\
-        google.script.run.heartbeat(' + userEmail + ')\
-        expected += interval;\
-        setTimeout(heartbeat, Math.max(0, interval - dt)); // take into account drift\
-    }\
-</script>\
+\n\
+<script>\n\
+    var interval = 2000; // ms\n\
+    var expected = Date.now() + interval;\n\
+    setTimeout(heartbeat, interval);\n\
+    function heartbeat() {\n\
+        var dt = Date.now() - expected; // the drift (positive for overshooting)\n\
+        if (dt > interval) {\n\
+            // something really bad happened. Maybe the browser (tab) was inactive?\n\
+            // possibly special handling to avoid futile "catch up" run\n\
+        }\n\
+        google.script.run.heartbeat(\'' + userEmail + '\');\n\
+        expected += interval;\n\
+        setTimeout(heartbeat, Math.max(0, interval - dt)); // take into account drift\n\
+    }\n\
+</script>\n\
 '
 
     var ui = DocumentApp.getUi()
