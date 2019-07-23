@@ -502,8 +502,8 @@ class IntentParserServer:
                     actionList = self.report_search_results(client_state)
                     actions = {'actions': actionList}
                     self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
-                    self.analyze_processing_map.pop(document_id)
                 finally:
+                    self.analyze_processing_map.pop(document_id)
                     self.analyze_processing_lock[document_id].release()
                     self.release_connection(client_state)
         else: # Doc not being processed, spawn new processing thread
