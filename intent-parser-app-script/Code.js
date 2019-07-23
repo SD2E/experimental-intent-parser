@@ -146,7 +146,7 @@ function heartbeat(id) {
 }
 
 // See if there is an active session for a particular document
-var sessionTimeout = 2000
+var sessionTimeout = 4000
 function isSessionActive() {
     var docProps = PropertiesService.getDocumentProperties();
     var docKeys = docProps.getKeys()
