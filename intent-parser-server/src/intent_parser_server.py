@@ -731,9 +731,6 @@ class IntentParserServer:
             p.close()
             p.join()
 
-        if len(search_results) == 0:
-            return []
-
         # Remove any matches that overlap, taking the longest match
         search_results = self.cull_overlapping(search_results);
 
