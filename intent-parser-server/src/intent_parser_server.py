@@ -1191,6 +1191,7 @@ class IntentParserServer:
                 f = open(self.my_path + '/item-map.json', 'r')
                 item_map = json.loads(f.read())
                 f.close()
+                print('Num items in item_map: %d' % len(item_map))
                 return item_map
 
             except:
@@ -1218,6 +1219,8 @@ class IntentParserServer:
         f = open(self.my_path + '/item-map.json', 'w')
         f.write(json.dumps(item_map))
         f.close()
+
+        print('Num items in item_map: %d' % len(item_map))
 
         return item_map
 
