@@ -600,7 +600,8 @@ class IntentParserServer:
             search_results = client_state['search_results']
             search_result_index = client_state['search_result_index']
             if search_result_index >= len(search_results):
-                return []
+                dialogAction = self.simple_sidebar_dialog('Finished Analyzing Document.', [])
+                return [dialogAction]
 
             client_state['search_result_index'] += 1
 
