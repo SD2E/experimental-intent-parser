@@ -422,6 +422,7 @@ class IntentParserServer:
 
         client_state = {}
         client_state['doc'] = doc
+        client_state['document_id'] = document_id
         self.analyze_document(client_state, doc, 0)
 
         report = {}
