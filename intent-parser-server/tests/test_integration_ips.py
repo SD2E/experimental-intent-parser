@@ -95,6 +95,7 @@ class TestIntentParserServer(unittest.TestCase):
                                                 sbh_username=TestIntentParserServer.sbh_username,
                                                 sbh_password=TestIntentParserServer.sbh_password,
                                                 spreadsheet_id=self.spreadsheet_id,
+                                                item_map_cache=False,
                                                 bind_ip='localhost',
                                                 bind_port=8081)
         self.intent_parser.serverRunLoop(background=True)
