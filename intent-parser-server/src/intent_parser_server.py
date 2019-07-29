@@ -82,6 +82,7 @@ class IntentParserServer:
                  sbh_spoofing_prefix=None,
                  spreadsheet_id=None,
                  sbh_username=None, sbh_password=None,
+                 item_map_cache=True,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org'],
                  init_server=True,
@@ -116,6 +117,7 @@ class IntentParserServer:
             self.initialize_sbh(sbh_collection_uri=sbh_collection_uri,
                  sbh_spoofing_prefix=sbh_spoofing_prefix,
                  spreadsheet_id=spreadsheet_id,
+                 item_map_cache=item_map_cache,
                  sbh_username=sbh_username, sbh_password=sbh_password,
                  sbh_link_hosts=sbh_link_hosts)
 
@@ -132,6 +134,7 @@ class IntentParserServer:
                  spreadsheet_id,
                  sbh_spoofing_prefix=None,
                  sbh_username=None, sbh_password=None,
+                 item_map_cache=True,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org']):
         """
@@ -211,7 +214,7 @@ class IntentParserServer:
         self.client_state_lock = threading.Lock()
         self.item_map_lock = threading.Lock()
         self.item_map_lock.acquire()
-        self.item_map = self.generate_item_map(use_cache=True)
+        self.item_map = self.generate_item_map(use_cache=item_map_cache)
         self.item_map_lock.release()
 
         # Inverse map of typeTabs
