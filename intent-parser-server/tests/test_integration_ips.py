@@ -121,15 +121,14 @@ class TestIntentParserServer(unittest.TestCase):
         startTime = time.time()
         while actions[0]['action'] != 'highlightText' and (time.time() - startTime < 100):
             # Send a request to analyze the document
-            response = urllib.request.urlopen(self.server_url + '/analyzeDocument',
-                                              data=payload_bytes,
-                                              timeout=60)
+            response = urllib.request.urlopen(self.server_url + '/analyzeDocument', data=payload_bytes, timeout=60)
             result = json.loads(response.read().decode('utf-8'))
             self.assertTrue('actions' in result)
             actions = result['actions']
             self.assertTrue(len(actions) > 0)
-            self.assertTrue(actions[0]['action'] == 'highlightText' or actions[0]['action'] == 'updateProgress'  or actions[0]['action'] == 'showSidebar' or actions[0]['action'] == 'showProgressbar', 'Action is: %s' % actions[0]['action'])
-            time.sleep(0.25)
+            self.assertTrue(actions[0]['action'] == 'highlightText' or actions[0]['action'] == 'updateProgress', 'Action is: %s' % actions[0]['action'])
+            print('time: %d' % (time.time() - startTime))
+            #time.sleep(0.25)
 
         # Confirm the server found a term to highlight
         highlight_action = None
@@ -137,16 +136,13 @@ class TestIntentParserServer(unittest.TestCase):
             if action['action'] == 'highlightText':
                 highlight_action = action
 
-        # This test finds no results with the given dictionary.
-        self.assertTrue(highlight_action is None)
+        self.assertTrue(highlight_action is not None)
 
         # Simulate a click of the "no" button
         payload['data'] = {'buttonId': 'process_analyze_no'}
         payload_bytes = json.dumps(payload).encode()
 
-        response = urllib.request.urlopen(self.server_url + '/buttonClick',
-                                          data=payload_bytes,
-                                          timeout=60)
+        response = urllib.request.urlopen(self.server_url + '/buttonClick', data=payload_bytes, timeout=60)
         result = json.loads(response.read())
         self.assertTrue('actions' in result)
         actions = result['actions']
@@ -162,17 +158,14 @@ class TestIntentParserServer(unittest.TestCase):
             elif action['action'] == 'linkText':
                 link_action = action
 
-        # This test finds no results with the given dictionary.
-        self.assertTrue(highlight_action is None)
+        self.assertTrue(highlight_action is not None)
         self.assertTrue(link_action is None)
 
         # Simulate a click of the "yes" button
         payload['data'] = {'buttonId': 'process_analyze_yes'}
         payload_bytes = json.dumps(payload).encode()
 
-        response = urllib.request.urlopen(self.server_url + '/buttonClick',
-                                          data=payload_bytes,
-                                          timeout=60)
+        response = urllib.request.urlopen(self.server_url + '/buttonClick',data=payload_bytes, timeout=60)
         result = json.loads(response.read())
         self.assertTrue('actions' in result)
         actions = result['actions']
