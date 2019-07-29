@@ -82,6 +82,7 @@ class IntentParserServer:
                  sbh_spoofing_prefix=None,
                  spreadsheet_id=None,
                  sbh_username=None, sbh_password=None,
+                 item_map_cache=True,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org'],
                  init_server=True,
@@ -116,6 +117,7 @@ class IntentParserServer:
             self.initialize_sbh(sbh_collection_uri=sbh_collection_uri,
                  sbh_spoofing_prefix=sbh_spoofing_prefix,
                  spreadsheet_id=spreadsheet_id,
+                 item_map_cache=item_map_cache,
                  sbh_username=sbh_username, sbh_password=sbh_password,
                  sbh_link_hosts=sbh_link_hosts)
 
@@ -132,6 +134,7 @@ class IntentParserServer:
                  spreadsheet_id,
                  sbh_spoofing_prefix=None,
                  sbh_username=None, sbh_password=None,
+                 item_map_cache=True,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org']):
         """
@@ -211,7 +214,7 @@ class IntentParserServer:
         self.client_state_lock = threading.Lock()
         self.item_map_lock = threading.Lock()
         self.item_map_lock.acquire()
-        self.item_map = self.generate_item_map(use_cache=True)
+        self.item_map = self.generate_item_map(use_cache=item_map_cache)
         self.item_map_lock.release()
 
         # Inverse map of typeTabs
@@ -503,8 +506,8 @@ class IntentParserServer:
                     actionList = self.report_search_results(client_state)
                     actions = {'actions': actionList}
                     self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
-                    self.analyze_processing_map.pop(document_id)
                 finally:
+                    self.analyze_processing_map.pop(document_id)
                     self.analyze_processing_lock[document_id].release()
                     self.release_connection(client_state)
         else: # Doc not being processed, spawn new processing thread
@@ -601,7 +604,8 @@ class IntentParserServer:
             search_results = client_state['search_results']
             search_result_index = client_state['search_result_index']
             if search_result_index >= len(search_results):
-                return []
+                dialogAction = self.simple_sidebar_dialog('Finished Analyzing Document.', [])
+                return [dialogAction]
 
             client_state['search_result_index'] += 1
 
@@ -731,9 +735,6 @@ class IntentParserServer:
                 self.analyze_processing_map_lock.release()
             p.close()
             p.join()
-
-        if len(search_results) == 0:
-            return []
 
         # Remove any matches that overlap, taking the longest match
         search_results = self.cull_overlapping(search_results);
@@ -1195,6 +1196,7 @@ class IntentParserServer:
                 f = open(self.my_path + '/item-map.json', 'r')
                 item_map = json.loads(f.read())
                 f.close()
+                print('Num items in item_map: %d' % len(item_map))
                 return item_map
 
             except:
@@ -1222,6 +1224,8 @@ class IntentParserServer:
         f = open(self.my_path + '/item-map.json', 'w')
         f.write(json.dumps(item_map))
         f.close()
+
+        print('Num items in item_map: %d' % len(item_map))
 
         return item_map
 
@@ -2295,7 +2299,8 @@ class IntentParserServer:
         self.send_response(200, 'OK', json.dumps(response), sm,
                            'application/json')
 
-spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk'
+#spreadsheet_id = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program dict
+spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
 sbh_spoofing_prefix=None
 sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
 bind_port = 8081
