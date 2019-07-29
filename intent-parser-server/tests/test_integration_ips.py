@@ -95,6 +95,7 @@ class TestIntentParserServer(unittest.TestCase):
                                                 sbh_username=TestIntentParserServer.sbh_username,
                                                 sbh_password=TestIntentParserServer.sbh_password,
                                                 spreadsheet_id=self.spreadsheet_id,
+                                                item_map_cache=False,
                                                 bind_ip='localhost',
                                                 bind_port=8081)
         self.intent_parser.serverRunLoop(background=True)
@@ -120,15 +121,14 @@ class TestIntentParserServer(unittest.TestCase):
         startTime = time.time()
         while actions[0]['action'] != 'highlightText' and (time.time() - startTime < 100):
             # Send a request to analyze the document
-            response = urllib.request.urlopen(self.server_url + '/analyzeDocument',
-                                              data=payload_bytes,
-                                              timeout=60)
+            response = urllib.request.urlopen(self.server_url + '/analyzeDocument', data=payload_bytes, timeout=60)
             result = json.loads(response.read().decode('utf-8'))
             self.assertTrue('actions' in result)
             actions = result['actions']
             self.assertTrue(len(actions) > 0)
-            self.assertTrue(actions[0]['action'] == 'highlightText' or actions[0]['action'] == 'updateProgress')
-            time.sleep(0.25)
+            self.assertTrue(actions[0]['action'] == 'highlightText' or actions[0]['action'] == 'updateProgress', 'Action is: %s' % actions[0]['action'])
+            print('time: %d' % (time.time() - startTime))
+            #time.sleep(0.25)
 
         # Confirm the server found a term to highlight
         highlight_action = None
@@ -142,9 +142,7 @@ class TestIntentParserServer(unittest.TestCase):
         payload['data'] = {'buttonId': 'process_analyze_no'}
         payload_bytes = json.dumps(payload).encode()
 
-        response = urllib.request.urlopen(self.server_url + '/buttonClick',
-                                          data=payload_bytes,
-                                          timeout=60)
+        response = urllib.request.urlopen(self.server_url + '/buttonClick', data=payload_bytes, timeout=60)
         result = json.loads(response.read())
         self.assertTrue('actions' in result)
         actions = result['actions']
@@ -167,9 +165,7 @@ class TestIntentParserServer(unittest.TestCase):
         payload['data'] = {'buttonId': 'process_analyze_yes'}
         payload_bytes = json.dumps(payload).encode()
 
-        response = urllib.request.urlopen(self.server_url + '/buttonClick',
-                                          data=payload_bytes,
-                                          timeout=60)
+        response = urllib.request.urlopen(self.server_url + '/buttonClick',data=payload_bytes, timeout=60)
         result = json.loads(response.read())
         self.assertTrue('actions' in result)
         actions = result['actions']
