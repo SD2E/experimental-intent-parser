@@ -79,6 +79,11 @@ def find_text(text, abs_start_offset, paragraphs, partial_match_min_size, partia
                         link = text_style['link']
                         if 'url' in link:
                             link = link['url']
+
+                # If the text is linked, and we have an incomplete match, ignore it
+                if link is not None and not match.size == len(content):
+                    continue
+
                 results.append((paragraph_index, offset, offset + match.size - 1, link, content_text))
     return results
 
