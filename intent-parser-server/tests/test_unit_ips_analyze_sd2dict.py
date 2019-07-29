@@ -163,7 +163,7 @@ class TestIntentParserServer(unittest.TestCase):
             self.assertTrue(len(result) == 3)
 
         result = self.ips.process_analyze_yes({'data' : {'buttonId' : 'test'}}, self.ips.client_state_map[self.doc_id])
-        self.assertTrue(len(result) == 1)
+        self.assertTrue(len(result) == 2)
         
     def test_analyze_no(self):
         """
@@ -175,7 +175,7 @@ class TestIntentParserServer(unittest.TestCase):
             self.assertTrue(len(result) == 2 )
 
         result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
-        self.assertTrue(len(result) == 0 )
+        self.assertTrue(len(result) == 1 )
 
     def test_analyze_no_to_all(self):
         """
@@ -197,7 +197,7 @@ class TestIntentParserServer(unittest.TestCase):
             self.assertTrue(len(result) == 2 )
 
         result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
-        self.assertTrue(len(result) == 0)
+        self.assertTrue(len(result) == 1)
 
     def test_analyze_link_all(self):
         """
