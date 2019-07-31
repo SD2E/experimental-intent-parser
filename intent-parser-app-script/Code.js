@@ -138,80 +138,14 @@ function processActions(response) {
   return waitForMoreActions
 }
 
-function heartbeat(id) {
-    var p = PropertiesService.getDocumentProperties();
-    var date = new Date
-    var timeMS = date.getTime()
-    p.setProperty(id + '_heartbeat', timeMS)
-}
-
-// See if there is an active session for a particular document
-var sessionTimeout = 4000
-function isSessionActive() {
-    var docProps = PropertiesService.getDocumentProperties();
-    var docKeys = docProps.getKeys()
-    keysToRemove = new Array()
-    var nowTime = (new Date()).getTime()
-    var activeSession = false
-    for (i = 0; i < docKeys.length; i++) {
-        var key = docKeys[i]
-        // Only consider heartbeat related keys
-        if (key.indexOf('heartbeat') > -1) {
-            heartBeatTime = + docProps.getProperty(key)
-            var timeDiff = nowTime - heartBeatTime
-            // If the timeout isn't reached, active session
-            if (timeDiff < sessionTimeout) {
-                activeSession = true
-            } else { // Queue up inactive sessions for removal
-                keysToRemove.push(key)
-            }
-        }
-    }
-    for (i = 0; i < keysToRemove.length; i++) {
-        docProps.deleteProperty(keysToRemove[i])
-    }
-    return activeSession
-}
-
 function getAnalyzeProgress() {
   var p = PropertiesService.getDocumentProperties();
   return p.getProperty("analyze_progress")
 }
 
-// Open a sidebar that consists of nothing but a script to close the sidebar
-// There's no direct way to close the sidebar, so we have to take this indirect approach
-function closeSidebar() {
-    var html = ''
-    html += '<script>google.script.host.close()\n</script>\n'
-
-    var ui = DocumentApp.getUi()
-    var htmlOutput = HtmlService.createHtmlOutput(html)
-    ui.showSidebar(htmlOutput)
-}
-
 function showSidebar(html) {
     var user = Session.getActiveUser();
     var userEmail = user.getEmail();
-    // Inject a heartbeat timer script at the end of any sidebar
-    // This pings the GAS code to indicate that the sidebar is still open
-    html += '\
-\n\
-<script>\n\
-    var interval = 2000; // ms\n\
-    var expected = Date.now() + interval;\n\
-    setTimeout(heartbeat, interval);\n\
-    function heartbeat() {\n\
-        var dt = Date.now() - expected; // the drift (positive for overshooting)\n\
-        if (dt > interval) {\n\
-            // something really bad happened. Maybe the browser (tab) was inactive?\n\
-            // possibly special handling to avoid futile "catch up" run\n\
-        }\n\
-        google.script.run.heartbeat(\'' + userEmail + '\');\n\
-        expected += interval;\n\
-        setTimeout(heartbeat, Math.max(0, interval - dt)); // take into account drift\n\
-    }\n\
-</script>\n\
-'
 
     var ui = DocumentApp.getUi()
     var htmlOutput = HtmlService.createHtmlOutput(html)
@@ -458,16 +392,10 @@ function getLocation(el, offset) {
 }
 
 function sendAnalyzeFromTop() {
-  if (isSessionActive()) {
-    closeSidebar()
-  }
   sendPost('/analyzeDocument')
 }
 
 function sendAnalyzeFromCursor() {
-  if (isSessionActive()) {
-    closeSidebar()
-  }
   var cursorLocation = findCursor()
 
   sendPost('/analyzeDocument', cursorLocation)
@@ -529,16 +457,10 @@ function addToSynBioHub() {
 }
 
 function addBySpelling() {
-  if (isSessionActive()) {
-    closeSidebar()
-  }
   sendPost('/addBySpelling')
 }
 
 function addBySpellingFromCursor() {
-  if (isSessionActive()) {
-    closeSidebar()
-  }
   var cursorLocation = findCursor()
 
   sendPost('/addBySpelling', cursorLocation)
