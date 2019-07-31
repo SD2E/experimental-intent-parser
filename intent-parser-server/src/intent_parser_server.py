@@ -386,6 +386,8 @@ class IntentParserServer:
         document_id = resource.split('?')[1]
         #client_state = {}
 
+        start = time.time()
+
         try:
             doc = self.google_accessor.get_document(
                 document_id=document_id
@@ -442,6 +444,10 @@ class IntentParserServer:
         report['labs'] = []
 
         report['mapped_names'] = mapped_names
+
+        end = time.time()
+
+        print('Generated report in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
 
         self.send_response(200, 'OK', json.dumps(report), sm,
                            'application/json')
@@ -566,7 +572,7 @@ class IntentParserServer:
         try:
             self.analyze_document(client_state, doc, start_offset)
             end = time.time()
-            print('Analyzed entire document in %0.2fms' %((end - start) * 1000))
+            print('Analyzed entire document in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
         except Exception as e:
             raise e
 
@@ -1305,6 +1311,8 @@ class IntentParserServer:
             actions = {'actions': actionList}
 
             self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+
+            print('Add entry to SynBiohub, %s, %s' %(document_id, time.time()))
         except Exception as e:
             raise e
 
@@ -1564,7 +1572,7 @@ class IntentParserServer:
                             spellCheckResults.append(result)
                             missedTerms.append(word)
             end = time.time()
-            print('Scanned entire document in %0.2fms' %((end - start) * 1000))
+            print('Scanned entire document in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
 
             # If we have a spelling mistake, highlight text and update user
             if len(spellCheckResults) > 0:
