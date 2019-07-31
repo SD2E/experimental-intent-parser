@@ -1,5 +1,12 @@
 <!DOCTYPE html>
 <html>
+
+<head>
+<style>
+p    {word-break: break-all; white-space: normal;}\
+</style>
+</head>
+
 <body>
 
   <script>
@@ -113,7 +120,9 @@
       <input type="hidden" name="formName" value="analyzeResultsForm">
 
         <center>
+          <p>
           Link ${CONTENT_TERM} to <a href='${TERM_URI}' target=_blank>${SELECTEDTERM}</a>
+          </p>
         </center>
 
       ${BUTTONS}
