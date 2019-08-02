@@ -102,7 +102,7 @@ class TestIntentParserServer(unittest.TestCase):
 
 
     def test_analyze_doc(self):
-        payload = {'documentId':  self.template_doc_id}
+        payload = {'documentId':  self.template_doc_id, 'user' : 'test@bbn.com', 'userEmail' : 'test@bbn.com'}
         payload_bytes = json.dumps(payload).encode()
 
         # Send a request to analyze the document

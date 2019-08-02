@@ -28,8 +28,6 @@ class TestIntentParserServer(unittest.TestCase):
     searchResults = 'search_results_sd2dict.pickle'
     
     expected_search_size = 39
-
-    proteomics_search_size = 19
     
     items_json = 'item-map-sd2dict.json'
 
@@ -39,6 +37,12 @@ class TestIntentParserServer(unittest.TestCase):
         """
         Configure an instance of IntentParserServer for spellcheck testing.
         """
+
+        # Clear all link preferences
+        if os.path.exists(IntentParserServer.link_pref_path):
+            for file in os.listdir(IntentParserServer.link_pref_path):
+                os.remove(os.path.join(IntentParserServer.link_pref_path, file))
+            os.rmdir(IntentParserServer.link_pref_path)
 
         self.doc_content = None
         with open(os.path.join(self.dataDir,self.spellcheckFile), 'r') as fin:
@@ -198,6 +202,59 @@ class TestIntentParserServer(unittest.TestCase):
 
         result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
         self.assertTrue(len(result) == 1)
+
+    def test_analyze_never_link(self):
+        """
+        """
+        # Skip first term, engineered
+        result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
+        self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'] == 2)
+        self.assertTrue(len(result) == 2 )
+
+        numResultsOrig = len(self.ips.client_state_map[self.doc_id]['search_results'])
+        currResult = self.ips.client_state_map[self.doc_id]['search_results'][self.ips.client_state_map[self.doc_id]['search_result_index'] - 1]
+        matchCount = 0;
+        for result in self.ips.client_state_map[self.doc_id]['search_results']:
+            if result['term'] == currResult['term'] and result['text'] == currResult['text']:
+                matchCount += 1
+
+        # Ignore the next term, proteomics
+        result = self.ips.process_never_link([], self.ips.client_state_map[self.doc_id])
+        # We should have one result left after ignoring the 16 instances of proteomics in the results.
+        self.assertTrue(len(result) == 2)
+        # We should have no results left after ignoring the last item
+        numResults = len(self.ips.client_state_map[self.doc_id]['search_results'])
+        self.assertTrue(numResults + matchCount == numResultsOrig)
+
+        while self.ips.client_state_map[self.doc_id]['search_result_index'] < numResults :
+            result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
+            #self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'] == idx + 1)
+            self.assertTrue(len(result) == 2 )
+
+        result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
+        self.assertTrue(len(result) == 1)
+
+        # Rerun analysis
+        self.ips.process_analyze_document([], [])
+        pa_results = json.loads(self.ips.send_response.call_args[0][2])
+        actions = pa_results['actions']
+        self.assertTrue(actions[0]['action'] == 'showProgressbar')
+
+        startTime = time.time()
+        while actions[0]['action'] != 'highlightText' and (time.time() - startTime < 100):
+            self.ips.process_analyze_document([], [])
+            pa_results = json.loads(self.ips.send_response.call_args[0][2])
+            actions = pa_results['actions']
+            self.assertTrue(actions[0]['action'] == 'highlightText' or actions[0]['action'] == 'updateProgress')
+            time.sleep(0.25)
+
+        # We shouldn't link proteomics anymore, so it should remove it from the search results
+        numResults = len(self.ips.client_state_map[self.doc_id]['search_results'])
+        # Search result is the same, because we are removing links that overlap other matches
+        self.assertTrue(numResults == (self.expected_search_size - matchCount))
+
+        link_pref_file = os.path.join(self.ips.link_pref_path, 'test@bbn.com.json')
+        self.assertTrue(os.path.exists(link_pref_file))
 
     def test_analyze_link_all(self):
         """
