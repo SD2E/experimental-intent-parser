@@ -432,10 +432,11 @@ class IntentParserServer:
             except:
                 continue
 
-        client_state = {}
-        client_state['doc'] = doc
-        client_state['document_id'] = document_id
-        self.analyze_document(client_state, doc, 0)
+        #client_state = {}
+        #client_state['doc'] = doc
+        #client_state['document_id'] = document_id
+        #client_state['user_id'] = userId
+        #self.analyze_document(client_state, doc, 0)
 
         report = {}
         report['challenge_problem_id'] = 'undefined'
