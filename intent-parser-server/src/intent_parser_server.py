@@ -31,6 +31,8 @@ class IntentParserServer:
 
     dict_path = 'dictionaries'
 
+    link_pref_path = 'link_pref'
+
     lab_ids_list = sorted(['BioFAB UID',
                             'Ginkgo UID',
                             'Transcriptic UID',
@@ -128,6 +130,12 @@ class IntentParserServer:
 
         if not os.path.exists(self.dict_path):
             os.makedirs(self.dict_path)
+
+        if not os.path.exists(self.link_pref_path):
+            os.makedirs(self.link_pref_path)
+
+        # Dictionary per-user that stores analyze associations to ignore
+        self.analyze_never_link = {}
 
     def initialize_sbh(self, *,
                  sbh_collection_uri,
@@ -552,8 +560,19 @@ class IntentParserServer:
         self.analyze_processing_lock[document_id] = threading.Lock()
         self.analyze_processing_lock[document_id].acquire()
 
+        user = json_body['user']
+        userEmail = json_body['userEmail']
+
+        if not userEmail is '':
+            userId = userEmail
+        elif user:
+            userId = user
+        else:
+            userId = document_id
+
         client_state = self.new_connection(document_id)
         client_state['doc'] = doc
+        client_state['user_id'] = userId
 
         if 'data' in json_body:
             body = doc.get('body');
@@ -649,7 +668,8 @@ class IntentParserServer:
             buttons = [('Yes', 'process_analyze_yes'),
                        ('No', 'process_analyze_no'),
                        ('Link All', 'process_link_all'),
-                       ('No to All', 'process_no_to_all')]
+                       ('No to All', 'process_no_to_all'),
+                       ('Never Link', 'process_never_link')]
 
             buttonHTML = ''
             buttonScript = ''
@@ -728,6 +748,10 @@ class IntentParserServer:
         self.item_map_lock.release()
         analyze_inputs = []
         progress_per_term = 1.0 / len(item_map)
+        if client_state['user_id'] in self.analyze_never_link:
+            link_prefs = self.analyze_never_link[client_state['user_id']]
+        else:
+            link_prefs = {}
         for term in item_map.keys():
             analyze_inputs.append([term, start_offset, paragraphs, self.partial_match_min_size, self.partial_match_thresh, item_map[term]])
         search_results = []
@@ -735,7 +759,11 @@ class IntentParserServer:
             for __, result in enumerate(p.imap_unordered(intent_parser_utils.analyze_term, analyze_inputs), 1):
                 if len(result) > 0:
                     for r in result:
-                        search_results.append(r)
+                        do_not_link = False
+                        if r['term'] in link_prefs and r['text'] in link_prefs[r['term']]:
+                            do_not_link = True
+                        if not do_not_link:
+                            search_results.append(r)
                 self.analyze_processing_map_lock.acquire()
                 self.analyze_processing_map[doc_id] += progress_per_term
                 self.analyze_processing_map[doc_id] = min(100, self.analyze_processing_map[doc_id])
@@ -877,6 +905,72 @@ class IntentParserServer:
 
         return self.report_search_results(client_state)
 
+    def process_never_link(self, json_body, client_state):
+        """
+        Handle "Never Link" button as part of analyze document.
+        This works like "No to all" but also stores the association to ignore it in subsequent runs.
+        """
+        json_body # Remove unused warning
+
+        curr_idx = client_state['search_result_index'] - 1
+        search_results = client_state['search_results']
+
+        dict_term = search_results[curr_idx]['term']
+        content_text = search_results[curr_idx]['text']
+
+        userId = client_state['user_id']
+
+        # Make sure we have a list of link preferences for this userId
+        if not userId in self.analyze_never_link:
+            link_pref_file = os.path.join(self.link_pref_path, userId + '.json')
+            if os.path.exists(link_pref_file):
+                try:
+                    with open(link_pref_file, 'r') as fin:
+                        self.analyze_never_link[userId] = json.load(fin)
+                        print('Loaded link preferences for userId, path: %s' % link_pref_file)
+                except:
+                    print('ERROR: Failed to load link preferences file!')
+            else:
+                self.analyze_never_link[userId] = {}
+
+        # Update link preferences
+        if dict_term in self.analyze_never_link[userId]:
+            # Append text to list of no-link preferences
+            self.analyze_never_link[userId][dict_term].append(content_text)
+        else:
+            # If no prefs for this dict term, start a new list with the current text
+            self.analyze_never_link[userId][dict_term] = [content_text]
+
+        link_pref_file = os.path.join(self.link_pref_path, userId + '.json')
+        try:
+            with open(link_pref_file, 'w') as fout:
+                json.dump(self.analyze_never_link[userId], fout)
+        except:
+            print('ERROR: Failed to write link preferences file!')
+
+        # Remove all of these associations from the results
+        # This is different from "No to All", because that's only termed based
+        # This depends on the term and the text
+        next_idx = curr_idx + 1
+        while next_idx < len(search_results) and search_results[curr_idx]['term'] == search_results[next_idx]['term'] and search_results[curr_idx]['text'] == search_results[next_idx]['text']:
+            next_idx = next_idx + 1
+
+        # Are we at the end? Then just exit
+        if next_idx >= len(search_results):
+            return []
+
+        term_to_ignore = search_results[curr_idx]['term']
+        text_to_ignore = search_results[curr_idx]['text']
+        # Generate results without term to ignore
+        new_search_results = [r for r in search_results if not r['term'] == term_to_ignore and not r['text'] == text_to_ignore]
+
+        # Find out what term to point to
+        new_idx = new_search_results.index(search_results[next_idx])
+        # Update client state
+        client_state['search_results'] = new_search_results
+        client_state['search_result_index'] = new_idx
+
+        return self.report_search_results(client_state)
 
     def highlight_text(self, paragraph_index, offset, end_offset):
         highlight_text = {}
