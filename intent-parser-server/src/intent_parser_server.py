@@ -657,14 +657,6 @@ class IntentParserServer:
                                                       end_offset)
             actions.append(highlightTextAction)
 
-            html  = ''
-            html += '<center>'
-            html += 'Link ' + content_term + ' to ';
-            html += '<a href=' + uri + ' target=_blank>'
-            html += term + '</a> ?'
-            html += '</center>'
-
-
             buttons = [('Yes', 'process_analyze_yes'),
                        ('No', 'process_analyze_no'),
                        ('Link All', 'process_link_all'),
