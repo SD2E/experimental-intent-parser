@@ -652,36 +652,6 @@ class TestIntentParserServer(unittest.TestCase):
             self.assertTrue(len(overlaps) == 1)
             self.assertTrue(overlaps[0] == search_results[start_idx])
 
-    def test_find_common_substrings(self):
-        """
-        """
-        ############
-        content = 'Dna roteomics arabinose proteom arabinose\n'
-        term = 'L-arabinose'
-        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), self.ips.partial_match_min_size, self.ips.partial_match_thresh)
-
-        gt_match = [Match(a=14, b=2, size=9), Match(a=32, b=2, size=9)]
-        self.assertTrue(len(matches) == 2)
-        self.assertTrue(gt_match == matches)
-
-        ############
-        content = 'Dna roteomics arabinose proteom arabinose\n'
-        term = 'proteomics'
-        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), self.ips.partial_match_min_size, self.ips.partial_match_thresh)
-
-        gt_match = [Match(a=4, b=1, size=9), Match(a=24, b=0, size=7)]
-        self.assertTrue(len(matches) == 2)
-        self.assertTrue(gt_match == matches)
-
-        ############
-        content = 'arabinose\n'
-        term = 'L-arabinose'
-        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), self.ips.partial_match_min_size, self.ips.partial_match_thresh)
-
-        gt_match = [Match(a=0, b=2, size=9)]
-        self.assertTrue(len(matches) == 1)
-        self.assertTrue(gt_match == matches)
-
     def tearDown(self):
         """
         Perform teardown.
