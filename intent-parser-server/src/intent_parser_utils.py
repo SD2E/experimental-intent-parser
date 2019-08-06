@@ -1,4 +1,8 @@
+from collections import namedtuple as _namedtuple
+
 from difflib import Match
+
+IPSMatch = _namedtuple('Match', 'a b size content_word_length')
 
 def analyze_term(entry):
     term = entry[0]
@@ -51,17 +55,21 @@ def find_text(text, abs_start_offset, paragraphs, partial_match_min_size, partia
 
             matches = find_common_substrings(content.lower(), text.lower(), partial_match_min_size, partial_match_thresh)
             for match in matches:
-                # Need to exceed partial match threshold
+                # Need to exceed partial match threshold - content word length
+                if match.size < int(match.content_word_length * partial_match_thresh):
+                    continue
+
+                # Need to exceed partial match threshold - dictionary term length
                 if match.size < int(len(text) * partial_match_thresh):
                     continue
 
                 offset = match.a
 
-                # Check for whitespace before found text
+                # Require whitespace before found text
                 if offset > 0 and content[offset-1].isalpha():
                     continue
 
-                # Check for whitespace after found text
+                # Require whitespace after found text
                 next_offset = offset + match.size
                 if next_offset < len(content) and content[next_offset].isalpha():
                     continue
@@ -129,4 +137,20 @@ def find_common_substrings(content, dict_term, partial_match_min_size, partial_m
         else:
             i += 1
 
-    return results
+    # Compute word length for matched substrings
+    # The word is terminated by whitespace, or /, unless the character in question is also present in the dictionary term at the same location
+    results_mod = []
+    for res in results:
+        start_idx = res.a
+        start_idx_b = res.b
+        while (start_idx > 0 and (content[start_idx - 1].isalpha() or content[start_idx - 1] == '_')) or (start_idx > 0 and start_idx_b > 0 and content[start_idx - 1] == dict_term[start_idx_b - 1]):
+            start_idx -= 1
+            start_idx_b -= 1
+        end_idx = res.a
+        end_idx_b = res.b
+        while (end_idx < len_content and (content[end_idx].isalpha() or content[end_idx] == '_')) or (end_idx < len_content and end_idx_b < len_term and content[end_idx] == dict_term[end_idx_b]):
+            end_idx += 1
+            end_idx_b += 1
+        content_word_length = end_idx - start_idx
+        results_mod.append(IPSMatch(res.a, res.b, res.size, content_word_length))
+    return results_mod
