@@ -55,17 +55,21 @@ def find_text(text, abs_start_offset, paragraphs, partial_match_min_size, partia
 
             matches = find_common_substrings(content.lower(), text.lower(), partial_match_min_size, partial_match_thresh)
             for match in matches:
-                # Need to exceed partial match threshold
+                # Need to exceed partial match threshold - content word length
+                if match.size < int(match.content_word_length * partial_match_thresh):
+                    continue
+
+                # Need to exceed partial match threshold - dictionary term length
                 if match.size < int(len(text) * partial_match_thresh):
                     continue
 
                 offset = match.a
 
-                # Check for whitespace before found text
+                # Require whitespace before found text
                 if offset > 0 and content[offset-1].isalpha():
                     continue
 
-                # Check for whitespace after found text
+                # Require whitespace after found text
                 next_offset = offset + match.size
                 if next_offset < len(content) and content[next_offset].isalpha():
                     continue
