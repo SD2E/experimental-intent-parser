@@ -358,7 +358,9 @@ function findCursor() {
 
   var elementType = el.getType()
   // Handle special case of cursor at the end of a paragraph
-  if(elementType != elementType.TEXT) {
+  // Paragraphs appear to only have an offset of 0 or 1 (beginning or end)
+  // If we are at the end of a paragraph, we want to instead use the end of the text element in the paragraph
+  if(elementType != elementType.TEXT && offset > 0) {
     var textElement = findTEXT(el)
     if(textElement != null) {
       var length = textElement.getText().length
