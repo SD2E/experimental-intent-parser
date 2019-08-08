@@ -1,3 +1,5 @@
+import Levenshtein
+
 from collections import namedtuple as _namedtuple
 
 from difflib import Match
@@ -154,3 +156,35 @@ def find_common_substrings(content, dict_term, partial_match_min_size, partial_m
         content_word_length = end_idx - start_idx
         results_mod.append(IPSMatch(res.a, res.b, res.size, content_word_length))
     return results_mod
+
+
+def find_overlaps(start_idx, search_results, ignore_idx = set()):
+        """
+        Given a start index, find any entries in the results that overlap with the result at the start index
+        In the case where the amount of overlap is equal, we pick the one that has the lowest Levenshtein (edit) distance between the matched text and the dictionary term.
+        """
+        query = search_results[start_idx]
+        overlaps = [query]
+        overlap_idx = [start_idx]
+        best_overlap_idx = start_idx
+        best_overlap_len = query['end_offset'] - query['offset']
+        best_edit_dist = Levenshtein.distance(query['term'], query['text'])
+        for idx in range(start_idx + 1, len(search_results)):
+
+            if idx in ignore_idx:
+                continue;
+            comp = search_results[idx]
+
+            if not comp['paragraph_index'] == query['paragraph_index']:
+                continue
+            overlap = max(0, min(comp['end_offset'], query['end_offset']) - max(comp['offset'], query['offset'])) > 0
+            if overlap:
+                overlaps.append(comp)
+                overlap_idx.append(idx)
+                dist = Levenshtein.distance(comp['term'], comp['text'])
+                overlap_amount = comp['end_offset'] - comp['offset']
+                if overlap_amount >= best_overlap_len or (overlap_amount == best_overlap_len and dist < best_edit_dist):
+                    best_overlap_idx = idx
+                    best_overlap_len = dist
+
+        return overlaps, best_overlap_idx, overlap_idx
