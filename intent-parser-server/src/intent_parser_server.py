@@ -1283,7 +1283,7 @@ class IntentParserServer:
 
     def generate_item_map(self, *, use_cache=True):
         item_map = {}
-
+        print('Generating item map, %d' % time.time())
         if use_cache:
             try:
                 f = open(self.my_path + '/item-map.json', 'r')
