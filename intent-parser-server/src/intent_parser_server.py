@@ -1725,8 +1725,8 @@ class IntentParserServer:
 
         buttons = [('Ignore', 'spellcheck_add_ignore', 0),
                    ('Ignore All', 'spellcheck_add_ignore_all', 0),
-                   ('Add to SynBioHub', 'spellcheck_add_synbiohub', 0),
                    ('Add to Spellchecker Dictionary', 'spellcheck_add_dictionary', 0),
+                   ('Add to SynBioHub', 'spellcheck_add_synbiohub', 0),
                    ('Manually Enter Link', manualLinkScript, 1, 'EnterLink'),
                    ('Include Previous Word', 'spellcheck_add_select_previous', 0),
                    ('Include Next Word', 'spellcheck_add_select_next', 0),
