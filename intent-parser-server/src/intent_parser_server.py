@@ -1733,6 +1733,10 @@ class IntentParserServer:
                    ('Remove First Word', 'spellcheck_add_drop_first', 0),
                    ('Remove Last Word', 'spellcheck_add_drop_last', 0)]
 
+        # If this entry was previously linked, add a button to reuse that link
+        if 'prev_link' in spellCheckResults[resultIdx]:
+            buttons.insert(4, ('Reuse previous link', 'spellcheck_reuse_link', 0))
+
         dialogAction = self.simple_sidebar_dialog(html, buttons)
         actionList.append(dialogAction)
         return actionList
@@ -1838,9 +1842,34 @@ class IntentParserServer:
 
         return self.report_spelling_results(client_state)
 
+    def spellcheck_reuse_link(self, json_body, client_state):
+        """
+        Handle reuse previous link button as part of additions by spelling.
+        """
+        json_body # Remove unused warning
+        spell_index = client_state['spelling_index']
+        spell_check_result = client_state['spelling_results'][spell_index]
+
+        if 'prev_link' in spell_check_result:
+            new_link = spell_check_result['prev_link']
+        else:
+            new_link = None
+            print('spellcheck_reuse_link call without prev_link in spell_check_result!')
+
+        start_par = spell_check_result['select_start']['paragraph_index']
+        start_cursor = spell_check_result['select_start']['cursor_index']
+        end_cursor = spell_check_result['select_end']['cursor_index']
+
+        actions = [self.link_text(start_par, start_cursor, end_cursor, new_link)]
+        client_state['spelling_index'] += 1
+        if client_state['spelling_index'] < client_state['spelling_size']:
+            for action in self.report_spelling_results(client_state):
+                actions.append(action)
+        return actions
+
     def spellcheck_link(self, json_body, client_state):
         """
-        Handle creating a link button as part of additions by spelling.
+        Handle manual link button as part of additions by spelling.
         """
         spell_index = client_state['spelling_index']
         spell_check_result = client_state['spelling_results'][spell_index]
@@ -1854,6 +1883,11 @@ class IntentParserServer:
         start_par = spell_check_result['select_start']['paragraph_index']
         start_cursor = spell_check_result['select_start']['cursor_index']
         end_cursor = spell_check_result['select_end']['cursor_index']
+
+        # store the link for any other matching results
+        for result in client_state['spelling_results']:
+            if result['term'] == spell_check_result['term']:
+                result['prev_link'] = new_link
 
         actions = [self.link_text(start_par, start_cursor, end_cursor, new_link)]
         client_state['spelling_index'] += 1
@@ -2252,6 +2286,12 @@ class IntentParserServer:
             if action == 'submit':
                 result = self.create_sbh_stub(data)
                 if result['results']['operationSucceeded'] and data['isSpellcheck'] == 'True':
+                    # store the link for any other matching results
+                    curr_term = client_state['spelling_results'][ client_state["spelling_index"]]['term']
+                    for r in client_state['spelling_results']:
+                        if r['term'] == curr_term:
+                            r['prev_link'] = result['actions'][0]['url']
+
                     client_state["spelling_index"] += 1
                     if client_state['spelling_index'] < client_state['spelling_size']:
                         for action in self.report_spelling_results(client_state):
