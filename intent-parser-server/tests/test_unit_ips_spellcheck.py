@@ -304,6 +304,14 @@ class TestIntentParserServer(unittest.TestCase):
 
             self.ips.process_submit_form([], [])
 
+            document_url = self.ips.sbh_uri_prefix + self.json_body['data']['displayId'] + '/1'
+
+            # Ensure that prev link is set for the "Reuse previous link" button
+            for res in self.ips.client_state_map[self.doc_id]['spelling_results']:
+                if res['term'] == search_result['term']:
+                    self.assertTrue('prev_link' in res)
+                    self.assertTrue(res['prev_link'] == document_url, 'new link: %s, expected link: %s' % (res['prev_link'], document_url))
+
             add_results = json.loads(self.ips.send_response.call_args[0][2])
             self.assertTrue('actions' in add_results, 'Failed on index %d of %d' % (idx, numResults))
             actions = add_results['actions']
@@ -439,6 +447,72 @@ class TestIntentParserServer(unittest.TestCase):
         result = self.ips.spellcheck_add_drop_last([], self.ips.client_state_map[self.doc_id])
         selected_text = get_currently_selected_text(self, self.ips, self.doc_id, self.doc_content)
         self.assertTrue(selected_text == 'or subgoals')
+
+    def test_spellcheck_link(self):
+        """
+        Test Manual Link button
+        """
+        testLink = 'http://test-link.org'
+        self.json_body['data'] = {}
+        self.json_body['data']['buttonId'] = {}
+        self.json_body['data']['buttonId']['link'] = testLink
+
+        while self.ips.client_state_map[self.doc_id]['spelling_index'] < (self.ips.client_state_map[self.doc_id]['spelling_size'] - 1):
+            orig_search_result = self.ips.client_state_map[self.doc_id]['spelling_results'][self.ips.client_state_map[self.doc_id]['spelling_index']]
+            actions = self.ips.spellcheck_link(self.json_body,self.ips.client_state_map[self.doc_id])
+            self.assertTrue(len(actions) == 3)
+            self.assertTrue(actions[0]['action'] == 'linkText')
+
+            for res in  self.ips.client_state_map[self.doc_id]['spelling_results']:
+                if res['term'] == orig_search_result['term']:
+                    self.assertTrue('prev_link' in res)
+                    self.assertTrue(res['prev_link'] == testLink )
+
+
+    def test_spellcheck_reuse_link(self):
+        """
+        Test Reuse Previous Link button
+        """
+        testLink = 'http://test-link.org'
+        self.json_body['data'] = {}
+        self.json_body['data']['buttonId'] = {}
+        self.json_body['data']['buttonId']['link'] = testLink
+
+        spelling_results = self.ips.client_state_map[self.doc_id]['spelling_results']
+        result_len = self.ips.client_state_map[self.doc_id]['spelling_size']
+
+        num_matching_results = len([r for r in spelling_results  if r['term'] == spelling_results[self.ips.client_state_map[self.doc_id]['spelling_index']]['term']])
+        while self.ips.client_state_map[self.doc_id]['spelling_index'] < result_len and num_matching_results < 2:
+            self.ips.client_state_map[self.doc_id]['spelling_index'] += 1
+
+        if self.ips.client_state_map[self.doc_id]['spelling_index'] >= result_len:
+            self.fail('Unable to find any results with more than one entry!')
+
+        # Link a result
+        orig_search_result = spelling_results[self.ips.client_state_map[self.doc_id]['spelling_index']]
+        actions = self.ips.spellcheck_link(self.json_body, self.ips.client_state_map[self.doc_id])
+        self.assertTrue(len(actions) == 3)
+        self.assertTrue(actions[0]['action'] == 'linkText')
+
+        for res in  self.ips.client_state_map[self.doc_id]['spelling_results']:
+            if res['term'] == orig_search_result['term']:
+                self.assertTrue('prev_link' in res)
+                self.assertTrue(res['prev_link'] == testLink )
+
+        # Find the next match index and set it
+        index_next_match = self.ips.client_state_map[self.doc_id]['spelling_index']
+        while index_next_match < result_len and not spelling_results[index_next_match]['term'] == orig_search_result['term']:
+            index_next_match += 1
+        self.ips.client_state_map[self.doc_id]['spelling_index'] = index_next_match
+
+        actions = self.ips.spellcheck_reuse_link(self.json_body, self.ips.client_state_map[self.doc_id])
+        expected_action_size = 3
+        if self.ips.client_state_map[self.doc_id]['spelling_index'] == result_len:
+            expected_action_size = 1
+
+        self.assertTrue(len(actions) == expected_action_size)
+        self.assertTrue(actions[0]['action'] == 'linkText')
+
 
     def tearDown(self):
         """
