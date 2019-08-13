@@ -398,7 +398,58 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
 
+    def process_generate_request(self, httpMessage, sm):
+        """
+        Handles a request to generate a structured request json
+        """
+        resource = httpMessage.get_resource()
+        document_id = resource.split('?')[1]
+
+        start = time.time()
+
+        try:
+            doc = self.google_accessor.get_document(document_id=document_id)
+        except Exception as ex:
+            print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
+
+        experiment_id = 'TBD'
+
+        measurements = []
+        for table in self.get_element_type(doc, 'table'):
+            rows = table['tableRows']
+            is_measurement_table = "Measurement type" in self.get_paragraph_text(rows[0]['tableCells'][0]['content'][0]['paragraph'])
+            # Ignore other tables for now
+            if not is_measurement_table:
+                continue
+            # Each non-header row represents a measurement in the run
+            for row in rows[1:]:
+                cells = row['tableCells']
+                measurement_type = self.get_measurement_type(self.get_paragraph_text(cells[0]['content'][0]['paragraph']))
+                # Ignore the rest of the cells for now
+                measurement = {'measurement_type' : measurement_type}
+                measurements.append(measurement)
+
+        request = {}
+        request['name'] = doc['title']
+        request['experiment_id'] = experiment_id
+        request['challenge_problem'] = 'undefined'
+        request['experiment_reference'] = doc['title']
+        request['experiment_reference_url'] = 'https://docs.google.com/document/d/' + document_id
+        request['experiment_version'] = 1
+        request['runs'] = [{'measurements' : measurements, 'experiment_id': experiment_id, 'labs' : []}]
+
+        end = time.time()
+
+        print('Generated request in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+
+        self.send_response(200, 'OK', json.dumps(request), sm, 'application/json')
+
+
     def process_generate_report(self, httpMessage, sm):
+        """
+        Handles a request to generate a report
+        """
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
         #client_state = {}
@@ -725,6 +776,21 @@ class IntentParserServer:
 
         return elements
 
+    def get_measurement_type(self, text):
+        """
+        Find the closest matching measurement type to the given type, and return that as a string
+        """
+        # measurement types have underscores, so replace spaces with underscores to make the inputs match better
+        text = text.replace(' ', '_')
+        best_match_type = ''
+        best_match_size = 0
+        for mtype in self.measurement_types:
+            matches = intent_parser_utils.find_common_substrings(text.lower(), mtype.lower(), 1, 0)
+            for m in matches:
+                if m.size > best_match_size:
+                    best_match_type = mtype
+                    best_match_size = m.size
+        return best_match_type
 
     def fetch_spreadsheet_data(self):
         tab_data = {}
@@ -1171,6 +1237,8 @@ class IntentParserServer:
             self.send_response(200, 'OK', 'Intent Parser Server is Up and Running\n', sm)
         elif resource == '/document_report':
             self.process_generate_report(httpMessage, sm)
+        elif resource == '/document_request':
+            self.process_generate_request(httpMessage, sm)
         else:
             print('Did not find ' + resource)
             raise ConnectionException(404, 'Not Found', 'Resource Not Found')
