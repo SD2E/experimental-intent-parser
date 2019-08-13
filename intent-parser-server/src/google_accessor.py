@@ -22,7 +22,7 @@ class GoogleAccessor:
     def __init__(self, *, spreadsheet_id: str, credentials):
         self._sheet_service = build('sheets', 'v4',
                                     credentials=credentials)
-        self._drive_service = build('drive', 'v3',
+        self._drive_service = build('drive', 'v2',
                                     credentials=credentials)
         self._docs_service = build('docs', 'v1',
                                    credentials=credentials)
@@ -382,3 +382,12 @@ class GoogleAccessor:
         Returns the list of revisions for the given document_id
         """
         return self._drive_service.revisions().list(fileId=document_id).execute()
+
+    def get_document_metadata(self, *, document_id):
+        """
+        Returns the list of revisions for the given document_id
+        """
+        return self._drive_service.files().get(fileId=document_id).execute()
+
+    def get_document_parents(self, *, document_id):
+        return self._drive_service.parents().list(fileId=document_id).execute()
