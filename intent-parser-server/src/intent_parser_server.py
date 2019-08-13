@@ -430,10 +430,25 @@ class IntentParserServer:
                 measurement = {'measurement_type' : measurement_type}
                 measurements.append(measurement)
 
+        # This will return a parent list, which should have one or more Ids of parent directories
+        # We want to navigate those and see if they are a close match to a challenge problem ID
+        parent_list = self.google_accessor.get_document_parents(document_id=document_id)
+        cp_id = 'Unknown'
+        if not parent_list['kind'] == 'drive#parentList':
+            print('ERROR: expected a drive#parent_list, received a %s' % parent_list['kind'])
+        else:
+            for parent_ref in parent_list['items']:
+                if not parent_ref['kind'] == 'drive#parentReference':
+                    continue
+                parent_meta = self.google_accessor.get_document_metadata(document_id=parent_ref['id'])
+                new_cp_id = self.get_challenge_problem_id(parent_meta['title'])
+                if new_cp_id is not None:
+                    cp_id = new_cp_id
+
         request = {}
         request['name'] = doc['title']
         request['experiment_id'] = experiment_id
-        request['challenge_problem'] = 'undefined'
+        request['challenge_problem'] = cp_id
         request['experiment_reference'] = doc['title']
         request['experiment_reference_url'] = 'https://docs.google.com/document/d/' + document_id
         request['experiment_version'] = 1
@@ -789,6 +804,22 @@ class IntentParserServer:
             for m in matches:
                 if m.size > best_match_size:
                     best_match_type = mtype
+                    best_match_size = m.size
+        return best_match_type
+
+    def get_challenge_problem_id(self, text):
+        """
+        Find the closest matching measurement type to the given type, and return that as a string
+        """
+        # challenge problem ids have underscores, so replace spaces with underscores to make the inputs match better
+        text = text.replace(' ', '_')
+        best_match_type = None
+        best_match_size = 0
+        for cid in self.challenge_ids:
+            matches = intent_parser_utils.find_common_substrings(text.lower(), cid.lower(), 1, 0)
+            for m in matches:
+                if m.size > best_match_size and m.size > int(0.25 * len(cid)):
+                    best_match_type = cid
                     best_match_size = m.size
         return best_match_type
 
