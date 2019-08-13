@@ -1,6 +1,7 @@
 import socket
 import threading
 import json
+import urllib.request
 from socket_manager import SocketManager
 from google_accessor import GoogleAccessor
 from sbh_accessor import SBHAccessor
@@ -78,6 +79,11 @@ class IntentParserServer:
 
     # Defines a period of time to wait to send analyze progress updates, in seconds
     analyze_progress_period = 2.5
+
+    # Defines the URL to the challenge problem id json
+    challenge_json_url = 'https://schema.catalog.sd2e.org/schemas/challenge_problem_id.json'
+
+    measurements_json_url = 'https://schema.catalog.sd2e.org/schemas/measurement_type.json'
 
     def __init__(self, bind_port=8081, bind_ip="0.0.0.0",
                  sbh_collection_uri=None,
@@ -224,6 +230,9 @@ class IntentParserServer:
         self.item_map_lock.acquire()
         self.item_map = self.generate_item_map(use_cache=item_map_cache)
         self.item_map_lock.release()
+
+        self.challenge_ids = self.generate_challenge_ids()
+        self.measurement_types = self.generate_measurement_types()
 
         # Inverse map of typeTabs
         self.type2tab = {}
@@ -1242,17 +1251,39 @@ class IntentParserServer:
 
             try:
                 item_map = self.generate_item_map(use_cache=False)
-
             except Exception as ex:
-                print(''.join(traceback.format_exception(etype=type(ex),
-                                                         value=ex,
-                                                         tb=ex.__traceback__)))
-                continue
+                print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
 
             self.item_map_lock.acquire()
             self.item_map = item_map
             self.item_map_lock.release()
 
+
+    def generate_challenge_ids(self):
+        """
+        Function that reads the challenge problem definition JSON
+        """
+        response = urllib.request.urlopen(self.challenge_json_url,timeout=60)
+        data = json.loads(response.read().decode('utf-8'))
+
+        challenge_id = []
+        for cid in data['enum']:
+            challenge_id.append(cid)
+
+        return challenge_id
+
+    def generate_measurement_types(self):
+        """
+        Function that reads the challenge problem definition JSON
+        """
+        response = urllib.request.urlopen(self.measurements_json_url,timeout=60)
+        data = json.loads(response.read().decode('utf-8'))
+
+        measurement_type = []
+        for cid in data['enum']:
+            measurement_type.append(cid)
+
+        return measurement_type
 
     def generate_item_map(self, *, use_cache=True):
         item_map = {}
