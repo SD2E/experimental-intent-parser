@@ -11,6 +11,7 @@ function onOpen() {
   menu.addItem('Add to SynBioHub', 'addToSynBioHub').addToUi()
   menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling').addToUi()
   menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor').addToUi()
+  menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest').addToUi()
   menu.addItem('Generate Report', 'sendGenerateReport').addToUi()
   menu.addItem('Help', 'showHelp').addToUi()
 }
@@ -418,6 +419,32 @@ function sendGenerateReport() {
 
   html += 'Download Report '
   html += '<a href=' + serverURL + '/document_report?'
+  html += docId + ' target=_blank>here</a>'
+
+  html += '</p>'
+  html += '\n'
+  html += '<input id=okButton Button value="Done" '
+  html += 'type="button" onclick="onSuccess()" />\n'
+  html += '</center>'
+
+  showModalDialog(html, 'Download', 300, 100)
+}
+
+function sendGenerateStructuredRequest() {
+  var docId = DocumentApp.getActiveDocument().getId();
+
+  var html = ''
+  html += '<script>\n'
+  html += 'function onSuccess() {\n'
+  html += '  google.script.host.close()\n'
+  html += '}\n'
+  html += '</script>\n'
+  html += '\n'
+  html += '<p>'
+  html += '<center>'
+
+  html += 'Download Structured Request '
+  html += '<a href=' + serverURL + '/document_request?'
   html += docId + ' target=_blank>here</a>'
 
   html += '</p>'
