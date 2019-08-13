@@ -61,19 +61,19 @@ class TestIntentParserServer(unittest.TestCase):
         self.template_sheet_last_rev = '2019-06-12T20:29:13.519Z'
 
         rev_results = self.google_accessor.get_document_revisions(document_id=self.template_doc_id)
-        if 'revisions' not in rev_results or len(rev_results['revisions']) < 1 :
+        if not 'drive#revisionList' == rev_results['kind'] or len(rev_results['items']) < 1 :
             print('ERROR: Failed to retrieve revisions for document template!')
             raise Exception
-        last_rev = rev_results['revisions'][0]['modifiedTime']
+        last_rev = rev_results['items'][0]['modifiedDate']
         if not last_rev == self.template_doc_last_rev:
             print('ERROR: template document has been modified! Expected last revision: %s, received %s!' % (self.template_doc_last_rev, last_rev))
             raise Exception
 
         rev_results = self.google_accessor.get_document_revisions(document_id=self.template_spreadsheet_id)
-        if 'revisions' not in rev_results or len(rev_results['revisions']) < 1 :
+        if not 'drive#revisionList' == rev_results['kind'] or len(rev_results['items']) < 1 :
             print('ERROR: Failed to retrieve revisions for spreadsheet template!')
             raise Exception
-        last_rev = rev_results['revisions'][0]['modifiedTime']
+        last_rev = rev_results['items'][0]['modifiedDate']
         if not last_rev == self.template_sheet_last_rev:
             print('ERROR: template spreadsheet has been modified! Expected last revision: %s, received %s!' % (self.template_sheet_last_rev, last_rev))
             raise Exception
