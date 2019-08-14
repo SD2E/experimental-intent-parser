@@ -43,10 +43,10 @@ class TestIntentParserServer(unittest.TestCase):
         self.google_accessor = GoogleAccessor.create()
 
         rev_results = self.google_accessor.get_document_revisions(document_id=self.template_spreadsheet_id)
-        if 'revisions' not in rev_results or len(rev_results['revisions']) < 1 :
+        if not 'drive#revisionList' == rev_results['kind'] or len(rev_results['items']) < 1 :
             print('ERROR: Failed to retrieve revisions for spreadsheet template!')
             raise Exception
-        last_rev = rev_results['revisions'][0]['modifiedTime']
+        last_rev = rev_results['items'][0]['modifiedDate']
         if not last_rev == self.template_sheet_last_rev:
             print('ERROR: template spreadsheet has been modified! Expected last revision: %s, received %s!' % (self.template_sheet_last_rev, last_rev))
             raise Exception

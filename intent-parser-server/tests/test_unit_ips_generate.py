@@ -28,10 +28,44 @@ class TestIntentParserServer(unittest.TestCase):
     items_json = 'item-map-sd2dict.json'
 
     dataDir = 'data'
+    
+    parent_list = {'kind': 'drive#parentList', 'etag': '"_sqIxUq0fTLFIA17mBQDotbHWsg/XLPCLomfatsiNQOKMCWBdA5SI80"', \
+                   'selfLink': 'https://www.googleapis.com/drive/v2/files/1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA/parents?alt=json', \
+                   'items': [{'kind': 'drive#parentReference', 'id': '17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', \
+                              'selfLink': 'https://www.googleapis.com/drive/v2/files/1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA/parents/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', \
+                              'parentLink': 'https://www.googleapis.com/drive/v2/files/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', 'isRoot': False}]}
+    
+    parent_meta = {'kind': 'drive#file', 'id': '17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', 'etag': '"_sqIxUq0fTLFIA17mBQDotbHWsg/MTU2NTcyNTU4MDIxMg"', \
+                   'selfLink': 'https://www.googleapis.com/drive/v2/files/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', \
+                   'alternateLink': 'https://drive.google.com/drive/folders/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', \
+                   'embedLink': 'https://drive.google.com/embeddedfolderview?id=17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', \
+                   'iconLink': 'https://drive-thirdparty.googleusercontent.com/16/type/application/vnd.google-apps.folder', \
+                   'title': 'Novel Chassis', 'mimeType': 'application/vnd.google-apps.folder', \
+                   'labels': {'starred': False, 'hidden': False, 'trashed': False, 'restricted': False, 'viewed': True}, \
+                   'copyRequiresWriterPermission': False, 'createdDate': '2019-08-13T19:46:20.212Z', 'modifiedDate': '2019-08-13T19:46:20.212Z', \
+                   'modifiedByMeDate': '2019-08-13T19:46:20.212Z', 'lastViewedByMeDate': '2019-08-13T19:48:03.464Z', \
+                   'markedViewedByMeDate': '1970-01-01T00:00:00.000Z', 'version': '4', \
+                   'parents': [{'kind': 'drive#parentReference', 'id': '1UAvrsvMnCqabfuUAkUTw7ICW5rHfiMfM', \
+                                'selfLink': 'https://www.googleapis.com/drive/v2/files/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR/parents/1UAvrsvMnCqabfuUAkUTw7ICW5rHfiMfM', \
+                                'parentLink': 'https://www.googleapis.com/drive/v2/files/1UAvrsvMnCqabfuUAkUTw7ICW5rHfiMfM', 'isRoot': False}], \
+                   'userPermission': {'kind': 'drive#permission', 'etag': '"_sqIxUq0fTLFIA17mBQDotbHWsg/C0CILnP96utUTMOd8wW49Xi8oig"', 'id': 'me', \
+                                      'selfLink': 'https://www.googleapis.com/drive/v2/files/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR/permissions/me', 'role': 'owner', 'type': 'user'}, \
+                   'quotaBytesUsed': '0', 'ownerNames': ['Nick Walczak'], \
+                   'owners': [{'kind': 'drive#user', 'displayName': 'Nick Walczak', \
+                               'picture': {'url': 'https://lh4.googleusercontent.com/-GDclgQlGijc/AAAAAAAAAAI/AAAAAAAABEE/UG6F2Nce1jU/s64/photo.jpg'}, \
+                               'isAuthenticatedUser': True, 'permissionId': '04236438886952901009', 'emailAddress': 'walczak.nich@gmail.com'}], \
+                   'lastModifyingUserName': 'Nick Walczak', \
+                   'lastModifyingUser': {'kind': 'drive#user', 'displayName': 'Nick Walczak', \
+                                         'picture': {'url': 'https://lh4.googleusercontent.com/-GDclgQlGijc/AAAAAAAAAAI/AAAAAAAABEE/UG6F2Nce1jU/s64/photo.jpg'}, \
+                                         'isAuthenticatedUser': True, 'permissionId': '04236438886952901009', 'emailAddress': 'walczak.nich@gmail.com'}, \
+                   'capabilities': {'canCopy': False, 'canEdit': True}, 'editable': True, 'copyable': False, 'writersCanShare': True, 'shared': False, \
+                   'explicitlyTrashed': False, 'appDataContents': False, 'spaces': ['drive']}
+
+
 
     def setUp(self):
         """
-        Configure an instance of IntentParserServer for spellcheck testing.
+        Configure an instance of IntentParserServer for generation testing.
         """
         self.doc_content = None
         with open(os.path.join(self.dataDir,self.spellcheckFile), 'r') as fin:
@@ -66,19 +100,38 @@ class TestIntentParserServer(unittest.TestCase):
         with open(os.path.join(self.dataDir, self.items_json), 'r') as fin:
             self.ips.item_map = json.load(fin)
 
-        httpMessage = Mock()
-        httpMessage.get_resource = Mock(return_value='/document_report?1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA')
+        self.httpMessage = Mock()
+        self.httpMessage.get_resource = Mock(return_value='/document_report?1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA')
 
-        self.ips.process_generate_report(httpMessage, [])
 
-    def test_generate_basic(self):
+    def test_generate_report_basic(self):
         """
         Basic check, ensure that spellcheck runs and the results are as expected
         """
+
+        self.ips.process_generate_report(self.httpMessage, [])
+
         # Basic sanity checks
         gen_results = json.loads(self.ips.send_response.call_args[0][2])
 
         self.assertTrue(gen_results['mapped_names'] is not None)
+
+    def test_generate_request_basic(self):
+        """
+        Basic check, ensure that spellcheck runs and the results are as expected
+        """
+        self.ips.google_accessor.get_document_parents = Mock(return_value = self.parent_list)
+        self.ips.google_accessor.get_document_metadata = Mock(return_value = self.parent_meta)
+
+        self.ips.process_generate_request(self.httpMessage, [])
+
+        # Basic sanity checks
+        gen_results = json.loads(self.ips.send_response.call_args[0][2])
+
+        self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
+        self.assertTrue(gen_results['challenge_problem'] == 'NOVEL_CHASSIS')
+        self.assertTrue(len(gen_results['runs'][0]['measurements']) == 6)
+
 
     def tearDown(self):
         """
