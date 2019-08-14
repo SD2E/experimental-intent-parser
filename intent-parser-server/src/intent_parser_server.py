@@ -143,6 +143,9 @@ class IntentParserServer:
         # Dictionary per-user that stores analyze associations to ignore
         self.analyze_never_link = {}
 
+        self.challenge_ids = self.generate_challenge_ids()
+        self.measurement_types = self.generate_measurement_types()
+
     def initialize_sbh(self, *,
                  sbh_collection_uri,
                  spreadsheet_id,
@@ -230,9 +233,6 @@ class IntentParserServer:
         self.item_map_lock.acquire()
         self.item_map = self.generate_item_map(use_cache=item_map_cache)
         self.item_map_lock.release()
-
-        self.challenge_ids = self.generate_challenge_ids()
-        self.measurement_types = self.generate_measurement_types()
 
         # Inverse map of typeTabs
         self.type2tab = {}
