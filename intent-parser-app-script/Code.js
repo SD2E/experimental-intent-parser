@@ -4,16 +4,24 @@ var versionString = '1.1-git-session'
 
 function onOpen() {
   var ui = DocumentApp.getUi()
+
+  var tablesMenu = ui.createMenu('Create table templates')
+  tablesMenu.addItem('Create Measurements Table', 'createTableMeasurements')
+
   var menu = ui.createMenu('Parse Intent')
 
-  menu.addItem('Analyze from top', 'sendAnalyzeFromTop').addToUi()
-  menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor').addToUi()
-  menu.addItem('Add to SynBioHub', 'addToSynBioHub').addToUi()
-  menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling').addToUi()
-  menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor').addToUi()
-  menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest').addToUi()
-  menu.addItem('Generate Report', 'sendGenerateReport').addToUi()
-  menu.addItem('Help', 'showHelp').addToUi()
+  menu.addItem('Analyze from top', 'sendAnalyzeFromTop')
+  menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor')
+  menu.addItem('Add to SynBioHub', 'addToSynBioHub')
+  menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling')
+  menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor')
+  menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest')
+  menu.addItem('Generate Report', 'sendGenerateReport')
+  menu.addSubMenu(tablesMenu)
+
+  menu.addItem('Help', 'showHelp')
+
+  menu.addToUi()
 }
 
 function showHelp() {
@@ -107,6 +115,34 @@ function processActions(response) {
         var endOffset = actionDesc['end_offset']
         var url = actionDesc['url']
         linkDocText(paragraphIndex, offset, endOffset, url)
+        break
+
+      case 'addTable':
+        var paragraphIndex = actionDesc['paragraph_index']
+        var offset = actionDesc['offset']
+        var tableData = actionDesc['tableData']
+        var colSizes = actionDesc['colSizes']
+
+        var doc = DocumentApp.getActiveDocument();
+        var body = doc.getBody();
+
+        var newTable = body.insertTable(paragraphIndex, tableData);
+        var headerRow = newTable.getRow(0);
+
+        var style = {};
+        style[DocumentApp.Attribute.HORIZONTAL_ALIGNMENT] = DocumentApp.HorizontalAlignment.CENTER;
+        style[DocumentApp.Attribute.FONT_SIZE] = 11;
+        style[DocumentApp.Attribute.BOLD] = true;
+        headerRow.setAttributes(style)
+
+        for(var idx=0; idx < colSizes.length; ++idx) {
+            newTable.setColumnWidth(idx, colSizes[idx])
+        }
+
+        for(var idx=0; idx < headerRow.getNumCells(); ++idx) {
+            Logger.log('col ' + idx + ' width: ' + newTable.getColumnWidth(idx))
+        }
+
         break
 
       case 'showSidebar':
@@ -501,4 +537,75 @@ function submitForm(formData) {
 
 function postFromClient(postInfo) {
   return sendPost(postInfo.resource, postInfo.data)
+}
+
+function createTableMeasurements() {
+  var ui = DocumentApp.getUi();
+  html = '\
+<!DOCTYPE html>\
+<html>\
+<body>\
+  <script>\
+    function onSuccess() {\
+        google.script.host.close();\
+    }\
+    function handleCancel() {\
+        google.script.host.close();\
+    }\
+    function handleSubmit() {\
+        var extra = {"action": "createMeasurementTable"};\
+        var theForm = this.createMeasurementTableForm;\
+        var formInfo = {\'selectionStartParagraph\' : theForm.selectionStartParagraph.value,\
+                        \'selectionStartOffset\' : theForm.selectionStartOffset.value,\
+                        \'formName\' : theForm.formName.value,\
+                        \'numReagents\' : theForm.num_reagents.value,\
+                        \'temperature\' : theForm.temperature.checked,\
+                        \'timepoint\' : theForm.timepoint.checked,\
+                        \'numRows\' : theForm.num_rows.value};\
+        formInfo.extra = extra;\
+        google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);\
+    }\
+  </script>\
+  <center>\
+    <form name="createMeasurementTableForm" action="/add">\
+      <input type="hidden" name="selectionStartParagraph" value="%s">\
+      <input type="hidden" name="selectionStartOffset" value="%s">\
+      <input type="hidden" name="formName" value="createMeasurementTable">\
+      <table stype="width:100%">\
+        <tr>\
+          <th align="right">Number of reagents: </th>\
+          <td>\
+            <input type="text" name="num_reagents" value="0">\
+          </td>\
+        </tr>\
+        <tr>\
+          <th align="right">Temperature: </th>\
+          <td>\
+            <input type="checkbox" name="temperature">\
+          </td>\
+        </tr>\
+        <tr>\
+          <th align="right">Timepoint: </th>\
+          <td>\
+            <input type="checkbox" name="timepoint">\
+          </td>\
+        </tr>\
+        <tr>\
+          <th align="right">Number of rows/measurements: </th>\
+          <td>\
+            <input type="text" name="num_rows">\
+          </td>\
+        </tr>\
+      </table>\
+      <br>\
+      <input type="button" value="Submit" id="submitButton" onclick="handleSubmit()">\
+      <input type="button" value="Cancel" id="cancelButton" onclick="handleCancel()">\
+    </form>\
+  </center>\
+</body>\
+</html>\
+'
+    loc = findCursor();
+    formattedHTML = Utilities.formatString(html, loc['paragraphIndex'], loc['offset']);
+    showModalDialog(formattedHTML, 'Create Measurement Table Parameters', 600, 600);
 }
