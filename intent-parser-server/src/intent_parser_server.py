@@ -2444,6 +2444,11 @@ class IntentParserServer:
                         for action in reportActions:
                             result['actions'].append(action)
 
+            elif action == 'createMeasurementTable':
+                actions = self.process_create_measurement_table(data)
+                result = {'actions': actions,
+                          'results': {'operationSucceeded': True}
+                }
             else:
                 print('Unsupported form action: {}'.format(action))
 
@@ -2451,6 +2456,64 @@ class IntentParserServer:
                                'application/json')
         finally:
             self.release_connection(client_state)
+
+    def process_create_measurement_table(self, data):
+        """
+        Process create measurement table
+        """
+
+        num_reagents = int(data['numReagents'])
+        has_temp = data['temperature']
+        has_time = data['timepoint']
+        num_rows = int(data['numRows'])
+
+        num_cols = num_reagents + 4
+        if has_time:
+            num_cols += 1
+        if has_temp:
+            num_cols += 1
+
+        col_sizes = []
+        table_data = []
+        header = []
+        blank_row = []
+        for __ in range(num_reagents):
+            header.append('')
+            blank_row.append('')
+            col_sizes.append(4)
+        header.append('measurement_type')
+        header.append('replicate')
+        header.append('strains')
+        blank_row.append('')
+        blank_row.append('')
+        blank_row.append('')
+        col_sizes.append(len('measurement_type') + 2)
+        col_sizes.append(len('replicate') + 2)
+        col_sizes.append(len('strains') + 2)
+        if has_time:
+            header.append('timepoint')
+            blank_row.append('')
+            col_sizes.append(len('timepoint') + 2)
+        if has_temp:
+            header.append('temperature')
+            blank_row.append('')
+            col_sizes.append(len('temperature') + 2)
+        header.append('samples')
+        blank_row.append('')
+        col_sizes.append(len('samples') + 2)
+        table_data.append(header)
+
+        for __ in range(num_rows):
+            table_data.append(blank_row)
+
+        create_table = {}
+        create_table['action'] = 'addTable'
+        create_table['paragraph_index'] = data['selectionStartParagraph']
+        create_table['offset'] = data['selectionStartOffset']
+        create_table['tableData'] = table_data
+        create_table['colSizes'] = col_sizes
+
+        return [create_table]
 
     def process_form_link_all(self, data):
         document_id = data['documentId']
