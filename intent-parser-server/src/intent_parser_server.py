@@ -85,6 +85,14 @@ class IntentParserServer:
 
     measurements_json_url = 'https://schema.catalog.sd2e.org/schemas/measurement_type.json'
 
+    # String defines for headers in the new-style measurements table
+    col_header_measurement_type = 'measurement-type'
+    col_header_replicate = 'replicate'
+    col_header_strain = 'strains'
+    col_header_samples = 'samples'
+    col_header_temperature = 'temperature'
+    col_header_timepoint = 'timepoint'
+
     def __init__(self, bind_port=8081, bind_ip="0.0.0.0",
                  sbh_collection_uri=None,
                  sbh_spoofing_prefix=None,
@@ -2481,26 +2489,27 @@ class IntentParserServer:
             header.append('')
             blank_row.append('')
             col_sizes.append(4)
-        header.append('measurement_type')
-        header.append('replicate')
-        header.append('strains')
+
+        header.append(self.col_header_measurement_type)
+        header.append(self.col_header_replicate)
+        header.append(self.col_header_strain)
         blank_row.append('')
         blank_row.append('')
         blank_row.append('')
-        col_sizes.append(len('measurement_type') + 2)
-        col_sizes.append(len('replicate') + 2)
-        col_sizes.append(len('strains') + 2)
+        col_sizes.append(len(self.col_header_measurement_type) + 2)
+        col_sizes.append(len(self.col_header_replicate) + 2)
+        col_sizes.append(len(self.col_header_strain) + 2)
         if has_time:
-            header.append('timepoint')
+            header.append(self.col_header_timepoint)
             blank_row.append('')
-            col_sizes.append(len('timepoint') + 2)
+            col_sizes.append(len(self.col_header_timepoint) + 2)
         if has_temp:
-            header.append('temperature')
+            header.append(self.col_header_temperature)
             blank_row.append('')
-            col_sizes.append(len('temperature') + 2)
-        header.append('samples')
+            col_sizes.append(len(self.col_header_temperature) + 2)
+        header.append(self.col_header_samples)
         blank_row.append('')
-        col_sizes.append(len('samples') + 2)
+        col_sizes.append(len(self.col_header_samples) + 2)
         table_data.append(header)
 
         for __ in range(num_rows):
