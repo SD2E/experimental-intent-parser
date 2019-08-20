@@ -85,6 +85,14 @@ class IntentParserServer:
 
     measurements_json_url = 'https://schema.catalog.sd2e.org/schemas/measurement_type.json'
 
+    # String defines for headers in the new-style measurements table
+    col_header_measurement_type = 'measurement-type'
+    col_header_replicate = 'replicate'
+    col_header_strain = 'strains'
+    col_header_samples = 'samples'
+    col_header_temperature = 'temperature'
+    col_header_timepoint = 'timepoint'
+
     def __init__(self, bind_port=8081, bind_ip="0.0.0.0",
                  sbh_collection_uri=None,
                  sbh_spoofing_prefix=None,
@@ -398,6 +406,26 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
 
+    def detect_new_measurement_table(self, table):
+        """
+        Scan the header row to see if it contains what we expect in a new-style measurements table.
+        """
+        found_replicates = False
+        found_strain = False
+        found_measurement_type = False
+        found_samples =  False
+
+        rows = table['tableRows']
+        headerRow = rows[0]
+        for cell in headerRow['tableCells']:
+            cellTxt = self.get_paragraph_text(cell['content'][0]['paragraph']).strip()
+            found_replicates |= cellTxt == self.col_header_replicate
+            found_strain |= cellTxt == self.col_header_strain
+            found_measurement_type |= cellTxt == self.col_header_measurement_type
+            found_samples |= cellTxt == self.col_header_samples
+
+        return found_replicates and found_strain and found_measurement_type and found_samples
+
     def process_generate_request(self, httpMessage, sm):
         """
         Handles a request to generate a structured request json
@@ -416,18 +444,84 @@ class IntentParserServer:
         experiment_id = 'TBD'
 
         measurements = []
-        for table in self.get_element_type(doc, 'table'):
+        doc_tables = self.get_element_type(doc, 'table')
+        measurement_table_idx = -1
+        measurement_table_new_idx = -1
+        for tIdx in range(len(doc_tables)):
+            table = doc_tables[tIdx]
             rows = table['tableRows']
             is_measurement_table = "Measurement type" in self.get_paragraph_text(rows[0]['tableCells'][0]['content'][0]['paragraph'])
-            # Ignore other tables for now
-            if not is_measurement_table:
-                continue
+            if is_measurement_table:
+                measurement_table_idx = tIdx
+
+            is_new_measurement_table = self.detect_new_measurement_table(table)
+            if is_new_measurement_table:
+                measurement_table_new_idx = tIdx
+
+        # Old-style measurement table - can really only get the measurement-type
+        if measurement_table_idx >= 0 and measurement_table_new_idx == -1:
+            table = doc_tables[measurement_table_idx]
+            rows = table['tableRows']
             # Each non-header row represents a measurement in the run
             for row in rows[1:]:
                 cells = row['tableCells']
                 measurement_type = self.get_measurement_type(self.get_paragraph_text(cells[0]['content'][0]['paragraph']))
                 # Ignore the rest of the cells for now
                 measurement = {'measurement_type' : measurement_type}
+                measurements.append(measurement)
+
+        # New-style measurement table - can pull much more information
+        if measurement_table_new_idx >= 0:
+            # Each non-header row represents a measurement in the run
+            table = doc_tables[measurement_table_new_idx]
+            rows = table['tableRows']
+            headerRow = rows[0]
+            numCols = len(headerRow['tableCells'])
+            colIdx = 0
+            is_type_col = False
+            reagent_list = []
+            while colIdx < numCols and not is_type_col:
+                cellTxt =  self.get_paragraph_text(headerRow['tableCells'][colIdx]['content'][0]['paragraph']).strip()
+                if cellTxt == self.col_header_measurement_type:
+                    is_type_col = True
+                else:
+                    # TODO: define SBH URI at this point
+                    sbh_uri = 'TBD'
+                    reagent_list.append((cellTxt, sbh_uri))
+                    colIdx += 1
+            measurement_col = colIdx
+            for row in rows[1:]:
+                cells = row['tableCells']
+
+                # Collect reagent info - first N columns are all reagents
+                content = []
+                for i in range(measurement_col):
+                    cellTxt = self.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
+                    reagent_entries = []
+                    for value in cellTxt.split(sep=','):
+                        reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : value, 'unit' : 'TBD'}
+                        reagent_entries.append(reagent_entry)
+                    content.append(reagent_entries)
+
+                # Parse rest of table
+                measurement = {}
+                for i in range(measurement_col, numCols):
+                    header = self.get_paragraph_text(headerRow['tableCells'][i]['content'][0]['paragraph']).strip()
+                    cellTxt =  self.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
+                    if header == self.col_header_measurement_type:
+                        measurement['measurement_type'] = self.get_measurement_type(cellTxt)
+                    elif header == self.col_header_replicate:
+                        measurement['replicates'] = cellTxt
+                    elif header == self.col_header_samples:
+                        measurement['samples'] = cellTxt
+                    elif header == self.col_header_strain:
+                        measurement['strains'] = cellTxt.split(sep=',')
+                    elif header == self.col_header_temperature:
+                        measurement['temperature'] = cellTxt.split(sep=',')
+                    elif header == self.col_header_timepoint:
+                        measurement['timepoint'] = cellTxt.split(sep=',')
+
+                measurement['contents'] = content
                 measurements.append(measurement)
 
         # This will return a parent list, which should have one or more Ids of parent directories
@@ -452,7 +546,7 @@ class IntentParserServer:
         request['experiment_reference'] = doc['title']
         request['experiment_reference_url'] = 'https://docs.google.com/document/d/' + document_id
         request['experiment_version'] = 1
-        request['runs'] = [{'measurements' : measurements, 'experiment_id': experiment_id, 'labs' : []}]
+        request['runs'] = [{ 'labs' : [], 'experiment_id': experiment_id, 'measurements' : measurements}]
 
         end = time.time()
 
@@ -2481,26 +2575,27 @@ class IntentParserServer:
             header.append('')
             blank_row.append('')
             col_sizes.append(4)
-        header.append('measurement_type')
-        header.append('replicate')
-        header.append('strains')
+
+        header.append(self.col_header_measurement_type)
+        header.append(self.col_header_replicate)
+        header.append(self.col_header_strain)
         blank_row.append('')
         blank_row.append('')
         blank_row.append('')
-        col_sizes.append(len('measurement_type') + 2)
-        col_sizes.append(len('replicate') + 2)
-        col_sizes.append(len('strains') + 2)
+        col_sizes.append(len(self.col_header_measurement_type) + 2)
+        col_sizes.append(len(self.col_header_replicate) + 2)
+        col_sizes.append(len(self.col_header_strain) + 2)
         if has_time:
-            header.append('timepoint')
+            header.append(self.col_header_timepoint)
             blank_row.append('')
-            col_sizes.append(len('timepoint') + 2)
+            col_sizes.append(len(self.col_header_timepoint) + 2)
         if has_temp:
-            header.append('temperature')
+            header.append(self.col_header_temperature)
             blank_row.append('')
-            col_sizes.append(len('temperature') + 2)
-        header.append('samples')
+            col_sizes.append(len(self.col_header_temperature) + 2)
+        header.append(self.col_header_samples)
         blank_row.append('')
-        col_sizes.append(len('samples') + 2)
+        col_sizes.append(len(self.col_header_samples) + 2)
         table_data.append(header)
 
         for __ in range(num_rows):
