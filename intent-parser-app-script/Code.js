@@ -139,10 +139,6 @@ function processActions(response) {
             newTable.setColumnWidth(idx, colSizes[idx])
         }
 
-        for(var idx=0; idx < headerRow.getNumCells(); ++idx) {
-            Logger.log('col ' + idx + ' width: ' + newTable.getColumnWidth(idx))
-        }
-
         break
 
       case 'showSidebar':
