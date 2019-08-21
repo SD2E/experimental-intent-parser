@@ -118,15 +118,14 @@ function processActions(response) {
         break
 
       case 'addTable':
-        var paragraphIndex = actionDesc['paragraph_index']
-        var offset = actionDesc['offset']
+        var childIndex = actionDesc['cursorChildIndex']
         var tableData = actionDesc['tableData']
         var colSizes = actionDesc['colSizes']
 
         var doc = DocumentApp.getActiveDocument();
         var body = doc.getBody();
 
-        var newTable = body.insertTable(paragraphIndex, tableData);
+        var newTable = body.insertTable(childIndex, tableData);
         var headerRow = newTable.getRow(0);
 
         var style = {};
@@ -551,8 +550,7 @@ function createTableMeasurements() {
     function handleSubmit() {\
         var extra = {"action": "createMeasurementTable"};\
         var theForm = this.createMeasurementTableForm;\
-        var formInfo = {\'selectionStartParagraph\' : theForm.selectionStartParagraph.value,\
-                        \'selectionStartOffset\' : theForm.selectionStartOffset.value,\
+        var formInfo = {\'cursorChildIndex\' : theForm.cursorChildIndex.value,\
                         \'formName\' : theForm.formName.value,\
                         \'numReagents\' : theForm.num_reagents.value,\
                         \'temperature\' : theForm.temperature.checked,\
@@ -564,8 +562,7 @@ function createTableMeasurements() {
   </script>\
   <center>\
     <form name="createMeasurementTableForm" action="/add">\
-      <input type="hidden" name="selectionStartParagraph" value="%s">\
-      <input type="hidden" name="selectionStartOffset" value="%s">\
+      <input type="hidden" name="cursorChildIndex" value="%s">\
       <input type="hidden" name="formName" value="createMeasurementTable">\
       <table stype="width:100%">\
         <tr>\
@@ -601,7 +598,21 @@ function createTableMeasurements() {
 </body>\
 </html>\
 '
-    loc = findCursor();
-    formattedHTML = Utilities.formatString(html, loc['paragraphIndex'], loc['offset']);
+    var doc = DocumentApp.getActiveDocument();
+    var cursorPosition = doc.getCursor()
+
+    if(cursorPosition == null) {
+        // Cursor position is null, so assume a selection
+        selectionRange = doc.getSelection()
+        rangeElement = selectionRange.getRangeElements()[0]
+        // Extract element and offset from end of selection
+        var el = rangeElement.getElement()
+    } else {
+        // Select element and off set from current position
+        var el = cursorPosition.getElement()
+    }
+    childIndex = doc.getBody().getChildIndex(el)
+
+    formattedHTML = Utilities.formatString(html, childIndex);
     showModalDialog(formattedHTML, 'Create Measurement Table Parameters', 600, 600);
 }
