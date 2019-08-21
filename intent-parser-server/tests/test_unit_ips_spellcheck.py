@@ -428,8 +428,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.json_body['data']['temperature'] = True
         self.json_body['data']['timepoint'] = False
         self.json_body['data']['numRows'] = 4
-        self.json_body['data']['selectionStartParagraph'] = 3
-        self.json_body['data']['selectionStartOffset'] = 5
+        self.json_body['data']['cursorChildIndex'] = 3
 
         self.ips.process_submit_form([], [])
 
@@ -437,8 +436,7 @@ class TestIntentParserServer(unittest.TestCase):
         actions = add_results['actions']
 
         self.assertTrue(len(actions) == 1) # Expect one addTable action
-        self.assertTrue(actions[0]['paragraph_index'] == self.json_body['data']['selectionStartParagraph'])
-        self.assertTrue(actions[0]['offset'] == self.json_body['data']['selectionStartOffset'])
+        self.assertTrue(actions[0]['cursorChildIndex'] == self.json_body['data']['cursorChildIndex'])
         self.assertTrue(self.json_body['data']['numRows'] + 1 == len(actions[0]['tableData']))
         self.assertTrue(len(actions[0]['colSizes']) == len(actions[0]['tableData'][0]))
         self.assertTrue(len(actions[0]['colSizes']) ==  self.json_body['data']['numReagents'] + 3 + 1 + 1)
