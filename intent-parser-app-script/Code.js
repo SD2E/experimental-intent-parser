@@ -135,7 +135,7 @@ function processActions(response) {
         headerRow.setAttributes(style)
 
         for(var idx=0; idx < colSizes.length; ++idx) {
-            newTable.setColumnWidth(idx, colSizes[idx])
+            newTable.setColumnWidth(idx, colSizes[idx] * 7)
         }
 
         break
