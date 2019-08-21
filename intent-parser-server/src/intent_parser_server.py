@@ -2603,8 +2603,7 @@ class IntentParserServer:
 
         create_table = {}
         create_table['action'] = 'addTable'
-        create_table['paragraph_index'] = data['selectionStartParagraph']
-        create_table['offset'] = data['selectionStartOffset']
+        create_table['cursorChildIndex'] = data['cursorChildIndex']
         create_table['tableData'] = table_data
         create_table['colSizes'] = col_sizes
 
