@@ -499,7 +499,7 @@ class IntentParserServer:
                     cellTxt = self.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
                     reagent_entries = []
                     for value in cellTxt.split(sep=','):
-                        reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : value, 'unit' : 'TBD'}
+                        reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : value.strip(), 'unit' : 'TBD'}
                         reagent_entries.append(reagent_entry)
                     content.append(reagent_entries)
 
@@ -515,11 +515,11 @@ class IntentParserServer:
                     elif header == self.col_header_samples:
                         measurement['samples'] = cellTxt
                     elif header == self.col_header_strain:
-                        measurement['strains'] = cellTxt.split(sep=',')
+                        measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
                     elif header == self.col_header_temperature:
-                        measurement['temperature'] = cellTxt.split(sep=',')
+                        measurement['temperature'] = [s.strip() for s in cellTxt.split(sep=',')]
                     elif header == self.col_header_timepoint:
-                        measurement['timepoint'] = cellTxt.split(sep=',')
+                        measurement['timepoint'] = [s.strip() for s in cellTxt.split(sep=',')]
 
                 measurement['contents'] = content
                 measurements.append(measurement)
