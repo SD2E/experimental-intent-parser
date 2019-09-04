@@ -21,6 +21,8 @@ from spellchecker import SpellChecker
 from multiprocessing import Pool
 import intent_parser_utils
 
+from datacatalog.formats.common import map_experiment_reference
+
 class ConnectionException(Exception):
     def __init__(self, code, message, content=""):
         super(ConnectionException, self).__init__(message);
@@ -101,6 +103,7 @@ class IntentParserServer:
                  item_map_cache=True,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org'],
+                 datacatalog_authn='',
                  init_server=True,
                  init_sbh=True):
 
@@ -128,6 +131,8 @@ class IntentParserServer:
         f.close()
 
         self.sparql_similar_count_cache = {}
+
+        self.datacatalog_config = { "mongodb" : { "database" : "catalog_staging", "authn" : datacatalog_authn } }
 
         if init_sbh:
             self.initialize_sbh(sbh_collection_uri=sbh_collection_uri,
@@ -441,7 +446,34 @@ class IntentParserServer:
             print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
             raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
 
-        experiment_id = 'TBD'
+        output_doc = { "experiment_reference_url" : "https://docs.google.com/document/d/1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA" }
+        if self.datacatalog_config['mongodb']['authn']:
+            map_experiment_reference(self.datacatalog_config, output_doc)
+
+        experiment_id = 'experiment.tacc.TBD'
+
+        if 'challenge_problem' in output_doc and 'experiment_reference' in output_doc and 'experiment_reference_url' in output_doc:
+            cp_id = output_doc['challenge_problem']
+            experiment_reference = output_doc['experiment_reference']
+            experiment_reference_url = output_doc['experiment_reference_url']
+        else:
+            print('WARNING: Failed to map experiment reference for doc id %s!' % document_id)
+            experiment_reference = doc['title'].split(sep='-')[1].strip()
+            experiment_reference_url = 'https://docs.google.com/document/d/' + document_id
+            # This will return a parent list, which should have one or more Ids of parent directories
+            # We want to navigate those and see if they are a close match to a challenge problem ID
+            parent_list = self.google_accessor.get_document_parents(document_id=document_id)
+            cp_id = 'Unknown'
+            if not parent_list['kind'] == 'drive#parentList':
+                print('ERROR: expected a drive#parent_list, received a %s' % parent_list['kind'])
+            else:
+                for parent_ref in parent_list['items']:
+                    if not parent_ref['kind'] == 'drive#parentReference':
+                        continue
+                    parent_meta = self.google_accessor.get_document_metadata(document_id=parent_ref['id'])
+                    new_cp_id = self.get_challenge_problem_id(parent_meta['title'])
+                    if new_cp_id is not None:
+                        cp_id = new_cp_id
 
         measurements = []
         doc_tables = self.get_element_type(doc, 'table')
@@ -524,27 +556,12 @@ class IntentParserServer:
                 measurement['contents'] = content
                 measurements.append(measurement)
 
-        # This will return a parent list, which should have one or more Ids of parent directories
-        # We want to navigate those and see if they are a close match to a challenge problem ID
-        parent_list = self.google_accessor.get_document_parents(document_id=document_id)
-        cp_id = 'Unknown'
-        if not parent_list['kind'] == 'drive#parentList':
-            print('ERROR: expected a drive#parent_list, received a %s' % parent_list['kind'])
-        else:
-            for parent_ref in parent_list['items']:
-                if not parent_ref['kind'] == 'drive#parentReference':
-                    continue
-                parent_meta = self.google_accessor.get_document_metadata(document_id=parent_ref['id'])
-                new_cp_id = self.get_challenge_problem_id(parent_meta['title'])
-                if new_cp_id is not None:
-                    cp_id = new_cp_id
-
         request = {}
         request['name'] = doc['title']
         request['experiment_id'] = experiment_id
         request['challenge_problem'] = cp_id
-        request['experiment_reference'] = doc['title']
-        request['experiment_reference_url'] = 'https://docs.google.com/document/d/' + document_id
+        request['experiment_reference'] = experiment_reference
+        request['experiment_reference_url'] = experiment_reference_url
         request['experiment_version'] = 1
         request['runs'] = [{ 'labs' : [], 'experiment_id': experiment_id, 'measurements' : measurements}]
 
@@ -2708,16 +2725,12 @@ def usage():
     print('    -h --help            - show this message')
     print('    -p --pasword         - SynBioHub password')
     print('    -u --username        - SynBioHub username')
-    print('    -c --collection      - collection url (default={})'. \
-          format(sbh_collection_uri))
-    print('    -i --spreadsheet-id  - dictionary spreadsheet id (default={})'. \
-          format(spreadsheet_id))
-    print('    -s --spoofing-prefix - SBH spoofing prefix (default={})'.
-          format(sbh_spoofing_prefix))
-    print('    -b --bind-host       - IP address to bind to (default={})'.
-          format(bind_host))
-    print('    -l --bind-port       - TCP Port to listen on (default={})'.
-          format(bind_port))
+    print('    -c --collection      - collection url (default={})'.format(sbh_collection_uri))
+    print('    -i --spreadsheet-id  - dictionary spreadsheet id (default={})'.format(spreadsheet_id))
+    print('    -s --spoofing-prefix - SBH spoofing prefix (default={})'.format(sbh_spoofing_prefix))
+    print('    -b --bind-host       - IP address to bind to (default={})'.format(bind_host))
+    print('    -l --bind-port       - TCP Port to listen on (default={})'.format(bind_port))
+    print('    -a --authn           - Authorization token for datacatalog (default=\'\')')
     print('')
 
 def main(argv):
@@ -2730,9 +2743,10 @@ def main(argv):
     global bind_port
     global bind_host
     global sbhPlugin
+    global authn
 
     try:
-        opts, __ = getopt.getopt(argv, "u:p:hc:i:s:b:l:",
+        opts, __ = getopt.getopt(argv, "u:p:hc:i:s:b:l:a:",
                                    ["username=",
                                     "password=",
                                     "help",
@@ -2740,7 +2754,8 @@ def main(argv):
                                     "spreadsheet-id=",
                                     "spoofing-prefix=",
                                     "bind-host=",
-                                    "bind-port="])
+                                    "bind-port=",
+                                    "authn="])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
@@ -2772,6 +2787,9 @@ def main(argv):
         elif opt in ('-l', '--bind-port'):
             bind_port = int(arg)
 
+        elif opt in ('-a', '--authn'):
+            authn = arg
+
     try:
         sbhPlugin = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
                                        sbh_spoofing_prefix=sbh_spoofing_prefix,
@@ -2779,7 +2797,8 @@ def main(argv):
                                        sbh_password=sbh_password,
                                        spreadsheet_id=spreadsheet_id,
                                        bind_ip=bind_host,
-                                       bind_port=bind_port)
+                                       bind_port=bind_port,
+                                       datacatalog_authn=authn)
     except Exception as e:
         print(e)
         usage()
