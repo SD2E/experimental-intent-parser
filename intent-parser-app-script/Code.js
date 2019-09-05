@@ -138,6 +138,11 @@ function processActions(response) {
             newTable.setColumnWidth(idx, colSizes[idx] * 7)
         }
 
+        if (actionDesc['tableType'] == 'measurements') {
+            labTableData = actionDesc['tableLab']
+            var newLabTable = body.insertTable(childIndex, labTableData);
+        }
+
         break
 
       case 'showSidebar':
