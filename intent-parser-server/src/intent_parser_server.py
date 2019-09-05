@@ -570,7 +570,11 @@ class IntentParserServer:
                     elif header == self.col_header_temperature:
                         measurement['temperature'] = [s.strip() for s in cellTxt.split(sep=',')]
                     elif header == self.col_header_timepoint:
-                        measurement['timepoint'] = [s.strip() for s in cellTxt.split(sep=',')]
+                        timepoints = []
+                        timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        for time_str in timepoint_strings:
+                            timepoints.append({'value' : int(time_str), 'unit' : 'TBD'}) #TODO
+                        measurement['timepoints'] = timepoints
 
                 measurement['contents'] = content
                 measurements.append(measurement)
