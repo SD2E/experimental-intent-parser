@@ -536,7 +536,7 @@ class IntentParserServer:
                     is_type_col = True
                 else:
                     # TODO: define SBH URI at this point
-                    sbh_uri = 'TBD'
+                    sbh_uri = 'TBD' #TODO
                     reagent_list.append((cellTxt, sbh_uri))
                     colIdx += 1
             measurement_col = colIdx
@@ -561,7 +561,7 @@ class IntentParserServer:
                     if header == self.col_header_measurement_type:
                         measurement['measurement_type'] = self.get_measurement_type(cellTxt)
                     elif header == self.col_header_replicate:
-                        measurement['replicates'] = cellTxt
+                        measurement['replicates'] = int(cellTxt)
                     elif header == self.col_header_samples:
                         measurement['samples'] = cellTxt
                     elif header == self.col_header_strain:
