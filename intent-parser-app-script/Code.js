@@ -138,6 +138,11 @@ function processActions(response) {
             newTable.setColumnWidth(idx, colSizes[idx] * 7)
         }
 
+        if (actionDesc['tableType'] == 'measurements') {
+            labTableData = actionDesc['tableLab']
+            var newLabTable = body.insertTable(childIndex, labTableData);
+        }
+
         break
 
       case 'showSidebar':
@@ -552,6 +557,7 @@ function createTableMeasurements() {
         var theForm = this.createMeasurementTableForm;\
         var formInfo = {\'cursorChildIndex\' : theForm.cursorChildIndex.value,\
                         \'formName\' : theForm.formName.value,\
+                        \'lab\' : theForm.lab.value,\
                         \'numReagents\' : theForm.num_reagents.value,\
                         \'temperature\' : theForm.temperature.checked,\
                         \'timepoint\' : theForm.timepoint.checked,\
@@ -565,6 +571,12 @@ function createTableMeasurements() {
       <input type="hidden" name="cursorChildIndex" value="%s">\
       <input type="hidden" name="formName" value="createMeasurementTable">\
       <table stype="width:100%">\
+        <tr>\
+          <th align="right">Lab: </th>\
+          <td>\
+            <input type="text" name="lab">\
+          </td>\
+        </tr>\
         <tr>\
           <th align="right">Number of reagents: </th>\
           <td>\
