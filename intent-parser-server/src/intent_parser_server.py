@@ -563,7 +563,8 @@ class IntentParserServer:
                     elif header == self.col_header_replicate:
                         measurement['replicates'] = int(cellTxt)
                     elif header == self.col_header_samples:
-                        measurement['samples'] = cellTxt
+                        #measurement['samples'] = cellTxt
+                        pass
                     elif header == self.col_header_strain:
                         measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
                     elif header == self.col_header_temperature:
