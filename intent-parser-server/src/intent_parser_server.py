@@ -411,6 +411,17 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
 
+    def detect_lab_table(self, table):
+        """
+        Determine if the given table is a lab table, defining the lab to run measurements.
+        """
+        rows = table['tableRows']
+        numRows = len(rows)
+        labRow = rows[0]
+        numCols = len(labRow['tableCells'])
+        lab = self.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph'])
+        return numRows == 1 and numCols == 1 and 'lab' in lab.lower()
+
     def detect_new_measurement_table(self, table):
         """
         Scan the header row to see if it contains what we expect in a new-style measurements table.
@@ -450,6 +461,8 @@ class IntentParserServer:
         if self.datacatalog_config['mongodb']['authn']:
             map_experiment_reference(self.datacatalog_config, output_doc)
 
+        lab = 'Unknown'
+
         experiment_id = 'experiment.tacc.TBD'
 
         if 'challenge_problem' in output_doc and 'experiment_reference' in output_doc and 'experiment_reference_url' in output_doc:
@@ -479,6 +492,7 @@ class IntentParserServer:
         doc_tables = self.get_element_type(doc, 'table')
         measurement_table_idx = -1
         measurement_table_new_idx = -1
+        lab_table_idx = -1
         for tIdx in range(len(doc_tables)):
             table = doc_tables[tIdx]
             rows = table['tableRows']
@@ -489,6 +503,10 @@ class IntentParserServer:
             is_new_measurement_table = self.detect_new_measurement_table(table)
             if is_new_measurement_table:
                 measurement_table_new_idx = tIdx
+
+            is_lab_table = self.detect_lab_table(table)
+            if is_lab_table:
+                lab_table_idx = tIdx
 
         # Old-style measurement table - can really only get the measurement-type
         if measurement_table_idx >= 0 and measurement_table_new_idx == -1:
@@ -556,6 +574,17 @@ class IntentParserServer:
                 measurement['contents'] = content
                 measurements.append(measurement)
 
+        if lab_table_idx >= 0:
+            table = doc_tables[lab_table_idx]
+            rows = table['tableRows']
+            numRows = len(rows)
+            labRow = rows[0]
+            numCols = len(labRow['tableCells'])
+            if numRows > 1 or numCols > 1:
+                print('WARNING: Lab table size differs from expectation! Expecting 1 row and 1 col, found %d rows and %d cols' % (numRows, numCols))
+            # The lab text is expected to be in row 0, col 0 and have the form: Lab: <X>
+            lab = self.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph']).strip().split(sep=':')[1].strip()
+
         request = {}
         request['name'] = doc['title']
         request['experiment_id'] = experiment_id
@@ -563,7 +592,8 @@ class IntentParserServer:
         request['experiment_reference'] = experiment_reference
         request['experiment_reference_url'] = experiment_reference_url
         request['experiment_version'] = 1
-        request['runs'] = [{ 'labs' : [], 'experiment_id': experiment_id, 'measurements' : measurements}]
+        request['lab'] = lab
+        request['runs'] = [{ 'measurements' : measurements}]
 
         end = time.time()
 
@@ -2573,6 +2603,7 @@ class IntentParserServer:
         Process create measurement table
         """
 
+        lab = "Lab: %s" % data['lab']
         num_reagents = int(data['numReagents'])
         has_temp = data['temperature']
         has_time = data['timepoint']
@@ -2622,6 +2653,8 @@ class IntentParserServer:
         create_table['action'] = 'addTable'
         create_table['cursorChildIndex'] = data['cursorChildIndex']
         create_table['tableData'] = table_data
+        create_table['tableType'] = 'measurements'
+        create_table['tableLab'] = [[lab]]
         create_table['colSizes'] = col_sizes
 
         return [create_table]
