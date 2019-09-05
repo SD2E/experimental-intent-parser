@@ -536,7 +536,7 @@ class IntentParserServer:
                     is_type_col = True
                 else:
                     # TODO: define SBH URI at this point
-                    sbh_uri = 'TBD' #TODO
+                    sbh_uri = 'NO PROGRAM DICTIONARY ENTRY' #TODO
                     reagent_list.append((cellTxt, sbh_uri))
                     colIdx += 1
             measurement_col = colIdx
@@ -549,7 +549,7 @@ class IntentParserServer:
                     cellTxt = self.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
                     reagent_entries = []
                     for value in cellTxt.split(sep=','):
-                        reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : value.strip(), 'unit' : 'TBD'}
+                        reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : value.strip(), 'unit' : 'mM'} #TODO
                         reagent_entries.append(reagent_entry)
                     content.append(reagent_entries)
 
@@ -573,7 +573,7 @@ class IntentParserServer:
                         timepoints = []
                         timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
                         for time_str in timepoint_strings:
-                            timepoints.append({'value' : int(time_str), 'unit' : 'TBD'}) #TODO
+                            timepoints.append({'value' : float(time_str), 'unit' : 'hour'}) #TODO
                         measurement['timepoints'] = timepoints
 
                 measurement['file_type'] = '*' #TODO: Fill in
