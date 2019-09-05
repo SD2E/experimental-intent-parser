@@ -576,6 +576,7 @@ class IntentParserServer:
                             timepoints.append({'value' : int(time_str), 'unit' : 'TBD'}) #TODO
                         measurement['timepoints'] = timepoints
 
+                measurement['file_type'] = '*' #TODO: Fill in
                 measurement['contents'] = content
                 measurements.append(measurement)
 
