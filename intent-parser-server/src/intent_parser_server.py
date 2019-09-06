@@ -534,12 +534,18 @@ class IntentParserServer:
             is_type_col = False
             reagent_list = []
             while colIdx < numCols and not is_type_col:
-                cellTxt =  self.get_paragraph_text(headerRow['tableCells'][colIdx]['content'][0]['paragraph']).strip()
+                paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
+                cellTxt =  self.get_paragraph_text(paragraph_element).strip()
+                uri = None
+                if len(paragraph_element['elements']) > 0 and 'link' in paragraph_element['elements'][0]['textRun']['textStyle']:
+                    uri = paragraph_element['elements'][0]['textRun']['textStyle']['link']['url']
                 if cellTxt == self.col_header_measurement_type:
                     is_type_col = True
                 else:
-                    # TODO: define SBH URI at this point
-                    sbh_uri = 'NO PROGRAM DICTIONARY ENTRY' #TODO
+                    if uri:
+                        sbh_uri = uri
+                    else:
+                        sbh_uri = 'NO PROGRAM DICTIONARY ENTRY' #TODO
                     reagent_list.append((cellTxt, sbh_uri))
                     colIdx += 1
             measurement_col = colIdx
