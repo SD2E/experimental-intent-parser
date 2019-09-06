@@ -89,6 +89,7 @@ class IntentParserServer:
 
     # String defines for headers in the new-style measurements table
     col_header_measurement_type = 'measurement-type'
+    col_header_file_type = 'file-type'
     col_header_replicate = 'replicate'
     col_header_strain = 'strains'
     col_header_samples = 'samples'
@@ -430,6 +431,7 @@ class IntentParserServer:
         found_strain = False
         found_measurement_type = False
         found_samples =  False
+        found_file_type = False
 
         rows = table['tableRows']
         headerRow = rows[0]
@@ -438,9 +440,10 @@ class IntentParserServer:
             found_replicates |= cellTxt == self.col_header_replicate
             found_strain |= cellTxt == self.col_header_strain
             found_measurement_type |= cellTxt == self.col_header_measurement_type
+            found_file_type |= cellTxt == self.col_header_file_type
             found_samples |= cellTxt == self.col_header_samples
 
-        return found_replicates and found_strain and found_measurement_type and found_samples
+        return found_replicates and found_strain and found_measurement_type and found_file_type and found_samples
 
     def process_generate_request(self, httpMessage, sm):
         """
@@ -560,6 +563,8 @@ class IntentParserServer:
                     cellTxt =  self.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
                     if header == self.col_header_measurement_type:
                         measurement['measurement_type'] = self.get_measurement_type(cellTxt)
+                    elif header == self.col_header_file_type:
+                        measurement['file_type'] = [s.strip() for s in cellTxt.split(sep=',')]
                     elif header == self.col_header_replicate:
                         measurement['replicates'] = int(cellTxt)
                     elif header == self.col_header_samples:
@@ -576,7 +581,6 @@ class IntentParserServer:
                             timepoints.append({'value' : float(time_str), 'unit' : 'hour'}) #TODO
                         measurement['timepoints'] = timepoints
 
-                measurement['file_type'] = '*' #TODO: Fill in
                 measurement['contents'] = content
                 measurements.append(measurement)
 
@@ -2631,12 +2635,15 @@ class IntentParserServer:
             col_sizes.append(4)
 
         header.append(self.col_header_measurement_type)
+        header.append(self.col_header_file_type)
         header.append(self.col_header_replicate)
         header.append(self.col_header_strain)
         blank_row.append('')
         blank_row.append('')
         blank_row.append('')
+        blank_row.append('')
         col_sizes.append(len(self.col_header_measurement_type) + 2)
+        col_sizes.append(len(self.col_header_file_type) + 2)
         col_sizes.append(len(self.col_header_replicate) + 2)
         col_sizes.append(len(self.col_header_strain) + 2)
         if has_time:
