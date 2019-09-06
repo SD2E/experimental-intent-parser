@@ -584,14 +584,16 @@ class IntentParserServer:
                 content = []
                 for i in range(measurement_col):
                     cellTxt = self.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
-                    reagent_entries = []
-                    for value in cellTxt.split(sep=','):
-                        spec, unit = self.detect_and_remove_unit(value);
-                        if unit is None:
-                            unit = 'unspecified'
-                        reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
-                        reagent_entries.append(reagent_entry)
-                    content.append(reagent_entries)
+                    # If nothing is specified, ignore it
+                    if not cellTxt == '':
+                        reagent_entries = []
+                        for value in cellTxt.split(sep=','):
+                            spec, unit = self.detect_and_remove_unit(value);
+                            if unit is None:
+                                unit = 'unspecified'
+                            reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
+                            reagent_entries.append(reagent_entry)
+                            content.append(reagent_entries)
 
                 # Parse rest of table
                 measurement = {}
