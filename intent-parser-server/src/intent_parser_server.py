@@ -536,7 +536,7 @@ class IntentParserServer:
                     is_type_col = True
                 else:
                     # TODO: define SBH URI at this point
-                    sbh_uri = 'TBD'
+                    sbh_uri = 'NO PROGRAM DICTIONARY ENTRY' #TODO
                     reagent_list.append((cellTxt, sbh_uri))
                     colIdx += 1
             measurement_col = colIdx
@@ -549,7 +549,7 @@ class IntentParserServer:
                     cellTxt = self.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
                     reagent_entries = []
                     for value in cellTxt.split(sep=','):
-                        reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : value.strip(), 'unit' : 'TBD'}
+                        reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : value.strip(), 'unit' : 'mM'} #TODO
                         reagent_entries.append(reagent_entry)
                     content.append(reagent_entries)
 
@@ -561,16 +561,22 @@ class IntentParserServer:
                     if header == self.col_header_measurement_type:
                         measurement['measurement_type'] = self.get_measurement_type(cellTxt)
                     elif header == self.col_header_replicate:
-                        measurement['replicates'] = cellTxt
+                        measurement['replicates'] = int(cellTxt)
                     elif header == self.col_header_samples:
-                        measurement['samples'] = cellTxt
+                        #measurement['samples'] = cellTxt
+                        pass
                     elif header == self.col_header_strain:
                         measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
                     elif header == self.col_header_temperature:
                         measurement['temperature'] = [s.strip() for s in cellTxt.split(sep=',')]
                     elif header == self.col_header_timepoint:
-                        measurement['timepoint'] = [s.strip() for s in cellTxt.split(sep=',')]
+                        timepoints = []
+                        timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        for time_str in timepoint_strings:
+                            timepoints.append({'value' : float(time_str), 'unit' : 'hour'}) #TODO
+                        measurement['timepoints'] = timepoints
 
+                measurement['file_type'] = '*' #TODO: Fill in
                 measurement['contents'] = content
                 measurements.append(measurement)
 
