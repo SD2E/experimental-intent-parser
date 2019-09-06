@@ -430,6 +430,12 @@ class IntentParserServer:
                     best_match = unit
                     best_length = len(unit)
 
+        for unit in self.temp_units:
+            if unit in text:
+                if len(unit) > best_length:
+                    best_match = unit
+                    best_length = len(unit)
+
         if best_match is not None:
             text = text.replace(best_match, '').strip()
         return text, best_match
@@ -1581,6 +1587,13 @@ class IntentParserServer:
         self.fluid_units = []
         for cid in data['enum']:
             self.fluid_units.append(cid)
+
+        response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/temperature_unit.json',timeout=60)
+        data = json.loads(response.read().decode('utf-8'))
+
+        self.temp_units = []
+        for cid in data['enum']:
+            self.temp_units.append(cid)
 
     def generate_item_map(self, *, use_cache=True):
         item_map = {}
