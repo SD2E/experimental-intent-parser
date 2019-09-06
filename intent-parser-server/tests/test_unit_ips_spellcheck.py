@@ -440,7 +440,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.assertTrue(actions[0]['cursorChildIndex'] == self.json_body['data']['cursorChildIndex'])
         self.assertTrue(self.json_body['data']['numRows'] + 1 == len(actions[0]['tableData']))
         self.assertTrue(len(actions[0]['colSizes']) == len(actions[0]['tableData'][0]))
-        self.assertTrue(len(actions[0]['colSizes']) ==  self.json_body['data']['numReagents'] + 3 + 1 + 1)
+        self.assertTrue(len(actions[0]['colSizes']) ==  self.json_body['data']['numReagents'] + 4 + 1 + 1)
 
 
     def test_spellcheck_add_select_functions(self):
