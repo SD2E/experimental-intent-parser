@@ -424,6 +424,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.json_body['data']['isSpellcheck'] = 'False'
         self.json_body['data']['extra'] = {}
         self.json_body['data']['extra']['action'] = 'createMeasurementTable'
+        self.json_body['data']['lab'] = 'Ginkgo'
         self.json_body['data']['numReagents'] = 3
         self.json_body['data']['temperature'] = True
         self.json_body['data']['timepoint'] = False
