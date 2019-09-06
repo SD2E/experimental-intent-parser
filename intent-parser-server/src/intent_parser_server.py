@@ -158,7 +158,7 @@ class IntentParserServer:
         self.analyze_never_link = {}
 
         self.challenge_ids = self.generate_challenge_ids()
-        self.measurement_types = self.generate_measurement_types()
+        self.generate_measurement_types()
 
     def initialize_sbh(self, *,
                  sbh_collection_uri,
@@ -412,6 +412,28 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
 
+    def detect_and_remove_unit(self, text):
+        """
+        Given a string that contains a unit, detect the unit and remove it from the input string, returning the unit itself, and the string with the unit removed
+        """
+        best_match = None
+        best_length = 0
+        for unit in self.time_units:
+            if unit in text:
+                if len(unit) > best_length:
+                    best_match = unit
+                    best_length = len(unit)
+
+        for unit in self.fluid_units:
+            if unit in text:
+                if len(unit) > best_length:
+                    best_match = unit
+                    best_length = len(unit)
+
+        if best_match is not None:
+            text = text.replace(best_match, '').strip()
+        return text, best_match
+
     def detect_lab_table(self, table):
         """
         Determine if the given table is a lab table, defining the lab to run measurements.
@@ -558,7 +580,10 @@ class IntentParserServer:
                     cellTxt = self.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
                     reagent_entries = []
                     for value in cellTxt.split(sep=','):
-                        reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : value.strip(), 'unit' : 'mM'} #TODO
+                        spec, unit = self.detect_and_remove_unit(value);
+                        if unit is None:
+                            unit = 'unspecified'
+                        reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
                         reagent_entries.append(reagent_entry)
                     content.append(reagent_entries)
 
@@ -575,6 +600,7 @@ class IntentParserServer:
                         measurement['replicates'] = int(cellTxt)
                     elif header == self.col_header_samples:
                         #measurement['samples'] = cellTxt
+                        #samples isn't part of the schema and is just there for auditing purposes
                         pass
                     elif header == self.col_header_strain:
                         measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
@@ -584,7 +610,10 @@ class IntentParserServer:
                         timepoints = []
                         timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
                         for time_str in timepoint_strings:
-                            timepoints.append({'value' : float(time_str), 'unit' : 'hour'}) #TODO
+                            spec, unit = self.detect_and_remove_unit(time_str);
+                            if unit is None:
+                                unit = 'unspecified'
+                            timepoints.append({'value' : float(spec), 'unit' : unit})
                         measurement['timepoints'] = timepoints
 
                 measurement['contents'] = content
@@ -1535,11 +1564,23 @@ class IntentParserServer:
         response = urllib.request.urlopen(self.measurements_json_url,timeout=60)
         data = json.loads(response.read().decode('utf-8'))
 
-        measurement_type = []
+        self.measurement_types = []
         for cid in data['enum']:
-            measurement_type.append(cid)
+            self.measurement_types.append(cid)
 
-        return measurement_type
+        response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/time_unit.json',timeout=60)
+        data = json.loads(response.read().decode('utf-8'))
+
+        self.time_units = []
+        for cid in data['enum']:
+            self.time_units.append(cid)
+
+        response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/fluid_unit.json',timeout=60)
+        data = json.loads(response.read().decode('utf-8'))
+
+        self.fluid_units = []
+        for cid in data['enum']:
+            self.fluid_units.append(cid)
 
     def generate_item_map(self, *, use_cache=True):
         item_map = {}
