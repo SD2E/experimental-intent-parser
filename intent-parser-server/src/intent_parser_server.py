@@ -82,11 +82,6 @@ class IntentParserServer:
     # Defines a period of time to wait to send analyze progress updates, in seconds
     analyze_progress_period = 2.5
 
-    # Defines the URL to the challenge problem id json
-    challenge_json_url = 'https://schema.catalog.sd2e.org/schemas/challenge_problem_id.json'
-
-    measurements_json_url = 'https://schema.catalog.sd2e.org/schemas/measurement_type.json'
-
     # String defines for headers in the new-style measurements table
     col_header_measurement_type = 'measurement-type'
     col_header_file_type = 'file-type'
@@ -114,6 +109,10 @@ class IntentParserServer:
         self.event = threading.Event()
 
         self.my_path = os.path.dirname(os.path.realpath(__file__))
+
+        f = open(self.my_path + '/create_measurements_table.html', 'r')
+        self.create_measurements_table_html = f.read()
+        f.close()
 
         f = open(self.my_path + '/add.html', 'r')
         self.add_html = f.read()
@@ -157,8 +156,7 @@ class IntentParserServer:
         # Dictionary per-user that stores analyze associations to ignore
         self.analyze_never_link = {}
 
-        self.challenge_ids = self.generate_challenge_ids()
-        self.generate_measurement_types()
+        self.cache_json_data()
 
     def initialize_sbh(self, *,
                  sbh_collection_uri,
@@ -366,6 +364,8 @@ class IntentParserServer:
             self.process_search_syn_bio_hub(httpMessage, sm)
         elif resource == '/submitForm':
             self.process_submit_form(httpMessage, sm)
+        elif resource == '/createTableTemplate':
+            self.process_create_table_template(httpMessage, sm)
         else:
             self.send_response(404, 'Not Found', 'Resource Not Found\n', sm)
 
@@ -1551,31 +1551,28 @@ class IntentParserServer:
             self.item_map = item_map
             self.item_map_lock.release()
 
+    def cache_json_data(self):
+        """
+        Function that reads various json schemas and caches the data.
+        """
 
-    def generate_challenge_ids(self):
-        """
-        Function that reads the challenge problem definition JSON
-        """
-        response = urllib.request.urlopen(self.challenge_json_url,timeout=60)
+        # Challenge Problem IDs
+        response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/challenge_problem_id.json',timeout=60)
         data = json.loads(response.read().decode('utf-8'))
 
-        challenge_id = []
+        self.challenge_ids = []
         for cid in data['enum']:
-            challenge_id.append(cid)
+            self.challenge_ids.append(cid)
 
-        return challenge_id
-
-    def generate_measurement_types(self):
-        """
-        Function that reads the challenge problem definition JSON
-        """
-        response = urllib.request.urlopen(self.measurements_json_url,timeout=60)
+        # Measurement types
+        response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/measurement_type.json',timeout=60)
         data = json.loads(response.read().decode('utf-8'))
 
         self.measurement_types = []
         for cid in data['enum']:
             self.measurement_types.append(cid)
 
+        # Time units
         response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/time_unit.json',timeout=60)
         data = json.loads(response.read().decode('utf-8'))
 
@@ -1583,6 +1580,7 @@ class IntentParserServer:
         for cid in data['enum']:
             self.time_units.append(cid)
 
+        # Fluid units
         response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/fluid_unit.json',timeout=60)
         data = json.loads(response.read().decode('utf-8'))
 
@@ -1590,12 +1588,22 @@ class IntentParserServer:
         for cid in data['enum']:
             self.fluid_units.append(cid)
 
+        # Temperature units
         response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/temperature_unit.json',timeout=60)
         data = json.loads(response.read().decode('utf-8'))
 
         self.temp_units = []
         for cid in data['enum']:
             self.temp_units.append(cid)
+
+        # Lab Ids
+        response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/lab.json',timeout=60)
+        data = json.loads(response.read().decode('utf-8'))
+
+        self.lab_ids = []
+        for cid in data['enum']:
+            self.lab_ids.append(cid)
+        self.lab_ids = sorted(self.lab_ids)
 
     def generate_item_map(self, *, use_cache=True):
         item_map = {}
@@ -1692,6 +1700,38 @@ class IntentParserServer:
         html += '</tr>\n'
 
         return html
+
+    def process_create_table_template(self,  httpMessage, sm):
+        """
+        """
+        try:
+            json_body = self.get_json_body(httpMessage)
+
+            data = json_body['data']
+            cursor_child_index = str(data['childIndex'])
+            table_type = data['tableType']
+
+            html = None
+            if table_type == 'measurements':
+                html = self.create_measurements_table_html
+
+                lab_ids_html = self.generate_html_options(self.lab_ids)
+
+                # Update parameters in html
+                html = html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
+                html = html.replace('${LABIDSOPTIONS}', lab_ids_html)
+            else :
+                print('WARNING: unsupported table type: %s' % table_type)
+
+            actionList = []
+            if html is not None:
+                dialog_action = self.modal_dialog(html, 'Create Measurements Table', 600, 600)
+                actionList.append(dialog_action)
+
+            actions = {'actions': actionList}
+            self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+        except Exception as e:
+            raise e
 
     def process_add_to_syn_bio_hub(self, httpMessage, sm):
         try:
