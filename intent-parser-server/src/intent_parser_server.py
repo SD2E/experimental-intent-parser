@@ -110,6 +110,10 @@ class IntentParserServer:
 
         self.my_path = os.path.dirname(os.path.realpath(__file__))
 
+        f = open(self.my_path + '/create_measurements_table.html', 'r')
+        self.create_measurements_table_html = f.read()
+        f.close()
+
         f = open(self.my_path + '/add.html', 'r')
         self.add_html = f.read()
         f.close()
@@ -360,6 +364,8 @@ class IntentParserServer:
             self.process_search_syn_bio_hub(httpMessage, sm)
         elif resource == '/submitForm':
             self.process_submit_form(httpMessage, sm)
+        elif resource == '/createTableTemplate':
+            self.process_create_table_template(httpMessage, sm)
         else:
             self.send_response(404, 'Not Found', 'Resource Not Found\n', sm)
 
@@ -1694,6 +1700,35 @@ class IntentParserServer:
         html += '</tr>\n'
 
         return html
+
+    def process_create_table_template(self,  httpMessage, sm):
+        """
+        """
+        try:
+            json_body = self.get_json_body(httpMessage)
+
+            data = json_body['data']
+            cursor_child_index = str(data['childIndex'])
+            table_type = data['tableType']
+
+            html = None
+            if table_type == 'measurements':
+                html = self.create_measurements_table_html
+
+                # Update parameters in html
+                html = html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
+            else :
+                print('WARNING: unsupported table type: %s' % table_type)
+
+            actionList = []
+            if html is not None:
+                dialog_action = self.modal_dialog(html, 'Create Measurements Table', 600, 600)
+                actionList.append(dialog_action)
+
+            actions = {'actions': actionList}
+            self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+        except Exception as e:
+            raise e
 
     def process_add_to_syn_bio_hub(self, httpMessage, sm):
         try:
