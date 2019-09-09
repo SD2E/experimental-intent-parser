@@ -5,3 +5,4 @@ pySBOL
 pyspellchecker
 python-Levenshtein
 python-datacatalog
+jsonschema
