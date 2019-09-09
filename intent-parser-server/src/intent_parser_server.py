@@ -1715,8 +1715,11 @@ class IntentParserServer:
             if table_type == 'measurements':
                 html = self.create_measurements_table_html
 
+                lab_ids_html = self.generate_html_options(self.lab_ids)
+
                 # Update parameters in html
                 html = html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
+                html = html.replace('${LABIDSOPTIONS}', lab_ids_html)
             else :
                 print('WARNING: unsupported table type: %s' % table_type)
 
