@@ -540,91 +540,22 @@ function postFromClient(postInfo) {
 }
 
 function createTableMeasurements() {
-  var ui = DocumentApp.getUi();
-  html = '\
-<!DOCTYPE html>\
-<html>\
-<body>\
-  <script>\
-    function onSuccess() {\
-        google.script.host.close();\
-    }\
-    function handleCancel() {\
-        google.script.host.close();\
-    }\
-    function handleSubmit() {\
-        var extra = {"action": "createMeasurementTable"};\
-        var theForm = this.createMeasurementTableForm;\
-        var formInfo = {\'cursorChildIndex\' : theForm.cursorChildIndex.value,\
-                        \'formName\' : theForm.formName.value,\
-                        \'lab\' : theForm.lab.value,\
-                        \'numReagents\' : theForm.num_reagents.value,\
-                        \'temperature\' : theForm.temperature.checked,\
-                        \'timepoint\' : theForm.timepoint.checked,\
-                        \'numRows\' : theForm.num_rows.value};\
-        formInfo.extra = extra;\
-        google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);\
-    }\
-  </script>\
-  <center>\
-    <form name="createMeasurementTableForm" action="/add">\
-      <input type="hidden" name="cursorChildIndex" value="%s">\
-      <input type="hidden" name="formName" value="createMeasurementTable">\
-      <table stype="width:100%">\
-        <tr>\
-          <th align="right">Lab: </th>\
-          <td>\
-            <input type="text" name="lab">\
-          </td>\
-        </tr>\
-        <tr>\
-          <th align="right">Number of reagents: </th>\
-          <td>\
-            <input type="text" name="num_reagents" value="0">\
-          </td>\
-        </tr>\
-        <tr>\
-          <th align="right">Temperature: </th>\
-          <td>\
-            <input type="checkbox" name="temperature">\
-          </td>\
-        </tr>\
-        <tr>\
-          <th align="right">Timepoint: </th>\
-          <td>\
-            <input type="checkbox" name="timepoint">\
-          </td>\
-        </tr>\
-        <tr>\
-          <th align="right">Number of rows/measurements: </th>\
-          <td>\
-            <input type="text" name="num_rows">\
-          </td>\
-        </tr>\
-      </table>\
-      <br>\
-      <input type="button" value="Submit" id="submitButton" onclick="handleSubmit()">\
-      <input type="button" value="Cancel" id="cancelButton" onclick="handleCancel()">\
-    </form>\
-  </center>\
-</body>\
-</html>\
-'
-    var doc = DocumentApp.getActiveDocument();
-    var cursorPosition = doc.getCursor()
+  var doc = DocumentApp.getActiveDocument();
+  var cursorPosition = doc.getCursor();
 
-    if(cursorPosition == null) {
-        // Cursor position is null, so assume a selection
-        selectionRange = doc.getSelection()
-        rangeElement = selectionRange.getRangeElements()[0]
-        // Extract element and offset from end of selection
-        var el = rangeElement.getElement()
-    } else {
-        // Select element and off set from current position
-        var el = cursorPosition.getElement()
-    }
-    childIndex = doc.getBody().getChildIndex(el)
+  if(cursorPosition == null) {
+      // Cursor position is null, so assume a selection
+      selectionRange = doc.getSelection()
+      rangeElement = selectionRange.getRangeElements()[0]
+      // Extract element and offset from end of selection
+      var el = rangeElement.getElement()
+  } else {
+      // Select element and off set from current position
+      var el = cursorPosition.getElement()
+  }
+  childIndex = doc.getBody().getChildIndex(el)
 
-    formattedHTML = Utilities.formatString(html, childIndex);
-    showModalDialog(formattedHTML, 'Create Measurement Table Parameters', 600, 600);
+  data = {'childIndex' : childIndex, 'tableType' : 'measurements'}
+
+  sendPost('/createTableTemplate', data)
 }
