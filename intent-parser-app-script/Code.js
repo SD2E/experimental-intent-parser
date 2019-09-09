@@ -15,6 +15,7 @@ function onOpen() {
   menu.addItem('Add to SynBioHub', 'addToSynBioHub')
   menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling')
   menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor')
+  menu.addItem('Validate Structured Request', 'sendValidateStructuredRequest')
   menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest')
   menu.addItem('Generate Report', 'sendGenerateReport')
   menu.addSubMenu(tablesMenu)
@@ -464,6 +465,10 @@ function sendGenerateReport() {
   html += '</center>'
 
   showModalDialog(html, 'Download', 300, 100)
+}
+
+function sendValidateStructuredRequest() {
+  sendPost('/validateStructuredRequest')
 }
 
 function sendGenerateStructuredRequest() {
