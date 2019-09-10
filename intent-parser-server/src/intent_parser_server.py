@@ -636,7 +636,11 @@ class IntentParserServer:
                     elif header == self.col_header_file_type:
                         measurement['file_type'] = [s.strip() for s in cellTxt.split(sep=',')]
                     elif header == self.col_header_replicate:
-                        measurement['replicates'] = int(cellTxt)
+                        try:
+                            measurement['replicates'] = int(cellTxt)
+                        except:
+                            measurement['replicates'] = -1
+                            print('WARNING: failed to parse number of replicates! Trying to parse: %s' % cellTxt)
                     elif header == self.col_header_samples:
                         #measurement['samples'] = cellTxt
                         #samples isn't part of the schema and is just there for auditing purposes
@@ -652,7 +656,12 @@ class IntentParserServer:
                             spec, unit = self.detect_and_remove_unit(time_str);
                             if unit is None:
                                 unit = 'unspecified'
-                            timepoints.append({'value' : float(spec), 'unit' : unit})
+                            try:
+                                time_dict = {'value' : float(spec), 'unit' : unit}
+                            except:
+                                time_dict = {'value' : -1, 'unit' : 'unspecified'}
+                                print('WARNING: failed to parse time unit! Trying to parse: %s' % spec)
+                            timepoints.append(time_dict)
                         measurement['timepoints'] = timepoints
 
                 measurement['contents'] = content
