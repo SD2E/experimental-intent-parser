@@ -425,7 +425,12 @@ class IntentParserServer:
         best_length = 0
         toks = text.split(sep=' ')
 
-        if not len(toks) == 2:
+        # Only value, no unit
+        if len(toks) == 1:
+            return text, 'unspecified'
+
+        # Too many tokens
+        if len(toks) > 2:
             print('WARNING: trying to detect units, got %d tokens, but expected 2!  Input text: %s' % (len(toks), text))
             return text, 'unspecified'
 
