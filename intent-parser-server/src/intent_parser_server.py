@@ -423,27 +423,39 @@ class IntentParserServer:
         """
         best_match = None
         best_length = 0
+        toks = text.split(sep=' ')
+
+        if not len(toks) == 2:
+            print('WARNING: trying to detect units, got %d tokens, but expected 2!  Input text: %s' % (len(toks), text))
+            return text, 'unspecified'
+
+        value_tok = toks[0]
+        unit_tok = toks[1]
+
+        # Test time units
         for unit in self.time_units:
-            if unit in text:
+            if unit in unit_tok:
                 if len(unit) > best_length:
                     best_match = unit
                     best_length = len(unit)
 
+        # Test fluid units
         for unit in self.fluid_units:
-            if unit in text:
+            if unit in unit_tok:
                 if len(unit) > best_length:
                     best_match = unit
                     best_length = len(unit)
 
+        # Test temp units
         for unit in self.temp_units:
-            if unit in text:
+            if unit in unit_tok:
                 if len(unit) > best_length:
                     best_match = unit
                     best_length = len(unit)
 
         if best_match is not None:
             text = text.replace(best_match, '').strip()
-        return text, best_match
+        return value_tok, best_match
 
     def detect_lab_table(self, table):
         """
