@@ -423,7 +423,7 @@ class IntentParserServer:
         """
         best_match = None
         best_length = 0
-        toks = text.split(sep=' ')
+        toks = text.strip().split(sep=' ')
 
         # Only value, no unit
         if len(toks) == 1:
