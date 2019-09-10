@@ -1791,7 +1791,7 @@ class IntentParserServer:
             end_paragraph = end['paragraphIndex'];
 
             start_offset = start['offset']
-            end_offset = end['offset'] + 1
+            end_offset = end['offset']
 
             dialog_action = self.internal_add_to_syn_bio_hub(document_id, start_paragraph, end_paragraph,
                                                              start_offset, end_offset)
@@ -1837,7 +1837,7 @@ class IntentParserServer:
                 paragraphs[start_paragraph])
 
 
-            selection = paragraph_text[start_offset:end_offset]
+            selection = paragraph_text[start_offset:end_offset + 1]
             # Remove leading/trailing space
             selection = selection.strip()
             display_id = self.sanitize_name_to_display_id(selection)
@@ -2201,7 +2201,7 @@ class IntentParserServer:
         start_offset = select_start['cursor_index']
 
         end_paragraph = select_end['cursor_index']
-        end_offset = select_end['cursor_index'] + 1
+        end_offset = select_end['cursor_index']
 
         dialog_action = self.internal_add_to_syn_bio_hub(doc_id, start_paragraph, end_paragraph,
                                                              start_offset, end_offset, isSpellcheck=True)
@@ -2719,9 +2719,6 @@ class IntentParserServer:
                      'end_offset'      : int(data['selectionEndOffset']),
                      'uri'             : data['extra']['link']
                     }
-                # The end offsets are exclusive in spellcheck search, so subtract one
-                if data['isSpellcheck'] == 'True':
-                    search_result['end_offset'] -= 1
                 actions = self.add_link(search_result)
                 result = {'actions': actions,
                           'results': {'operationSucceeded': True}
