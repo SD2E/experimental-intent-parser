@@ -635,10 +635,17 @@ class IntentParserServer:
                     # If nothing is specified, ignore it
                     if not cellTxt == '':
                         reagent_entries = []
+                        # First, determine unit
+                        defaultUnit = 'unspecified'
                         for value in cellTxt.split(sep=','):
                             spec, unit = self.detect_and_remove_unit(value);
-                            if unit is None:
-                                unit = 'unspecified'
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+
+                        for value in cellTxt.split(sep=','):
+                            spec, unit = self.detect_and_remove_unit(value);
+                            if unit is None or unit == 'unspecified':
+                                unit = defaultUnit
                             reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
                             reagent_entries.append(reagent_entry)
                             content.append(reagent_entries)
@@ -669,10 +676,17 @@ class IntentParserServer:
                     elif header == self.col_header_timepoint:
                         timepoints = []
                         timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        # First, determine default unit
+                        defaultUnit = 'unspecified'
                         for time_str in timepoint_strings:
                             spec, unit = self.detect_and_remove_unit(time_str);
-                            if unit is None:
-                                unit = 'unspecified'
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+
+                        for time_str in timepoint_strings:
+                            spec, unit = self.detect_and_remove_unit(time_str);
+                            if unit is None or unit == 'unspecified':
+                                unit = defaultUnit
                             try:
                                 time_dict = {'value' : float(spec), 'unit' : unit}
                             except:
