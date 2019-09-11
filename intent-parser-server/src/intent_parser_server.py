@@ -507,16 +507,33 @@ class IntentParserServer:
 
             try:
                 validate(request, schema)
-                msg = 'Validation Passed!'
+                msg = 'Validation Passed!&#13;&#10;'
                 result = 'Passed!'
                 height = 100
+                textAreaRows = 1
             except ValidationError as err:
                 msg = 'Validation Failed!\n'
                 msg += 'Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;')
-                msg = "<textarea cols='80' rows='33'>" + msg + '</textarea>'
                 result = 'Failed!'
                 height = 600
+                textAreaRows = 33
 
+            reagent_with_no_uri = set()
+            if 'runs' in request:
+                for run in request['runs']:
+                    for measurement in run['measurements']:
+                        for reagent_entry in measurement['contents']:
+                            for reagent in reagent_entry:
+                                name_dict = reagent['name']
+                                if name_dict['sbh_uri'] == 'NO PROGRAM DICTIONARY ENTRY':
+                                    reagent_with_no_uri.add(name_dict['label'])
+
+            for reagent in reagent_with_no_uri:
+                textAreaRows += 1
+                height += 20
+                msg += 'Warning: %s does not have a SynbioHub URI specified!&#13;&#10;' % reagent
+
+            msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (textAreaRows, msg)
             buttons = [('Ok', 'process_nop')]
             dialog_action = self.simple_modal_dialog(msg, buttons, 'Structured request validation: %s' % result, 600, height)
             actionList = [dialog_action]
