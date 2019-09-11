@@ -621,7 +621,7 @@ class IntentParserServer:
                     if uri:
                         sbh_uri = uri
                     else:
-                        sbh_uri = 'NO PROGRAM DICTIONARY ENTRY' #TODO
+                        sbh_uri = 'unspecified'
                     reagent_list.append((cellTxt, sbh_uri))
                     colIdx += 1
             measurement_col = colIdx
