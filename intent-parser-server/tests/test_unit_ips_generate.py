@@ -132,7 +132,7 @@ class TestIntentParserServer(unittest.TestCase):
         gen_results = json.loads(self.ips.send_response.call_args[0][2])
 
         self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
-        self.assertTrue(gen_results['challenge_problem'] == 'NOVEL_CHASSIS')
+        self.assertTrue(gen_results['challenge_problem'] == 'INTENT_PARSER_TEST')
         self.assertTrue(len(gen_results['runs'][0]['measurements']) == 6)
 
 
