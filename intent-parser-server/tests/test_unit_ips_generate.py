@@ -23,18 +23,20 @@ from google_accessor import GoogleAccessor
 
 class TestIntentParserServer(unittest.TestCase):
 
+    authn_file = 'authn.json'
+
     spellcheckFile = 'doc_1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA.json'
 
     items_json = 'item-map-sd2dict.json'
 
     dataDir = 'data'
-    
+
     parent_list = {'kind': 'drive#parentList', 'etag': '"_sqIxUq0fTLFIA17mBQDotbHWsg/XLPCLomfatsiNQOKMCWBdA5SI80"', \
                    'selfLink': 'https://www.googleapis.com/drive/v2/files/1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA/parents?alt=json', \
                    'items': [{'kind': 'drive#parentReference', 'id': '17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', \
                               'selfLink': 'https://www.googleapis.com/drive/v2/files/1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA/parents/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', \
                               'parentLink': 'https://www.googleapis.com/drive/v2/files/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', 'isRoot': False}]}
-    
+
     parent_meta = {'kind': 'drive#file', 'id': '17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', 'etag': '"_sqIxUq0fTLFIA17mBQDotbHWsg/MTU2NTcyNTU4MDIxMg"', \
                    'selfLink': 'https://www.googleapis.com/drive/v2/files/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', \
                    'alternateLink': 'https://drive.google.com/drive/folders/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', \
@@ -61,8 +63,6 @@ class TestIntentParserServer(unittest.TestCase):
                    'capabilities': {'canCopy': False, 'canEdit': True}, 'editable': True, 'copyable': False, 'writersCanShare': True, 'shared': False, \
                    'explicitlyTrashed': False, 'appDataContents': False, 'spaces': ['drive']}
 
-
-
     def setUp(self):
         """
         Configure an instance of IntentParserServer for generation testing.
@@ -80,12 +80,15 @@ class TestIntentParserServer(unittest.TestCase):
                 os.remove(os.path.join(IntentParserServer.dict_path, file))
             os.rmdir(IntentParserServer.dict_path)
 
+        with open(os.path.join(self.dataDir,self.authn_file), 'r') as fin:
+            self.authn = json.loads(fin.read())['authn']
+
         self.doc_id = '1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA'
         self.user = 'bbnTest'
         self.user_email = 'test@bbn.com'
         self.json_body = {'documentId' : self.doc_id, 'user' : self.user, 'userEmail' : self.user_email}
 
-        self.ips = IntentParserServer(init_server=False, init_sbh=False)
+        self.ips = IntentParserServer(init_server=False, init_sbh=False, datacatalog_authn=self.authn)
         self.ips.client_state_lock = Mock()
         self.ips.client_state_map = {}
         self.ips.google_accessor = Mock()
