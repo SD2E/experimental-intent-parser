@@ -1,6 +1,6 @@
 var serverURL = 'http://intent-parser-server.bbn.com:8081'
 
-var versionString = '1.1-git-session'
+var versionString = '2.0-git-session'
 
 function onOpen() {
   var ui = DocumentApp.getUi()
@@ -34,7 +34,24 @@ Intent Parser version %s\
 The purpose of the intent parser add-on is to create a suite of tools that aids the user in creating well documented experimental plans.\
 </p>\
 <p>\
-Right now, there are three different actions that can be performed to help the user.  The first action is <i>analyzing</i> the document, which searches for terms present in the SD2 spreadsheet dictionary and offers to insert links to the SynbioHub definition of those terms.  Additionally, the document can be scanned for terms that do not exist in the <i>spelling</i> dictionary and suggest them as terms to possibly add into the SD2 spreadsheet dictionary or to have a link manually added.  Users can also highlight arbitrary terms and <i>add</i> a definition to SynbioHub for that term.  This <i>add</i> dialog will also query SynbioHub for matches to the selected term and links to those terms can be added.\
+Several different actions help users link terms to SynbioHub, to create a better trail of documentation.  \
+The first action is <b><i>analyzing</i></b> the document, which searches for terms present in the SD2 spreadsheet dictionary and offers to insert links to the SynbioHub definition of those terms.  \
+Additionally, the document can be scanned for terms that do not exist in the <b><i>spelling</i></b> dictionary and suggest them as terms to possibly additions into the SD2 spreadsheet dictionary or to have a link manually added.  \
+Users can also highlight arbitrary terms and <b><i>add</i></b> a definition to SynbioHub for that term.  \
+This <b><i>add</i></b> dialog will also query SynbioHub for matches to the selected term and links to those terms can be added.\
+</p>\
+<p>\
+Intent parser can also help create structured requests from the experimental request document.  \
+This works by creating a table for the measurements which can be parsed.  \
+The first step in this is creating a measurements table template, using the <b><i>create table templates</i></b> file menu option.  \
+The measurements table template dialog will ask a few questions about the table, and then insert the table template into the document.  \
+Users will need to enter the reagent names in the blank columns and fill in the rest of the table.  \
+Each table cell can accept a comma separated list of values and units should be specified where appropriate.  \
+If only one value in the comma-separated list has a unit, that unit will be used for all entries in the list.  \
+For instance, the entry "0, 4, 8, 12 hour" will use the unit of hour for each entry.  \
+Once the measurements table is complete, a structured request can be generated with the <b><i>Generate Structured Request</i></b> file menu option, which will create a json file that can be saved for later use.  \
+Additionally, the <b><i>Validate Structured Request</i></b> option can be used to generate and validate a structured request.  \
+If the request fails validation, an error message will be printed which indicates that the request failed validation, and why.  \
 </p>\
 '
   verFormattedHTML = Utilities.formatString(helpHTML, versionString)
