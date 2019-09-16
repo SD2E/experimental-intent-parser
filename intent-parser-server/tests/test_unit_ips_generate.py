@@ -23,18 +23,26 @@ from google_accessor import GoogleAccessor
 
 class TestIntentParserServer(unittest.TestCase):
 
+    authn_file = 'authn.json'
+
     spellcheckFile = 'doc_1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA.json'
+
+    tablesFile = 'test_tables.json'
 
     items_json = 'item-map-sd2dict.json'
 
+    first_table_file = 'uw_biofab_request.json'
+
+    second_table_file = 'ginkgo_request.json'
+
     dataDir = 'data'
-    
+
     parent_list = {'kind': 'drive#parentList', 'etag': '"_sqIxUq0fTLFIA17mBQDotbHWsg/XLPCLomfatsiNQOKMCWBdA5SI80"', \
                    'selfLink': 'https://www.googleapis.com/drive/v2/files/1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA/parents?alt=json', \
                    'items': [{'kind': 'drive#parentReference', 'id': '17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', \
                               'selfLink': 'https://www.googleapis.com/drive/v2/files/1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA/parents/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', \
                               'parentLink': 'https://www.googleapis.com/drive/v2/files/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', 'isRoot': False}]}
-    
+
     parent_meta = {'kind': 'drive#file', 'id': '17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', 'etag': '"_sqIxUq0fTLFIA17mBQDotbHWsg/MTU2NTcyNTU4MDIxMg"', \
                    'selfLink': 'https://www.googleapis.com/drive/v2/files/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', \
                    'alternateLink': 'https://drive.google.com/drive/folders/17PNAh4ER_Q9rXBeiXwT2v_WRn3cvnJoR', \
@@ -61,8 +69,6 @@ class TestIntentParserServer(unittest.TestCase):
                    'capabilities': {'canCopy': False, 'canEdit': True}, 'editable': True, 'copyable': False, 'writersCanShare': True, 'shared': False, \
                    'explicitlyTrashed': False, 'appDataContents': False, 'spaces': ['drive']}
 
-
-
     def setUp(self):
         """
         Configure an instance of IntentParserServer for generation testing.
@@ -80,12 +86,15 @@ class TestIntentParserServer(unittest.TestCase):
                 os.remove(os.path.join(IntentParserServer.dict_path, file))
             os.rmdir(IntentParserServer.dict_path)
 
+        with open(os.path.join(self.dataDir,self.authn_file), 'r') as fin:
+            self.authn = json.loads(fin.read())['authn']
+
         self.doc_id = '1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA'
         self.user = 'bbnTest'
         self.user_email = 'test@bbn.com'
         self.json_body = {'documentId' : self.doc_id, 'user' : self.user, 'userEmail' : self.user_email}
 
-        self.ips = IntentParserServer(init_server=False, init_sbh=False)
+        self.ips = IntentParserServer(init_server=False, init_sbh=False, datacatalog_authn=self.authn)
         self.ips.client_state_lock = Mock()
         self.ips.client_state_map = {}
         self.ips.google_accessor = Mock()
@@ -95,6 +104,10 @@ class TestIntentParserServer(unittest.TestCase):
         self.ips.analyze_processing_map = {}
         self.ips.analyze_processing_map_lock = Mock()
         self.ips.analyze_processing_lock = Mock()
+
+        # Load example measurement table JSON data.  Contains 9 tables, 2 of which are measurement tables.
+        with open(os.path.join(self.dataDir,self.tablesFile), 'r') as fin:
+            self.table_data = json.loads(fin.read())
 
         self.ips.item_map_lock = Mock()
         with open(os.path.join(self.dataDir, self.items_json), 'r') as fin:
@@ -129,9 +142,67 @@ class TestIntentParserServer(unittest.TestCase):
         gen_results = json.loads(self.ips.send_response.call_args[0][2])
 
         self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
+        self.assertTrue(gen_results['challenge_problem'] == 'INTENT_PARSER_TEST')
+        self.assertTrue(len(gen_results['runs'][0]['measurements']) == 6)
+
+        # Test for when map_experiment_reference fails
+        self.ips.datacatalog_config['mongodb']['authn'] = ''
+        self.ips.process_generate_request(self.httpMessage, [])
+
+        # Basic sanity checks
+        gen_results = json.loads(self.ips.send_response.call_args[0][2])
+
+        self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
         self.assertTrue(gen_results['challenge_problem'] == 'NOVEL_CHASSIS')
         self.assertTrue(len(gen_results['runs'][0]['measurements']) == 6)
 
+    def test_generate_request_specific(self):
+        """
+        """
+
+        with open(os.path.join(self.dataDir,self.first_table_file), 'r') as fin:
+            first_table_gt = json.loads(fin.read())
+
+        with open(os.path.join(self.dataDir,self.second_table_file), 'r') as fin:
+            second_table_gt = json.loads(fin.read())
+
+        # First test picks up second table
+        self.ips.get_element_type =  Mock(return_value=self.table_data)
+
+        self.ips.process_generate_request(self.httpMessage, [])
+
+        gen_results = json.loads(self.ips.send_response.call_args[0][2])
+
+        self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
+        self.assertTrue(gen_results['challenge_problem'] == 'INTENT_PARSER_TEST')
+        self.assertTrue(len(gen_results['runs'][0]['measurements']) == 4)
+        self.assertTrue(gen_results == first_table_gt)
+
+        self.ips.process_validate_structured_request(self.httpMessage, [])
+
+        validate_results = json.loads(self.ips.send_response.call_args[0][2])
+
+        self.assertTrue('Validation Passed' in validate_results['actions'][0]['html'])
+
+        # Second test picks up first table
+        self.ips.get_element_type =  Mock(return_value=self.table_data[0:len(self.table_data) - 4])
+
+        self.ips.process_generate_request(self.httpMessage, [])
+
+        gen_results = json.loads(self.ips.send_response.call_args[0][2])
+
+        self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
+        self.assertTrue(gen_results['challenge_problem'] == 'INTENT_PARSER_TEST')
+        self.assertTrue(len(gen_results['runs'][0]['measurements']) == 4)
+        self.assertTrue(gen_results == second_table_gt)
+
+        self.ips.process_validate_structured_request(self.httpMessage, [])
+
+        validate_results = json.loads(self.ips.send_response.call_args[0][2])
+
+        self.assertTrue('Validation Passed' in validate_results['actions'][0]['html'])
+        self.assertTrue('Warning: IPTG does not have a SynbioHub URI specified' in validate_results['actions'][0]['html'])
+        self.assertTrue('Warning: Kanamycin Sulfate does not have a SynbioHub URI specified' in validate_results['actions'][0]['html'])
 
     def tearDown(self):
         """

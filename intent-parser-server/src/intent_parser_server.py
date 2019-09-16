@@ -553,7 +553,7 @@ class IntentParserServer:
             print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
             raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
 
-        output_doc = { "experiment_reference_url" : "https://docs.google.com/document/d/1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA" }
+        output_doc = { "experiment_reference_url" : "https://docs.google.com/document/d/%s" % document_id }
         if self.datacatalog_config['mongodb']['authn']:
             map_experiment_reference(self.datacatalog_config, output_doc)
 
