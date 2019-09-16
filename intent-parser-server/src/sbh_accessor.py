@@ -1,6 +1,6 @@
 import sbol
 import threading
-import time
+import tenacity
 
 class SBHAccessor:
     def __init__(self, *, sbh_url):
@@ -15,7 +15,13 @@ class SBHAccessor:
             threading.Thread(target=self.housekeeping)
         self.housekeeping_thread.start()
 
-
+    # * Stop after trying 3 times
+    # * Wait 3 seconds between retries
+    # * Reraise the exception that caused the failure, rather than
+    #   raising a tenacity.RetryError
+    @tenacity.retry(stop=tenacity.stop_after_attempt(3),
+                    wait=tenacity.wait_fixed(3),
+                    reraise=True)
     def login(self, sbh_username, sbh_password):
         self.lock.acquire()
 
@@ -44,6 +50,13 @@ class SBHAccessor:
         self.lock.release()
         return fret
 
+    # * Stop after trying 3 times
+    # * Wait 3 seconds between retries
+    # * Reraise the exception that caused the failure, rather than
+    #   raising a tenacity.RetryError
+    @tenacity.retry(stop=tenacity.stop_after_attempt(3),
+                    wait=tenacity.wait_fixed(3),
+                    reraise=True)
     def sparqlQuery(self, sparql_query):
         self.lock.acquire()
 
