@@ -27,7 +27,13 @@ class TestIntentParserServer(unittest.TestCase):
 
     spellcheckFile = 'doc_1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA.json'
 
+    tablesFile = 'test_tables.json'
+
     items_json = 'item-map-sd2dict.json'
+
+    first_table_file = 'uw_biofab_request.json'
+
+    second_table_file = 'ginkgo_request.json'
 
     dataDir = 'data'
 
@@ -99,6 +105,10 @@ class TestIntentParserServer(unittest.TestCase):
         self.ips.analyze_processing_map_lock = Mock()
         self.ips.analyze_processing_lock = Mock()
 
+        # Load example measurement table JSON data.  Contains 9 tables, 2 of which are measurement tables.
+        with open(os.path.join(self.dataDir,self.tablesFile), 'r') as fin:
+            self.table_data = json.loads(fin.read())
+
         self.ips.item_map_lock = Mock()
         with open(os.path.join(self.dataDir, self.items_json), 'r') as fin:
             self.ips.item_map = json.load(fin)
@@ -135,6 +145,64 @@ class TestIntentParserServer(unittest.TestCase):
         self.assertTrue(gen_results['challenge_problem'] == 'INTENT_PARSER_TEST')
         self.assertTrue(len(gen_results['runs'][0]['measurements']) == 6)
 
+        # Test for when map_experiment_reference fails
+        self.ips.datacatalog_config['mongodb']['authn'] = ''
+        self.ips.process_generate_request(self.httpMessage, [])
+
+        # Basic sanity checks
+        gen_results = json.loads(self.ips.send_response.call_args[0][2])
+
+        self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
+        self.assertTrue(gen_results['challenge_problem'] == 'NOVEL_CHASSIS')
+        self.assertTrue(len(gen_results['runs'][0]['measurements']) == 6)
+
+    def test_generate_request_specific(self):
+        """
+        """
+
+        with open(os.path.join(self.dataDir,self.first_table_file), 'r') as fin:
+            first_table_gt = json.loads(fin.read())
+
+        with open(os.path.join(self.dataDir,self.second_table_file), 'r') as fin:
+            second_table_gt = json.loads(fin.read())
+
+        # First test picks up second table
+        self.ips.get_element_type =  Mock(return_value=self.table_data)
+
+        self.ips.process_generate_request(self.httpMessage, [])
+
+        gen_results = json.loads(self.ips.send_response.call_args[0][2])
+
+        self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
+        self.assertTrue(gen_results['challenge_problem'] == 'INTENT_PARSER_TEST')
+        self.assertTrue(len(gen_results['runs'][0]['measurements']) == 4)
+        self.assertTrue(gen_results == first_table_gt)
+
+        self.ips.process_validate_structured_request(self.httpMessage, [])
+
+        validate_results = json.loads(self.ips.send_response.call_args[0][2])
+
+        self.assertTrue('Validation Passed' in validate_results['actions'][0]['html'])
+
+        # Second test picks up first table
+        self.ips.get_element_type =  Mock(return_value=self.table_data[0:len(self.table_data) - 4])
+
+        self.ips.process_generate_request(self.httpMessage, [])
+
+        gen_results = json.loads(self.ips.send_response.call_args[0][2])
+
+        self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
+        self.assertTrue(gen_results['challenge_problem'] == 'INTENT_PARSER_TEST')
+        self.assertTrue(len(gen_results['runs'][0]['measurements']) == 4)
+        self.assertTrue(gen_results == second_table_gt)
+
+        self.ips.process_validate_structured_request(self.httpMessage, [])
+
+        validate_results = json.loads(self.ips.send_response.call_args[0][2])
+
+        self.assertTrue('Validation Passed' in validate_results['actions'][0]['html'])
+        self.assertTrue('Warning: IPTG does not have a SynbioHub URI specified' in validate_results['actions'][0]['html'])
+        self.assertTrue('Warning: Kanamycin Sulfate does not have a SynbioHub URI specified' in validate_results['actions'][0]['html'])
 
     def tearDown(self):
         """
