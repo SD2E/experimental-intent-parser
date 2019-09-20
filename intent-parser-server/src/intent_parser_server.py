@@ -21,6 +21,8 @@ from spellchecker import SpellChecker
 from multiprocessing import Pool
 import intent_parser_utils
 
+import logging
+
 from jsonschema import validate
 from jsonschema import ValidationError
 
@@ -69,6 +71,8 @@ class IntentParserServer:
             }
         }
 
+    logger = logging.getLogger('intent_parser_server')
+
     # Define the percentage of length of the search term that must
     # be matched in order to have a valid partial match
     partial_match_thresh = 0.75
@@ -105,6 +109,9 @@ class IntentParserServer:
                  datacatalog_authn='',
                  init_server=True,
                  init_sbh=True):
+
+        fh = logging.FileHandler('intent_parser_server.log')
+        self.logger.addHandler(fh)
 
         self.sbh = None
         self.server = None
@@ -200,12 +207,12 @@ class IntentParserServer:
         if sbh_url is not None:
             # log into Syn Bio Hub
             if sbh_username is None:
-                print('SynBioHub username was not specified')
+                self.logger.info('SynBioHub username was not specified')
                 usage()
                 sys.exit(2)
 
             if sbh_password is None:
-                print('SynBioHub password was not specified')
+                self.logger.info('SynBioHub password was not specified')
                 usage()
                 sys.exit(2)
 
@@ -257,7 +264,7 @@ class IntentParserServer:
 
         if self.sbh is not None:
             self.sbh.login(sbh_username, sbh_password)
-            print('Logged into {}'.format(sbh_url))
+            self.logger.info('Logged into {}'.format(sbh_url))
 
         self.housekeeping_thread = \
             threading.Thread(target=self.housekeeping)
@@ -273,16 +280,16 @@ class IntentParserServer:
         self.server.bind((bind_ip, bind_port))
 
         self.server.listen(5)
-        print('listening on {}:{}'.format(bind_ip, bind_port))
+        self.logger.info('listening on {}:{}'.format(bind_ip, bind_port))
 
     def serverRunLoop(self, *, background=False):
         if background:
             run_thread = threading.Thread(target=self.serverRunLoop)
-            print('Start background thread')
+            self.logger.info('Start background thread')
             run_thread.start()
             return
 
-        print('Start Listener')
+        self.logger.info('Start Listener')
 
         while True:
             try:
@@ -309,7 +316,7 @@ class IntentParserServer:
             client_handler.start()
 
     def handle_client_connection(self, client_socket):
-        print('Connection')
+        self.logger.info('Connection')
         sm = SocketManager(client_socket)
 
         try:
@@ -335,11 +342,11 @@ class IntentParserServer:
                     self.send_response(ex.code, ex.message, ex.content, sm)
 
                 except Exception as ex:
-                    print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+                    self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
                     self.send_response(504, 'Internal Server Error', 'Internal Server Error\n', sm)
 
         except Exception as e:
-            print('Exception: {}'.format(e))
+            self.logger.info('Exception: {}'.format(e))
 
         client_socket.close()
 
@@ -431,7 +438,7 @@ class IntentParserServer:
 
         # Too many tokens
         if len(toks) > 2:
-            print('WARNING: trying to detect units, got %d tokens, but expected 2!  Input text: %s' % (len(toks), text))
+            self.logger.info('WARNING: trying to detect units, got %d tokens, but expected 2!  Input text: %s' % (len(toks), text))
             return text, 'unspecified'
 
         value_tok = toks[0]
@@ -550,7 +557,7 @@ class IntentParserServer:
         try:
             doc = self.google_accessor.get_document(document_id=document_id)
         except Exception as ex:
-            print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
             raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
 
         output_doc = { "experiment_reference_url" : "https://docs.google.com/document/d/%s" % document_id }
@@ -566,7 +573,7 @@ class IntentParserServer:
             experiment_reference = output_doc['experiment_reference']
             experiment_reference_url = output_doc['experiment_reference_url']
         else:
-            print('WARNING: Failed to map experiment reference for doc id %s!' % document_id)
+            self.logger.info('WARNING: Failed to map experiment reference for doc id %s!' % document_id)
             experiment_reference = doc['title'].split(sep='-')[1].strip()
             experiment_reference_url = 'https://docs.google.com/document/d/' + document_id
             # This will return a parent list, which should have one or more Ids of parent directories
@@ -574,7 +581,7 @@ class IntentParserServer:
             parent_list = self.google_accessor.get_document_parents(document_id=document_id)
             cp_id = 'Unknown'
             if not parent_list['kind'] == 'drive#parentList':
-                print('ERROR: expected a drive#parent_list, received a %s' % parent_list['kind'])
+                self.logger.info('ERROR: expected a drive#parent_list, received a %s' % parent_list['kind'])
             else:
                 for parent_ref in parent_list['items']:
                     if not parent_ref['kind'] == 'drive#parentReference':
@@ -681,7 +688,7 @@ class IntentParserServer:
                             measurement['replicates'] = int(cellTxt)
                         except:
                             measurement['replicates'] = -1
-                            print('WARNING: failed to parse number of replicates! Trying to parse: %s' % cellTxt)
+                            self.logger.info('WARNING: failed to parse number of replicates! Trying to parse: %s' % cellTxt)
                     elif header == self.col_header_samples:
                         #measurement['samples'] = cellTxt
                         #samples isn't part of the schema and is just there for auditing purposes
@@ -708,7 +715,7 @@ class IntentParserServer:
                                 time_dict = {'value' : float(spec), 'unit' : unit}
                             except:
                                 time_dict = {'value' : -1, 'unit' : 'unspecified'}
-                                print('WARNING: failed to parse time unit! Trying to parse: %s' % spec)
+                                self.logger.info('WARNING: failed to parse time unit! Trying to parse: %s' % spec)
                             timepoints.append(time_dict)
                         measurement['timepoints'] = timepoints
 
@@ -722,7 +729,7 @@ class IntentParserServer:
             labRow = rows[0]
             numCols = len(labRow['tableCells'])
             if numRows > 1 or numCols > 1:
-                print('WARNING: Lab table size differs from expectation! Expecting 1 row and 1 col, found %d rows and %d cols' % (numRows, numCols))
+                self.logger.info('WARNING: Lab table size differs from expectation! Expecting 1 row and 1 col, found %d rows and %d cols' % (numRows, numCols))
             # The lab text is expected to be in row 0, col 0 and have the form: Lab: <X>
             lab = self.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph']).strip().split(sep=':')[1].strip()
 
@@ -752,7 +759,7 @@ class IntentParserServer:
 
         end = time.time()
 
-        print('Generated request in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+        self.logger.info('Generated request in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
 
         self.send_response(200, 'OK', json.dumps(request), sm, 'application/json')
 
@@ -772,7 +779,7 @@ class IntentParserServer:
                 document_id=document_id
                 )
         except Exception as ex:
-            print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
             raise ConnectionException('404', 'Not Found',
                                       'Failed to access document ' +
                                       document_id)
@@ -827,7 +834,7 @@ class IntentParserServer:
 
         end = time.time()
 
-        print('Generated report in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+        self.logger.info('Generated report in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
 
         self.send_response(200, 'OK', json.dumps(report), sm,
                            'application/json')
@@ -835,7 +842,7 @@ class IntentParserServer:
     def process_message(self, httpMessage, sm):
         json_body = self.get_json_body(httpMessage)
         if 'message' in json_body:
-            print(json_body['message'])
+            self.logger.info(json_body['message'])
         self.send_response(200, 'OK', '{}', sm,
                            'application/json')
 
@@ -925,7 +932,7 @@ class IntentParserServer:
         try:
             doc = self.google_accessor.get_document(document_id=document_id)
         except Exception as ex:
-            print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
             raise ConnectionException('404', 'Not Found', 'Failed to access document ' + document_id)
 
         self.analyze_processing_lock[document_id] = threading.Lock()
@@ -963,7 +970,7 @@ class IntentParserServer:
         try:
             self.analyze_document(client_state, doc, start_offset)
             end = time.time()
-            print('Analyzed entire document in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+            self.logger.info('Analyzed entire document in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
         except Exception as e:
             raise e
 
@@ -1123,7 +1130,7 @@ class IntentParserServer:
         tab_data = {}
         for tab in self.spreadsheet_tabs:
             tab_data[tab] = self.google_accessor.get_row_data(tab=tab)
-            print('Fetched data from tab ' + tab)
+            self.logger.info('Fetched data from tab ' + tab)
 
         return tab_data
 
@@ -1294,9 +1301,9 @@ class IntentParserServer:
                 try:
                     with open(link_pref_file, 'r') as fin:
                         self.analyze_never_link[userId] = json.load(fin)
-                        print('Loaded link preferences for userId, path: %s' % link_pref_file)
+                        self.logger.info('Loaded link preferences for userId, path: %s' % link_pref_file)
                 except:
-                    print('ERROR: Failed to load link preferences file!')
+                    self.logger.error('ERROR: Failed to load link preferences file!')
             else:
                 self.analyze_never_link[userId] = {}
 
@@ -1313,7 +1320,7 @@ class IntentParserServer:
             with open(link_pref_file, 'w') as fout:
                 json.dump(self.analyze_never_link[userId], fout)
         except:
-            print('ERROR: Failed to write link preferences file!')
+            self.logger.error('ERROR: Failed to write link preferences file!')
 
         # Remove all of these associations from the results
         # This is different from "No to All", because that's only termed based
@@ -1567,7 +1574,7 @@ class IntentParserServer:
         elif resource == '/document_request':
             self.process_generate_request(httpMessage, sm)
         else:
-            print('Did not find ' + resource)
+            self.logger.warning('Did not find ' + resource)
             raise ConnectionException(404, 'Not Found', 'Resource Not Found')
 
     def new_connection(self, document_id):
@@ -1617,7 +1624,7 @@ class IntentParserServer:
         if document_id in self.client_state_map:
             client_state = self.client_state_map[document_id]
             if not client_state['locked']:
-                print('Error: releasing client_state, but it is not locked! doc_id: %s, called by %s' % (document_id, inspect.currentframe().f_back.f_code.co_name))
+                self.logger.error('Error: releasing client_state, but it is not locked! doc_id: %s, called by %s' % (document_id, inspect.currentframe().f_back.f_code.co_name))
             client_state['locked'] = False
 
         self.client_state_lock.release()
@@ -1628,15 +1635,15 @@ class IntentParserServer:
         if self.sbh is not None:
             self.sbh.stop()
 
-        print('Signaling shutdown...')
+        self.logger.info('Signaling shutdown...')
         self.shutdownThread = True
         self.event.set()
 
         if self.server is not None:
-            print('Closing server...')
+            self.logger.info('Closing server...')
             self.server.shutdown(socket.SHUT_RDWR)
             self.server.close()
-        print('Shutdown complete')
+        self.logger.info('Shutdown complete')
 
     def housekeeping(self):
         while True:
@@ -1647,7 +1654,7 @@ class IntentParserServer:
             try:
                 item_map = self.generate_item_map(use_cache=False)
             except Exception as ex:
-                print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+                self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
 
             self.item_map_lock.acquire()
             self.item_map = item_map
@@ -1709,13 +1716,13 @@ class IntentParserServer:
 
     def generate_item_map(self, *, use_cache=True):
         item_map = {}
-        print('Generating item map, %d' % time.time())
+        self.logger.info('Generating item map, %d' % time.time())
         if use_cache:
             try:
                 f = open(self.my_path + '/item-map.json', 'r')
                 item_map = json.loads(f.read())
                 f.close()
-                print('Num items in item_map: %d' % len(item_map))
+                self.logger.info('Num items in item_map: %d' % len(item_map))
                 return item_map
 
             except:
@@ -1744,7 +1751,7 @@ class IntentParserServer:
         f.write(json.dumps(item_map))
         f.close()
 
-        print('Num items in item_map: %d' % len(item_map))
+        self.logger.info('Num items in item_map: %d' % len(item_map))
 
         return item_map
 
@@ -1823,7 +1830,7 @@ class IntentParserServer:
                 html = html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
                 html = html.replace('${LABIDSOPTIONS}', lab_ids_html)
             else :
-                print('WARNING: unsupported table type: %s' % table_type)
+                self.logger.warning('WARNING: unsupported table type: %s' % table_type)
 
             actionList = []
             if html is not None:
@@ -1857,7 +1864,7 @@ class IntentParserServer:
 
             self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
 
-            print('Add entry to SynBiohub, %s, %s' %(document_id, time.time()))
+            self.logger.info('Add entry to SynBiohub, %s, %s' %(document_id, time.time()))
         except Exception as e:
             raise e
 
@@ -1879,7 +1886,7 @@ class IntentParserServer:
                     document_id=document_id
                 )
             except Exception as ex:
-                print(''.join(traceback.format_exception(etype=type(ex),
+                self.logger.error(''.join(traceback.format_exception(etype=type(ex),
                                                          value=ex,
                                                          tb=ex.__traceback__)))
                 raise ConnectionException('404', 'Not Found',
@@ -1994,7 +2001,7 @@ class IntentParserServer:
                 self.spellCheckers[userId] = SpellChecker()
                 dict_path = os.path.join(self.dict_path, userId + '.json')
                 if os.path.exists(dict_path):
-                    print('Loaded dictionary for userId, path: %s' % dict_path)
+                    self.logger.info('Loaded dictionary for userId, path: %s' % dict_path)
                     self.spellCheckers[userId].word_frequency.load_dictionary(dict_path)
 
             try:
@@ -2002,7 +2009,7 @@ class IntentParserServer:
                     document_id=document_id
                 )
             except Exception as ex:
-                print(''.join(traceback.format_exception(etype=type(ex),
+                self.logger.error(''.join(traceback.format_exception(etype=type(ex),
                                                          value=ex,
                                                          tb=ex.__traceback__)))
                 raise ConnectionException('404', 'Not Found',
@@ -2117,7 +2124,7 @@ class IntentParserServer:
                             spellCheckResults.append(result)
                             missedTerms.append(word)
             end = time.time()
-            print('Scanned entire document in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+            self.logger.info('Scanned entire document in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
 
             # If we have a spelling mistake, highlight text and update user
             if len(spellCheckResults) > 0:
@@ -2154,7 +2161,7 @@ class IntentParserServer:
         end_par = spellCheckResults[resultIdx]['select_end']['paragraph_index']
         end_cursor = spellCheckResults[resultIdx]['select_end']['cursor_index']
         if not start_par == end_par:
-            print('Received a highlight request across paragraphs, which is currently unsupported!')
+            self.logger.error('Received a highlight request across paragraphs, which is currently unsupported!')
         highlightTextAction = self.highlight_text(start_par, start_cursor, end_cursor)
         actionList.append(highlightTextAction)
 
@@ -2312,7 +2319,7 @@ class IntentParserServer:
             new_link = spell_check_result['prev_link']
         else:
             new_link = None
-            print('spellcheck_reuse_link call without prev_link in spell_check_result!')
+            self.logger.error('spellcheck_reuse_link call without prev_link in spell_check_result!')
 
         start_par = spell_check_result['select_start']['paragraph_index']
         start_cursor = spell_check_result['select_start']['cursor_index']
@@ -2336,7 +2343,7 @@ class IntentParserServer:
             new_link = json_body['data']['buttonId']['link']
         else:
             new_link = None
-            print('spellcheck_link received a json_body without a link in it!')
+            self.logger.error('spellcheck_link received a json_body without a link in it!')
 
         start_par = spell_check_result['select_start']['paragraph_index']
         start_cursor = spell_check_result['select_start']['cursor_index']
@@ -2421,11 +2428,11 @@ class IntentParserServer:
             firstCheck = lambda x : not self.char_is_not_wordpart(x)
 
         if starting_pos < 0:
-            print('Error: got request to select previous, but the starting_pos was negative!')
+            self.logger.error('Error: got request to select previous, but the starting_pos was negative!')
             return
 
         if para_text_len < starting_pos:
-            print('Error: got request to select previous, but the starting_pos was past the end!')
+            self.logger.error('Error: got request to select previous, but the starting_pos was past the end!')
             return
 
         # Move past the end/start of the current word
@@ -2466,7 +2473,7 @@ class IntentParserServer:
             bindings = query_results['results']['bindings']
             self.sparql_similar_count_cache[term] = bindings[0]['count']['value']
             end = time.time()
-            print('Simple SynbioHub count for %s took %0.2fms (found %s results)' %(term, (end - start) * 1000, bindings[0]['count']['value']))
+            self.logger.info('Simple SynbioHub count for %s took %0.2fms (found %s results)' %(term, (end - start) * 1000, bindings[0]['count']['value']))
 
         start = time.time()
         sparql_query = self.sparql_similar_query.replace('${TERM}', term).replace('${LIMIT}', str(self.sparql_limit)).replace('${OFFSET}', str(offset)).replace('${EXTRA_FILTER}', extra_filter)
@@ -2481,7 +2488,7 @@ class IntentParserServer:
             search_results.append({'title': title, 'target': target})
 
         end = time.time()
-        print('Simple SynbioHub search for %s took %0.2fms' %(term, (end - start) * 1000))
+        self.logger.info('Simple SynbioHub search for %s took %0.2fms' %(term, (end - start) * 1000))
         return search_results, self.sparql_similar_count_cache[term]
 
     def sanitize_name_to_display_id(self, name):
@@ -2715,7 +2722,7 @@ class IntentParserServer:
                                     end_offset, document_url)
 
         except Exception as e:
-            print(''.join(traceback.format_exception(etype=type(e),
+            self.logger.error(''.join(traceback.format_exception(etype=type(e),
                                                      value=e,
                                                      tb=e.__traceback__)))
 
@@ -2802,7 +2809,7 @@ class IntentParserServer:
                           'results': {'operationSucceeded': True}
                 }
             else:
-                print('Unsupported form action: {}'.format(action))
+                self.logger.error('Unsupported form action: {}'.format(action))
 
             self.send_response(200, 'OK', json.dumps(result), sm,
                                'application/json')
@@ -2952,7 +2959,7 @@ class IntentParserServer:
 
 
         except Exception as err:
-            print(str(err))
+            self.logger.error(str(err))
             response = self.operation_failed('Failed to search SynBioHub')
 
         self.send_response(200, 'OK', json.dumps(response), sm,
@@ -3037,6 +3044,8 @@ def main(argv):
         elif opt in ('-a', '--authn'):
             authn = arg
 
+    setup_logging()
+
     try:
         sbhPlugin = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
                                        sbh_spoofing_prefix=sbh_spoofing_prefix,
@@ -3052,6 +3061,27 @@ def main(argv):
         sys.exit(5)
 
     sbhPlugin.serverRunLoop()
+
+def setup_logging(
+    default_path='logging.json',
+    default_level=logging.INFO,
+    env_key='LOG_CFG'
+):
+    """
+    Setup logging configuration
+    """
+    path = default_path
+    value = os.getenv(env_key, None)
+    if value:
+        path = value
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            config = json.load(f)
+        logging.config.dictConfig(config)
+    else:
+        logging.basicConfig(level=default_level, format="[%(levelname)-8s] %(asctime)-24s %(filename)-23s line:%(lineno)-4s  %(message)s")
+    logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.CRITICAL)
+    logging.getLogger("googleapiclient.discovery").setLevel(logging.CRITICAL)
 
 def signal_int_handler(sig, frame):
     '''  Handling SIG_INT: shutdown intent parser server and wait for it to finish.
