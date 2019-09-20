@@ -1,0 +1,4 @@
+# We need to ignore the token.pickle file eventually
+# But we need a mechanism to get this into the container
+# For now, we will copy it in and keep the container private
+#*.pickle
