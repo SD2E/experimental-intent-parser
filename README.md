@@ -1,4 +1,4 @@
-#Intent Parser
+# Intent Parser
 
 This repository creates a tool to help in the authorship of experimental requests.
 This tool is exposed to users via a Google Docs add-on.
