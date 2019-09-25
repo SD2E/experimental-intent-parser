@@ -1673,6 +1673,14 @@ class IntentParserServer:
         for cid in data['enum']:
             self.challenge_ids.append(cid)
 
+        # File types
+        response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/filetype_label.json',timeout=60)
+        data = json.loads(response.read().decode('utf-8'))
+
+        self.file_types = []
+        for cid in data['enum']:
+            self.file_types.append(cid)
+
         # Measurement types
         response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/measurement_type.json',timeout=60)
         data = json.loads(response.read().decode('utf-8'))
@@ -1825,10 +1833,18 @@ class IntentParserServer:
                 html = self.create_measurements_table_html
 
                 lab_ids_html = self.generate_html_options(self.lab_ids)
+                measurement_types_html = self.generate_html_options(self.measurement_types)
+                file_types_html = self.generate_html_options(self.file_types)
+
+                measurement_types_html = measurement_types_html.replace('\n', ' ')
+                file_types_html = file_types_html.replace('\n', ' ')
 
                 # Update parameters in html
                 html = html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
                 html = html.replace('${LABIDSOPTIONS}', lab_ids_html)
+                html = html.replace('${MEASUREMENTOPTIONS}', measurement_types_html)
+                html = html.replace('${FILETYPEOPTIONS}', file_types_html)
+
             else :
                 self.logger.warning('WARNING: unsupported table type: %s' % table_type)
 
