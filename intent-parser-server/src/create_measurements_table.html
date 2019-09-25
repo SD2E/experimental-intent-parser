@@ -9,19 +9,11 @@
         google.script.host.close();
     }
     function handleSubmit() {
-        var currMeasurements = new Array();
-        var currFileTypes = new Array();
-        for (var i = 0; i < this.currNumMeasurements; i++) {
-            currMeasurements.push(document.getElementById("measurementTypeCombo_" + i.toString()));
-            currFileTypes.push(document.getElementById("fileTypeCombo_" + i.toString()));
-        }
         var extra = {"action": "createMeasurementTable"};
         var theForm = this.createMeasurementTableForm;
         var formInfo = {'cursorChildIndex' : theForm.cursorChildIndex.value,
                         'formName' : theForm.formName.value,
                         'lab' : theForm.lab.value,
-                        'measurementTypes' : currMeasurements,
-                        'fileTypes' : currFileTypes,
                         'numReagents' : theForm.num_reagents.value,
                         'temperature' : theForm.temperature.checked,
                         'timepoint' : theForm.timepoint.checked,
@@ -29,47 +21,6 @@
         formInfo.extra = extra;
         google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);
     }
-    function numMeasurementsUpdate() {
-        var theForm = this.createMeasurementTableForm;
-        var numNewMeasurements = theForm.num_rows.value;
-
-        var table = document.getElementById('measurementTypesTable');
-
-        var currMeasurements = new Array();
-        var currFileTypes = new Array();
-        for (var i = 0; i < this.currNumMeasurements; i++) {
-            currMeasurements.push(document.getElementById("measurementTypeCombo_" + i.toString()));
-            currFileTypes.push(document.getElementById("fileTypeCombo_" + i.toString()));
-        }
-
-        table.innerHTML = "";
-        reusedValues = Math.min(this.currNumMeasurements, numNewMeasurements);
-        for (var i = 0; i < reusedValues; i++) {
-            var measurementName = "measurementTypoCombo" + i.toString();
-            var fileName = "fileTypoCombo" + i.toString();
-            table.innerHTML += "<td><tr>";
-            table.innerHTML += "Measurement type <select id=\"" + measurementName + "\" name=\"" + measurementName + "\" value=\"" + currMeasurements[i] + "\">" + this.measurement_options + " </select>";
-            table.innerHTML += "File type <select id=\"" + fileName + "\" name=\"" + fileName + "\" value=\"" + currFileTypes[i] + "\">" + this.filetype_options + " </select>";
-            table.innerHTML += "</td></tr>";
-        }
-        for (var i = this.currNumMeasurements; i < numNewMeasurements; i++) {
-            var measurementName = "measurementTypoCombo" + i.toString();
-            var fileName = "fileTypoCombo" + i.toString();
-            table.innerHTML += "<td><tr>";
-            table.innerHTML += "Measurement type <select id=\"" + measurementName + "\" name=\"" + measurementName + "\">" + this.measurement_options + " </select>";
-            table.innerHTML += "File type <select id=\"" + fileName + "\" name=\"" + fileName + "\">" + this.filetype_options + " </select>";
-            table.innerHTML += "</td></tr>";
-        }
-
-        this.currNumMeasurements = numNewMeasurements;
-    }
-
-    this.currNumMeasurements = 1
-
-    this.measurement_options = ${MEASUREMENTOPTIONS}
-
-    this.filetype_options = ${FILETYPEOPTIONS}
-
   </script>
   <center>
     <form name="createMeasurementTableForm" action="/add">
@@ -105,17 +56,9 @@
         <tr>
           <th align="right">Number of rows/measurements: </th>
           <td>
-            <input type="number" min="1" max="15" step="1" value="1" name="num_rows" oninput="numMeasurementsUpdate()">
+            <input type="text" name="num_rows">
           </td>
         </tr>
-
-        <tr>
-          <td colspan="2">
-            <table stype="width:100%" id="measurementTypesTable">
-            </table>
-          </td>
-        </tr>
-
       </table>
       <br>
       <input type="button" value="Submit" id="submitButton" onclick="handleSubmit()">
