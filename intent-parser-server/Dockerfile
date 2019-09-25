@@ -7,6 +7,9 @@ COPY ./src /src
 
 RUN pip3 install -r requirements.txt
 
+RUN mkdir -p /src/logs
+RUN mv docker_logging.json logging.json
+
 # Define environment variables for config
 ENV PORT 8080
 ENV DICT_ID 1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g

@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "simple": {
+      "format": "[%(levelname)-8s] %(asctime)-24s %(filename)-23s line:%(lineno)-4s  %(message)s"
+    }
+  },
+
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "level": "DEBUG",
+      "formatter": "simple",
+      "stream": "ext://sys.stdout"
+    },
+
+    "file_handler": {
+      "class": "logging.FileHandler",
+      "level": "DEBUG",
+      "formatter": "simple",
+      "filename": "logs/intent_parser_server.log",
+      "encoding": "utf8"
+    }
+  },
+
+  "loggers": {
+	"__main__" : {
+	  "level": "DEBUG"
+	}
+  },
+
+  "root": {
+    "level": "INFO",
+    "handlers": ["console", "file_handler"]
+  }
+}

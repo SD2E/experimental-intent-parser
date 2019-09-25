@@ -22,6 +22,7 @@ from multiprocessing import Pool
 import intent_parser_utils
 
 import logging
+import logging.config
 
 from jsonschema import validate
 from jsonschema import ValidationError
