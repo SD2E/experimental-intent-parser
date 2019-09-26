@@ -1674,6 +1674,14 @@ class IntentParserServer:
         for cid in data['enum']:
             self.challenge_ids.append(cid)
 
+        # File types
+        response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/filetype_label.json',timeout=60)
+        data = json.loads(response.read().decode('utf-8'))
+
+        self.file_types = []
+        for cid in data['enum']:
+            self.file_types.append(cid)
+
         # Measurement types
         response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/measurement_type.json',timeout=60)
         data = json.loads(response.read().decode('utf-8'))
@@ -1825,11 +1833,26 @@ class IntentParserServer:
             if table_type == 'measurements':
                 html = self.create_measurements_table_html
 
+                local_file_types = self.file_types.copy()
+                local_file_types.insert(0,'---------------')
+                local_file_types.insert(0,'CSV')
+                local_file_types.insert(0,'PLAIN')
+                local_file_types.insert(0,'FASTQ')
+                local_file_types.insert(0,'FCS')
+
                 lab_ids_html = self.generate_html_options(self.lab_ids)
+                measurement_types_html = self.generate_html_options(self.measurement_types)
+                file_types_html = self.generate_html_options(local_file_types)
+
+                measurement_types_html = measurement_types_html.replace('\n', ' ')
+                file_types_html = file_types_html.replace('\n', ' ')
 
                 # Update parameters in html
                 html = html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
                 html = html.replace('${LABIDSOPTIONS}', lab_ids_html)
+                html = html.replace('${MEASUREMENTOPTIONS}', measurement_types_html)
+                html = html.replace('${FILETYPEOPTIONS}', file_types_html)
+
             else :
                 self.logger.warning('WARNING: unsupported table type: %s' % table_type)
 
@@ -2827,6 +2850,8 @@ class IntentParserServer:
         has_temp = data['temperature']
         has_time = data['timepoint']
         num_rows = int(data['numRows'])
+        measurement_types = data['measurementTypes']
+        file_types = data['fileTypes']
 
         num_cols = num_reagents + 4
         if has_time:
@@ -2837,39 +2862,44 @@ class IntentParserServer:
         col_sizes = []
         table_data = []
         header = []
-        blank_row = []
         for __ in range(num_reagents):
             header.append('')
-            blank_row.append('')
             col_sizes.append(4)
 
         header.append(self.col_header_measurement_type)
         header.append(self.col_header_file_type)
         header.append(self.col_header_replicate)
         header.append(self.col_header_strain)
-        blank_row.append('')
-        blank_row.append('')
-        blank_row.append('')
-        blank_row.append('')
-        col_sizes.append(len(self.col_header_measurement_type) + 2)
-        col_sizes.append(len(self.col_header_file_type) + 2)
-        col_sizes.append(len(self.col_header_replicate) + 2)
-        col_sizes.append(len(self.col_header_strain) + 2)
+
+        col_sizes.append(len(self.col_header_measurement_type) + 1)
+        col_sizes.append(len(self.col_header_file_type) + 1)
+        col_sizes.append(len(self.col_header_replicate) + 1)
+        col_sizes.append(len(self.col_header_strain) + 1)
         if has_time:
             header.append(self.col_header_timepoint)
-            blank_row.append('')
-            col_sizes.append(len(self.col_header_timepoint) + 2)
+            col_sizes.append(len(self.col_header_timepoint) + 1)
         if has_temp:
             header.append(self.col_header_temperature)
-            blank_row.append('')
-            col_sizes.append(len(self.col_header_temperature) + 2)
+            col_sizes.append(len(self.col_header_temperature) + 1)
         header.append(self.col_header_samples)
-        blank_row.append('')
-        col_sizes.append(len(self.col_header_samples) + 2)
+
+        col_sizes.append(len(self.col_header_samples) + 1)
         table_data.append(header)
 
-        for __ in range(num_rows):
-            table_data.append(blank_row)
+        for r in range(num_rows):
+            measurement_row = []
+            for __ in range(num_reagents):
+                measurement_row.append('')
+            measurement_row.append(measurement_types[r]) # Measurement Type col
+            measurement_row.append(file_types[r]) # File type col
+            measurement_row.append('') # Replicate Col
+            measurement_row.append('') # Strain col
+            if has_time:
+                measurement_row.append('')
+            if has_temp:
+                measurement_row.append('')
+            measurement_row.append('') # Samples col
+            table_data.append(measurement_row)
 
         create_table = {}
         create_table['action'] = 'addTable'
