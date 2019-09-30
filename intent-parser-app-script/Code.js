@@ -18,6 +18,7 @@ function onOpen() {
   menu.addItem('Validate Structured Request', 'sendValidateStructuredRequest')
   menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest')
   menu.addItem('Generate Report', 'sendGenerateReport')
+  menu.addItem('Update experimental results', 'updateExperimentalResults')
   menu.addSubMenu(tablesMenu)
 
   menu.addItem('Help', 'showHelp')
@@ -163,6 +164,24 @@ function processActions(response) {
 
         break
 
+      case 'updateExperimentResults':
+        var headerIdx = actionDesc['headerIdx'];
+        var contentIdx = actionDesc['contentIdx'];
+        var expData = actionDesc['expData'];
+
+        var doc = DocumentApp.getActiveDocument();
+        var body = doc.getBody();
+
+        if (headerIdx != -1 && contentIdx != -1) {
+            var paragraphs = body.getParagraphs();
+            paragraphs[contentIdx].setText(expData);
+        } else {
+            var header_para = body.appendParagraph('Experiment Results');
+            header_para.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+            body.appendParagraph(expData);
+        }
+
+        break
       case 'showSidebar':
         showSidebar(actionDesc['html'])
         break
@@ -446,6 +465,10 @@ function getLocation(el, offset) {
     return {'paragraphIndex': result,
             'offset': offset}
   }
+}
+
+function updateExperimentalResults() {
+  sendPost('/updateExperimentalResults')
 }
 
 function sendAnalyzeFromTop() {
