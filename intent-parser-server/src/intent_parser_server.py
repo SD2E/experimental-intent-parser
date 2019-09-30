@@ -363,6 +363,8 @@ class IntentParserServer:
 
         if resource == '/analyzeDocument':
             self.process_analyze_document(httpMessage, sm)
+        elif resource == '/updateExperimentalResults':
+            self.process_update_exp_results(httpMessage, sm)
         elif resource == '/message':
             self.process_message(httpMessage, sm)
         elif resource == '/buttonClick':
@@ -862,6 +864,63 @@ class IntentParserServer:
             client_state = None
 
         return (json_body, client_state)
+
+
+    def process_update_exp_results(self, httpMessage, sm):
+        """
+        This function will scan SynbioHub for experiments related to this document, and updated an
+        "Experiment Results" section with information about completed experiments.
+        """
+        json_body = self.get_json_body(httpMessage)
+
+        if 'documentId' not in json_body:
+            raise ConnectionException('400', 'Bad Request', 'Missing documentId')
+
+        document_id = json_body['documentId']
+
+        try:
+            doc = self.google_accessor.get_document(document_id=document_id)
+        except Exception as ex:
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            raise ConnectionException('404', 'Not Found', 'Failed to access document ' + document_id)
+
+        ## TODO
+        ### Search SBH to get data
+        ##
+        ## For now, assume junk
+
+        #data = self.get_synbiohub_exp_data(document_id)
+
+        data = {'exp1' : '6/30/2019', 'exp2' : '7/30/2019', 'exp3' : '8/30/2019', 'exp4' : '9/30/2019'}
+        exp_data = ''
+        for exp in data:
+            exp_data += exp + ' run on ' + data[exp] + '\n'
+
+        body = doc.get('body');
+        doc_content = body.get('content')
+        paragraphs = self.get_paragraphs(doc_content)
+
+        headerIdx = -1
+        contentIdx = -1
+        for pIdx in range(len(paragraphs)):
+            para_text = self.get_paragraph_text(paragraphs[pIdx])
+            if para_text == "Experiment Results\n":
+                headerIdx = pIdx
+            elif headerIdx >= 0 and not para_text == '\n':
+                contentIdx = pIdx
+                break
+
+        if headerIdx >= 0 and contentIdx == -1:
+            self.logger.error('ERROR: Couldn\'t find a content paragraph index for experiment results!')
+
+        action = {}
+        action['action'] = 'updateExperimentResults'
+        action['headerIdx'] = headerIdx
+        action['contentIdx'] = contentIdx
+        action['expData'] = exp_data
+
+        actions = {'actions': [action]}
+        self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
 
     def process_analyze_document(self, httpMessage, sm):
         """
