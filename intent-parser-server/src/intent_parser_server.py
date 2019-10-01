@@ -425,9 +425,26 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
 
-    def detect_and_remove_unit(self, text):
+    def detect_and_remove_time_unit(self, text):
         """
-        Given a string that contains a unit, detect the unit and remove it from the input string, returning the unit itself, and the string with the unit removed
+        """
+        return self.detect_and_remove_unit(text, 'time')
+
+    def detect_and_remove_temp_unit(self, text):
+        """
+        """
+        return self.detect_and_remove_unit(text, 'temp')
+
+    def detect_and_remove_fluid_unit(self, text):
+        """
+        """
+        return self.detect_and_remove_unit(text, 'fluid')
+
+    def detect_and_remove_unit(self, text, unit_type):
+        """
+        Given a string that contains a unit, detect the unit and remove it from the input string,
+        returning the unit itself, and the string with the unit removed.
+        Takes a unit_type string to determine what unit type to detect.
         """
         best_match = None
         best_length = 0
@@ -445,26 +462,27 @@ class IntentParserServer:
         value_tok = toks[0]
         unit_tok = toks[1]
 
-        # Test time units
-        for unit in self.time_units:
-            if unit in unit_tok:
-                if len(unit) > best_length:
-                    best_match = unit
-                    best_length = len(unit)
-
-        # Test fluid units
-        for unit in self.fluid_units:
-            if unit in unit_tok:
-                if len(unit) > best_length:
-                    best_match = unit
-                    best_length = len(unit)
-
-        # Test temp units
-        for unit in self.temp_units:
-            if unit in unit_tok:
-                if len(unit) > best_length:
-                    best_match = unit
-                    best_length = len(unit)
+        if (unit_type == 'time'):
+            # Test time units
+            for unit in self.time_units:
+                if unit.lower() in unit_tok.lower():
+                    if len(unit) > best_length:
+                        best_match = unit
+                        best_length = len(unit)
+        elif (unit_type == 'fluid'):
+            # Test fluid units
+            for unit in self.fluid_units:
+                if unit.lower() in unit_tok.lower():
+                    if len(unit) > best_length:
+                        best_match = unit
+                        best_length = len(unit)
+        elif (unit_type == 'temp'):
+            # Test temp units
+            for unit in self.temp_units:
+                if unit.lower() in unit_tok.lower():
+                    if len(unit) > best_length:
+                        best_match = unit
+                        best_length = len(unit)
 
         if best_match is not None:
             text = text.replace(best_match, '').strip()
@@ -663,12 +681,12 @@ class IntentParserServer:
                         # First, determine unit
                         defaultUnit = 'unspecified'
                         for value in cellTxt.split(sep=','):
-                            spec, unit = self.detect_and_remove_unit(value);
+                            spec, unit = self.detect_and_remove_fluid_unit(value);
                             if unit is not None and unit is not 'unspecified':
                                 defaultUnit = unit
 
                         for value in cellTxt.split(sep=','):
-                            spec, unit = self.detect_and_remove_unit(value);
+                            spec, unit = self.detect_and_remove_fluid_unit(value);
                             if unit is None or unit == 'unspecified':
                                 unit = defaultUnit
                             reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
@@ -697,19 +715,38 @@ class IntentParserServer:
                     elif header == self.col_header_strain:
                         measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
                     elif header == self.col_header_temperature:
-                        measurement['temperature'] = [s.strip() for s in cellTxt.split(sep=',')]
+                        temps = []
+                        temp_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        # First, determine default unit
+                        defaultUnit = 'unspecified'
+                        for temp_str in temp_strings:
+                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+
+                        for temp_str in temp_strings:
+                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
+                            if unit is None or unit == 'unspecified':
+                                unit = defaultUnit
+                            try:
+                                temp_dict = {'value' : float(spec), 'unit' : unit}
+                            except:
+                                temp_dict = {'value' : -1, 'unit' : 'unspecified'}
+                                self.logger.info('WARNING: failed to parse temp unit! Trying to parse: %s' % spec)
+                            temps.append(temp_dict)
+                        measurement['temperatures'] = temps
                     elif header == self.col_header_timepoint:
                         timepoints = []
                         timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
                         # First, determine default unit
                         defaultUnit = 'unspecified'
                         for time_str in timepoint_strings:
-                            spec, unit = self.detect_and_remove_unit(time_str);
+                            spec, unit = self.detect_and_remove_time_unit(time_str);
                             if unit is not None and unit is not 'unspecified':
                                 defaultUnit = unit
 
                         for time_str in timepoint_strings:
-                            spec, unit = self.detect_and_remove_unit(time_str);
+                            spec, unit = self.detect_and_remove_time_unit(time_str);
                             if unit is None or unit == 'unspecified':
                                 unit = defaultUnit
                             try:
