@@ -1038,7 +1038,7 @@ class IntentParserServer:
 
             buttons = [('Yes', 'process_analyze_yes'),
                        ('No', 'process_analyze_no'),
-                       ('Link All', 'process_link_all'),
+                       ('Yes to All', 'process_link_all'),
                        ('No to All', 'process_no_to_all'),
                        ('Never Link', 'process_never_link')]
 
