@@ -506,7 +506,6 @@ class IntentParserServer:
         found_replicates = False
         found_strain = False
         found_measurement_type = False
-        found_samples =  False
         found_file_type = False
 
         rows = table['tableRows']
@@ -517,9 +516,8 @@ class IntentParserServer:
             found_strain |= cellTxt == self.col_header_strain
             found_measurement_type |= cellTxt == self.col_header_measurement_type
             found_file_type |= cellTxt == self.col_header_file_type
-            found_samples |= cellTxt == self.col_header_samples
 
-        return found_replicates and found_strain and found_measurement_type and found_file_type and found_samples
+        return found_replicates and found_strain and found_measurement_type and found_file_type
 
     def process_validate_structured_request(self, httpMessage, sm):
         """
