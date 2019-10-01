@@ -547,7 +547,11 @@ class IntentParserServer:
             reagent_with_no_uri = set()
             if 'runs' in request:
                 for run in request['runs']:
+                    if 'measurements' not in run:
+                        continue;
                     for measurement in run['measurements']:
+                        if 'contents' not in measurement:
+                            continue
                         for reagent_entry in measurement['contents']:
                             for reagent in reagent_entry:
                                 name_dict = reagent['name']
