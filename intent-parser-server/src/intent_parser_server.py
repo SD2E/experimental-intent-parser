@@ -447,21 +447,21 @@ class IntentParserServer:
 
         # Test time units
         for unit in self.time_units:
-            if unit in unit_tok:
+            if unit.lower() in unit_tok.lower():
                 if len(unit) > best_length:
                     best_match = unit
                     best_length = len(unit)
 
         # Test fluid units
         for unit in self.fluid_units:
-            if unit in unit_tok:
+            if unit.lower() in unit_tok.lower():
                 if len(unit) > best_length:
                     best_match = unit
                     best_length = len(unit)
 
         # Test temp units
         for unit in self.temp_units:
-            if unit in unit_tok:
+            if unit.lower() in unit_tok.lower():
                 if len(unit) > best_length:
                     best_match = unit
                     best_length = len(unit)
