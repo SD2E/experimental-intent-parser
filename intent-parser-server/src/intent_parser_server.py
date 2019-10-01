@@ -693,7 +693,7 @@ class IntentParserServer:
                                 unit = defaultUnit
                             reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
                             reagent_entries.append(reagent_entry)
-                            content.append(reagent_entries)
+                        content.append(reagent_entries)
 
                 # Parse rest of table
                 measurement = {}
