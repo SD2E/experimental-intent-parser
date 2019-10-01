@@ -697,7 +697,26 @@ class IntentParserServer:
                     elif header == self.col_header_strain:
                         measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
                     elif header == self.col_header_temperature:
-                        measurement['temperature'] = [s.strip() for s in cellTxt.split(sep=',')]
+                        temps = []
+                        temp_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        # First, determine default unit
+                        defaultUnit = 'unspecified'
+                        for temp_str in temp_strings:
+                            spec, unit = self.detect_and_remove_unit(temp_str);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+
+                        for temp_str in temp_strings:
+                            spec, unit = self.detect_and_remove_unit(temp_str);
+                            if unit is None or unit == 'unspecified':
+                                unit = defaultUnit
+                            try:
+                                temp_dict = {'value' : float(spec), 'unit' : unit}
+                            except:
+                                temp_dict = {'value' : -1, 'unit' : 'unspecified'}
+                                self.logger.info('WARNING: failed to parse temp unit! Trying to parse: %s' % spec)
+                            temps.append(temp_dict)
+                        measurement['temperatures'] = temps
                     elif header == self.col_header_timepoint:
                         timepoints = []
                         timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
