@@ -1036,17 +1036,18 @@ class IntentParserServer:
                                                       end_offset)
             actions.append(highlightTextAction)
 
-            buttons = [('Yes', 'process_analyze_yes'),
-                       ('No', 'process_analyze_no'),
-                       ('Yes to All', 'process_link_all'),
-                       ('No to All', 'process_no_to_all'),
-                       ('Never Link', 'process_never_link')]
+            buttons = [('Yes', 'process_analyze_yes', 'Creates a hyperlink for the highlighted text, using the suggested URL.'),
+                       ('No', 'process_analyze_no', 'Skips this term without creating a link.'),
+                       ('Yes to All', 'process_link_all', 'Creates a hyperlink for the highilghted text and every instance of it in the document, using the suggested URL.'),
+                       ('No to All', 'process_no_to_all', 'Skips this term and every other instance of it in the document.'),
+                       ('Never Link', 'process_never_link', 'Never suggest links to this term, in this document or any other.')]
 
             buttonHTML = ''
             buttonScript = ''
             for button in buttons:
                 buttonHTML += '<input id=' + button[1] + 'Button value="'
-                buttonHTML += button[0] + '" type="button" onclick="'
+                buttonHTML += button[0] + '" type="button" title="'
+                buttonHTML += button[2] + '" onclick="'
                 buttonHTML += button[1] + 'Click()" />\n'
 
                 buttonScript += 'function ' + button[1] + 'Click() {\n'
@@ -1055,7 +1056,7 @@ class IntentParserServer:
                 buttonScript += button[1]  + '\')\n'
                 buttonScript += '}\n\n'
 
-            buttonHTML += '<input id=EnterLinkButton value="Manually Enter Link" type="button" onclick="EnterLinkClick()" />'
+            buttonHTML += '<input id=EnterLinkButton value="Manually Enter Link" type="button" title="Enter a link for this term manually." onclick="EnterLinkClick()" />'
             # Script for the EnterLinkButton is already in the HTML
 
             html = self.analyze_html
@@ -1415,28 +1416,31 @@ class IntentParserServer:
                          google.script.host.close()\n\
                       }\n\n'
         for button in buttons:
-            # Regular buttons, generate script automatically
-            if button[2] == 0:
-                htmlMessage += 'function ' + button[1] + 'Click() {\n'
+            if 'click_script' in button: # Special buttons, define own script
+                htmlMessage += button['click_script']
+            else: # Regular buttons, generate script automatically
+                htmlMessage += 'function ' + button['id'] + 'Click() {\n'
                 htmlMessage += '  google.script.run.withSuccessHandler'
                 htmlMessage += '(onSuccess).buttonClick(\''
-                htmlMessage += button[1]  + '\')\n'
+                htmlMessage += button['id']  + '\')\n'
                 htmlMessage += '}\n\n'
-            elif button[2] == 1: # Special buttons, define own script
-                htmlMessage += button[1]
         htmlMessage += '</script>\n\n'
 
         htmlMessage += '<p>' + message + '<p>\n'
         htmlMessage += '<center>'
         for button in buttons:
-            if button[2] == 0:
-                htmlMessage += '<input id=' + button[1] + 'Button value="'
-                htmlMessage += button[0] + '" type="button" onclick="'
-                htmlMessage += button[1] + 'Click()" />\n'
-            elif button[2] == 1: # Special buttons, define own script
-                htmlMessage += '<input id=' + button[3] + 'Button value="'
-                htmlMessage += button[0] + '" type="button" onclick="'
-                htmlMessage += button[3] + 'Click()" />\n'
+            if 'click_script' in button: # Special buttons, define own script
+                htmlMessage += '<input id=' + button['id'] + 'Button value="'
+                htmlMessage += button['value'] + '" type="button"'
+                if 'title' in button:
+                    htmlMessage += 'title="' + button['title'] + '"'
+                htmlMessage += ' onclick="' + button['id'] + 'Click()" />\n'
+            else:
+                htmlMessage += '<input id=' + button['id'] + 'Button value="'
+                htmlMessage += button['value'] + '" type="button"'
+                if 'title' in button:
+                    htmlMessage += 'title="' + button['title'] + '"'
+                htmlMessage += 'onclick="' + button['id'] + 'Click()" />\n'
         htmlMessage += '</center>'
 
         action = {}
@@ -1786,14 +1790,14 @@ class IntentParserServer:
         html += '  </td>\n'
         html += '  <td>\n'
         html += '    <input type="button" name=' + target + ' value="Link"\n'
-        html += '    onclick="linkItem(thisForm, this.name)">\n'
+        html += '    title="Create a link with this URL." onclick="linkItem(thisForm, this.name)">\n'
         if not two_col:
             html += '  </td>\n'
             html += '  <td>\n'
         else:
             html += '  <br/>'
         html += '    <input type="button" name=' + target + ' value="Link All"\n'
-        html += '    onclick="linkAll(thisForm, this.name)">\n'
+        html += '    title="Create a link with this URL and apply it to all matching terms." onclick="linkAll(thisForm, this.name)">\n'
         html += '  </td>\n'
         html += '</tr>\n'
 
@@ -2212,15 +2216,15 @@ class IntentParserServer:
 
         """
 
-        buttons = [('Ignore', 'spellcheck_add_ignore', 0),
-                   ('Ignore All', 'spellcheck_add_ignore_all', 0),
-                   ('Add to Spellchecker Dictionary', 'spellcheck_add_dictionary', 0),
-                   ('Add to SynBioHub', 'spellcheck_add_synbiohub', 0),
-                   ('Manually Enter Link', manualLinkScript, 1, 'EnterLink'),
-                   ('Include Previous Word', 'spellcheck_add_select_previous', 0),
-                   ('Include Next Word', 'spellcheck_add_select_next', 0),
-                   ('Remove First Word', 'spellcheck_add_drop_first', 0),
-                   ('Remove Last Word', 'spellcheck_add_drop_last', 0)]
+        buttons = [{'value': 'Ignore', 'id': 'spellcheck_add_ignore', 'title' : 'Skip the current term.'},
+                   {'value': 'Ignore All', 'id': 'spellcheck_add_ignore_all', 'title' : 'Skip the current term and any other instances of it.'},
+                   {'value': 'Add to Spellchecker Dictionary', 'id': 'spellcheck_add_dictionary', 'title' : 'Add term to the spellchecking dictionary, so it won\'t be considered again.'},
+                   {'value': 'Add to SynBioHub', 'id': 'spellcheck_add_synbiohub', 'title' : 'Bring up dialog to add current term to SynbioHub.'},
+                   {'value': 'Manually Enter Link', 'id': 'EnterLink', 'click_script' : manualLinkScript, 'title' : 'Manually enter URL to link for this term.'},
+                   {'value': 'Include Previous Word', 'id': 'spellcheck_add_select_previous', 'title' : 'Move highlighting to include the word before the highlighted word(s).'},
+                   {'value': 'Include Next Word', 'id': 'spellcheck_add_select_next', 'title' : 'Move highlighting to include the word after the highlighted word(s).'},
+                   {'value': 'Remove First Word', 'id': 'spellcheck_add_drop_first', 'title' : 'Move highlighting to remove the word at the beggining of the highlighted words.'},
+                   {'value': 'Remove Last Word', 'id': 'spellcheck_add_drop_last', 'title' : 'Move highlighting to remove the word at the end of the highlighted words.'}]
 
         # If this entry was previously linked, add a button to reuse that link
         if 'prev_link' in spellCheckResults[resultIdx]:
