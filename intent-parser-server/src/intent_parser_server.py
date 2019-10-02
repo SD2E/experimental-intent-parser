@@ -2228,7 +2228,7 @@ class IntentParserServer:
 
         # If this entry was previously linked, add a button to reuse that link
         if 'prev_link' in spellCheckResults[resultIdx]:
-            buttons.insert(4, ('Reuse previous link', 'spellcheck_reuse_link', 0))
+            buttons.insert(4, {'value' : 'Reuse previous link', 'id': 'spellcheck_reuse_link', 'title' : 'Reuse the previous link: %s' % spellCheckResults[resultIdx]['prev_link']})
 
         dialogAction = self.simple_sidebar_dialog(html, buttons)
         actionList.append(dialogAction)
