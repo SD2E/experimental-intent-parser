@@ -96,6 +96,7 @@ class IntentParserServer:
     col_header_replicate = 'replicate'
     col_header_strain = 'strains'
     col_header_samples = 'samples'
+    col_header_ods = 'ods'
     col_header_temperature = 'temperature'
     col_header_timepoint = 'timepoint'
 
@@ -716,6 +717,9 @@ class IntentParserServer:
                         pass
                     elif header == self.col_header_strain:
                         measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
+                    elif header == self.col_header_ods:
+                        ods_strings = [float(s.strip()) for s in cellTxt.split(sep=',')]
+                        measurement['ods'] = ods_strings
                     elif header == self.col_header_temperature:
                         temps = []
                         temp_strings = [s.strip() for s in cellTxt.split(sep=',')]
@@ -2892,6 +2896,7 @@ class IntentParserServer:
         num_reagents = int(data['numReagents'])
         has_temp = data['temperature']
         has_time = data['timepoint']
+        has_ods  = data['ods']
         num_rows = int(data['numRows'])
         measurement_types = data['measurementTypes']
         file_types = data['fileTypes']
@@ -2918,6 +2923,9 @@ class IntentParserServer:
         col_sizes.append(len(self.col_header_file_type) + 1)
         col_sizes.append(len(self.col_header_replicate) + 1)
         col_sizes.append(len(self.col_header_strain) + 1)
+        if has_ods:
+            header.append(self.col_header_ods)
+            col_sizes.append(len(self.col_header_ods) + 1)
         if has_time:
             header.append(self.col_header_timepoint)
             col_sizes.append(len(self.col_header_timepoint) + 1)
@@ -2937,6 +2945,8 @@ class IntentParserServer:
             measurement_row.append(file_types[r]) # File type col
             measurement_row.append('') # Replicate Col
             measurement_row.append('') # Strain col
+            if has_ods:
+                measurement_row.append('')
             if has_time:
                 measurement_row.append('')
             if has_temp:

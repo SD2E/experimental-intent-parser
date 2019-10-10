@@ -37,6 +37,7 @@
                         'numReagents' : theForm.num_reagents.value,
                         'temperature' : theForm.temperature.checked,
                         'timepoint' : theForm.timepoint.checked,
+                        'ods' : theForm.ods.checked,
                         'numRows' : theForm.num_rows.value};
         formInfo.extra = extra;
         google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);
@@ -96,19 +97,26 @@
         <tr>
           <th align="right">Number of reagents: </th>
           <td>
-            <input type="text" name="num_reagents" value="0" title="Define number of columns to define reagent configuration. <br> Reagent names should be added to column headers and linked to SynbioHub. <br> Configuration can be specified as a comma separated list.">
+            <input type="text" name="num_reagents" value="0" title="Define number of columns to define reagent configuration.  Reagent names should be added to column headers and linked to SynbioHub.  Configuration can be specified as a comma separated list.">
           </td>
         </tr>
         <tr>
           <th align="right">Temperature: </th>
           <td>
-            <input type="checkbox" name="temperature" title="Check to add a column for temperature configuration. <br> Comma separated lists are accepted.">
+            <input type="checkbox" name="temperature" title="Check to add a column for temperature configuration.  Comma separated lists are accepted.">
           </td>
         </tr>
         <tr>
           <th align="right">Timepoint: </th>
           <td>
-            <input type="checkbox" name="timepoint" title="Check to add a column for time configuration. <br> Comma separated lists are accepted.">
+            <input type="checkbox" name="timepoint" title="Check to add a column for time configuration.  Comma separated lists are accepted.">
+          </td>
+        </tr>
+        <tr>
+        <tr>
+          <th align="right">Optical Density: </th>
+          <td>
+            <input type="checkbox" name="ods" title="Check to add a column for optical density configuration.  Comma separated lists are accepted. No units are expected.">
           </td>
         </tr>
         <tr>
