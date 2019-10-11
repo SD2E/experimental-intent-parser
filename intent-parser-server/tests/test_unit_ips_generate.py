@@ -221,9 +221,9 @@ class TestIntentParserServer(unittest.TestCase):
             doc_id = doc_url.split(sep='/')[4]
 
             self.httpMessage.get_resource = Mock(return_value='/document_report?%s' % doc_id)
-            self.ips.process_generate_request(self.httpMessage, [])
+            #self.ips.process_generate_request(self.httpMessage, [])
 
-            gen_results = json.loads(self.ips.send_response.call_args[0][2])
+            #gen_results = json.loads(self.ips.send_response.call_args[0][2])
 
             #self.assertTrue(gt_req == gen_results)
 
