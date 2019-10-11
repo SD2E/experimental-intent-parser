@@ -168,17 +168,31 @@ function processActions(response) {
         var headerIdx = actionDesc['headerIdx'];
         var contentIdx = actionDesc['contentIdx'];
         var expData = actionDesc['expData'];
+        var expLinks = actionDesc['expLinks'];
 
         var doc = DocumentApp.getActiveDocument();
         var body = doc.getBody();
 
         if (headerIdx != -1 && contentIdx != -1) {
             var paragraphs = body.getParagraphs();
-            paragraphs[contentIdx].setText(expData);
+            para = paragraphs[contentIdx];
+            para.setText('\n');
+            for (var i = 0; i < expData.length; i++) {
+                newTxt = para.appendText(expData[i]);
+                if (i < expLinks.length) {
+                    newTxt.setLinkUrl(expLinks[i]);
+                }
+            }
         } else {
             var header_para = body.appendParagraph('Experiment Results');
             header_para.setHeading(DocumentApp.ParagraphHeading.HEADING2);
-            body.appendParagraph(expData);
+            para = body.appendParagraph('\n');
+            for (var i = 0; i < expData.length; i++) {
+                newTxt = para.appendText(expData[i]);
+                if (i < expLinks.length) {
+                    newTxt.setLinkUrl(expLinks[i]);
+                }
+            }
         }
 
         break
