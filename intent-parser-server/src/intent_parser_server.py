@@ -38,6 +38,15 @@ class ConnectionException(Exception):
 
 class IntentParserServer:
 
+    # Used for inserting experiment result data
+    # Since the experiment result data is uploaded with the requesting document id
+    # and the test documents are copies of those, the ids won't match
+    # In order to test this, if we receive a document Id in the key of this map, we will instead query for the value
+    test_doc_id_map = {'1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoT' : '10HqgtfVCtYhk3kxIvQcwljIUonSNlSiLBC8UFmlwm1s',
+                       '1RenmUdhsXMgk4OUWReI2oS6iF5R5rfWU5t7vJ0NZOHw': '1g0SjxU2Y5aOhUbM63r8lqV50vnwzFDpJg4eLXNllut4',
+                       '1_I4pxB26zOLb209Xlv8QDJuxiPWGDafrejRDKvZtEl8': '1K5IzBAIkXqJ7iPF4OZYJR7xgSts1PUtWWM2F0DKhct0',
+                       '1zf9l0K4rj7I08ZRpxV2ZY54RMMQc15Rlg7ULviJ7SBQ': '1uXqsmRLeVYkYJHqgdaecmN_sQZ2Tj4Ck1SZKcp55yEQ' }
+
     dict_path = 'dictionaries'
 
     link_pref_path = 'link_pref'
@@ -220,6 +229,7 @@ class IntentParserServer:
 
             self.sbh = SBHAccessor(sbh_url=sbh_url)
             self.sbh_collection = sbh_collection
+            self.sbh_collection_user = sbh_collection_user
             self.sbh_spoofing_prefix = sbh_spoofing_prefix
             self.sbh_url = sbh_url
             self.sbh_link_hosts = sbh_link_hosts
@@ -914,6 +924,8 @@ class IntentParserServer:
         This function will scan SynbioHub for experiments related to this document, and updated an
         "Experiment Results" section with information about completed experiments.
         """
+        start = time.time()
+
         json_body = self.get_json_body(httpMessage)
 
         if 'documentId' not in json_body:
@@ -932,12 +944,33 @@ class IntentParserServer:
         ##
         ## For now, assume junk
 
-        #data = self.get_synbiohub_exp_data(document_id)
+        if document_id in self.test_doc_id_map:
+            source_doc_uri = 'https://docs.google.com/document/d/' + self.test_doc_id_map[document_id]
+        else:
+            source_doc_uri = 'https://docs.google.com/document/d/' + document_id
 
-        data = {'exp1' : '6/30/2019', 'exp2' : '7/30/2019', 'exp3' : '8/30/2019', 'exp4' : '9/30/2019'}
-        exp_data = ''
+        target_collection = self.sbh_url + '/user/%s/experiment_test/experiment_test_collection/1' % self.sbh_collection_user
+        exp_collection = intent_parser_utils.query_experiments(self.sbh, target_collection, self.sbh_spoofing_prefix, self.sbh_url)
+        data = {}
+        for exp in exp_collection:
+            exp_uri = exp['uri']
+            timestamp = exp['timestamp']
+            request_doc = intent_parser_utils.query_experiment_request(self.sbh, exp_uri)  # Get the reference to the Google request doc
+            if source_doc_uri == request_doc:
+                source_uri = intent_parser_utils.query_experiment_source(self.sbh, exp_uri)  # Get the reference to the source document with lab data
+                data[source_uri[0]] = timestamp
+
+        #data = self.get_synbiohub_exp_data(document_id)
+        #data = {'exp1' : '6/30/2019', 'exp2' : '7/30/2019', 'exp3' : '8/30/2019', 'exp4' : '9/30/2019'}
+
+        exp_data = []
+        exp_links = []
         for exp in data:
-            exp_data += exp + ' run on ' + data[exp] + '\n'
+            exp_data.append('Experiment run on ' + data[exp] + '\n')
+            exp_links.append(exp)
+
+        if exp_data == '':
+            exp_data = ['No currently run experiments.']
 
         body = doc.get('body');
         doc_content = body.get('content')
@@ -961,8 +994,13 @@ class IntentParserServer:
         action['headerIdx'] = headerIdx
         action['contentIdx'] = contentIdx
         action['expData'] = exp_data
+        action['expLinks'] = exp_links
 
         actions = {'actions': [action]}
+
+        end = time.time()
+        self.logger.info('Updated experiment results in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+
         self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
 
     def process_analyze_document(self, httpMessage, sm):
