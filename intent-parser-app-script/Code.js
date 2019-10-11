@@ -1,4 +1,4 @@
-var serverURL = 'http://intent-parser-server.bbn.com:8081'
+var serverURL = 'http://intent-parser-server.bbn.com:8082'
 
 var versionString = '2.0-git-session'
 
