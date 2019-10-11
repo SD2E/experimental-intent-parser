@@ -79,20 +79,23 @@ def query_experiment_request(synbiohub, experiment_uri):
     PREFIX prov: <http://www.w3.org/ns/prov#>
     PREFIX dcterms: <http://purl.org/dc/terms/>
     SELECT DISTINCT ?request_url WHERE {
-            <%s> sd2:experimentRequestURL ?request_url .
+            <%s> sd2:experimentReferenceURL ?request_url .
     }
     """ %(experiment_uri)
     response = synbiohub.fetch_SPARQL('', query)
     request_url = [ m['request_url']['value'] for m in response['results']['bindings']]
-    return request_url
+    if request_url:
+        return request_url[0]
+    else:
+        return "NOT FOUND"
 
 # Initialize SD2 specific parameters
 user = 'sd2e'
 password = 'jWJ1yztJl2f7RaePHMtXmxBBHwNt'
 staging_instance = 'https://hub-staging.sd2e.org'
 production_instance = 'https://hub.sd2e.org'
-#target_collection = 'https://hub-staging.sd2e.org/user/sd2e/experiment_test/experiment_test_collection/1'
-target_collection = 'https://hub-staging.sd2e.org/user/sd2e/foo/foo_collection/1'
+target_collection = 'https://hub-staging.sd2e.org/user/sd2e/experiment_test/experiment_test_collection/1'
+#target_collection = 'https://hub-staging.sd2e.org/user/sd2e/foo/foo_collection/1'
 
 # Initialize the query wrapper to query the staging instance of synbiohub
 main_resource = staging_instance
@@ -102,8 +105,9 @@ synbiohub.login(user, password)
 
 # Perform queries
 experiments = query_experiments(synbiohub, target_collection)
-print(experiments)
-source = query_experiment_source(synbiohub, experiments[0])
-print(source)
-request_doc = query_experiment_request(synbiohub, experiments[0])
-print(request_doc)
+for x in experiments:
+    source = query_experiment_source(synbiohub, x)  # Get the reference to the source document with lab data
+    request_doc = query_experiment_request(synbiohub, x)  # Get the reference to the Google request doc
+    print('Experiment: ' + x)
+    print('Request: ' + request_doc)
+    print()
