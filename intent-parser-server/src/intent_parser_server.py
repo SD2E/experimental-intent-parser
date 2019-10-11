@@ -96,6 +96,7 @@ class IntentParserServer:
     col_header_replicate = 'replicate'
     col_header_strain = 'strains'
     col_header_samples = 'samples'
+    col_header_ods = 'ods'
     col_header_temperature = 'temperature'
     col_header_timepoint = 'timepoint'
 
@@ -427,9 +428,26 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
 
-    def detect_and_remove_unit(self, text):
+    def detect_and_remove_time_unit(self, text):
         """
-        Given a string that contains a unit, detect the unit and remove it from the input string, returning the unit itself, and the string with the unit removed
+        """
+        return self.detect_and_remove_unit(text, 'time')
+
+    def detect_and_remove_temp_unit(self, text):
+        """
+        """
+        return self.detect_and_remove_unit(text, 'temp')
+
+    def detect_and_remove_fluid_unit(self, text):
+        """
+        """
+        return self.detect_and_remove_unit(text, 'fluid')
+
+    def detect_and_remove_unit(self, text, unit_type):
+        """
+        Given a string that contains a unit, detect the unit and remove it from the input string,
+        returning the unit itself, and the string with the unit removed.
+        Takes a unit_type string to determine what unit type to detect.
         """
         best_match = None
         best_length = 0
@@ -447,26 +465,27 @@ class IntentParserServer:
         value_tok = toks[0]
         unit_tok = toks[1]
 
-        # Test time units
-        for unit in self.time_units:
-            if unit in unit_tok:
-                if len(unit) > best_length:
-                    best_match = unit
-                    best_length = len(unit)
-
-        # Test fluid units
-        for unit in self.fluid_units:
-            if unit in unit_tok:
-                if len(unit) > best_length:
-                    best_match = unit
-                    best_length = len(unit)
-
-        # Test temp units
-        for unit in self.temp_units:
-            if unit in unit_tok:
-                if len(unit) > best_length:
-                    best_match = unit
-                    best_length = len(unit)
+        if (unit_type == 'time'):
+            # Test time units
+            for unit in self.time_units:
+                if unit.lower() in unit_tok.lower():
+                    if len(unit) > best_length:
+                        best_match = unit
+                        best_length = len(unit)
+        elif (unit_type == 'fluid'):
+            # Test fluid units
+            for unit in self.fluid_units:
+                if unit.lower() in unit_tok.lower():
+                    if len(unit) > best_length:
+                        best_match = unit
+                        best_length = len(unit)
+        elif (unit_type == 'temp'):
+            # Test temp units
+            for unit in self.temp_units:
+                if unit.lower() in unit_tok.lower():
+                    if len(unit) > best_length:
+                        best_match = unit
+                        best_length = len(unit)
 
         if best_match is not None:
             text = text.replace(best_match, '').strip()
@@ -490,7 +509,6 @@ class IntentParserServer:
         found_replicates = False
         found_strain = False
         found_measurement_type = False
-        found_samples =  False
         found_file_type = False
 
         rows = table['tableRows']
@@ -501,9 +519,8 @@ class IntentParserServer:
             found_strain |= cellTxt == self.col_header_strain
             found_measurement_type |= cellTxt == self.col_header_measurement_type
             found_file_type |= cellTxt == self.col_header_file_type
-            found_samples |= cellTxt == self.col_header_samples
 
-        return found_replicates and found_strain and found_measurement_type and found_file_type and found_samples
+        return found_replicates and found_strain and found_measurement_type and found_file_type
 
     def process_validate_structured_request(self, httpMessage, sm):
         """
@@ -531,7 +548,11 @@ class IntentParserServer:
             reagent_with_no_uri = set()
             if 'runs' in request:
                 for run in request['runs']:
+                    if 'measurements' not in run:
+                        continue;
                     for measurement in run['measurements']:
+                        if 'contents' not in measurement:
+                            continue
                         for reagent_entry in measurement['contents']:
                             for reagent in reagent_entry:
                                 name_dict = reagent['name']
@@ -665,17 +686,17 @@ class IntentParserServer:
                         # First, determine unit
                         defaultUnit = 'unspecified'
                         for value in cellTxt.split(sep=','):
-                            spec, unit = self.detect_and_remove_unit(value);
+                            spec, unit = self.detect_and_remove_fluid_unit(value);
                             if unit is not None and unit is not 'unspecified':
                                 defaultUnit = unit
 
                         for value in cellTxt.split(sep=','):
-                            spec, unit = self.detect_and_remove_unit(value);
+                            spec, unit = self.detect_and_remove_fluid_unit(value);
                             if unit is None or unit == 'unspecified':
                                 unit = defaultUnit
                             reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
                             reagent_entries.append(reagent_entry)
-                            content.append(reagent_entries)
+                        content.append(reagent_entries)
 
                 # Parse rest of table
                 measurement = {}
@@ -698,20 +719,42 @@ class IntentParserServer:
                         pass
                     elif header == self.col_header_strain:
                         measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
+                    elif header == self.col_header_ods:
+                        ods_strings = [float(s.strip()) for s in cellTxt.split(sep=',')]
+                        measurement['ods'] = ods_strings
                     elif header == self.col_header_temperature:
-                        measurement['temperature'] = [s.strip() for s in cellTxt.split(sep=',')]
+                        temps = []
+                        temp_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        # First, determine default unit
+                        defaultUnit = 'unspecified'
+                        for temp_str in temp_strings:
+                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+
+                        for temp_str in temp_strings:
+                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
+                            if unit is None or unit == 'unspecified':
+                                unit = defaultUnit
+                            try:
+                                temp_dict = {'value' : float(spec), 'unit' : unit}
+                            except:
+                                temp_dict = {'value' : -1, 'unit' : 'unspecified'}
+                                self.logger.info('WARNING: failed to parse temp unit! Trying to parse: %s' % spec)
+                            temps.append(temp_dict)
+                        measurement['temperatures'] = temps
                     elif header == self.col_header_timepoint:
                         timepoints = []
                         timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
                         # First, determine default unit
                         defaultUnit = 'unspecified'
                         for time_str in timepoint_strings:
-                            spec, unit = self.detect_and_remove_unit(time_str);
+                            spec, unit = self.detect_and_remove_time_unit(time_str);
                             if unit is not None and unit is not 'unspecified':
                                 defaultUnit = unit
 
                         for time_str in timepoint_strings:
-                            spec, unit = self.detect_and_remove_unit(time_str);
+                            spec, unit = self.detect_and_remove_time_unit(time_str);
                             if unit is None or unit == 'unspecified':
                                 unit = defaultUnit
                             try:
@@ -1095,17 +1138,18 @@ class IntentParserServer:
                                                       end_offset)
             actions.append(highlightTextAction)
 
-            buttons = [('Yes', 'process_analyze_yes'),
-                       ('No', 'process_analyze_no'),
-                       ('Link All', 'process_link_all'),
-                       ('No to All', 'process_no_to_all'),
-                       ('Never Link', 'process_never_link')]
+            buttons = [('Yes', 'process_analyze_yes', 'Creates a hyperlink for the highlighted text, using the suggested URL.'),
+                       ('No', 'process_analyze_no', 'Skips this term without creating a link.'),
+                       ('Yes to All', 'process_link_all', 'Creates a hyperlink for the highilghted text and every instance of it in the document, using the suggested URL.'),
+                       ('No to All', 'process_no_to_all', 'Skips this term and every other instance of it in the document.'),
+                       ('Never Link', 'process_never_link', 'Never suggest links to this term, in this document or any other.')]
 
             buttonHTML = ''
             buttonScript = ''
             for button in buttons:
                 buttonHTML += '<input id=' + button[1] + 'Button value="'
-                buttonHTML += button[0] + '" type="button" onclick="'
+                buttonHTML += button[0] + '" type="button" title="'
+                buttonHTML += button[2] + '" onclick="'
                 buttonHTML += button[1] + 'Click()" />\n'
 
                 buttonScript += 'function ' + button[1] + 'Click() {\n'
@@ -1114,7 +1158,7 @@ class IntentParserServer:
                 buttonScript += button[1]  + '\')\n'
                 buttonScript += '}\n\n'
 
-            buttonHTML += '<input id=EnterLinkButton value="Manually Enter Link" type="button" onclick="EnterLinkClick()" />'
+            buttonHTML += '<input id=EnterLinkButton value="Manually Enter Link" type="button" title="Enter a link for this term manually." onclick="EnterLinkClick()" />'
             # Script for the EnterLinkButton is already in the HTML
 
             html = self.analyze_html
@@ -1474,28 +1518,31 @@ class IntentParserServer:
                          google.script.host.close()\n\
                       }\n\n'
         for button in buttons:
-            # Regular buttons, generate script automatically
-            if button[2] == 0:
-                htmlMessage += 'function ' + button[1] + 'Click() {\n'
+            if 'click_script' in button: # Special buttons, define own script
+                htmlMessage += button['click_script']
+            else: # Regular buttons, generate script automatically
+                htmlMessage += 'function ' + button['id'] + 'Click() {\n'
                 htmlMessage += '  google.script.run.withSuccessHandler'
                 htmlMessage += '(onSuccess).buttonClick(\''
-                htmlMessage += button[1]  + '\')\n'
+                htmlMessage += button['id']  + '\')\n'
                 htmlMessage += '}\n\n'
-            elif button[2] == 1: # Special buttons, define own script
-                htmlMessage += button[1]
         htmlMessage += '</script>\n\n'
 
         htmlMessage += '<p>' + message + '<p>\n'
         htmlMessage += '<center>'
         for button in buttons:
-            if button[2] == 0:
-                htmlMessage += '<input id=' + button[1] + 'Button value="'
-                htmlMessage += button[0] + '" type="button" onclick="'
-                htmlMessage += button[1] + 'Click()" />\n'
-            elif button[2] == 1: # Special buttons, define own script
-                htmlMessage += '<input id=' + button[3] + 'Button value="'
-                htmlMessage += button[0] + '" type="button" onclick="'
-                htmlMessage += button[3] + 'Click()" />\n'
+            if 'click_script' in button: # Special buttons, define own script
+                htmlMessage += '<input id=' + button['id'] + 'Button value="'
+                htmlMessage += button['value'] + '" type="button"'
+                if 'title' in button:
+                    htmlMessage += 'title="' + button['title'] + '"'
+                htmlMessage += ' onclick="' + button['id'] + 'Click()" />\n'
+            else:
+                htmlMessage += '<input id=' + button['id'] + 'Button value="'
+                htmlMessage += button['value'] + '" type="button"'
+                if 'title' in button:
+                    htmlMessage += 'title="' + button['title'] + '"'
+                htmlMessage += 'onclick="' + button['id'] + 'Click()" />\n'
         htmlMessage += '</center>'
 
         action = {}
@@ -1845,14 +1892,14 @@ class IntentParserServer:
         html += '  </td>\n'
         html += '  <td>\n'
         html += '    <input type="button" name=' + target + ' value="Link"\n'
-        html += '    onclick="linkItem(thisForm, this.name)">\n'
+        html += '    title="Create a link with this URL." onclick="linkItem(thisForm, this.name)">\n'
         if not two_col:
             html += '  </td>\n'
             html += '  <td>\n'
         else:
             html += '  <br/>'
         html += '    <input type="button" name=' + target + ' value="Link All"\n'
-        html += '    onclick="linkAll(thisForm, this.name)">\n'
+        html += '    title="Create a link with this URL and apply it to all matching terms." onclick="linkAll(thisForm, this.name)">\n'
         html += '  </td>\n'
         html += '</tr>\n'
 
@@ -2271,19 +2318,19 @@ class IntentParserServer:
 
         """
 
-        buttons = [('Ignore', 'spellcheck_add_ignore', 0),
-                   ('Ignore All', 'spellcheck_add_ignore_all', 0),
-                   ('Add to Spellchecker Dictionary', 'spellcheck_add_dictionary', 0),
-                   ('Add to SynBioHub', 'spellcheck_add_synbiohub', 0),
-                   ('Manually Enter Link', manualLinkScript, 1, 'EnterLink'),
-                   ('Include Previous Word', 'spellcheck_add_select_previous', 0),
-                   ('Include Next Word', 'spellcheck_add_select_next', 0),
-                   ('Remove First Word', 'spellcheck_add_drop_first', 0),
-                   ('Remove Last Word', 'spellcheck_add_drop_last', 0)]
+        buttons = [{'value': 'Ignore', 'id': 'spellcheck_add_ignore', 'title' : 'Skip the current term.'},
+                   {'value': 'Ignore All', 'id': 'spellcheck_add_ignore_all', 'title' : 'Skip the current term and any other instances of it.'},
+                   {'value': 'Add to Spellchecker Dictionary', 'id': 'spellcheck_add_dictionary', 'title' : 'Add term to the spellchecking dictionary, so it won\'t be considered again.'},
+                   {'value': 'Add to SynBioHub', 'id': 'spellcheck_add_synbiohub', 'title' : 'Bring up dialog to add current term to SynbioHub.'},
+                   {'value': 'Manually Enter Link', 'id': 'EnterLink', 'click_script' : manualLinkScript, 'title' : 'Manually enter URL to link for this term.'},
+                   {'value': 'Include Previous Word', 'id': 'spellcheck_add_select_previous', 'title' : 'Move highlighting to include the word before the highlighted word(s).'},
+                   {'value': 'Include Next Word', 'id': 'spellcheck_add_select_next', 'title' : 'Move highlighting to include the word after the highlighted word(s).'},
+                   {'value': 'Remove First Word', 'id': 'spellcheck_add_drop_first', 'title' : 'Move highlighting to remove the word at the beggining of the highlighted words.'},
+                   {'value': 'Remove Last Word', 'id': 'spellcheck_add_drop_last', 'title' : 'Move highlighting to remove the word at the end of the highlighted words.'}]
 
         # If this entry was previously linked, add a button to reuse that link
         if 'prev_link' in spellCheckResults[resultIdx]:
-            buttons.insert(4, ('Reuse previous link', 'spellcheck_reuse_link', 0))
+            buttons.insert(4, {'value' : 'Reuse previous link', 'id': 'spellcheck_reuse_link', 'title' : 'Reuse the previous link: %s' % spellCheckResults[resultIdx]['prev_link']})
 
         dialogAction = self.simple_sidebar_dialog(html, buttons)
         actionList.append(dialogAction)
@@ -2908,6 +2955,7 @@ class IntentParserServer:
         num_reagents = int(data['numReagents'])
         has_temp = data['temperature']
         has_time = data['timepoint']
+        has_ods  = data['ods']
         num_rows = int(data['numRows'])
         measurement_types = data['measurementTypes']
         file_types = data['fileTypes']
@@ -2934,6 +2982,9 @@ class IntentParserServer:
         col_sizes.append(len(self.col_header_file_type) + 1)
         col_sizes.append(len(self.col_header_replicate) + 1)
         col_sizes.append(len(self.col_header_strain) + 1)
+        if has_ods:
+            header.append(self.col_header_ods)
+            col_sizes.append(len(self.col_header_ods) + 1)
         if has_time:
             header.append(self.col_header_timepoint)
             col_sizes.append(len(self.col_header_timepoint) + 1)
@@ -2953,6 +3004,8 @@ class IntentParserServer:
             measurement_row.append(file_types[r]) # File type col
             measurement_row.append('') # Replicate Col
             measurement_row.append('') # Strain col
+            if has_ods:
+                measurement_row.append('')
             if has_time:
                 measurement_row.append('')
             if has_temp:
