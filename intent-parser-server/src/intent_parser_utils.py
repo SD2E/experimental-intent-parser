@@ -219,7 +219,7 @@ def query_experiments(synbiohub, target_collection, sbh_spoofing_prefix, sbh_url
     """ %(target_collection)
     #  ?timestamp dcterms:modified ?entity.
     response = synbiohub.sparqlQuery(query)
-    experiments = [ {'uri' : m['entity']['value'], 'timestamp' : '' }  for m in response['results']['bindings']]
+    experiments = [ {'uri' : m['entity']['value'], 'timestamp' : 'XXXX' }  for m in response['results']['bindings']]
     return experiments
 
 def query_experiment_source(synbiohub, experiment_uri):
