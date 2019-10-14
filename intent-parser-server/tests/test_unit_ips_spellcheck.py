@@ -431,6 +431,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.json_body['data']['fileTypes'] = ['PLAIN', 'FASTQ', 'FASTQ', 'FCS']
         self.json_body['data']['timepoint'] = False
         self.json_body['data']['ods'] = False
+        self.json_body['data']['notes'] = False
         self.json_body['data']['numRows'] = 4
         self.json_body['data']['cursorChildIndex'] = 3
 

@@ -106,6 +106,7 @@ class IntentParserServer:
     col_header_strain = 'strains'
     col_header_samples = 'samples'
     col_header_ods = 'ods'
+    col_header_notes = 'notes'
     col_header_temperature = 'temperature'
     col_header_timepoint = 'timepoint'
 
@@ -701,10 +702,15 @@ class IntentParserServer:
                                 defaultUnit = unit
 
                         for value in cellTxt.split(sep=','):
-                            spec, unit = self.detect_and_remove_fluid_unit(value);
-                            if unit is None or unit == 'unspecified':
-                                unit = defaultUnit
-                            reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
+                            toks = value.strip().split(sep=' ')
+                            # If we have a unit specified, parse it and use it
+                            if (len(toks) > 1):
+                                spec, unit = self.detect_and_remove_fluid_unit(value);
+                                if unit is None or unit == 'unspecified':
+                                    unit = defaultUnit
+                                reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
+                            else: # Also support a string value
+                                reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : value.strip()}
                             reagent_entries.append(reagent_entry)
                         content.append(reagent_entries)
 
@@ -2994,6 +3000,7 @@ class IntentParserServer:
         has_temp = data['temperature']
         has_time = data['timepoint']
         has_ods  = data['ods']
+        has_notes = data['notes']
         num_rows = int(data['numRows'])
         measurement_types = data['measurementTypes']
         file_types = data['fileTypes']
@@ -3031,6 +3038,10 @@ class IntentParserServer:
             col_sizes.append(len(self.col_header_temperature) + 1)
         header.append(self.col_header_samples)
 
+        if has_notes:
+            header.append(self.col_header_notes)
+            col_sizes.append(len(self.col_header_notes) + 1)
+
         col_sizes.append(len(self.col_header_samples) + 1)
         table_data.append(header)
 
@@ -3049,6 +3060,8 @@ class IntentParserServer:
             if has_temp:
                 measurement_row.append('')
             measurement_row.append('') # Samples col
+            if has_notes:
+                measurement_row.append('')
             table_data.append(measurement_row)
 
         create_table = {}
