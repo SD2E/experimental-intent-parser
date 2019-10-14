@@ -97,6 +97,7 @@ class IntentParserServer:
     col_header_strain = 'strains'
     col_header_samples = 'samples'
     col_header_ods = 'ods'
+    col_header_notes = 'notes'
     col_header_temperature = 'temperature'
     col_header_timepoint = 'timepoint'
 
@@ -2902,6 +2903,7 @@ class IntentParserServer:
         has_temp = data['temperature']
         has_time = data['timepoint']
         has_ods  = data['ods']
+        has_notes = data['notes']
         num_rows = int(data['numRows'])
         measurement_types = data['measurementTypes']
         file_types = data['fileTypes']
@@ -2939,6 +2941,10 @@ class IntentParserServer:
             col_sizes.append(len(self.col_header_temperature) + 1)
         header.append(self.col_header_samples)
 
+        if has_notes:
+            header.append(self.col_header_notes)
+            col_sizes.append(len(self.col_header_notes) + 1)
+
         col_sizes.append(len(self.col_header_samples) + 1)
         table_data.append(header)
 
@@ -2957,6 +2963,8 @@ class IntentParserServer:
             if has_temp:
                 measurement_row.append('')
             measurement_row.append('') # Samples col
+            if has_notes:
+                measurement_row.append('')
             table_data.append(measurement_row)
 
         create_table = {}
