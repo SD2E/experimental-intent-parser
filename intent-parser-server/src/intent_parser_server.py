@@ -689,10 +689,15 @@ class IntentParserServer:
                                 defaultUnit = unit
 
                         for value in cellTxt.split(sep=','):
-                            spec, unit = self.detect_and_remove_fluid_unit(value);
-                            if unit is None or unit == 'unspecified':
-                                unit = defaultUnit
-                            reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
+                            toks = value.strip().split(sep=' ')
+                            # If we have a unit specified, parse it and use it
+                            if (len(toks) > 1):
+                                spec, unit = self.detect_and_remove_fluid_unit(value);
+                                if unit is None or unit == 'unspecified':
+                                    unit = defaultUnit
+                                reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
+                            else: # Also support a string value
+                                reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : value.strip()}
                             reagent_entries.append(reagent_entry)
                         content.append(reagent_entries)
 
