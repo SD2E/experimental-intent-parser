@@ -188,3 +188,111 @@ def find_overlaps(start_idx, search_results, ignore_idx = set()):
                     best_overlap_len = dist
 
         return overlaps, best_overlap_idx, overlap_idx
+
+def query_experiments(synbiohub, target_collection, sbh_spoofing_prefix, sbh_url):
+    '''
+    Search the target collection and return references to all Experiment objects
+
+    Parameters
+    ----------
+    synbiohub : SynBioHubQuery
+        An instance of a SynBioHubQuery SPARQL wrapper from synbiohub_adapter
+    target_collection : str
+        A URI for a target collection
+    '''
+
+    # Correct the target collection URI in case the user specifies the wrong synbiohub namespace
+    # (a common mistake that can be hard to debug)
+    if sbh_spoofing_prefix is not None:
+        target_collection = target_collection.replace(sbh_url, sbh_spoofing_prefix)
+
+    query = """
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX sbol: <http://sbols.org/v2#>
+    PREFIX sd2: <http://sd2e.org#>
+    PREFIX prov: <http://www.w3.org/ns/prov#>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    SELECT DISTINCT ?entity ?timestamp ?title WHERE {
+            <%s> sbol:member ?entity .
+            ?entity rdf:type sbol:Experiment .
+            ?entity dcterms:created ?timestamp .
+            ?entity dcterms:title ?title
+    }
+    """ %(target_collection)
+    response = synbiohub.sparqlQuery(query)
+
+    experiments = []
+    for m in response['results']['bindings']:
+        uri = m['entity']['value']
+        timestamp = m['timestamp']['value']
+        title = m['title']['value']
+        if sbh_spoofing_prefix is not None: # We need to re-spoof the URL
+            uri = uri.replace(sbh_spoofing_prefix, sbh_url)
+        experiments.append({'uri': uri, 'timestamp': timestamp, 'title' : title})
+    #experiments = [ {'uri' : m['entity']['value'], 'timestamp' : m['timestamp']['value'] }  for m in response['results']['bindings']]
+    return experiments
+
+def query_experiment_source(synbiohub, experiment_uri, sbh_spoofing_prefix, sbh_url):
+    '''
+    Return a reference to a samples.json file on Agave file system that generated the Experiment
+
+    Parameters
+    ----------
+    synbiohub : SynBioHubQuery
+        An instance of a SynBioHubQuery SPARQL wrapper from synbiohub_adapter
+    experiment_uri : str
+        A URI for an Experiment object
+    '''
+
+    # Correct the experiment_uri in case the user specifies the wrong synbiohub namespace
+    # (a common mistake that can be hard to debug)
+    if sbh_spoofing_prefix is not None:
+        experiment_uri = experiment_uri.replace(sbh_url, sbh_spoofing_prefix)
+
+    query = """
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX sbol: <http://sbols.org/v2#>
+    PREFIX sd2: <http://sd2e.org#>
+    PREFIX prov: <http://www.w3.org/ns/prov#>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    SELECT DISTINCT ?source WHERE {
+            <%s> prov:wasDerivedFrom ?source .
+    }
+    """ %(experiment_uri)
+    response = synbiohub.sparqlQuery(query)
+    source = [ m['source']['value'] for m in response['results']['bindings']]
+    return source
+
+def query_experiment_request(synbiohub, experiment_uri, sbh_spoofing_prefix, sbh_url):
+    '''
+    Return a URL to the experiment request form on Google Docs that initiated the Experiment
+
+    Parameters
+    ----------
+    synbiohub : SynBioHubQuery
+        An instance of a SynBioHubQuery SPARQL wrapper from synbiohub_adapter
+    experiment_uri : str
+        A URI for an Experiment object
+    '''
+
+    # Correct the experiment_uri in case the user specifies the wrong synbiohub namespace
+    # (a common mistake that can be hard to debug)
+    if sbh_spoofing_prefix is not None:
+        experiment_uri = experiment_uri.replace(sbh_url, sbh_spoofing_prefix)
+
+    query = """
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX sbol: <http://sbols.org/v2#>
+    PREFIX sd2: <http://sd2e.org#>
+    PREFIX prov: <http://www.w3.org/ns/prov#>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    SELECT DISTINCT ?request_url WHERE {
+            <%s> sd2:experimentReferenceURL ?request_url .
+    }
+    """ %(experiment_uri)
+    response = synbiohub.sparqlQuery(query)
+    request_url = [ m['request_url']['value'] for m in response['results']['bindings']]
+    if request_url:
+        return request_url[0]
+    else:
+        return "NOT FOUND"
