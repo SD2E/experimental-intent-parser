@@ -212,14 +212,24 @@ def query_experiments(synbiohub, target_collection, sbh_spoofing_prefix, sbh_url
     PREFIX sd2: <http://sd2e.org#>
     PREFIX prov: <http://www.w3.org/ns/prov#>
     PREFIX dcterms: <http://purl.org/dc/terms/>
-    SELECT DISTINCT ?entity ?timestamp WHERE {
+    SELECT DISTINCT ?entity ?timestamp ?title WHERE {
             <%s> sbol:member ?entity .
             ?entity rdf:type sbol:Experiment .
+            ?entity dcterms:created ?timestamp .
+            ?entity dcterms:title ?title
     }
     """ %(target_collection)
-    #  ?timestamp dcterms:modified ?entity.
     response = synbiohub.sparqlQuery(query)
-    experiments = [ {'uri' : m['entity']['value'], 'timestamp' : 'XXXX' }  for m in response['results']['bindings']]
+
+    experiments = []
+    for m in response['results']['bindings']:
+        uri = m['entity']['value']
+        timestamp = m['timestamp']['value']
+        title = m['title']['value']
+        if sbh_spoofing_prefix is not None: # We need to re-spoof the URL
+            uri = uri.replace(sbh_spoofing_prefix, sbh_url)
+        experiments.append({'uri': uri, 'timestamp': timestamp, 'title' : title})
+    #experiments = [ {'uri' : m['entity']['value'], 'timestamp' : m['timestamp']['value'] }  for m in response['results']['bindings']]
     return experiments
 
 def query_experiment_source(synbiohub, experiment_uri):
