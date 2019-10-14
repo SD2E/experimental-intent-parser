@@ -190,9 +190,13 @@ function processActions(response) {
             para = paragraphs[contentIdx];
             para.setText('\n');
             for (var i = 0; i < expData.length; i++) {
-                newTxt = para.appendText(expData[i]);
-                if (i < expLinks.length) {
-                    newTxt.setLinkUrl(expLinks[i]);
+                for (var p = 0; p < expData[i].length; p++) {
+                    newTxt = para.appendText(expData[i][p]);
+                    if (i < expLinks.length && expLinks[i][p] != '') {
+                        newTxt.setLinkUrl(expLinks[i][p]);
+                    } else {
+                        newTxt.setLinkUrl('');
+                    }
                 }
             }
         } else {
@@ -200,9 +204,13 @@ function processActions(response) {
             header_para.setHeading(DocumentApp.ParagraphHeading.HEADING2);
             para = body.appendParagraph('\n');
             for (var i = 0; i < expData.length; i++) {
-                newTxt = para.appendText(expData[i]);
-                if (i < expLinks.length) {
-                    newTxt.setLinkUrl(expLinks[i]);
+                for (var p = 0; p < expData[i].length; p++) {
+                    newTxt = para.appendText(expData[i][p]);
+                    if (i < expLinks.length && expLinks[i][p] != '') {
+                        newTxt.setLinkUrl(expLinks[i][p]);
+                    } else {
+                        newTxt.setLinkUrl('');
+                    }
                 }
             }
         }
