@@ -38,6 +38,7 @@
                         'temperature' : theForm.temperature.checked,
                         'timepoint' : theForm.timepoint.checked,
                         'ods' : theForm.ods.checked,
+                        'notes' : theForm.notes.checked,
                         'numRows' : theForm.num_rows.value};
         formInfo.extra = extra;
         google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);
@@ -117,6 +118,12 @@
           <th align="right">Optical Density: </th>
           <td>
             <input type="checkbox" name="ods" title="Check to add a column for optical density configuration.  Comma separated lists are accepted. No units are expected.">
+          </td>
+        </tr>
+        <tr>
+          <th align="right">Notes: </th>
+          <td>
+            <input type="checkbox" name="notes" title="Check to add a column for notes/descriptions.  This column isn't parsed and has no effect on the generated structured request.">
           </td>
         </tr>
         <tr>
