@@ -232,7 +232,7 @@ def query_experiments(synbiohub, target_collection, sbh_spoofing_prefix, sbh_url
     #experiments = [ {'uri' : m['entity']['value'], 'timestamp' : m['timestamp']['value'] }  for m in response['results']['bindings']]
     return experiments
 
-def query_experiment_source(synbiohub, experiment_uri):
+def query_experiment_source(synbiohub, experiment_uri, sbh_spoofing_prefix, sbh_url):
     '''
     Return a reference to a samples.json file on Agave file system that generated the Experiment
 
@@ -243,6 +243,11 @@ def query_experiment_source(synbiohub, experiment_uri):
     experiment_uri : str
         A URI for an Experiment object
     '''
+
+    # Correct the experiment_uri in case the user specifies the wrong synbiohub namespace
+    # (a common mistake that can be hard to debug)
+    if sbh_spoofing_prefix is not None:
+        experiment_uri = experiment_uri.replace(sbh_url, sbh_spoofing_prefix)
 
     query = """
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -258,7 +263,7 @@ def query_experiment_source(synbiohub, experiment_uri):
     source = [ m['source']['value'] for m in response['results']['bindings']]
     return source
 
-def query_experiment_request(synbiohub, experiment_uri):
+def query_experiment_request(synbiohub, experiment_uri, sbh_spoofing_prefix, sbh_url):
     '''
     Return a URL to the experiment request form on Google Docs that initiated the Experiment
 
@@ -269,6 +274,11 @@ def query_experiment_request(synbiohub, experiment_uri):
     experiment_uri : str
         A URI for an Experiment object
     '''
+
+    # Correct the experiment_uri in case the user specifies the wrong synbiohub namespace
+    # (a common mistake that can be hard to debug)
+    if sbh_spoofing_prefix is not None:
+        experiment_uri = experiment_uri.replace(sbh_url, sbh_spoofing_prefix)
 
     query = """
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
