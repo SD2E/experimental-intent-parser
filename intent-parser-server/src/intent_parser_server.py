@@ -21,7 +21,7 @@ from spellchecker import SpellChecker
 from multiprocessing import Pool
 import intent_parser_utils
 
-import logging
+#import logging
 import logging.config
 
 from jsonschema import validate
@@ -945,26 +945,24 @@ class IntentParserServer:
             self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
             raise ConnectionException('404', 'Not Found', 'Failed to access document ' + document_id)
 
-        ## TODO
-        ### Search SBH to get data
-        ##
-        ## For now, assume junk
-
+        # For test documents, replace doc id with corresponding production doc
         if document_id in self.test_doc_id_map:
             source_doc_uri = 'https://docs.google.com/document/d/' + self.test_doc_id_map[document_id]
         else:
             source_doc_uri = 'https://docs.google.com/document/d/' + document_id
 
+        # Search SBH to get data
         target_collection = self.sbh_url + '/user/%s/experiment_test/experiment_test_collection/1' % self.sbh_collection_user
         exp_collection = intent_parser_utils.query_experiments(self.sbh, target_collection, self.sbh_spoofing_prefix, self.sbh_url)
         data = {}
         for exp in exp_collection:
             exp_uri = exp['uri']
             timestamp = exp['timestamp']
-            request_doc = intent_parser_utils.query_experiment_request(self.sbh, exp_uri)  # Get the reference to the Google request doc
+            title = exp['title']
+            request_doc = intent_parser_utils.query_experiment_request(self.sbh, exp_uri, self.sbh_spoofing_prefix, self.sbh_url)  # Get the reference to the Google request doc
             if source_doc_uri == request_doc:
-                source_uri = intent_parser_utils.query_experiment_source(self.sbh, exp_uri)  # Get the reference to the source document with lab data
-                data[source_uri[0]] = timestamp
+                source_uri = intent_parser_utils.query_experiment_source(self.sbh, exp_uri, self.sbh_spoofing_prefix, self.sbh_url)  # Get the reference to the source document with lab data
+                data[exp_uri] = {'timestamp' : timestamp, 'agave' : source_uri[0], 'title' : title}
 
         #data = self.get_synbiohub_exp_data(document_id)
         #data = {'exp1' : '6/30/2019', 'exp2' : '7/30/2019', 'exp3' : '8/30/2019', 'exp4' : '9/30/2019'}
@@ -972,8 +970,8 @@ class IntentParserServer:
         exp_data = []
         exp_links = []
         for exp in data:
-            exp_data.append('Experiment run on ' + data[exp] + '\n')
-            exp_links.append(exp)
+            exp_data.append((data[exp]['title'], ' run on ', data[exp]['timestamp'], ', ', 'Agave link', '\n'))
+            exp_links.append((exp, '', '', '',  data[exp]['agave'], ''))
 
         if exp_data == '':
             exp_data = ['No currently run experiments.']
