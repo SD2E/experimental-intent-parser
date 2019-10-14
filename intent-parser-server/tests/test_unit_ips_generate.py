@@ -7,6 +7,7 @@ import os
 import time
 import urllib.request
 import pickle
+import pymongo
 
 from ips_test_utils import compare_spell_results
 from ips_test_utils import get_currently_selected_text
@@ -116,6 +117,9 @@ class TestIntentParserServer(unittest.TestCase):
         self.httpMessage = Mock()
         self.httpMessage.get_resource = Mock(return_value='/document_report?1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA')
 
+        self.ips.google_accessor.get_document_parents = Mock(return_value = self.parent_list)
+        self.ips.google_accessor.get_document_metadata = Mock(return_value = self.parent_meta)
+
 
     def test_generate_report_basic(self):
         """
@@ -133,9 +137,6 @@ class TestIntentParserServer(unittest.TestCase):
         """
         Basic check, ensure that spellcheck runs and the results are as expected
         """
-        self.ips.google_accessor.get_document_parents = Mock(return_value = self.parent_list)
-        self.ips.google_accessor.get_document_metadata = Mock(return_value = self.parent_meta)
-
         self.ips.process_generate_request(self.httpMessage, [])
 
         # Basic sanity checks
@@ -203,6 +204,28 @@ class TestIntentParserServer(unittest.TestCase):
         self.assertTrue('Validation Passed' in validate_results['actions'][0]['html'])
         self.assertTrue('Warning: IPTG does not have a SynbioHub URI specified' in validate_results['actions'][0]['html'])
         self.assertTrue('Warning: Kanamycin Sulfate does not have a SynbioHub URI specified' in validate_results['actions'][0]['html'])
+
+    def test_generate_request_hand_crafted(self):
+        """
+        Compare against the hand-generated structured requests from Mark Weston.
+        """
+        # TODO: this is incomplete right now.  The idea is to compare the generated requests against hand-crafted requests
+        # However, the exp request docs don't yet have the measurement tables defined to make this possible.
+        request_doc_url = []
+        request_doc_url.append('https://docs.google.com/document/d/1RenmUdhsXMgk4OUWReI2oS6iF5R5rfWU5t7vJ0NZOHw')
+
+        client = pymongo.MongoClient("mongodb://readonly:WNCPXXd8ccpjs73zxyBV@catalog.sd2e.org:27020/admin?readPreference=primary")
+
+        for doc_url in request_doc_url:
+            gt_req = client.catalog_staging.structured_requests.find_one( { 'experiment_reference_url' : doc_url } )
+            doc_id = doc_url.split(sep='/')[4]
+
+            self.httpMessage.get_resource = Mock(return_value='/document_report?%s' % doc_id)
+            #self.ips.process_generate_request(self.httpMessage, [])
+
+            #gen_results = json.loads(self.ips.send_response.call_args[0][2])
+
+            #self.assertTrue(gt_req == gen_results)
 
     def tearDown(self):
         """

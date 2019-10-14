@@ -89,13 +89,41 @@ def query_experiment_request(synbiohub, experiment_uri):
     else:
         return "NOT FOUND"
 
+def query_experiment_creation_date(synbiohub, experiment_uri):
+    '''
+    Return a URL to the experiment request form on Google Docs that initiated the Experiment
+    
+    Parameters
+    ----------
+    synbiohub : SynBioHubQuery
+        An instance of a SynBioHubQuery SPARQL wrapper from synbiohub_adapter
+    experiment_uri : str
+        A URI for an Experiment object
+    '''
+    
+    query = """
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX sbol: <http://sbols.org/v2#>
+    PREFIX sd2: <http://sd2e.org#>
+    PREFIX prov: <http://www.w3.org/ns/prov#> 
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    SELECT DISTINCT ?datetime WHERE {
+            <%s> dcterms:created ?datetime .
+    }   
+    """ %(experiment_uri)
+    response = synbiohub.fetch_SPARQL('', query)
+    datetime = [ m['datetime']['value'] for m in response['results']['bindings']]
+    if datetime:
+        return datetime[0]
+    else:
+        return "NOT FOUND"
+
 # Initialize SD2 specific parameters
-user = 'sd2e'
-password = 'jWJ1yztJl2f7RaePHMtXmxBBHwNt'
+user = <>
+password = <>
 staging_instance = 'https://hub-staging.sd2e.org'
 production_instance = 'https://hub.sd2e.org'
 target_collection = 'https://hub-staging.sd2e.org/user/sd2e/experiment_test/experiment_test_collection/1'
-#target_collection = 'https://hub-staging.sd2e.org/user/sd2e/foo/foo_collection/1'
 
 # Initialize the query wrapper to query the staging instance of synbiohub
 main_resource = staging_instance
@@ -108,6 +136,8 @@ experiments = query_experiments(synbiohub, target_collection)
 for x in experiments:
     source = query_experiment_source(synbiohub, x)  # Get the reference to the source document with lab data
     request_doc = query_experiment_request(synbiohub, x)  # Get the reference to the Google request doc
+    creation_date = query_experiment_creation_date(synbiohub, x)
     print('Experiment: ' + x)
     print('Request: ' + request_doc)
+    print('Created: ' + creation_date)
     print()
