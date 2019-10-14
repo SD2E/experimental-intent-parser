@@ -147,6 +147,18 @@ function processActions(response) {
         var newTable = body.insertTable(childIndex, tableData);
         var headerRow = newTable.getRow(0);
 
+        // Reset formatting
+        var tableStyle = {};
+        tableStyle[DocumentApp.Attribute.HORIZONTAL_ALIGNMENT] = DocumentApp.HorizontalAlignment.LEFT;
+        tableStyle[DocumentApp.Attribute.FONT_SIZE] = 11;
+        tableStyle[DocumentApp.Attribute.FONT_SIZE] = 11;
+        tableStyle[DocumentApp.Attribute.BOLD] = false;
+        tableStyle[DocumentApp.Attribute.ITALIC] = false;
+        tableStyle[DocumentApp.Attribute.BACKGROUND_COLOR] = '#FFFFFF';
+        tableStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = '#000000';
+        newTable.setAttributes(tableStyle)
+
+
         var style = {};
         style[DocumentApp.Attribute.HORIZONTAL_ALIGNMENT] = DocumentApp.HorizontalAlignment.CENTER;
         style[DocumentApp.Attribute.FONT_SIZE] = 11;
@@ -160,8 +172,8 @@ function processActions(response) {
         if (actionDesc['tableType'] == 'measurements') {
             labTableData = actionDesc['tableLab']
             var newLabTable = body.insertTable(childIndex, labTableData);
+            newLabTable.setAttributes(tableStyle)
         }
-
         break
 
       case 'updateExperimentResults':
