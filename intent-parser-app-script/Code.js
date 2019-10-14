@@ -1,4 +1,4 @@
-var serverURL = 'http://intent-parser-server.bbn.com:8081'
+var serverURL = 'http://intent-parser-server.bbn.com:8082'
 
 var versionString = '2.0-git-session'
 
@@ -18,6 +18,7 @@ function onOpen() {
   menu.addItem('Validate Structured Request', 'sendValidateStructuredRequest')
   menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest')
   menu.addItem('Generate Report', 'sendGenerateReport')
+  menu.addItem('Update experimental results', 'updateExperimentalResults')
   menu.addSubMenu(tablesMenu)
 
   menu.addItem('Help', 'showHelp')
@@ -175,6 +176,46 @@ function processActions(response) {
         }
         break
 
+      case 'updateExperimentResults':
+        var headerIdx = actionDesc['headerIdx'];
+        var contentIdx = actionDesc['contentIdx'];
+        var expData = actionDesc['expData'];
+        var expLinks = actionDesc['expLinks'];
+
+        var doc = DocumentApp.getActiveDocument();
+        var body = doc.getBody();
+
+        if (headerIdx != -1 && contentIdx != -1) {
+            var paragraphs = body.getParagraphs();
+            para = paragraphs[contentIdx];
+            para.setText('\n');
+            for (var i = 0; i < expData.length; i++) {
+                for (var p = 0; p < expData[i].length; p++) {
+                    newTxt = para.appendText(expData[i][p]);
+                    if (i < expLinks.length && expLinks[i][p] != '') {
+                        newTxt.setLinkUrl(expLinks[i][p]);
+                    } else {
+                        newTxt.setLinkUrl('');
+                    }
+                }
+            }
+        } else {
+            var header_para = body.appendParagraph('Experiment Results');
+            header_para.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+            para = body.appendParagraph('\n');
+            for (var i = 0; i < expData.length; i++) {
+                for (var p = 0; p < expData[i].length; p++) {
+                    newTxt = para.appendText(expData[i][p]);
+                    if (i < expLinks.length && expLinks[i][p] != '') {
+                        newTxt.setLinkUrl(expLinks[i][p]);
+                    } else {
+                        newTxt.setLinkUrl('');
+                    }
+                }
+            }
+        }
+
+        break
       case 'showSidebar':
         showSidebar(actionDesc['html'])
         break
@@ -458,6 +499,10 @@ function getLocation(el, offset) {
     return {'paragraphIndex': result,
             'offset': offset}
   }
+}
+
+function updateExperimentalResults() {
+  sendPost('/updateExperimentalResults')
 }
 
 function sendAnalyzeFromTop() {

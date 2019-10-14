@@ -21,7 +21,7 @@ from spellchecker import SpellChecker
 from multiprocessing import Pool
 import intent_parser_utils
 
-import logging
+#import logging
 import logging.config
 
 from jsonschema import validate
@@ -37,6 +37,15 @@ class ConnectionException(Exception):
         self.content = content
 
 class IntentParserServer:
+
+    # Used for inserting experiment result data
+    # Since the experiment result data is uploaded with the requesting document id
+    # and the test documents are copies of those, the ids won't match
+    # In order to test this, if we receive a document Id in the key of this map, we will instead query for the value
+    test_doc_id_map = {'1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoT' : '10HqgtfVCtYhk3kxIvQcwljIUonSNlSiLBC8UFmlwm1s',
+                       '1RenmUdhsXMgk4OUWReI2oS6iF5R5rfWU5t7vJ0NZOHw': '1g0SjxU2Y5aOhUbM63r8lqV50vnwzFDpJg4eLXNllut4',
+                       '1_I4pxB26zOLb209Xlv8QDJuxiPWGDafrejRDKvZtEl8': '1K5IzBAIkXqJ7iPF4OZYJR7xgSts1PUtWWM2F0DKhct0',
+                       '1zf9l0K4rj7I08ZRpxV2ZY54RMMQc15Rlg7ULviJ7SBQ': '1uXqsmRLeVYkYJHqgdaecmN_sQZ2Tj4Ck1SZKcp55yEQ' }
 
     dict_path = 'dictionaries'
 
@@ -221,6 +230,7 @@ class IntentParserServer:
 
             self.sbh = SBHAccessor(sbh_url=sbh_url)
             self.sbh_collection = sbh_collection
+            self.sbh_collection_user = sbh_collection_user
             self.sbh_spoofing_prefix = sbh_spoofing_prefix
             self.sbh_url = sbh_url
             self.sbh_link_hosts = sbh_link_hosts
@@ -365,6 +375,8 @@ class IntentParserServer:
 
         if resource == '/analyzeDocument':
             self.process_analyze_document(httpMessage, sm)
+        elif resource == '/updateExperimentalResults':
+            self.process_update_exp_results(httpMessage, sm)
         elif resource == '/message':
             self.process_message(httpMessage, sm)
         elif resource == '/buttonClick':
@@ -911,6 +923,89 @@ class IntentParserServer:
             client_state = None
 
         return (json_body, client_state)
+
+
+    def process_update_exp_results(self, httpMessage, sm):
+        """
+        This function will scan SynbioHub for experiments related to this document, and updated an
+        "Experiment Results" section with information about completed experiments.
+        """
+        start = time.time()
+
+        json_body = self.get_json_body(httpMessage)
+
+        if 'documentId' not in json_body:
+            raise ConnectionException('400', 'Bad Request', 'Missing documentId')
+
+        document_id = json_body['documentId']
+
+        try:
+            doc = self.google_accessor.get_document(document_id=document_id)
+        except Exception as ex:
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            raise ConnectionException('404', 'Not Found', 'Failed to access document ' + document_id)
+
+        # For test documents, replace doc id with corresponding production doc
+        if document_id in self.test_doc_id_map:
+            source_doc_uri = 'https://docs.google.com/document/d/' + self.test_doc_id_map[document_id]
+        else:
+            source_doc_uri = 'https://docs.google.com/document/d/' + document_id
+
+        # Search SBH to get data
+        target_collection = self.sbh_url + '/user/%s/experiment_test/experiment_test_collection/1' % self.sbh_collection_user
+        exp_collection = intent_parser_utils.query_experiments(self.sbh, target_collection, self.sbh_spoofing_prefix, self.sbh_url)
+        data = {}
+        for exp in exp_collection:
+            exp_uri = exp['uri']
+            timestamp = exp['timestamp']
+            title = exp['title']
+            request_doc = intent_parser_utils.query_experiment_request(self.sbh, exp_uri, self.sbh_spoofing_prefix, self.sbh_url)  # Get the reference to the Google request doc
+            if source_doc_uri == request_doc:
+                source_uri = intent_parser_utils.query_experiment_source(self.sbh, exp_uri, self.sbh_spoofing_prefix, self.sbh_url)  # Get the reference to the source document with lab data
+                data[exp_uri] = {'timestamp' : timestamp, 'agave' : source_uri[0], 'title' : title}
+
+        #data = self.get_synbiohub_exp_data(document_id)
+        #data = {'exp1' : '6/30/2019', 'exp2' : '7/30/2019', 'exp3' : '8/30/2019', 'exp4' : '9/30/2019'}
+
+        exp_data = []
+        exp_links = []
+        for exp in data:
+            exp_data.append((data[exp]['title'], ' run on ', data[exp]['timestamp'], ', ', 'Agave link', '\n'))
+            exp_links.append((exp, '', '', '',  data[exp]['agave'], ''))
+
+        if exp_data == '':
+            exp_data = ['No currently run experiments.']
+
+        body = doc.get('body');
+        doc_content = body.get('content')
+        paragraphs = self.get_paragraphs(doc_content)
+
+        headerIdx = -1
+        contentIdx = -1
+        for pIdx in range(len(paragraphs)):
+            para_text = self.get_paragraph_text(paragraphs[pIdx])
+            if para_text == "Experiment Results\n":
+                headerIdx = pIdx
+            elif headerIdx >= 0 and not para_text == '\n':
+                contentIdx = pIdx
+                break
+
+        if headerIdx >= 0 and contentIdx == -1:
+            self.logger.error('ERROR: Couldn\'t find a content paragraph index for experiment results!')
+
+        action = {}
+        action['action'] = 'updateExperimentResults'
+        action['headerIdx'] = headerIdx
+        action['contentIdx'] = contentIdx
+        action['expData'] = exp_data
+        action['expLinks'] = exp_links
+
+        actions = {'actions': [action]}
+
+        end = time.time()
+        self.logger.info('Updated experiment results in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+
+        self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
 
     def process_analyze_document(self, httpMessage, sm):
         """
