@@ -55,7 +55,9 @@ class IntentParserServer:
                             'Ginkgo UID',
                             'Transcriptic UID',
                             'LBNL UID',
-                            'EmeraldCloud UID'])
+                            'EmeraldCloud UID',
+                            'CalTech UID',
+                            'PennState (Salis) UID'])
 
     item_types = {
             'component': {
