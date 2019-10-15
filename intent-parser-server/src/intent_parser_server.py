@@ -101,6 +101,13 @@ class IntentParserServer:
     # Defines a period of time to wait to send analyze progress updates, in seconds
     analyze_progress_period = 2.5
 
+    # Determine how long a lab UID string has to be in order to be added to the item map.
+    # Strings below this size are ignored.
+    uid_length_threshold = 3
+
+    # Some lab UIDs are short but still valid.  This defines an exceptions to the length threshold.
+    uid_length_exception = ['M9', 'LB']
+
     # String defines for headers in the new-style measurements table
     col_header_measurement_type = 'measurement-type'
     col_header_file_type = 'file-type'
@@ -1887,6 +1894,8 @@ class IntentParserServer:
             except:
                 pass
 
+        lab_uid_src_map = {}
+        lab_uid_common_map = {}
         sheet_data = self.fetch_spreadsheet_data()
         for tab in sheet_data:
             for row in sheet_data[tab]:
@@ -1904,7 +1913,36 @@ class IntentParserServer:
 
                 common_name = row['Common Name']
                 uri = row['SynBioHub URI']
+                # Add common name to the item map
                 item_map[common_name] = uri
+                # There are also UIDs for each lab to add
+                for lab_uid in self.lab_ids_list:
+                    # Ignore if the spreadsheet doesn't contain this lab
+                    if not lab_uid in row or row[lab_uid] == '':
+                        continue
+                    # UID can be a CSV list, parse each value
+                    for uid_str in row[lab_uid].split(sep=','):
+                        # Make sure the UID matches the min len threshold, or is in the exception list
+                        if len(uid_str) >= self.uid_length_threshold or uid_str in self.uid_length_exception:
+                            # If the UID isn't in the item map, add it with this URI
+                            if uid_str not in item_map:
+                                item_map[uid_str] = uri
+                                lab_uid_src_map[uid_str] = lab_uid
+                                lab_uid_common_map[uid_str] = common_name
+                            else: # Otherwise, we need to check for an error
+                                # If the UID has been used  before, we might have a conflict
+                                if uid_str in lab_uid_src_map:
+                                    # If the common name was the same for different UIDs, this won't have an effect
+                                    # But if they differ, we have a conflict
+                                    if not lab_uid_common_map[uid_str] == common_name:
+                                        self.logger.error('Trying to add %s %s for common name %s, but the item map already contains %s from %s for common name %s!' %
+                                                          (lab_uid, uid_str, common_name, uid_str, lab_uid_src_map[uid_str], lab_uid_common_map[uid_str]))
+                                else: # If the UID wasn't used before, then it matches the common name and adding it would be redundant
+                                    pass
+                                    # If it matches the common name, that's fine
+                                    #self.logger.error('Trying to add %s %s, but the item map already contains %s from common name!' % (lab_uid, uid_str, uid_str))
+                        else:
+                            self.logger.debug('Filtered %s %s for length' % (lab_uid, uid_str))
 
         f = open(self.my_path + '/item-map.json', 'w')
         f.write(json.dumps(item_map))
