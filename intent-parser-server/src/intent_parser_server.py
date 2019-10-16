@@ -727,7 +727,7 @@ class IntentParserServer:
                 measurement = {}
                 for i in range(measurement_col, numCols):
                     header = self.get_paragraph_text(headerRow['tableCells'][i]['content'][0]['paragraph']).strip()
-                    cellTxt =  self.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
+                    cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in cells[i]['content']])
                     if header == self.col_header_measurement_type:
                         measurement['measurement_type'] = self.get_measurement_type(cellTxt)
                     elif header == self.col_header_file_type:
