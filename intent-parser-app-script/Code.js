@@ -19,6 +19,7 @@ function onOpen() {
   menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest')
   menu.addItem('Generate Report', 'sendGenerateReport')
   menu.addItem('Update experimental results', 'updateExperimentalResults')
+  menu.addItem('Calculate samples for measurements table', 'calculateSamples')
   menu.addSubMenu(tablesMenu)
 
   menu.addItem('Help', 'showHelp')
@@ -503,6 +504,10 @@ function getLocation(el, offset) {
 
 function updateExperimentalResults() {
   sendPost('/updateExperimentalResults')
+}
+
+function calculateSamples() {
+  sendPost('/calculateSamples')
 }
 
 function sendAnalyzeFromTop() {
