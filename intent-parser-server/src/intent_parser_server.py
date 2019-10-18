@@ -2016,6 +2016,7 @@ class IntentParserServer:
             data = json_body['data']
             cursor_child_index = str(data['childIndex'])
             table_type = data['tableType']
+            page_width = str(data['pageWidth'])
 
             html = None
             if table_type == 'measurements':
@@ -2038,6 +2039,7 @@ class IntentParserServer:
                 # Update parameters in html
                 html = html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
                 html = html.replace('${LABIDSOPTIONS}', lab_ids_html)
+                html = html.replace('${PAGE_WIDTH}', page_width)
                 html = html.replace('${MEASUREMENTOPTIONS}', measurement_types_html)
                 html = html.replace('${FILETYPEOPTIONS}', file_types_html)
 
@@ -3034,6 +3036,7 @@ class IntentParserServer:
         """
 
         lab = "Lab: %s" % data['lab']
+        page_width = int(data['pageWidth'])
         num_reagents = int(data['numReagents'])
         has_temp = data['temperature']
         has_time = data['timepoint']

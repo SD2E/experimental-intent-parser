@@ -31,6 +31,7 @@
         var theForm = this.createMeasurementTableForm;
         var formInfo = {'cursorChildIndex' : theForm.cursorChildIndex.value,
                         'formName' : theForm.formName.value,
+                        'pageWidth' : theForm.pageWidth.value,
                         'lab' : theForm.lab.value,
                         'measurementTypes' : currMeasurements,
                         'fileTypes' : currFileTypes,
@@ -86,6 +87,7 @@
     <form name="createMeasurementTableForm" action="/add">
       <input type="hidden" name="cursorChildIndex" value="${CURSOR_CHILD_INDEX}">
       <input type="hidden" name="formName" value="createMeasurementTable">
+      <input type="hidden" name="pageWidth" value="${PAGE_WIDTH}">
       <table stype="width:600px">
         <tr>
           <th align="right">Lab: </th>

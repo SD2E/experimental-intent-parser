@@ -633,8 +633,9 @@ function createTableMeasurements() {
       var el = cursorPosition.getElement()
   }
   childIndex = doc.getBody().getChildIndex(el)
+  var pageWidth = doc.getBody().getPageWidth()
 
-  data = {'childIndex' : childIndex, 'tableType' : 'measurements'}
+  data = {'childIndex' : childIndex, 'tableType' : 'measurements', 'pageWidth' : pageWidth}
 
   sendPost('/createTableTemplate', data)
 }
