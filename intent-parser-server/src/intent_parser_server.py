@@ -979,7 +979,7 @@ class IntentParserServer:
         exp_data = []
         exp_links = []
         for exp in data:
-            exp_data.append((data[exp]['title'], ' run on ', data[exp]['timestamp'], ', ', 'Agave link', '\n'))
+            exp_data.append((data[exp]['title'], ' updated on ', data[exp]['timestamp'], ', ', 'Agave link', '\n'))
             exp_links.append((exp, '', '', '',  data[exp]['agave'], ''))
 
         if exp_data == '':
