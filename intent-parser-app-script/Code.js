@@ -19,6 +19,7 @@ function onOpen() {
   menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest')
   menu.addItem('Generate Report', 'sendGenerateReport')
   menu.addItem('Update experimental results', 'updateExperimentalResults')
+  menu.addItem('Calculate samples for measurements table', 'calculateSamples')
   menu.addSubMenu(tablesMenu)
 
   menu.addItem('Help', 'showHelp')
@@ -134,6 +135,35 @@ function processActions(response) {
         var endOffset = actionDesc['end_offset']
         var url = actionDesc['url']
         linkDocText(paragraphIndex, offset, endOffset, url)
+        break
+
+      case 'calculateSamples':
+        var tableIds = actionDesc['tableIds'];
+        var sampleIndices = actionDesc['sampleIndices'];
+        var sampleValues = actionDesc['sampleValues'];
+
+        var doc = DocumentApp.getActiveDocument();
+        var body = doc.getBody();
+        var tables = body.getTables();
+
+        for (var tIdx = 0; tIdx < tableIds.length; tIdx++) {
+            sampleColIdx = sampleIndices[tIdx];
+            var numRows = tables[tableIds[tIdx]].getNumRows()
+            // Samples column doesn't exist
+            if (sampleColIdx < 0) { // Create new column for samples
+                var numCols = tables[tableIds[tIdx]].getRow(0).getNumCells();
+                tables[tableIds[tIdx]].getRow(0).appendTableCell("samples");
+                for (var rowIdx = 1; rowIdx < numRows; rowIdx++) {
+                    tables[tableIds[tIdx]].getRow(rowIdx).appendTableCell()
+                }
+                sampleColIdx = numCols
+            }
+            for (var rowIdx = 1; rowIdx < numRows; rowIdx++) {
+                var tableCell = tables[tableIds[tIdx]].getRow(rowIdx).getCell(sampleColIdx);
+                tableCell.setText(sampleValues[tIdx][rowIdx - 1])
+            }
+        }
+
         break
 
       case 'addTable':
@@ -503,6 +533,10 @@ function getLocation(el, offset) {
 
 function updateExperimentalResults() {
   sendPost('/updateExperimentalResults')
+}
+
+function calculateSamples() {
+  sendPost('/calculateSamples')
 }
 
 function sendAnalyzeFromTop() {
