@@ -1,5 +1,7 @@
 from synbiohub_adapter.query_synbiohub import SynBioHubQuery
 
+import sys
+
 def query_experiments(synbiohub, target_collection):
     '''
     Search the target collection and return references to all Experiment objects
@@ -119,8 +121,8 @@ def query_experiment_creation_date(synbiohub, experiment_uri):
         return "NOT FOUND"
 
 # Initialize SD2 specific parameters
-user = <>
-password = <>
+user = sys.argv[1]
+password = sys.argv[2]
 staging_instance = 'https://hub-staging.sd2e.org'
 production_instance = 'https://hub.sd2e.org'
 target_collection = 'https://hub-staging.sd2e.org/user/sd2e/experiment_test/experiment_test_collection/1'
