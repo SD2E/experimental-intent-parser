@@ -792,7 +792,7 @@ class IntentParserServer:
                 # Collect reagent info - first N columns are all reagents
                 content = []
                 for i in range(measurement_col):
-                    cellTxt = self.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
+                    cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in cells[i]['content']]).strip()
                     # If nothing is specified, ignore it
                     if not cellTxt == '':
                         reagent_entries = []
