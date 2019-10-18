@@ -20,6 +20,7 @@ from operator import itemgetter
 from spellchecker import SpellChecker
 from multiprocessing import Pool
 import intent_parser_utils
+import numpy as np
 
 #import logging
 import logging.config
@@ -386,6 +387,8 @@ class IntentParserServer:
             self.process_analyze_document(httpMessage, sm)
         elif resource == '/updateExperimentalResults':
             self.process_update_exp_results(httpMessage, sm)
+        elif resource == '/calculateSamples':
+            self.process_calculate_samples(httpMessage, sm)
         elif resource == '/message':
             self.process_message(httpMessage, sm)
         elif resource == '/buttonClick':
@@ -541,6 +544,96 @@ class IntentParserServer:
             found_file_type |= cellTxt == self.col_header_file_type
 
         return found_replicates and found_strain and found_measurement_type and found_file_type
+
+    def process_calculate_samples(self, httpMessage, sm):
+        """
+        Find all measurements tables and update the samples columns, or add the samples column if it doesn't exist.
+        """
+        start = time.time()
+
+        json_body = self.get_json_body(httpMessage)
+        document_id = json_body['documentId']
+        try:
+            doc = self.google_accessor.get_document(document_id=document_id)
+        except Exception as ex:
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
+
+        doc_tables = self.get_element_type(doc, 'table')
+        table_ids = []
+        sample_indices = []
+        samples_values = []
+        for tIdx in range(len(doc_tables)):
+            table = doc_tables[tIdx]
+
+            # Only process new style measurement tables
+            is_new_measurement_table = self.detect_new_measurement_table(table)
+            if not is_new_measurement_table:
+                continue
+
+            rows = table['tableRows']
+            headerRow = rows[0]
+            samples_col = -1
+            for cell_idx in range(len(headerRow['tableCells'])):
+                cellTxt = self.get_paragraph_text(headerRow['tableCells'][cell_idx]['content'][0]['paragraph']).strip()
+                if cellTxt == self.col_header_samples:
+                    samples_col = cell_idx
+
+            samples = []
+            numCols = len(headerRow['tableCells'])
+
+            # Scrape data for each row
+            for row in rows[1:]:
+                comp_count = []
+                is_type_col = False
+                colIdx = 0
+                # Process reagents
+                while colIdx < numCols and not is_type_col:
+                    paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
+                    headerTxt =  self.get_paragraph_text(paragraph_element).strip()
+                    if headerTxt == self.col_header_measurement_type:
+                        is_type_col = True
+                    else:
+                        cellContent = row['tableCells'][colIdx]['content']
+                        cellTxt = ' '.join([self.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+                        comp_count.append(len(cellTxt.split(sep=',')))
+                    colIdx += 1
+
+                # Process the rest of the columns
+                while colIdx < numCols:
+                    paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
+                    headerTxt =  self.get_paragraph_text(paragraph_element).strip()
+                    # Certain columns don't contain info about samples
+                    if headerTxt == self.col_header_measurement_type or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
+                        colIdx += 1
+                        continue
+
+                    cellContent = row['tableCells'][colIdx]['content']
+                    cellTxt = ' '.join([self.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+
+                    if headerTxt == self.col_header_replicate:
+                        comp_count.append(int(cellTxt))
+                    else:
+                        comp_count.append(len(cellTxt.split(sep=',')))
+                    colIdx += 1
+                samples.append(int(np.prod(comp_count)))
+
+            table_ids.append(tIdx)
+            sample_indices.append(samples_col)
+            samples_values.append(samples)
+
+        action = {}
+        action['action'] = 'calculateSamples'
+        action['tableIds'] = table_ids
+        action['sampleIndices'] = sample_indices
+        action['sampleValues'] = samples_values
+
+        actions = {'actions': [action]}
+
+        end = time.time()
+        self.logger.info('Calculated samples in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+
+        self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
 
     def process_validate_structured_request(self, httpMessage, sm):
         """
@@ -699,7 +792,7 @@ class IntentParserServer:
                 # Collect reagent info - first N columns are all reagents
                 content = []
                 for i in range(measurement_col):
-                    cellTxt = self.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
+                    cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in cells[i]['content']]).strip()
                     # If nothing is specified, ignore it
                     if not cellTxt == '':
                         reagent_entries = []
@@ -3074,13 +3167,13 @@ class IntentParserServer:
         if has_temp:
             header.append(self.col_header_temperature)
             col_sizes.append(len(self.col_header_temperature) + 1)
-        header.append(self.col_header_samples)
+        #header.append(self.col_header_samples)
 
         if has_notes:
             header.append(self.col_header_notes)
             col_sizes.append(len(self.col_header_notes) + 1)
 
-        col_sizes.append(len(self.col_header_samples) + 1)
+        #col_sizes.append(len(self.col_header_samples) + 1)
         table_data.append(header)
 
         for r in range(num_rows):
@@ -3097,7 +3190,7 @@ class IntentParserServer:
                 measurement_row.append('')
             if has_temp:
                 measurement_row.append('')
-            measurement_row.append('') # Samples col
+            #measurement_row.append('') # Samples col
             if has_notes:
                 measurement_row.append('')
             table_data.append(measurement_row)
