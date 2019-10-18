@@ -3074,13 +3074,13 @@ class IntentParserServer:
         if has_temp:
             header.append(self.col_header_temperature)
             col_sizes.append(len(self.col_header_temperature) + 1)
-        header.append(self.col_header_samples)
+        #header.append(self.col_header_samples)
 
         if has_notes:
             header.append(self.col_header_notes)
             col_sizes.append(len(self.col_header_notes) + 1)
 
-        col_sizes.append(len(self.col_header_samples) + 1)
+        #col_sizes.append(len(self.col_header_samples) + 1)
         table_data.append(header)
 
         for r in range(num_rows):
@@ -3097,7 +3097,7 @@ class IntentParserServer:
                 measurement_row.append('')
             if has_temp:
                 measurement_row.append('')
-            measurement_row.append('') # Samples col
+            #measurement_row.append('') # Samples col
             if has_notes:
                 measurement_row.append('')
             table_data.append(measurement_row)
