@@ -699,7 +699,10 @@ class IntentParserServer:
 
         output_doc = { "experiment_reference_url" : "https://docs.google.com/document/d/%s" % document_id }
         if self.datacatalog_config['mongodb']['authn']:
-            map_experiment_reference(self.datacatalog_config, output_doc)
+            try:
+                map_experiment_reference(self.datacatalog_config, output_doc)
+            except:
+                pass # We don't need to do anything, failure is handled later, but we don't want it to crash
 
         lab = 'Unknown'
 
