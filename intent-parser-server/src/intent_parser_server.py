@@ -714,7 +714,11 @@ class IntentParserServer:
             experiment_reference_url = output_doc['experiment_reference_url']
         else:
             self.logger.info('WARNING: Failed to map experiment reference for doc id %s!' % document_id)
-            experiment_reference = doc['title'].split(sep='-')[1].strip()
+            titleToks = doc['title'].split(sep='-')
+            if len(titleToks) > 1:
+                experiment_reference = doc['title'].split(sep='-')[1].strip()
+            else:
+                experiment_reference = doc['title']
             experiment_reference_url = 'https://docs.google.com/document/d/' + document_id
             # This will return a parent list, which should have one or more Ids of parent directories
             # We want to navigate those and see if they are a close match to a challenge problem ID
