@@ -503,6 +503,10 @@ class IntentParserServer:
                         best_match = unit
                         best_length = len(unit)
         elif (unit_type == 'temp'):
+            if (unit_tok.lower() == 'c'):
+                unit_tok = 'celsius'
+            elif (unit_tok.lower() == 'f'):
+                unit_tok = 'fahrenheit'
             # Test temp units
             for unit in self.temp_units:
                 if unit.lower() in unit_tok.lower():
@@ -3298,7 +3302,8 @@ class IntentParserServer:
                            'application/json')
 
 #spreadsheet_id = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program dict
-spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
+# spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
+spreadsheet_id = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0' #sd2 unit test dictionary 
 sbh_spoofing_prefix=None
 sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
 bind_port = 8081
