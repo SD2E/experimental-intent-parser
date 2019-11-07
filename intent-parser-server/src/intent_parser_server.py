@@ -496,6 +496,8 @@ class IntentParserServer:
                         best_match = unit
                         best_length = len(unit)
         elif (unit_type == 'fluid'):
+            if (unit_tok.lower() == 'fold'):
+                unit_tok = 'X'
             # Test fluid units
             for unit in self.fluid_units:
                 if unit.lower() in unit_tok.lower():
