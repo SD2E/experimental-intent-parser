@@ -713,7 +713,22 @@ class IntentParserServer:
                         meas_tableIdx['row'].append(rowIdx)
                         meas_tableIdx['col'].append(colIdx)
                         meas_tableIdx['cell'].append(newCellTxt)
-                    
+                    else:
+                        reagent_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        prop_unit = [] 
+                        defaultUnit = 'unspecified'
+                        for reag_str in reagent_strings:
+                            spec, unit = self.detect_and_remove_fluid_unit(reag_str);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+                                
+                        for reag_str in reagent_strings:
+                            spec, unit = self.detect_and_remove_fluid_unit(reag_str);
+                            prop_unit.append(spec + ' ' + defaultUnit)
+                        newCellTxt = (', ').join(map(str, prop_unit)) 
+                        meas_tableIdx['row'].append(rowIdx)
+                        meas_tableIdx['col'].append(colIdx)
+                        meas_tableIdx['cell'].append(newCellTxt)
 
         action = {}
         action['action'] = 'propagateMeasurementUnits'
