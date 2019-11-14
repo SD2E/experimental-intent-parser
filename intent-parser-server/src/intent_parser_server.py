@@ -389,6 +389,8 @@ class IntentParserServer:
             self.process_update_exp_results(httpMessage, sm)
         elif resource == '/calculateSamples':
             self.process_calculate_samples(httpMessage, sm)
+        elif resource == '/propagateMeasurementUnits':
+            self.process_propagate_measurement_units(httpMessage, sm)
         elif resource == '/message':
             self.process_message(httpMessage, sm)
         elif resource == '/buttonClick':
@@ -635,6 +637,78 @@ class IntentParserServer:
 
         self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
 
+    def process_propagate_measurement_units(self, httpMessage, sm):
+        start = time.time()
+
+        json_body = self.get_json_body(httpMessage)
+        document_id = json_body['documentId']
+        try:
+            doc = self.google_accessor.get_document(document_id=document_id)
+        except Exception as ex:
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
+
+        doc_tables = self.get_element_type(doc, 'table')
+        
+        table_updates = []
+        for tIdx in range(len(doc_tables)):
+            table = doc_tables[tIdx]
+            
+            # Only process new style measurement tables
+            is_new_measurement_table = self.detect_new_measurement_table(table)
+            if not is_new_measurement_table:
+                continue
+
+            rows = table['tableRows']
+            headerRow = rows[0]
+            
+            meas_tableIdx = {'table':tIdx, 'col':[], 'row':[], 'cell':[]}
+            table_updates.append(meas_tableIdx)
+            
+            numCols = len(headerRow['tableCells'])
+
+            is_type_col = False
+            for colIdx in range(numCols):
+                paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
+                headerTxt =  self.get_paragraph_text(paragraph_element).strip()
+                rowIdx = 1;
+                # Skip columns that has no units to propagate 
+                if headerTxt == self.col_header_measurement_type or headerTxt == self.col_header_file_type or headerTxt == self.col_header_replicate or headerTxt == self.col_header_strain or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
+                    continue
+                for rowIdx in range(1,len(rows)):  
+                    row = rows[rowIdx]
+                    cellContent = row['tableCells'][colIdx]['content']
+                    cellTxt = ' '.join([self.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+                    
+                     
+                    if headerTxt == self.col_header_timepoint:
+                        timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        prop_unit = [] 
+                        defaultUnit = 'unspecified'
+                        for time_str in timepoint_strings:
+                            spec, unit = self.detect_and_remove_time_unit(time_str);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+                                
+                        for time_str in timepoint_strings:
+                            spec, unit = self.detect_and_remove_time_unit(time_str);
+                            prop_unit.append(spec + ' ' + defaultUnit)
+                        newCellTxt = (', ').join(map(str, prop_unit)) 
+                        meas_tableIdx['row'].append(rowIdx)
+                        meas_tableIdx['col'].append(colIdx)
+                        meas_tableIdx['cell'].append(newCellTxt)
+                    
+            
+
+        action = {}
+        action['action'] = 'propagateMeasurementUnits'
+        action['updates'] = table_updates
+        actions = {'actions': [action]}
+
+        end = time.time()
+
+        self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+        
     def process_validate_structured_request(self, httpMessage, sm):
         """
         Generate a structured request from a given document, then run it against the validation.
@@ -825,7 +899,7 @@ class IntentParserServer:
 
                 # Parse rest of table
                 measurement = {}
-                for i in range(measurement_col, numCols):
+                for i in range(measurement_col, numCols): 
                     header = self.get_paragraph_text(headerRow['tableCells'][i]['content'][0]['paragraph']).strip()
                     cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in cells[i]['content']])
                     if header == self.col_header_measurement_type:
@@ -915,7 +989,7 @@ class IntentParserServer:
         request['runs'] = [{ 'measurements' : measurements}]
 
         return request
-
+    
     def process_generate_request(self, httpMessage, sm):
         """
         Handles a request to generate a structured request json
