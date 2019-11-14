@@ -697,7 +697,22 @@ class IntentParserServer:
                         meas_tableIdx['row'].append(rowIdx)
                         meas_tableIdx['col'].append(colIdx)
                         meas_tableIdx['cell'].append(newCellTxt)
-                    
+                    elif headerTxt == self.col_header_temperature:
+                        temperature_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        prop_unit = [] 
+                        defaultUnit = 'unspecified'
+                        for temp_str in temperature_strings:
+                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+                                
+                        for temp_str in temperature_strings:
+                            spec, unit = self.detect_and_remove_time_unit(temp_str);
+                            prop_unit.append(spec + ' ' + defaultUnit)
+                        newCellTxt = (', ').join(map(str, prop_unit)) 
+                        meas_tableIdx['row'].append(rowIdx)
+                        meas_tableIdx['col'].append(colIdx)
+                        meas_tableIdx['cell'].append(newCellTxt)
             
 
         action = {}
