@@ -20,6 +20,7 @@ function onOpen() {
   menu.addItem('Generate Report', 'sendGenerateReport')
   menu.addItem('Update experimental results', 'updateExperimentalResults')
   menu.addItem('Calculate samples for measurements table', 'calculateSamples')
+  menu.addItem('Propagate Measurement Units', 'propagateMeasurementUnits')
   menu.addSubMenu(tablesMenu)
 
   menu.addItem('Help', 'showHelp')
@@ -165,7 +166,26 @@ function processActions(response) {
         }
 
         break
-
+      case 'propagateMeasurementUnits':
+        var updates = actionDesc['updates'];
+        var doc = DocumentApp.getActiveDocument();
+        var body = doc.getBody();
+        var tables = body.getTables();
+        for(var updateIdx = 0; updateIdx < updates.length; updateIdx++){
+        	var update = updates[updateIdx];
+        	var tableIdx = update['table'];
+        	var n = update['cell'].length;
+        	for(var i = 0; i < n; i++){
+        		var row = update['row'][i];
+            	var col = update['col'][i];
+            	var cell = update['cell'][i];
+            	var tableCell = tables[tableIdx].getCell(row, col);
+        		tableCell.setText(cell);
+        	}
+        	
+        }
+        
+        break
       case 'addTable':
         var childIndex = actionDesc['cursorChildIndex']
         var tableData = actionDesc['tableData']
@@ -537,6 +557,10 @@ function updateExperimentalResults() {
 
 function calculateSamples() {
   sendPost('/calculateSamples')
+}
+
+function propagateMeasurementUnits() {
+  sendPost('/propagateMeasurementUnits')
 }
 
 function sendAnalyzeFromTop() {
