@@ -1,6 +1,6 @@
-var serverURL = 'http://intent-parser-server.bbn.com:8082'
+var serverURL = 'http://intentparser.sd2e.org/'
 
-var versionString = '2.0-git-session'
+var versionString = '2.2'
 
 function onOpen() {
   var ui = DocumentApp.getUi()
