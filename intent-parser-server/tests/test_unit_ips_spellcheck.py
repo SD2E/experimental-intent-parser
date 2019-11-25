@@ -427,7 +427,11 @@ class TestIntentParserServer(unittest.TestCase):
         self.json_body['data']['lab'] = 'Ginkgo'
         self.json_body['data']['numReagents'] = 3
         self.json_body['data']['temperature'] = True
+        self.json_body['data']['measurementTypes'] = ['PLATE_READER', 'RNA_SEQ', 'RNA_SEQ', 'FLOW']
+        self.json_body['data']['fileTypes'] = ['PLAIN', 'FASTQ', 'FASTQ', 'FCS']
         self.json_body['data']['timepoint'] = False
+        self.json_body['data']['ods'] = False
+        self.json_body['data']['notes'] = False
         self.json_body['data']['numRows'] = 4
         self.json_body['data']['cursorChildIndex'] = 3
 
@@ -440,7 +444,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.assertTrue(actions[0]['cursorChildIndex'] == self.json_body['data']['cursorChildIndex'])
         self.assertTrue(self.json_body['data']['numRows'] + 1 == len(actions[0]['tableData']))
         self.assertTrue(len(actions[0]['colSizes']) == len(actions[0]['tableData'][0]))
-        self.assertTrue(len(actions[0]['colSizes']) ==  self.json_body['data']['numReagents'] + 4 + 1 + 1)
+        self.assertTrue(len(actions[0]['colSizes']) ==  self.json_body['data']['numReagents'] + 4 + 1)
 
 
     def test_spellcheck_add_select_functions(self):

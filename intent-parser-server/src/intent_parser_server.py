@@ -20,6 +20,10 @@ from operator import itemgetter
 from spellchecker import SpellChecker
 from multiprocessing import Pool
 import intent_parser_utils
+import numpy as np
+
+#import logging
+import logging.config
 
 from jsonschema import validate
 from jsonschema import ValidationError
@@ -35,6 +39,15 @@ class ConnectionException(Exception):
 
 class IntentParserServer:
 
+    # Used for inserting experiment result data
+    # Since the experiment result data is uploaded with the requesting document id
+    # and the test documents are copies of those, the ids won't match
+    # In order to test this, if we receive a document Id in the key of this map, we will instead query for the value
+    test_doc_id_map = {'1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoT' : '10HqgtfVCtYhk3kxIvQcwljIUonSNlSiLBC8UFmlwm1s',
+                       '1RenmUdhsXMgk4OUWReI2oS6iF5R5rfWU5t7vJ0NZOHw': '1g0SjxU2Y5aOhUbM63r8lqV50vnwzFDpJg4eLXNllut4',
+                       '1_I4pxB26zOLb209Xlv8QDJuxiPWGDafrejRDKvZtEl8': '1K5IzBAIkXqJ7iPF4OZYJR7xgSts1PUtWWM2F0DKhct0',
+                       '1zf9l0K4rj7I08ZRpxV2ZY54RMMQc15Rlg7ULviJ7SBQ': '1uXqsmRLeVYkYJHqgdaecmN_sQZ2Tj4Ck1SZKcp55yEQ' }
+
     dict_path = 'dictionaries'
 
     link_pref_path = 'link_pref'
@@ -43,7 +56,9 @@ class IntentParserServer:
                             'Ginkgo UID',
                             'Transcriptic UID',
                             'LBNL UID',
-                            'EmeraldCloud UID'])
+                            'EmeraldCloud UID',
+                            'CalTech UID',
+                            'PennState (Salis) UID'])
 
     item_types = {
             'component': {
@@ -69,6 +84,8 @@ class IntentParserServer:
             }
         }
 
+    logger = logging.getLogger('intent_parser_server')
+
     # Define the percentage of length of the search term that must
     # be matched in order to have a valid partial match
     partial_match_thresh = 0.75
@@ -85,12 +102,21 @@ class IntentParserServer:
     # Defines a period of time to wait to send analyze progress updates, in seconds
     analyze_progress_period = 2.5
 
+    # Determine how long a lab UID string has to be in order to be added to the item map.
+    # Strings below this size are ignored.
+    uid_length_threshold = 3
+
+    # Some lab UIDs are short but still valid.  This defines an exceptions to the length threshold.
+    uid_length_exception = ['M9', 'LB']
+
     # String defines for headers in the new-style measurements table
     col_header_measurement_type = 'measurement-type'
     col_header_file_type = 'file-type'
     col_header_replicate = 'replicate'
     col_header_strain = 'strains'
     col_header_samples = 'samples'
+    col_header_ods = 'ods'
+    col_header_notes = 'notes'
     col_header_temperature = 'temperature'
     col_header_timepoint = 'timepoint'
 
@@ -105,6 +131,9 @@ class IntentParserServer:
                  datacatalog_authn='',
                  init_server=True,
                  init_sbh=True):
+
+        fh = logging.FileHandler('intent_parser_server.log')
+        self.logger.addHandler(fh)
 
         self.sbh = None
         self.server = None
@@ -200,17 +229,18 @@ class IntentParserServer:
         if sbh_url is not None:
             # log into Syn Bio Hub
             if sbh_username is None:
-                print('SynBioHub username was not specified')
+                self.logger.info('SynBioHub username was not specified')
                 usage()
                 sys.exit(2)
 
             if sbh_password is None:
-                print('SynBioHub password was not specified')
+                self.logger.info('SynBioHub password was not specified')
                 usage()
                 sys.exit(2)
 
             self.sbh = SBHAccessor(sbh_url=sbh_url)
             self.sbh_collection = sbh_collection
+            self.sbh_collection_user = sbh_collection_user
             self.sbh_spoofing_prefix = sbh_spoofing_prefix
             self.sbh_url = sbh_url
             self.sbh_link_hosts = sbh_link_hosts
@@ -257,7 +287,7 @@ class IntentParserServer:
 
         if self.sbh is not None:
             self.sbh.login(sbh_username, sbh_password)
-            print('Logged into {}'.format(sbh_url))
+            self.logger.info('Logged into {}'.format(sbh_url))
 
         self.housekeeping_thread = \
             threading.Thread(target=self.housekeeping)
@@ -273,16 +303,16 @@ class IntentParserServer:
         self.server.bind((bind_ip, bind_port))
 
         self.server.listen(5)
-        print('listening on {}:{}'.format(bind_ip, bind_port))
+        self.logger.info('listening on {}:{}'.format(bind_ip, bind_port))
 
     def serverRunLoop(self, *, background=False):
         if background:
             run_thread = threading.Thread(target=self.serverRunLoop)
-            print('Start background thread')
+            self.logger.info('Start background thread')
             run_thread.start()
             return
 
-        print('Start Listener')
+        self.logger.info('Start Listener')
 
         while True:
             try:
@@ -309,7 +339,7 @@ class IntentParserServer:
             client_handler.start()
 
     def handle_client_connection(self, client_socket):
-        print('Connection')
+        self.logger.info('Connection')
         sm = SocketManager(client_socket)
 
         try:
@@ -335,11 +365,11 @@ class IntentParserServer:
                     self.send_response(ex.code, ex.message, ex.content, sm)
 
                 except Exception as ex:
-                    print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+                    self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
                     self.send_response(504, 'Internal Server Error', 'Internal Server Error\n', sm)
 
         except Exception as e:
-            print('Exception: {}'.format(e))
+            self.logger.info('Exception: {}'.format(e))
 
         client_socket.close()
 
@@ -355,6 +385,12 @@ class IntentParserServer:
 
         if resource == '/analyzeDocument':
             self.process_analyze_document(httpMessage, sm)
+        elif resource == '/updateExperimentalResults':
+            self.process_update_exp_results(httpMessage, sm)
+        elif resource == '/calculateSamples':
+            self.process_calculate_samples(httpMessage, sm)
+        elif resource == '/propagateMeasurementUnits':
+            self.process_propagate_measurement_units(httpMessage, sm)
         elif resource == '/message':
             self.process_message(httpMessage, sm)
         elif resource == '/buttonClick':
@@ -417,9 +453,26 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
 
-    def detect_and_remove_unit(self, text):
+    def detect_and_remove_time_unit(self, text):
         """
-        Given a string that contains a unit, detect the unit and remove it from the input string, returning the unit itself, and the string with the unit removed
+        """
+        return self.detect_and_remove_unit(text, 'time')
+
+    def detect_and_remove_temp_unit(self, text):
+        """
+        """
+        return self.detect_and_remove_unit(text, 'temp')
+
+    def detect_and_remove_fluid_unit(self, text):
+        """
+        """
+        return self.detect_and_remove_unit(text, 'fluid')
+
+    def detect_and_remove_unit(self, text, unit_type):
+        """
+        Given a string that contains a unit, detect the unit and remove it from the input string,
+        returning the unit itself, and the string with the unit removed.
+        Takes a unit_type string to determine what unit type to detect.
         """
         best_match = None
         best_length = 0
@@ -431,32 +484,39 @@ class IntentParserServer:
 
         # Too many tokens
         if len(toks) > 2:
-            print('WARNING: trying to detect units, got %d tokens, but expected 2!  Input text: %s' % (len(toks), text))
+            self.logger.info('WARNING: trying to detect units, got %d tokens, but expected 2!  Input text: %s' % (len(toks), text))
             return text, 'unspecified'
 
         value_tok = toks[0]
         unit_tok = toks[1]
 
-        # Test time units
-        for unit in self.time_units:
-            if unit in unit_tok:
-                if len(unit) > best_length:
-                    best_match = unit
-                    best_length = len(unit)
-
-        # Test fluid units
-        for unit in self.fluid_units:
-            if unit in unit_tok:
-                if len(unit) > best_length:
-                    best_match = unit
-                    best_length = len(unit)
-
-        # Test temp units
-        for unit in self.temp_units:
-            if unit in unit_tok:
-                if len(unit) > best_length:
-                    best_match = unit
-                    best_length = len(unit)
+        if (unit_type == 'time'):
+            # Test time units
+            for unit in self.time_units:
+                if unit.lower() in unit_tok.lower():
+                    if len(unit) > best_length:
+                        best_match = unit
+                        best_length = len(unit)
+        elif (unit_type == 'fluid'):
+            if (unit_tok.lower() == 'fold'):
+                unit_tok = 'X'
+            # Test fluid units
+            for unit in self.fluid_units:
+                if unit.lower() in unit_tok.lower():
+                    if len(unit) > best_length:
+                        best_match = unit
+                        best_length = len(unit)
+        elif (unit_type == 'temp'):
+            if (unit_tok.lower() == 'c'):
+                unit_tok = 'celsius'
+            elif (unit_tok.lower() == 'f'):
+                unit_tok = 'fahrenheit'
+            # Test temp units
+            for unit in self.temp_units:
+                if unit.lower() in unit_tok.lower():
+                    if len(unit) > best_length:
+                        best_match = unit
+                        best_length = len(unit)
 
         if best_match is not None:
             text = text.replace(best_match, '').strip()
@@ -480,7 +540,6 @@ class IntentParserServer:
         found_replicates = False
         found_strain = False
         found_measurement_type = False
-        found_samples =  False
         found_file_type = False
 
         rows = table['tableRows']
@@ -491,10 +550,201 @@ class IntentParserServer:
             found_strain |= cellTxt == self.col_header_strain
             found_measurement_type |= cellTxt == self.col_header_measurement_type
             found_file_type |= cellTxt == self.col_header_file_type
-            found_samples |= cellTxt == self.col_header_samples
 
-        return found_replicates and found_strain and found_measurement_type and found_file_type and found_samples
+        return found_replicates and found_strain and found_measurement_type and found_file_type
 
+    def process_calculate_samples(self, httpMessage, sm):
+        """
+        Find all measurements tables and update the samples columns, or add the samples column if it doesn't exist.
+        """
+        start = time.time()
+
+        json_body = self.get_json_body(httpMessage)
+        document_id = json_body['documentId']
+        try:
+            doc = self.google_accessor.get_document(document_id=document_id)
+        except Exception as ex:
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
+
+        doc_tables = self.get_element_type(doc, 'table')
+        table_ids = []
+        sample_indices = []
+        samples_values = []
+        for tIdx in range(len(doc_tables)):
+            table = doc_tables[tIdx]
+
+            # Only process new style measurement tables
+            is_new_measurement_table = self.detect_new_measurement_table(table)
+            if not is_new_measurement_table:
+                continue
+
+            rows = table['tableRows']
+            headerRow = rows[0]
+            samples_col = -1
+            for cell_idx in range(len(headerRow['tableCells'])):
+                cellTxt = self.get_paragraph_text(headerRow['tableCells'][cell_idx]['content'][0]['paragraph']).strip()
+                if cellTxt == self.col_header_samples:
+                    samples_col = cell_idx
+
+            samples = []
+            numCols = len(headerRow['tableCells'])
+
+            # Scrape data for each row
+            for row in rows[1:]:
+                comp_count = []
+                is_type_col = False
+                colIdx = 0
+                # Process reagents
+                while colIdx < numCols and not is_type_col:
+                    paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
+                    headerTxt =  self.get_paragraph_text(paragraph_element).strip()
+                    if headerTxt == self.col_header_measurement_type:
+                        is_type_col = True
+                    else:
+                        cellContent = row['tableCells'][colIdx]['content']
+                        cellTxt = ' '.join([self.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+                        comp_count.append(len(cellTxt.split(sep=',')))
+                    colIdx += 1
+
+                # Process the rest of the columns
+                while colIdx < numCols:
+                    paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
+                    headerTxt =  self.get_paragraph_text(paragraph_element).strip()
+                    # Certain columns don't contain info about samples
+                    if headerTxt == self.col_header_measurement_type or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
+                        colIdx += 1
+                        continue
+
+                    cellContent = row['tableCells'][colIdx]['content']
+                    cellTxt = ' '.join([self.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+
+                    if headerTxt == self.col_header_replicate:
+                        comp_count.append(int(cellTxt))
+                    else:
+                        comp_count.append(len(cellTxt.split(sep=',')))
+                    colIdx += 1
+                samples.append(int(np.prod(comp_count)))
+
+            table_ids.append(tIdx)
+            sample_indices.append(samples_col)
+            samples_values.append(samples)
+
+        action = {}
+        action['action'] = 'calculateSamples'
+        action['tableIds'] = table_ids
+        action['sampleIndices'] = sample_indices
+        action['sampleValues'] = samples_values
+
+        actions = {'actions': [action]}
+
+        end = time.time()
+        self.logger.info('Calculated samples in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+
+        self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+
+    def process_propagate_measurement_units(self, httpMessage, sm):
+        start = time.time()
+
+        json_body = self.get_json_body(httpMessage)
+        document_id = json_body['documentId']
+        try:
+            doc = self.google_accessor.get_document(document_id=document_id)
+        except Exception as ex:
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
+
+        doc_tables = self.get_element_type(doc, 'table')
+        
+        table_updates = []
+        for tIdx in range(len(doc_tables)):
+            table = doc_tables[tIdx]
+            
+            # Only process new style measurement tables
+            is_new_measurement_table = self.detect_new_measurement_table(table)
+            if not is_new_measurement_table:
+                continue
+
+            rows = table['tableRows']
+            headerRow = rows[0]
+            
+            meas_tableIdx = {'table':tIdx, 'col':[], 'row':[], 'cell':[]}
+            table_updates.append(meas_tableIdx)
+            
+            numCols = len(headerRow['tableCells'])
+
+            is_type_col = False
+            for colIdx in range(numCols):
+                paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
+                headerTxt =  self.get_paragraph_text(paragraph_element).strip()
+                rowIdx = 1;
+                # Skip columns that has no units to propagate 
+                if headerTxt == self.col_header_measurement_type or headerTxt == self.col_header_file_type or headerTxt == self.col_header_replicate or headerTxt == self.col_header_strain or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
+                    continue
+                for rowIdx in range(1,len(rows)):  
+                    row = rows[rowIdx]
+                    cellContent = row['tableCells'][colIdx]['content']
+                    cellTxt = ' '.join([self.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+                    
+                     
+                    if headerTxt == self.col_header_timepoint:
+                        timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        prop_unit = [] 
+                        defaultUnit = 'unspecified'
+                        for time_str in timepoint_strings:
+                            spec, unit = self.detect_and_remove_time_unit(time_str);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+                                
+                        for time_str in timepoint_strings:
+                            spec, unit = self.detect_and_remove_time_unit(time_str);
+                            prop_unit.append(spec + ' ' + defaultUnit)
+                        newCellTxt = (', ').join(map(str, prop_unit)) 
+                        meas_tableIdx['row'].append(rowIdx)
+                        meas_tableIdx['col'].append(colIdx)
+                        meas_tableIdx['cell'].append(newCellTxt)
+                    elif headerTxt == self.col_header_temperature:
+                        temperature_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        prop_unit = [] 
+                        defaultUnit = 'unspecified'
+                        for temp_str in temperature_strings:
+                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+                                
+                        for temp_str in temperature_strings:
+                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
+                            prop_unit.append(spec + ' ' + defaultUnit)
+                        newCellTxt = (', ').join(map(str, prop_unit)) 
+                        meas_tableIdx['row'].append(rowIdx)
+                        meas_tableIdx['col'].append(colIdx)
+                        meas_tableIdx['cell'].append(newCellTxt)
+                    else:
+                        reagent_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        prop_unit = [] 
+                        defaultUnit = 'unspecified'
+                        for reag_str in reagent_strings:
+                            spec, unit = self.detect_and_remove_fluid_unit(reag_str);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+                                
+                        for reag_str in reagent_strings:
+                            spec, unit = self.detect_and_remove_fluid_unit(reag_str);
+                            prop_unit.append(spec + ' ' + defaultUnit)
+                        newCellTxt = (', ').join(map(str, prop_unit)) 
+                        meas_tableIdx['row'].append(rowIdx)
+                        meas_tableIdx['col'].append(colIdx)
+                        meas_tableIdx['cell'].append(newCellTxt)
+
+        action = {}
+        action['action'] = 'propagateMeasurementUnits'
+        action['updates'] = table_updates
+        actions = {'actions': [action]}
+
+        end = time.time()
+
+        self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+        
     def process_validate_structured_request(self, httpMessage, sm):
         """
         Generate a structured request from a given document, then run it against the validation.
@@ -521,7 +771,11 @@ class IntentParserServer:
             reagent_with_no_uri = set()
             if 'runs' in request:
                 for run in request['runs']:
+                    if 'measurements' not in run:
+                        continue;
                     for measurement in run['measurements']:
+                        if 'contents' not in measurement:
+                            continue
                         for reagent_entry in measurement['contents']:
                             for reagent in reagent_entry:
                                 name_dict = reagent['name']
@@ -550,12 +804,15 @@ class IntentParserServer:
         try:
             doc = self.google_accessor.get_document(document_id=document_id)
         except Exception as ex:
-            print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
             raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
 
         output_doc = { "experiment_reference_url" : "https://docs.google.com/document/d/%s" % document_id }
         if self.datacatalog_config['mongodb']['authn']:
-            map_experiment_reference(self.datacatalog_config, output_doc)
+            try:
+                map_experiment_reference(self.datacatalog_config, output_doc)
+            except:
+                pass # We don't need to do anything, failure is handled later, but we don't want it to crash
 
         lab = 'Unknown'
 
@@ -566,15 +823,19 @@ class IntentParserServer:
             experiment_reference = output_doc['experiment_reference']
             experiment_reference_url = output_doc['experiment_reference_url']
         else:
-            print('WARNING: Failed to map experiment reference for doc id %s!' % document_id)
-            experiment_reference = doc['title'].split(sep='-')[1].strip()
+            self.logger.info('WARNING: Failed to map experiment reference for doc id %s!' % document_id)
+            titleToks = doc['title'].split(sep='-')
+            if len(titleToks) > 1:
+                experiment_reference = doc['title'].split(sep='-')[1].strip()
+            else:
+                experiment_reference = doc['title']
             experiment_reference_url = 'https://docs.google.com/document/d/' + document_id
             # This will return a parent list, which should have one or more Ids of parent directories
             # We want to navigate those and see if they are a close match to a challenge problem ID
             parent_list = self.google_accessor.get_document_parents(document_id=document_id)
             cp_id = 'Unknown'
             if not parent_list['kind'] == 'drive#parentList':
-                print('ERROR: expected a drive#parent_list, received a %s' % parent_list['kind'])
+                self.logger.info('ERROR: expected a drive#parent_list, received a %s' % parent_list['kind'])
             else:
                 for parent_ref in parent_list['items']:
                     if not parent_ref['kind'] == 'drive#parentReference':
@@ -648,30 +909,35 @@ class IntentParserServer:
                 # Collect reagent info - first N columns are all reagents
                 content = []
                 for i in range(measurement_col):
-                    cellTxt = self.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
+                    cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in cells[i]['content']]).strip()
                     # If nothing is specified, ignore it
                     if not cellTxt == '':
                         reagent_entries = []
                         # First, determine unit
                         defaultUnit = 'unspecified'
                         for value in cellTxt.split(sep=','):
-                            spec, unit = self.detect_and_remove_unit(value);
+                            spec, unit = self.detect_and_remove_fluid_unit(value);
                             if unit is not None and unit is not 'unspecified':
                                 defaultUnit = unit
 
                         for value in cellTxt.split(sep=','):
-                            spec, unit = self.detect_and_remove_unit(value);
-                            if unit is None or unit == 'unspecified':
-                                unit = defaultUnit
-                            reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
+                            toks = value.strip().split(sep=' ')
+                            # If we have a unit specified, parse it and use it
+                            if (len(toks) > 1):
+                                spec, unit = self.detect_and_remove_fluid_unit(value);
+                                if unit is None or unit == 'unspecified':
+                                    unit = defaultUnit
+                                reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
+                            else: # Also support a string value
+                                reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : value.strip()}
                             reagent_entries.append(reagent_entry)
-                            content.append(reagent_entries)
+                        content.append(reagent_entries)
 
                 # Parse rest of table
                 measurement = {}
-                for i in range(measurement_col, numCols):
+                for i in range(measurement_col, numCols): 
                     header = self.get_paragraph_text(headerRow['tableCells'][i]['content'][0]['paragraph']).strip()
-                    cellTxt =  self.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
+                    cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in cells[i]['content']])
                     if header == self.col_header_measurement_type:
                         measurement['measurement_type'] = self.get_measurement_type(cellTxt)
                     elif header == self.col_header_file_type:
@@ -681,34 +947,56 @@ class IntentParserServer:
                             measurement['replicates'] = int(cellTxt)
                         except:
                             measurement['replicates'] = -1
-                            print('WARNING: failed to parse number of replicates! Trying to parse: %s' % cellTxt)
+                            self.logger.info('WARNING: failed to parse number of replicates! Trying to parse: %s' % cellTxt)
                     elif header == self.col_header_samples:
                         #measurement['samples'] = cellTxt
                         #samples isn't part of the schema and is just there for auditing purposes
                         pass
                     elif header == self.col_header_strain:
                         measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
+                    elif header == self.col_header_ods:
+                        ods_strings = [float(s.strip()) for s in cellTxt.split(sep=',')]
+                        measurement['ods'] = ods_strings
                     elif header == self.col_header_temperature:
-                        measurement['temperature'] = [s.strip() for s in cellTxt.split(sep=',')]
+                        temps = []
+                        temp_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        # First, determine default unit
+                        defaultUnit = 'unspecified'
+                        for temp_str in temp_strings:
+                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+
+                        for temp_str in temp_strings:
+                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
+                            if unit is None or unit == 'unspecified':
+                                unit = defaultUnit
+                            try:
+                                temp_dict = {'value' : float(spec), 'unit' : unit}
+                            except:
+                                temp_dict = {'value' : -1, 'unit' : 'unspecified'}
+                                self.logger.info('WARNING: failed to parse temp unit! Trying to parse: %s' % spec)
+                            temps.append(temp_dict)
+                        measurement['temperatures'] = temps
                     elif header == self.col_header_timepoint:
                         timepoints = []
                         timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
                         # First, determine default unit
                         defaultUnit = 'unspecified'
                         for time_str in timepoint_strings:
-                            spec, unit = self.detect_and_remove_unit(time_str);
+                            spec, unit = self.detect_and_remove_time_unit(time_str);
                             if unit is not None and unit is not 'unspecified':
                                 defaultUnit = unit
 
                         for time_str in timepoint_strings:
-                            spec, unit = self.detect_and_remove_unit(time_str);
+                            spec, unit = self.detect_and_remove_time_unit(time_str);
                             if unit is None or unit == 'unspecified':
                                 unit = defaultUnit
                             try:
                                 time_dict = {'value' : float(spec), 'unit' : unit}
                             except:
                                 time_dict = {'value' : -1, 'unit' : 'unspecified'}
-                                print('WARNING: failed to parse time unit! Trying to parse: %s' % spec)
+                                self.logger.info('WARNING: failed to parse time unit! Trying to parse: %s' % spec)
                             timepoints.append(time_dict)
                         measurement['timepoints'] = timepoints
 
@@ -722,7 +1010,7 @@ class IntentParserServer:
             labRow = rows[0]
             numCols = len(labRow['tableCells'])
             if numRows > 1 or numCols > 1:
-                print('WARNING: Lab table size differs from expectation! Expecting 1 row and 1 col, found %d rows and %d cols' % (numRows, numCols))
+                self.logger.info('WARNING: Lab table size differs from expectation! Expecting 1 row and 1 col, found %d rows and %d cols' % (numRows, numCols))
             # The lab text is expected to be in row 0, col 0 and have the form: Lab: <X>
             lab = self.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph']).strip().split(sep=':')[1].strip()
 
@@ -737,7 +1025,7 @@ class IntentParserServer:
         request['runs'] = [{ 'measurements' : measurements}]
 
         return request
-
+    
     def process_generate_request(self, httpMessage, sm):
         """
         Handles a request to generate a structured request json
@@ -752,7 +1040,7 @@ class IntentParserServer:
 
         end = time.time()
 
-        print('Generated request in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+        self.logger.info('Generated request in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
 
         self.send_response(200, 'OK', json.dumps(request), sm, 'application/json')
 
@@ -772,7 +1060,7 @@ class IntentParserServer:
                 document_id=document_id
                 )
         except Exception as ex:
-            print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
             raise ConnectionException('404', 'Not Found',
                                       'Failed to access document ' +
                                       document_id)
@@ -827,7 +1115,7 @@ class IntentParserServer:
 
         end = time.time()
 
-        print('Generated report in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+        self.logger.info('Generated report in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
 
         self.send_response(200, 'OK', json.dumps(report), sm,
                            'application/json')
@@ -835,7 +1123,7 @@ class IntentParserServer:
     def process_message(self, httpMessage, sm):
         json_body = self.get_json_body(httpMessage)
         if 'message' in json_body:
-            print(json_body['message'])
+            self.logger.info(json_body['message'])
         self.send_response(200, 'OK', '{}', sm,
                            'application/json')
 
@@ -854,6 +1142,89 @@ class IntentParserServer:
             client_state = None
 
         return (json_body, client_state)
+
+
+    def process_update_exp_results(self, httpMessage, sm):
+        """
+        This function will scan SynbioHub for experiments related to this document, and updated an
+        "Experiment Results" section with information about completed experiments.
+        """
+        start = time.time()
+
+        json_body = self.get_json_body(httpMessage)
+
+        if 'documentId' not in json_body:
+            raise ConnectionException('400', 'Bad Request', 'Missing documentId')
+
+        document_id = json_body['documentId']
+
+        try:
+            doc = self.google_accessor.get_document(document_id=document_id)
+        except Exception as ex:
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            raise ConnectionException('404', 'Not Found', 'Failed to access document ' + document_id)
+
+        # For test documents, replace doc id with corresponding production doc
+        if document_id in self.test_doc_id_map:
+            source_doc_uri = 'https://docs.google.com/document/d/' + self.test_doc_id_map[document_id]
+        else:
+            source_doc_uri = 'https://docs.google.com/document/d/' + document_id
+
+        # Search SBH to get data
+        target_collection = self.sbh_url + '/user/%s/experiment_test/experiment_test_collection/1' % self.sbh_collection_user
+        exp_collection = intent_parser_utils.query_experiments(self.sbh, target_collection, self.sbh_spoofing_prefix, self.sbh_url)
+        data = {}
+        for exp in exp_collection:
+            exp_uri = exp['uri']
+            timestamp = exp['timestamp']
+            title = exp['title']
+            request_doc = intent_parser_utils.query_experiment_request(self.sbh, exp_uri, self.sbh_spoofing_prefix, self.sbh_url)  # Get the reference to the Google request doc
+            if source_doc_uri == request_doc:
+                source_uri = intent_parser_utils.query_experiment_source(self.sbh, exp_uri, self.sbh_spoofing_prefix, self.sbh_url)  # Get the reference to the source document with lab data
+                data[exp_uri] = {'timestamp' : timestamp, 'agave' : source_uri[0], 'title' : title}
+
+        #data = self.get_synbiohub_exp_data(document_id)
+        #data = {'exp1' : '6/30/2019', 'exp2' : '7/30/2019', 'exp3' : '8/30/2019', 'exp4' : '9/30/2019'}
+
+        exp_data = []
+        exp_links = []
+        for exp in data:
+            exp_data.append((data[exp]['title'], ' updated on ', data[exp]['timestamp'], ', ', 'Agave link', '\n'))
+            exp_links.append((exp, '', '', '',  data[exp]['agave'], ''))
+
+        if exp_data == '':
+            exp_data = ['No currently run experiments.']
+
+        body = doc.get('body');
+        doc_content = body.get('content')
+        paragraphs = self.get_paragraphs(doc_content)
+
+        headerIdx = -1
+        contentIdx = -1
+        for pIdx in range(len(paragraphs)):
+            para_text = self.get_paragraph_text(paragraphs[pIdx])
+            if para_text == "Experiment Results\n":
+                headerIdx = pIdx
+            elif headerIdx >= 0 and not para_text == '\n':
+                contentIdx = pIdx
+                break
+
+        if headerIdx >= 0 and contentIdx == -1:
+            self.logger.error('ERROR: Couldn\'t find a content paragraph index for experiment results!')
+
+        action = {}
+        action['action'] = 'updateExperimentResults'
+        action['headerIdx'] = headerIdx
+        action['contentIdx'] = contentIdx
+        action['expData'] = exp_data
+        action['expLinks'] = exp_links
+
+        actions = {'actions': [action]}
+
+        end = time.time()
+        self.logger.info('Updated experiment results in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+
+        self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
 
     def process_analyze_document(self, httpMessage, sm):
         """
@@ -925,7 +1296,7 @@ class IntentParserServer:
         try:
             doc = self.google_accessor.get_document(document_id=document_id)
         except Exception as ex:
-            print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
             raise ConnectionException('404', 'Not Found', 'Failed to access document ' + document_id)
 
         self.analyze_processing_lock[document_id] = threading.Lock()
@@ -963,7 +1334,7 @@ class IntentParserServer:
         try:
             self.analyze_document(client_state, doc, start_offset)
             end = time.time()
-            print('Analyzed entire document in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+            self.logger.info('Analyzed entire document in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
         except Exception as e:
             raise e
 
@@ -1028,17 +1399,18 @@ class IntentParserServer:
                                                       end_offset)
             actions.append(highlightTextAction)
 
-            buttons = [('Yes', 'process_analyze_yes'),
-                       ('No', 'process_analyze_no'),
-                       ('Link All', 'process_link_all'),
-                       ('No to All', 'process_no_to_all'),
-                       ('Never Link', 'process_never_link')]
+            buttons = [('Yes', 'process_analyze_yes', 'Creates a hyperlink for the highlighted text, using the suggested URL.'),
+                       ('No', 'process_analyze_no', 'Skips this term without creating a link.'),
+                       ('Yes to All', 'process_link_all', 'Creates a hyperlink for the highilghted text and every instance of it in the document, using the suggested URL.'),
+                       ('No to All', 'process_no_to_all', 'Skips this term and every other instance of it in the document.'),
+                       ('Never Link', 'process_never_link', 'Never suggest links to this term, in this document or any other.')]
 
             buttonHTML = ''
             buttonScript = ''
             for button in buttons:
                 buttonHTML += '<input id=' + button[1] + 'Button value="'
-                buttonHTML += button[0] + '" type="button" onclick="'
+                buttonHTML += button[0] + '" type="button" title="'
+                buttonHTML += button[2] + '" onclick="'
                 buttonHTML += button[1] + 'Click()" />\n'
 
                 buttonScript += 'function ' + button[1] + 'Click() {\n'
@@ -1047,7 +1419,7 @@ class IntentParserServer:
                 buttonScript += button[1]  + '\')\n'
                 buttonScript += '}\n\n'
 
-            buttonHTML += '<input id=EnterLinkButton value="Manually Enter Link" type="button" onclick="EnterLinkClick()" />'
+            buttonHTML += '<input id=EnterLinkButton value="Manually Enter Link" type="button" title="Enter a link for this term manually." onclick="EnterLinkClick()" />'
             # Script for the EnterLinkButton is already in the HTML
 
             html = self.analyze_html
@@ -1123,7 +1495,7 @@ class IntentParserServer:
         tab_data = {}
         for tab in self.spreadsheet_tabs:
             tab_data[tab] = self.google_accessor.get_row_data(tab=tab)
-            print('Fetched data from tab ' + tab)
+            self.logger.info('Fetched data from tab ' + tab)
 
         return tab_data
 
@@ -1294,9 +1666,9 @@ class IntentParserServer:
                 try:
                     with open(link_pref_file, 'r') as fin:
                         self.analyze_never_link[userId] = json.load(fin)
-                        print('Loaded link preferences for userId, path: %s' % link_pref_file)
+                        self.logger.info('Loaded link preferences for userId, path: %s' % link_pref_file)
                 except:
-                    print('ERROR: Failed to load link preferences file!')
+                    self.logger.error('ERROR: Failed to load link preferences file!')
             else:
                 self.analyze_never_link[userId] = {}
 
@@ -1313,7 +1685,7 @@ class IntentParserServer:
             with open(link_pref_file, 'w') as fout:
                 json.dump(self.analyze_never_link[userId], fout)
         except:
-            print('ERROR: Failed to write link preferences file!')
+            self.logger.error('ERROR: Failed to write link preferences file!')
 
         # Remove all of these associations from the results
         # This is different from "No to All", because that's only termed based
@@ -1407,28 +1779,31 @@ class IntentParserServer:
                          google.script.host.close()\n\
                       }\n\n'
         for button in buttons:
-            # Regular buttons, generate script automatically
-            if button[2] == 0:
-                htmlMessage += 'function ' + button[1] + 'Click() {\n'
+            if 'click_script' in button: # Special buttons, define own script
+                htmlMessage += button['click_script']
+            else: # Regular buttons, generate script automatically
+                htmlMessage += 'function ' + button['id'] + 'Click() {\n'
                 htmlMessage += '  google.script.run.withSuccessHandler'
                 htmlMessage += '(onSuccess).buttonClick(\''
-                htmlMessage += button[1]  + '\')\n'
+                htmlMessage += button['id']  + '\')\n'
                 htmlMessage += '}\n\n'
-            elif button[2] == 1: # Special buttons, define own script
-                htmlMessage += button[1]
         htmlMessage += '</script>\n\n'
 
         htmlMessage += '<p>' + message + '<p>\n'
         htmlMessage += '<center>'
         for button in buttons:
-            if button[2] == 0:
-                htmlMessage += '<input id=' + button[1] + 'Button value="'
-                htmlMessage += button[0] + '" type="button" onclick="'
-                htmlMessage += button[1] + 'Click()" />\n'
-            elif button[2] == 1: # Special buttons, define own script
-                htmlMessage += '<input id=' + button[3] + 'Button value="'
-                htmlMessage += button[0] + '" type="button" onclick="'
-                htmlMessage += button[3] + 'Click()" />\n'
+            if 'click_script' in button: # Special buttons, define own script
+                htmlMessage += '<input id=' + button['id'] + 'Button value="'
+                htmlMessage += button['value'] + '" type="button"'
+                if 'title' in button:
+                    htmlMessage += 'title="' + button['title'] + '"'
+                htmlMessage += ' onclick="' + button['id'] + 'Click()" />\n'
+            else:
+                htmlMessage += '<input id=' + button['id'] + 'Button value="'
+                htmlMessage += button['value'] + '" type="button"'
+                if 'title' in button:
+                    htmlMessage += 'title="' + button['title'] + '"'
+                htmlMessage += 'onclick="' + button['id'] + 'Click()" />\n'
         htmlMessage += '</center>'
 
         action = {}
@@ -1567,7 +1942,7 @@ class IntentParserServer:
         elif resource == '/document_request':
             self.process_generate_request(httpMessage, sm)
         else:
-            print('Did not find ' + resource)
+            self.logger.warning('Did not find ' + resource)
             raise ConnectionException(404, 'Not Found', 'Resource Not Found')
 
     def new_connection(self, document_id):
@@ -1617,7 +1992,7 @@ class IntentParserServer:
         if document_id in self.client_state_map:
             client_state = self.client_state_map[document_id]
             if not client_state['locked']:
-                print('Error: releasing client_state, but it is not locked! doc_id: %s, called by %s' % (document_id, inspect.currentframe().f_back.f_code.co_name))
+                self.logger.error('Error: releasing client_state, but it is not locked! doc_id: %s, called by %s' % (document_id, inspect.currentframe().f_back.f_code.co_name))
             client_state['locked'] = False
 
         self.client_state_lock.release()
@@ -1628,15 +2003,15 @@ class IntentParserServer:
         if self.sbh is not None:
             self.sbh.stop()
 
-        print('Signaling shutdown...')
+        self.logger.info('Signaling shutdown...')
         self.shutdownThread = True
         self.event.set()
 
         if self.server is not None:
-            print('Closing server...')
+            self.logger.info('Closing server...')
             self.server.shutdown(socket.SHUT_RDWR)
             self.server.close()
-        print('Shutdown complete')
+        self.logger.info('Shutdown complete')
 
     def housekeeping(self):
         while True:
@@ -1647,7 +2022,7 @@ class IntentParserServer:
             try:
                 item_map = self.generate_item_map(use_cache=False)
             except Exception as ex:
-                print(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+                self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
 
             self.item_map_lock.acquire()
             self.item_map = item_map
@@ -1665,6 +2040,14 @@ class IntentParserServer:
         self.challenge_ids = []
         for cid in data['enum']:
             self.challenge_ids.append(cid)
+
+        # File types
+        response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/filetype_label.json',timeout=60)
+        data = json.loads(response.read().decode('utf-8'))
+
+        self.file_types = []
+        for cid in data['enum']:
+            self.file_types.append(cid)
 
         # Measurement types
         response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/measurement_type.json',timeout=60)
@@ -1709,18 +2092,20 @@ class IntentParserServer:
 
     def generate_item_map(self, *, use_cache=True):
         item_map = {}
-        print('Generating item map, %d' % time.time())
+        self.logger.info('Generating item map, %d' % time.time())
         if use_cache:
             try:
                 f = open(self.my_path + '/item-map.json', 'r')
                 item_map = json.loads(f.read())
                 f.close()
-                print('Num items in item_map: %d' % len(item_map))
+                self.logger.info('Num items in item_map: %d' % len(item_map))
                 return item_map
 
             except:
                 pass
 
+        lab_uid_src_map = {}
+        lab_uid_common_map = {}
         sheet_data = self.fetch_spreadsheet_data()
         for tab in sheet_data:
             for row in sheet_data[tab]:
@@ -1738,13 +2123,42 @@ class IntentParserServer:
 
                 common_name = row['Common Name']
                 uri = row['SynBioHub URI']
+                # Add common name to the item map
                 item_map[common_name] = uri
+                # There are also UIDs for each lab to add
+                for lab_uid in self.lab_ids_list:
+                    # Ignore if the spreadsheet doesn't contain this lab
+                    if not lab_uid in row or row[lab_uid] == '':
+                        continue
+                    # UID can be a CSV list, parse each value
+                    for uid_str in row[lab_uid].split(sep=','):
+                        # Make sure the UID matches the min len threshold, or is in the exception list
+                        if len(uid_str) >= self.uid_length_threshold or uid_str in self.uid_length_exception:
+                            # If the UID isn't in the item map, add it with this URI
+                            if uid_str not in item_map:
+                                item_map[uid_str] = uri
+                                lab_uid_src_map[uid_str] = lab_uid
+                                lab_uid_common_map[uid_str] = common_name
+                            else: # Otherwise, we need to check for an error
+                                # If the UID has been used  before, we might have a conflict
+                                if uid_str in lab_uid_src_map:
+                                    # If the common name was the same for different UIDs, this won't have an effect
+                                    # But if they differ, we have a conflict
+                                    if not lab_uid_common_map[uid_str] == common_name:
+                                        self.logger.error('Trying to add %s %s for common name %s, but the item map already contains %s from %s for common name %s!' %
+                                                          (lab_uid, uid_str, common_name, uid_str, lab_uid_src_map[uid_str], lab_uid_common_map[uid_str]))
+                                else: # If the UID wasn't used before, then it matches the common name and adding it would be redundant
+                                    pass
+                                    # If it matches the common name, that's fine
+                                    #self.logger.error('Trying to add %s %s, but the item map already contains %s from common name!' % (lab_uid, uid_str, uid_str))
+                        else:
+                            self.logger.debug('Filtered %s %s for length' % (lab_uid, uid_str))
 
         f = open(self.my_path + '/item-map.json', 'w')
         f.write(json.dumps(item_map))
         f.close()
 
-        print('Num items in item_map: %d' % len(item_map))
+        self.logger.info('Num items in item_map: %d' % len(item_map))
 
         return item_map
 
@@ -1770,14 +2184,14 @@ class IntentParserServer:
         html += '  </td>\n'
         html += '  <td>\n'
         html += '    <input type="button" name=' + target + ' value="Link"\n'
-        html += '    onclick="linkItem(thisForm, this.name)">\n'
+        html += '    title="Create a link with this URL." onclick="linkItem(thisForm, this.name)">\n'
         if not two_col:
             html += '  </td>\n'
             html += '  <td>\n'
         else:
             html += '  <br/>'
         html += '    <input type="button" name=' + target + ' value="Link All"\n'
-        html += '    onclick="linkAll(thisForm, this.name)">\n'
+        html += '    title="Create a link with this URL and apply it to all matching terms." onclick="linkAll(thisForm, this.name)">\n'
         html += '  </td>\n'
         html += '</tr>\n'
 
@@ -1817,13 +2231,28 @@ class IntentParserServer:
             if table_type == 'measurements':
                 html = self.create_measurements_table_html
 
+                local_file_types = self.file_types.copy()
+                local_file_types.insert(0,'---------------')
+                local_file_types.insert(0,'CSV')
+                local_file_types.insert(0,'PLAIN')
+                local_file_types.insert(0,'FASTQ')
+                local_file_types.insert(0,'FCS')
+
                 lab_ids_html = self.generate_html_options(self.lab_ids)
+                measurement_types_html = self.generate_html_options(self.measurement_types)
+                file_types_html = self.generate_html_options(local_file_types)
+
+                measurement_types_html = measurement_types_html.replace('\n', ' ')
+                file_types_html = file_types_html.replace('\n', ' ')
 
                 # Update parameters in html
                 html = html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
                 html = html.replace('${LABIDSOPTIONS}', lab_ids_html)
+                html = html.replace('${MEASUREMENTOPTIONS}', measurement_types_html)
+                html = html.replace('${FILETYPEOPTIONS}', file_types_html)
+
             else :
-                print('WARNING: unsupported table type: %s' % table_type)
+                self.logger.warning('WARNING: unsupported table type: %s' % table_type)
 
             actionList = []
             if html is not None:
@@ -1857,7 +2286,7 @@ class IntentParserServer:
 
             self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
 
-            print('Add entry to SynBiohub, %s, %s' %(document_id, time.time()))
+            self.logger.info('Add entry to SynBiohub, %s, %s' %(document_id, time.time()))
         except Exception as e:
             raise e
 
@@ -1879,7 +2308,7 @@ class IntentParserServer:
                     document_id=document_id
                 )
             except Exception as ex:
-                print(''.join(traceback.format_exception(etype=type(ex),
+                self.logger.error(''.join(traceback.format_exception(etype=type(ex),
                                                          value=ex,
                                                          tb=ex.__traceback__)))
                 raise ConnectionException('404', 'Not Found',
@@ -1994,7 +2423,7 @@ class IntentParserServer:
                 self.spellCheckers[userId] = SpellChecker()
                 dict_path = os.path.join(self.dict_path, userId + '.json')
                 if os.path.exists(dict_path):
-                    print('Loaded dictionary for userId, path: %s' % dict_path)
+                    self.logger.info('Loaded dictionary for userId, path: %s' % dict_path)
                     self.spellCheckers[userId].word_frequency.load_dictionary(dict_path)
 
             try:
@@ -2002,7 +2431,7 @@ class IntentParserServer:
                     document_id=document_id
                 )
             except Exception as ex:
-                print(''.join(traceback.format_exception(etype=type(ex),
+                self.logger.error(''.join(traceback.format_exception(etype=type(ex),
                                                          value=ex,
                                                          tb=ex.__traceback__)))
                 raise ConnectionException('404', 'Not Found',
@@ -2117,7 +2546,7 @@ class IntentParserServer:
                             spellCheckResults.append(result)
                             missedTerms.append(word)
             end = time.time()
-            print('Scanned entire document in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
+            self.logger.info('Scanned entire document in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
 
             # If we have a spelling mistake, highlight text and update user
             if len(spellCheckResults) > 0:
@@ -2154,7 +2583,7 @@ class IntentParserServer:
         end_par = spellCheckResults[resultIdx]['select_end']['paragraph_index']
         end_cursor = spellCheckResults[resultIdx]['select_end']['cursor_index']
         if not start_par == end_par:
-            print('Received a highlight request across paragraphs, which is currently unsupported!')
+            self.logger.error('Received a highlight request across paragraphs, which is currently unsupported!')
         highlightTextAction = self.highlight_text(start_par, start_cursor, end_cursor)
         actionList.append(highlightTextAction)
 
@@ -2181,19 +2610,19 @@ class IntentParserServer:
 
         """
 
-        buttons = [('Ignore', 'spellcheck_add_ignore', 0),
-                   ('Ignore All', 'spellcheck_add_ignore_all', 0),
-                   ('Add to Spellchecker Dictionary', 'spellcheck_add_dictionary', 0),
-                   ('Add to SynBioHub', 'spellcheck_add_synbiohub', 0),
-                   ('Manually Enter Link', manualLinkScript, 1, 'EnterLink'),
-                   ('Include Previous Word', 'spellcheck_add_select_previous', 0),
-                   ('Include Next Word', 'spellcheck_add_select_next', 0),
-                   ('Remove First Word', 'spellcheck_add_drop_first', 0),
-                   ('Remove Last Word', 'spellcheck_add_drop_last', 0)]
+        buttons = [{'value': 'Ignore', 'id': 'spellcheck_add_ignore', 'title' : 'Skip the current term.'},
+                   {'value': 'Ignore All', 'id': 'spellcheck_add_ignore_all', 'title' : 'Skip the current term and any other instances of it.'},
+                   {'value': 'Add to Spellchecker Dictionary', 'id': 'spellcheck_add_dictionary', 'title' : 'Add term to the spellchecking dictionary, so it won\'t be considered again.'},
+                   {'value': 'Add to SynBioHub', 'id': 'spellcheck_add_synbiohub', 'title' : 'Bring up dialog to add current term to SynbioHub.'},
+                   {'value': 'Manually Enter Link', 'id': 'EnterLink', 'click_script' : manualLinkScript, 'title' : 'Manually enter URL to link for this term.'},
+                   {'value': 'Include Previous Word', 'id': 'spellcheck_add_select_previous', 'title' : 'Move highlighting to include the word before the highlighted word(s).'},
+                   {'value': 'Include Next Word', 'id': 'spellcheck_add_select_next', 'title' : 'Move highlighting to include the word after the highlighted word(s).'},
+                   {'value': 'Remove First Word', 'id': 'spellcheck_add_drop_first', 'title' : 'Move highlighting to remove the word at the beggining of the highlighted words.'},
+                   {'value': 'Remove Last Word', 'id': 'spellcheck_add_drop_last', 'title' : 'Move highlighting to remove the word at the end of the highlighted words.'}]
 
         # If this entry was previously linked, add a button to reuse that link
         if 'prev_link' in spellCheckResults[resultIdx]:
-            buttons.insert(4, ('Reuse previous link', 'spellcheck_reuse_link', 0))
+            buttons.insert(4, {'value' : 'Reuse previous link', 'id': 'spellcheck_reuse_link', 'title' : 'Reuse the previous link: %s' % spellCheckResults[resultIdx]['prev_link']})
 
         dialogAction = self.simple_sidebar_dialog(html, buttons)
         actionList.append(dialogAction)
@@ -2312,7 +2741,7 @@ class IntentParserServer:
             new_link = spell_check_result['prev_link']
         else:
             new_link = None
-            print('spellcheck_reuse_link call without prev_link in spell_check_result!')
+            self.logger.error('spellcheck_reuse_link call without prev_link in spell_check_result!')
 
         start_par = spell_check_result['select_start']['paragraph_index']
         start_cursor = spell_check_result['select_start']['cursor_index']
@@ -2336,7 +2765,7 @@ class IntentParserServer:
             new_link = json_body['data']['buttonId']['link']
         else:
             new_link = None
-            print('spellcheck_link received a json_body without a link in it!')
+            self.logger.error('spellcheck_link received a json_body without a link in it!')
 
         start_par = spell_check_result['select_start']['paragraph_index']
         start_cursor = spell_check_result['select_start']['cursor_index']
@@ -2421,11 +2850,11 @@ class IntentParserServer:
             firstCheck = lambda x : not self.char_is_not_wordpart(x)
 
         if starting_pos < 0:
-            print('Error: got request to select previous, but the starting_pos was negative!')
+            self.logger.error('Error: got request to select previous, but the starting_pos was negative!')
             return
 
         if para_text_len < starting_pos:
-            print('Error: got request to select previous, but the starting_pos was past the end!')
+            self.logger.error('Error: got request to select previous, but the starting_pos was past the end!')
             return
 
         # Move past the end/start of the current word
@@ -2466,7 +2895,7 @@ class IntentParserServer:
             bindings = query_results['results']['bindings']
             self.sparql_similar_count_cache[term] = bindings[0]['count']['value']
             end = time.time()
-            print('Simple SynbioHub count for %s took %0.2fms (found %s results)' %(term, (end - start) * 1000, bindings[0]['count']['value']))
+            self.logger.info('Simple SynbioHub count for %s took %0.2fms (found %s results)' %(term, (end - start) * 1000, bindings[0]['count']['value']))
 
         start = time.time()
         sparql_query = self.sparql_similar_query.replace('${TERM}', term).replace('${LIMIT}', str(self.sparql_limit)).replace('${OFFSET}', str(offset)).replace('${EXTRA_FILTER}', extra_filter)
@@ -2481,7 +2910,7 @@ class IntentParserServer:
             search_results.append({'title': title, 'target': target})
 
         end = time.time()
-        print('Simple SynbioHub search for %s took %0.2fms' %(term, (end - start) * 1000))
+        self.logger.info('Simple SynbioHub search for %s took %0.2fms' %(term, (end - start) * 1000))
         return search_results, self.sparql_similar_count_cache[term]
 
     def sanitize_name_to_display_id(self, name):
@@ -2715,7 +3144,7 @@ class IntentParserServer:
                                     end_offset, document_url)
 
         except Exception as e:
-            print(''.join(traceback.format_exception(etype=type(e),
+            self.logger.error(''.join(traceback.format_exception(etype=type(e),
                                                      value=e,
                                                      tb=e.__traceback__)))
 
@@ -2802,7 +3231,7 @@ class IntentParserServer:
                           'results': {'operationSucceeded': True}
                 }
             else:
-                print('Unsupported form action: {}'.format(action))
+                self.logger.error('Unsupported form action: {}'.format(action))
 
             self.send_response(200, 'OK', json.dumps(result), sm,
                                'application/json')
@@ -2818,7 +3247,11 @@ class IntentParserServer:
         num_reagents = int(data['numReagents'])
         has_temp = data['temperature']
         has_time = data['timepoint']
+        has_ods  = data['ods']
+        has_notes = data['notes']
         num_rows = int(data['numRows'])
+        measurement_types = data['measurementTypes']
+        file_types = data['fileTypes']
 
         num_cols = num_reagents + 4
         if has_time:
@@ -2829,39 +3262,55 @@ class IntentParserServer:
         col_sizes = []
         table_data = []
         header = []
-        blank_row = []
         for __ in range(num_reagents):
             header.append('')
-            blank_row.append('')
             col_sizes.append(4)
 
         header.append(self.col_header_measurement_type)
         header.append(self.col_header_file_type)
         header.append(self.col_header_replicate)
         header.append(self.col_header_strain)
-        blank_row.append('')
-        blank_row.append('')
-        blank_row.append('')
-        blank_row.append('')
-        col_sizes.append(len(self.col_header_measurement_type) + 2)
-        col_sizes.append(len(self.col_header_file_type) + 2)
-        col_sizes.append(len(self.col_header_replicate) + 2)
-        col_sizes.append(len(self.col_header_strain) + 2)
+
+        col_sizes.append(len(self.col_header_measurement_type) + 1)
+        col_sizes.append(len(self.col_header_file_type) + 1)
+        col_sizes.append(len(self.col_header_replicate) + 1)
+        col_sizes.append(len(self.col_header_strain) + 1)
+        if has_ods:
+            header.append(self.col_header_ods)
+            col_sizes.append(len(self.col_header_ods) + 1)
         if has_time:
             header.append(self.col_header_timepoint)
-            blank_row.append('')
-            col_sizes.append(len(self.col_header_timepoint) + 2)
+            col_sizes.append(len(self.col_header_timepoint) + 1)
         if has_temp:
             header.append(self.col_header_temperature)
-            blank_row.append('')
-            col_sizes.append(len(self.col_header_temperature) + 2)
-        header.append(self.col_header_samples)
-        blank_row.append('')
-        col_sizes.append(len(self.col_header_samples) + 2)
+            col_sizes.append(len(self.col_header_temperature) + 1)
+        #header.append(self.col_header_samples)
+
+        if has_notes:
+            header.append(self.col_header_notes)
+            col_sizes.append(len(self.col_header_notes) + 1)
+
+        #col_sizes.append(len(self.col_header_samples) + 1)
         table_data.append(header)
 
-        for __ in range(num_rows):
-            table_data.append(blank_row)
+        for r in range(num_rows):
+            measurement_row = []
+            for __ in range(num_reagents):
+                measurement_row.append('')
+            measurement_row.append(measurement_types[r]) # Measurement Type col
+            measurement_row.append(file_types[r]) # File type col
+            measurement_row.append('') # Replicate Col
+            measurement_row.append('') # Strain col
+            if has_ods:
+                measurement_row.append('')
+            if has_time:
+                measurement_row.append('')
+            if has_temp:
+                measurement_row.append('')
+            #measurement_row.append('') # Samples col
+            if has_notes:
+                measurement_row.append('')
+            table_data.append(measurement_row)
 
         create_table = {}
         create_table['action'] = 'addTable'
@@ -2952,14 +3401,15 @@ class IntentParserServer:
 
 
         except Exception as err:
-            print(str(err))
+            self.logger.error(str(err))
             response = self.operation_failed('Failed to search SynBioHub')
 
         self.send_response(200, 'OK', json.dumps(response), sm,
                            'application/json')
 
 #spreadsheet_id = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program dict
-spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
+# spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
+spreadsheet_id = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0' #sd2 unit test dictionary 
 sbh_spoofing_prefix=None
 sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
 bind_port = 8081
@@ -3037,6 +3487,8 @@ def main(argv):
         elif opt in ('-a', '--authn'):
             authn = arg
 
+    setup_logging()
+
     try:
         sbhPlugin = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
                                        sbh_spoofing_prefix=sbh_spoofing_prefix,
@@ -3052,6 +3504,27 @@ def main(argv):
         sys.exit(5)
 
     sbhPlugin.serverRunLoop()
+
+def setup_logging(
+    default_path='logging.json',
+    default_level=logging.INFO,
+    env_key='LOG_CFG'
+):
+    """
+    Setup logging configuration
+    """
+    path = default_path
+    value = os.getenv(env_key, None)
+    if value:
+        path = value
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            config = json.load(f)
+        logging.config.dictConfig(config)
+    else:
+        logging.basicConfig(level=default_level, format="[%(levelname)-8s] %(asctime)-24s %(filename)-23s line:%(lineno)-4s  %(message)s")
+    logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.CRITICAL)
+    logging.getLogger("googleapiclient.discovery").setLevel(logging.CRITICAL)
 
 def signal_int_handler(sig, frame):
     '''  Handling SIG_INT: shutdown intent parser server and wait for it to finish.

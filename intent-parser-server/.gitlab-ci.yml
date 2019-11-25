@@ -1,5 +1,0 @@
-before_script:
-    - pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib pysbol
-
-test:
-    - python3 -m unittest test_intent_parser_server
