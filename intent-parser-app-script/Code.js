@@ -1,6 +1,6 @@
-var serverURL = 'http://intent-parser-server.bbn.com:8081'
+var serverURL = 'http://intentparser.sd2e.org/'
 
-var versionString = '2.0-git-session'
+var versionString = '2.2'
 
 function onOpen() {
   var ui = DocumentApp.getUi()
@@ -18,6 +18,9 @@ function onOpen() {
   menu.addItem('Validate Structured Request', 'sendValidateStructuredRequest')
   menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest')
   menu.addItem('Generate Report', 'sendGenerateReport')
+  menu.addItem('Update experimental results', 'updateExperimentalResults')
+  menu.addItem('Calculate samples for measurements table', 'calculateSamples')
+  menu.addItem('Propagate Measurement Units', 'propagateMeasurementUnits')
   menu.addSubMenu(tablesMenu)
 
   menu.addItem('Help', 'showHelp')
@@ -135,6 +138,54 @@ function processActions(response) {
         linkDocText(paragraphIndex, offset, endOffset, url)
         break
 
+      case 'calculateSamples':
+        var tableIds = actionDesc['tableIds'];
+        var sampleIndices = actionDesc['sampleIndices'];
+        var sampleValues = actionDesc['sampleValues'];
+
+        var doc = DocumentApp.getActiveDocument();
+        var body = doc.getBody();
+        var tables = body.getTables();
+
+        for (var tIdx = 0; tIdx < tableIds.length; tIdx++) {
+            sampleColIdx = sampleIndices[tIdx];
+            var numRows = tables[tableIds[tIdx]].getNumRows()
+            // Samples column doesn't exist
+            if (sampleColIdx < 0) { // Create new column for samples
+                var numCols = tables[tableIds[tIdx]].getRow(0).getNumCells();
+                tables[tableIds[tIdx]].getRow(0).appendTableCell("samples");
+                for (var rowIdx = 1; rowIdx < numRows; rowIdx++) {
+                    tables[tableIds[tIdx]].getRow(rowIdx).appendTableCell()
+                }
+                sampleColIdx = numCols
+            }
+            for (var rowIdx = 1; rowIdx < numRows; rowIdx++) {
+                var tableCell = tables[tableIds[tIdx]].getRow(rowIdx).getCell(sampleColIdx);
+                tableCell.setText(sampleValues[tIdx][rowIdx - 1])
+            }
+        }
+
+        break
+      case 'propagateMeasurementUnits':
+        var updates = actionDesc['updates'];
+        var doc = DocumentApp.getActiveDocument();
+        var body = doc.getBody();
+        var tables = body.getTables();
+        for(var updateIdx = 0; updateIdx < updates.length; updateIdx++){
+        	var update = updates[updateIdx];
+        	var tableIdx = update['table'];
+        	var n = update['cell'].length;
+        	for(var i = 0; i < n; i++){
+        		var row = update['row'][i];
+            	var col = update['col'][i];
+            	var cell = update['cell'][i];
+            	var tableCell = tables[tableIdx].getCell(row, col);
+        		tableCell.setText(cell);
+        	}
+        	
+        }
+        
+        break
       case 'addTable':
         var childIndex = actionDesc['cursorChildIndex']
         var tableData = actionDesc['tableData']
@@ -145,6 +196,18 @@ function processActions(response) {
 
         var newTable = body.insertTable(childIndex, tableData);
         var headerRow = newTable.getRow(0);
+
+        // Reset formatting
+        var tableStyle = {};
+        tableStyle[DocumentApp.Attribute.HORIZONTAL_ALIGNMENT] = DocumentApp.HorizontalAlignment.LEFT;
+        tableStyle[DocumentApp.Attribute.FONT_SIZE] = 11;
+        tableStyle[DocumentApp.Attribute.FONT_SIZE] = 11;
+        tableStyle[DocumentApp.Attribute.BOLD] = false;
+        tableStyle[DocumentApp.Attribute.ITALIC] = false;
+        tableStyle[DocumentApp.Attribute.BACKGROUND_COLOR] = '#FFFFFF';
+        tableStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = '#000000';
+        newTable.setAttributes(tableStyle)
+
 
         var style = {};
         style[DocumentApp.Attribute.HORIZONTAL_ALIGNMENT] = DocumentApp.HorizontalAlignment.CENTER;
@@ -159,10 +222,50 @@ function processActions(response) {
         if (actionDesc['tableType'] == 'measurements') {
             labTableData = actionDesc['tableLab']
             var newLabTable = body.insertTable(childIndex, labTableData);
+            newLabTable.setAttributes(tableStyle)
+        }
+        break
+
+      case 'updateExperimentResults':
+        var headerIdx = actionDesc['headerIdx'];
+        var contentIdx = actionDesc['contentIdx'];
+        var expData = actionDesc['expData'];
+        var expLinks = actionDesc['expLinks'];
+
+        var doc = DocumentApp.getActiveDocument();
+        var body = doc.getBody();
+
+        if (headerIdx != -1 && contentIdx != -1) {
+            var paragraphs = body.getParagraphs();
+            para = paragraphs[contentIdx];
+            para.setText('\n');
+            for (var i = 0; i < expData.length; i++) {
+                for (var p = 0; p < expData[i].length; p++) {
+                    newTxt = para.appendText(expData[i][p]);
+                    if (i < expLinks.length && expLinks[i][p] != '') {
+                        newTxt.setLinkUrl(expLinks[i][p]);
+                    } else {
+                        newTxt.setLinkUrl('');
+                    }
+                }
+            }
+        } else {
+            var header_para = body.appendParagraph('Experiment Results');
+            header_para.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+            para = body.appendParagraph('\n');
+            for (var i = 0; i < expData.length; i++) {
+                for (var p = 0; p < expData[i].length; p++) {
+                    newTxt = para.appendText(expData[i][p]);
+                    if (i < expLinks.length && expLinks[i][p] != '') {
+                        newTxt.setLinkUrl(expLinks[i][p]);
+                    } else {
+                        newTxt.setLinkUrl('');
+                    }
+                }
+            }
         }
 
         break
-
       case 'showSidebar':
         showSidebar(actionDesc['html'])
         break
@@ -446,6 +549,18 @@ function getLocation(el, offset) {
     return {'paragraphIndex': result,
             'offset': offset}
   }
+}
+
+function updateExperimentalResults() {
+  sendPost('/updateExperimentalResults')
+}
+
+function calculateSamples() {
+  sendPost('/calculateSamples')
+}
+
+function propagateMeasurementUnits() {
+  sendPost('/propagateMeasurementUnits')
 }
 
 function sendAnalyzeFromTop() {
