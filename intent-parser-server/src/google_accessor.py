@@ -61,7 +61,7 @@ class GoogleAccessor:
 
         # Lab Names
         self.labs = ['BioFAB', 'Ginkgo',
-                     'Transcriptic', 'LBNL', 'EmeraldCloud']
+                     'Transcriptic', 'LBNL', 'EmeraldCloud', 'CalTech', 'PennState (Salis)']
 
     @staticmethod
     def create(*, spreadsheet_id=None, console=False):
