@@ -962,7 +962,10 @@ class IntentParserServer:
                         uri = 'NO PROGRAM DICTIONARY ENTRY'
                         if len(paragraph_element['elements']) > 0 and 'link' in paragraph_element['elements'][0]['textRun']['textStyle']:
                             uri = paragraph_element['elements'][0]['textRun']['textStyle']['link']['url']
+                        if not cellTxt:
+                            continue
                         reagent_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        
                         defaultUnit = 'unspecified'
                         for value in reagent_strings:
                             spec, unit = self.detect_and_remove_fluid_unit(value);
@@ -978,7 +981,8 @@ class IntentParserServer:
                                 self.logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % spec)
                             reagents.append(reagent_dict)
                         content.append(reagents)
-                measurement['contents'] = content
+                if content:
+                    measurement['contents'] = content
                 measurements.append(measurement)
 
         if lab_table_idx >= 0:
