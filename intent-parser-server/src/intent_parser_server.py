@@ -958,7 +958,17 @@ class IntentParserServer:
                         measurement['timepoints'] = timepoints
                     else:
                         reagents = []
+                        reagent_timepoint_dict = {}
+                        reagent_header = header
                         reagent_name = header
+                        timepoint_str = reagent_header.split('@')
+                        if len(timepoint_str) > 1:
+                            reagent_name = timepoint_str[0].strip()
+                            timepoint_data = timepoint_str[1].strip().split(' ')
+                            if len(timepoint_data) > 1:
+                                time_val = timepoint_data[0].strip()
+                                time_unit = timepoint_data[1].strip()
+                                reagent_timepoint_dict = {'value' : time_val, 'unit' : time_unit}
                         uri = 'NO PROGRAM DICTIONARY ENTRY'
                         if len(paragraph_element['elements']) > 0 and 'link' in paragraph_element['elements'][0]['textRun']['textStyle']:
                             uri = paragraph_element['elements'][0]['textRun']['textStyle']['link']['url']
@@ -976,7 +986,11 @@ class IntentParserServer:
                             if unit is None or unit == 'unspecified':
                                 unit = defaultUnit
                             try:
-                                reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit}
+                                if reagent_timepoint_dict:
+                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit, 'timepoints' : reagent_timepoint_dict}
+                                else:
+                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit}
+                                    
                             except:
                                 self.logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % spec)
                             reagents.append(reagent_dict)
