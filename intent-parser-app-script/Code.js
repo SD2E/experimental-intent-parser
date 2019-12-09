@@ -56,6 +56,9 @@ Once the measurements table is complete, a structured request can be generated w
 Additionally, the <b><i>Validate Structured Request</i></b> option can be used to generate and validate a structured request.  \
 If the request fails validation, an error message will be printed which indicates that the request failed validation, and why.  \
 </p>\
+<p>\
+Problems? <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues">File an issue</a>\
+</p>\
 '
   verFormattedHTML = Utilities.formatString(helpHTML, versionString)
   showModalDialog(verFormattedHTML, 'Help', 600, 600)
