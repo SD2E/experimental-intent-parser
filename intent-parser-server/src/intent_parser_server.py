@@ -912,7 +912,10 @@ class IntentParserServer:
                     elif header == self.col_header_strain:
                         measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
                     elif header == self.col_header_ods:
-                        ods_strings = [float(s.strip()) for s in cellTxt.split(sep=',')]
+                        #ods_strings = [float(s.strip()) for s in cellTxt.split(sep=',')]
+                        ods_strings = []
+                        for s in cellTxt.split(sep=','):
+                            ods_strings.append(float(s.strip()))
                         measurement['ods'] = ods_strings
                     elif header == self.col_header_temperature:
                         temps = []
@@ -987,7 +990,7 @@ class IntentParserServer:
                                 unit = defaultUnit
                             try:
                                 if reagent_timepoint_dict:
-                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit, 'timepoints' : reagent_timepoint_dict}
+                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit, 'timepoint' : reagent_timepoint_dict}
                                 else:
                                     reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit}
                                     
