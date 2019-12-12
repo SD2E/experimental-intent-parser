@@ -895,6 +895,8 @@ class IntentParserServer:
                     paragraph_element = headerRow['tableCells'][i]['content'][0]['paragraph']
                     header = self.get_paragraph_text(headerRow['tableCells'][i]['content'][0]['paragraph']).strip()
                     cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in cells[i]['content']])
+                    if not cellTxt:
+                        continue
                     if header == self.col_header_measurement_type:
                         measurement['measurement_type'] = self.get_measurement_type(cellTxt)
                     elif header == self.col_header_file_type:
@@ -975,8 +977,6 @@ class IntentParserServer:
                         uri = 'NO PROGRAM DICTIONARY ENTRY'
                         if len(paragraph_element['elements']) > 0 and 'link' in paragraph_element['elements'][0]['textRun']['textStyle']:
                             uri = paragraph_element['elements'][0]['textRun']['textStyle']['link']['url']
-                        if not cellTxt:
-                            continue
                         reagent_strings = [s.strip() for s in cellTxt.split(sep=',')]
                         
                         defaultUnit = 'unspecified'
