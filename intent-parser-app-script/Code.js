@@ -23,6 +23,7 @@ function onOpen() {
   menu.addItem('Propagate Measurement Units', 'propagateMeasurementUnits')
   menu.addSubMenu(tablesMenu)
 
+  menu.addItem('File Issues', 'reportIssues')
   menu.addItem('Help', 'showHelp')
 
   menu.addToUi()
@@ -57,7 +58,7 @@ Additionally, the <b><i>Validate Structured Request</i></b> option can be used t
 If the request fails validation, an error message will be printed which indicates that the request failed validation, and why.  \
 </p>\
 <p>\
-Problems? <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues">File an issue</a>\
+Problems? <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>here</a>\
 </p>\
 '
   verFormattedHTML = Utilities.formatString(helpHTML, versionString)
@@ -600,6 +601,18 @@ function sendGenerateReport() {
   html += '</center>'
 
   showModalDialog(html, 'Download', 300, 100)
+}
+
+function reportIssues(){
+	helpHTML = '\
+		  Something unexpected happen with the intent-parser plugin? \
+		  <br>Want to request a feature support? \
+		  <p> \
+		  Send a bug report <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>here</a>. \
+		  </p>\
+		  '
+	verFormattedHTML = Utilities.formatString(helpHTML, versionString)
+	showModalDialog(verFormattedHTML, 'Issues', 300, 100)
 }
 
 function sendValidateStructuredRequest() {
