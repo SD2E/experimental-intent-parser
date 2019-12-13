@@ -119,6 +119,10 @@ class IntentParserServer:
     col_header_notes = 'notes'
     col_header_temperature = 'temperature'
     col_header_timepoint = 'timepoint'
+    
+    # Parameter table header column names
+    col_header_parameter = 'Parameter'
+    col_header_param_value = 'Value'
 
     def __init__(self, bind_port=8081, bind_ip="0.0.0.0",
                  sbh_collection_uri=None,
@@ -553,6 +557,18 @@ class IntentParserServer:
 
         return found_replicates and found_strain and found_measurement_type and found_file_type
 
+    def detect_parameter_table(self, table):
+        rows = table['tableRows']
+        headerRow = rows[0]
+        numCols = len(headerRow['tableCells'])
+        has_parameter_col_headers = True
+        for cell in headerRow['tableCells']:
+            cellTxt = self.get_paragraph_text(cell['content'][0]['paragraph']).strip()
+            if cellTxt != self.col_header_parameter and cellTxt != self.col_header_param_value:
+                has_parameter_col_headers = False
+            
+        return numCols == 2 and has_parameter_col_headers
+    
     def process_calculate_samples(self, httpMessage, sm):
         """
         Find all measurements tables and update the samples columns, or add the samples column if it doesn't exist.
