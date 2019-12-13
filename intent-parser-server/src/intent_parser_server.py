@@ -991,9 +991,9 @@ class IntentParserServer:
                                 unit = defaultUnit
                             try:
                                 if reagent_timepoint_dict:
-                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : float(spec), 'unit' : unit, 'timepoint' : reagent_timepoint_dict}
+                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit, 'timepoint' : reagent_timepoint_dict}
                                 else:
-                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : float(spec), 'unit' : unit}
+                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit}
                                     
                             except:
                                 self.logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % spec)
