@@ -23,6 +23,7 @@ function onOpen() {
   menu.addItem('Propagate Measurement Units', 'propagateMeasurementUnits')
   menu.addSubMenu(tablesMenu)
 
+  menu.addItem('File Issues', 'reportIssues')
   menu.addItem('Help', 'showHelp')
 
   menu.addToUi()
@@ -55,6 +56,9 @@ For instance, the entry "0, 4, 8, 12 hour" will use the unit of hour for each en
 Once the measurements table is complete, a structured request can be generated with the <b><i>Generate Structured Request</i></b> file menu option, which will create a json file that can be saved for later use.  \
 Additionally, the <b><i>Validate Structured Request</i></b> option can be used to generate and validate a structured request.  \
 If the request fails validation, an error message will be printed which indicates that the request failed validation, and why.  \
+</p>\
+<p>\
+Problems? <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>here</a>\
 </p>\
 '
   verFormattedHTML = Utilities.formatString(helpHTML, versionString)
@@ -597,6 +601,18 @@ function sendGenerateReport() {
   html += '</center>'
 
   showModalDialog(html, 'Download', 300, 100)
+}
+
+function reportIssues(){
+	helpHTML = '\
+		  Something unexpected happen with the intent-parser plugin? \
+		  <br>Want to request a feature support? \
+		  <p> \
+		  Send a bug report <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>here</a>. \
+		  </p>\
+		  '
+	verFormattedHTML = Utilities.formatString(helpHTML, versionString)
+	showModalDialog(verFormattedHTML, 'Issues', 300, 100)
 }
 
 function sendValidateStructuredRequest() {
