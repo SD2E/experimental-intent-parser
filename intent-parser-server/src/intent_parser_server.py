@@ -21,7 +21,7 @@ from spellchecker import SpellChecker
 from multiprocessing import Pool
 import intent_parser_utils
 import numpy as np
-
+from synbiohub_adapter import query_synbiohub
 #import logging
 import logging.config
 
@@ -120,7 +120,7 @@ class IntentParserServer:
     col_header_temperature = 'temperature'
     col_header_timepoint = 'timepoint'
     
-    # Parameter table header column names
+    # Column names for Parameter table
     col_header_parameter = 'Parameter'
     col_header_param_value = 'Value'
 
@@ -866,6 +866,7 @@ class IntentParserServer:
         measurement_table_idx = -1
         measurement_table_new_idx = -1
         lab_table_idx = -1
+        parameter_table_idx = -1
         for tIdx in range(len(doc_tables)):
             table = doc_tables[tIdx]
             rows = table['tableRows']
@@ -880,7 +881,11 @@ class IntentParserServer:
             is_lab_table = self.detect_lab_table(table)
             if is_lab_table:
                 lab_table_idx = tIdx
-
+            
+            is_parameter_table = self.detect_parameter_table(table)
+            if is_parameter_table:
+                parameter_table_idx = tIdx
+                
         # Old-style measurement table - can really only get the measurement-type
         if measurement_table_idx >= 0 and measurement_table_new_idx == -1:
             table = doc_tables[measurement_table_idx]
@@ -1029,7 +1034,11 @@ class IntentParserServer:
                 self.logger.info('WARNING: Lab table size differs from expectation! Expecting 1 row and 1 col, found %d rows and %d cols' % (numRows, numCols))
             # The lab text is expected to be in row 0, col 0 and have the form: Lab: <X>
             lab = self.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph']).strip().split(sep=':')[1].strip()
-
+        
+        if parameter_table_idx >= 0:
+            table = doc_tables[parameter_table_idx]
+            
+        
         request = {}
         request['name'] = doc['title']
         request['experiment_id'] = experiment_id
