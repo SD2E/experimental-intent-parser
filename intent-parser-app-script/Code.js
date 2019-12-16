@@ -58,7 +58,7 @@ Additionally, the <b><i>Validate Structured Request</i></b> option can be used t
 If the request fails validation, an error message will be printed which indicates that the request failed validation, and why.  \
 </p>\
 <p>\
-Problems? <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>here</a>\
+Problems? <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>File and issue</a>\
 </p>\
 '
   verFormattedHTML = Utilities.formatString(helpHTML, versionString)
