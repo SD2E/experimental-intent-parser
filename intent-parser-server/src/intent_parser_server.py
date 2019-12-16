@@ -2129,6 +2129,14 @@ class IntentParserServer:
         self.temp_units = []
         for cid in data['enum']:
             self.temp_units.append(cid)
+            
+        # Volume units
+        response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/volume_unit.json',timeout=60)
+        data = json.loads(response.read().decode('utf-8'))
+
+        self.volume_units = []
+        for cid in data['enum']:
+            self.volume_units.append(cid)
 
         # Lab Ids
         response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/lab.json',timeout=60)
