@@ -970,10 +970,12 @@ class IntentParserServer:
                         if len(timepoint_str) > 1:
                             reagent_name = timepoint_str[0].strip()
                             timepoint_data = timepoint_str[1].split()
-                            if len(timepoint_data) > 1:
-                                time_val = float(timepoint_data[0].strip())
-                                time_unit = timepoint_data[1].strip()
-                                reagent_timepoint_dict = {'value' : time_val, 'unit' : time_unit}
+                            defaultUnit = 'unspecified'
+                            spec, unit = self.detect_and_remove_time_unit(timepoint_str[1]);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+
+                            reagent_timepoint_dict = {'value' : float(spec), 'unit' : defaultUnit}
                         uri = 'NO PROGRAM DICTIONARY ENTRY'
                         if len(paragraph_element['elements']) > 0 and 'link' in paragraph_element['elements'][0]['textRun']['textStyle']:
                             uri = paragraph_element['elements'][0]['textRun']['textStyle']['link']['url']
