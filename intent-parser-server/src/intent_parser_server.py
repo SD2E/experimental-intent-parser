@@ -1037,8 +1037,31 @@ class IntentParserServer:
         
         if parameter_table_idx >= 0:
             table = doc_tables[parameter_table_idx]
-            
-        
+            rows = table['tableRows']
+            headerRow = rows[0]
+            numCols = len(headerRow['tableCells'])
+            parameter_data = {} 
+            for row in rows[1:]:
+                cells = row['tableCells']
+                p = None
+                p_val = None
+                
+                for i in range(0, numCols): 
+                    paragraph_element = headerRow['tableCells'][i]['content'][0]['paragraph']
+                    header = self.get_paragraph_text(headerRow['tableCells'][i]['content'][0]['paragraph']).strip()
+                    cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in cells[i]['content']])
+                    if not cellTxt:
+                        continue
+                    if header == self.col_header_parameter:
+                        if cellTxt == 'Inoculation volume':
+                            p = 'inoc_info.inoc_vol' 
+                        elif cellTxt == 'Inoculation media volume':
+                            p = 'inoc_info.inoc_media_vol'
+                    elif header == self.col_header_param_value:
+                        p_val = cellTxt
+                if p is not None and p_val is not None:
+                    parameter_data[p] = p_val
+                        
         request = {}
         request['name'] = doc['title']
         request['experiment_id'] = experiment_id
@@ -1048,6 +1071,7 @@ class IntentParserServer:
         request['experiment_version'] = 1
         request['lab'] = lab
         request['runs'] = [{ 'measurements' : measurements}]
+        request['protocol_parameters'] = parameter_data 
 
         return request
     
