@@ -884,60 +884,19 @@ class IntentParserServer:
             rows = table['tableRows']
             headerRow = rows[0]
             numCols = len(headerRow['tableCells'])
-            colIdx = 0
-            is_type_col = False
-            reagent_list = []
-            while colIdx < numCols and not is_type_col:
-                paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
-                cellTxt =  self.get_paragraph_text(paragraph_element).strip()
-                uri = None
-                if len(paragraph_element['elements']) > 0 and 'link' in paragraph_element['elements'][0]['textRun']['textStyle']:
-                    uri = paragraph_element['elements'][0]['textRun']['textStyle']['link']['url']
-                if cellTxt == self.col_header_measurement_type:
-                    is_type_col = True
-                else:
-                    if uri:
-                        sbh_uri = uri
-                    else:
-                        sbh_uri = 'NO PROGRAM DICTIONARY ENTRY'
-                    reagent_list.append((cellTxt, sbh_uri))
-                    colIdx += 1
-            measurement_col = colIdx
+            
             for row in rows[1:]:
                 cells = row['tableCells']
-
-                # Collect reagent info - first N columns are all reagents
                 content = []
-                for i in range(measurement_col):
-                    cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in cells[i]['content']]).strip()
-                    # If nothing is specified, ignore it
-                    if not cellTxt == '':
-                        reagent_entries = []
-                        # First, determine unit
-                        defaultUnit = 'unspecified'
-                        for value in cellTxt.split(sep=','):
-                            spec, unit = self.detect_and_remove_fluid_unit(value);
-                            if unit is not None and unit is not 'unspecified':
-                                defaultUnit = unit
-
-                        for value in cellTxt.split(sep=','):
-                            toks = value.strip().split(sep=' ')
-                            # If we have a unit specified, parse it and use it
-                            if (len(toks) > 1):
-                                spec, unit = self.detect_and_remove_fluid_unit(value);
-                                if unit is None or unit == 'unspecified':
-                                    unit = defaultUnit
-                                reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : spec, 'unit' : unit}
-                            else: # Also support a string value
-                                reagent_entry = {'name' : {'label' : reagent_list[i][0], 'sbh_uri' : reagent_list[i][1]}, 'value' : value.strip()}
-                            reagent_entries.append(reagent_entry)
-                        content.append(reagent_entries)
-
+            
                 # Parse rest of table
                 measurement = {}
-                for i in range(measurement_col, numCols): 
+                for i in range(0, numCols): 
+                    paragraph_element = headerRow['tableCells'][i]['content'][0]['paragraph']
                     header = self.get_paragraph_text(headerRow['tableCells'][i]['content'][0]['paragraph']).strip()
                     cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in cells[i]['content']])
+                    if not cellTxt:
+                        continue
                     if header == self.col_header_measurement_type:
                         measurement['measurement_type'] = self.get_measurement_type(cellTxt)
                     elif header == self.col_header_file_type:
@@ -955,7 +914,10 @@ class IntentParserServer:
                     elif header == self.col_header_strain:
                         measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
                     elif header == self.col_header_ods:
-                        ods_strings = [float(s.strip()) for s in cellTxt.split(sep=',')]
+                        #ods_strings = [float(s.strip()) for s in cellTxt.split(sep=',')]
+                        ods_strings = []
+                        for s in cellTxt.split(sep=','):
+                            ods_strings.append(float(s.strip()))
                         measurement['ods'] = ods_strings
                     elif header == self.col_header_temperature:
                         temps = []
@@ -999,8 +961,48 @@ class IntentParserServer:
                                 self.logger.info('WARNING: failed to parse time unit! Trying to parse: %s' % spec)
                             timepoints.append(time_dict)
                         measurement['timepoints'] = timepoints
+                    else:
+                        reagents = []
+                        reagent_timepoint_dict = {}
+                        reagent_header = header
+                        reagent_name = header
+                        timepoint_str = reagent_header.split('@')
+                        if len(timepoint_str) > 1:
+                            reagent_name = timepoint_str[0].strip()
+                            timepoint_data = timepoint_str[1].split()
+                            defaultUnit = 'unspecified'
+                            spec, unit = self.detect_and_remove_time_unit(timepoint_str[1]);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
 
-                measurement['contents'] = content
+                            reagent_timepoint_dict = {'value' : float(spec), 'unit' : defaultUnit}
+                        uri = 'NO PROGRAM DICTIONARY ENTRY'
+                        if len(paragraph_element['elements']) > 0 and 'link' in paragraph_element['elements'][0]['textRun']['textStyle']:
+                            uri = paragraph_element['elements'][0]['textRun']['textStyle']['link']['url']
+                        reagent_strings = [s.strip() for s in cellTxt.split(sep=',')]
+                        
+                        defaultUnit = 'unspecified'
+                        for value in reagent_strings:
+                            spec, unit = self.detect_and_remove_fluid_unit(value);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+                        for value in reagent_strings:
+                            spec, unit = self.detect_and_remove_fluid_unit(value);
+                            reagent_amount = float(spec)
+                            if unit is None or unit == 'unspecified':
+                                unit = defaultUnit
+                            try:
+                                if reagent_timepoint_dict:
+                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit, 'timepoint' : reagent_timepoint_dict}
+                                else:
+                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit}
+                                    
+                            except:
+                                self.logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % spec)
+                            reagents.append(reagent_dict)
+                        content.append(reagents)
+                if content:
+                    measurement['contents'] = content
                 measurements.append(measurement)
 
         if lab_table_idx >= 0:
