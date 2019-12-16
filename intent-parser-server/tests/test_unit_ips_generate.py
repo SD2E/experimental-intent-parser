@@ -177,6 +177,13 @@ class TestIntentParserServer(unittest.TestCase):
         self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
         self.assertTrue(gen_results['challenge_problem'] == 'INTENT_PARSER_TEST')
         self.assertTrue(len(gen_results['runs'][0]['measurements']) == 4)
+        shared_items = {k: gen_results[k] for k in gen_results if k in first_table_gt and gen_results[k] == first_table_gt[k]}
+        diff_items = {}
+        for k in gen_results:
+            if k in first_table_gt and gen_results[k] != first_table_gt[k]:
+                print(first_table_gt[k])
+                print(gen_results[k])
+                
         self.assertTrue(gen_results == first_table_gt)
 
         self.ips.process_validate_structured_request(self.httpMessage, [])
