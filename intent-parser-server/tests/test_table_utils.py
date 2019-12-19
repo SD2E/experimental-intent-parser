@@ -18,13 +18,6 @@ class TableUtilsTest(unittest.TestCase):
            self.assertEqual(unit, 'X')
            self.assertTrue(value in expected_values) 
 
-    def testCellWithoutProgatedUnit2(self):
-        cell_str = '1 X, 2, 3'
-        expected_values = ['1', '2', '3']
-        for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
-           self.assertEqual(unit, 'unspecified')
-           self.assertTrue(value in expected_values)  
-
     def testCellWithoutUnits(self):
         cell_str = '1, 2, 3'
         expected_values = ['1', '2', '3']
@@ -45,7 +38,22 @@ class TableUtilsTest(unittest.TestCase):
         for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
            self.assertEqual(unit, 'unspecified')
            self.assertTrue(value in expected_values)  
-       
-     
+    
+    def testCellWithIncorrectUnitLocation(self):
+        cell_str = '1 X, 2, 3'
+        expected_values = ['1', '2', '3']
+        for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
+           self.assertEqual(unit, 'unspecified')
+           self.assertTrue(value in expected_values)  
+           
+    
+    def testCellWithIncorrectUnitLocation2(self):
+        cell_str = '1, 2, X 3'
+        expected_values = ['1', '2', '3']
+        for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
+           self.assertEqual(unit, 'unspecified')
+           self.assertTrue(value in expected_values)   
+           
+                
 if __name__ == "__main__":
     unittest.main()
