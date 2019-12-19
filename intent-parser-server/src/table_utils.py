@@ -17,7 +17,6 @@ def transform_cell(cell, units, cell_type=None):
         index = 0
         
         abbrev_units = _abbreviated_unit_dict[cell_type] if cell_type is not None else {}
-        
         unit = _determine_unit(tokens, _canonicalize_units(units), abbrev_units)
         while index < len(tokens) - 1:
             value = tokens[index][1]
@@ -70,7 +69,7 @@ def _determine_unit(tokens, units, abbrev_units):
     if tokens[-1][0] == 'NAME':
         unit = tokens[-1][1].lower()
         if unit in abbrev_units:
-            unit = abbrev_units[unit]
+            unit = abbrev_units[unit].lower()
         if unit in units:
             return units[unit]
     return 'unspecified'
