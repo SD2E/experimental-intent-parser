@@ -58,7 +58,7 @@ Additionally, the <b><i>Validate Structured Request</i></b> option can be used t
 If the request fails validation, an error message will be printed which indicates that the request failed validation, and why.  \
 </p>\
 <p>\
-Problems? <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>here</a>\
+Problems? <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>File and issue</a>\
 </p>\
 '
   verFormattedHTML = Utilities.formatString(helpHTML, versionString)
@@ -605,14 +605,12 @@ function sendGenerateReport() {
 
 function reportIssues(){
 	helpHTML = '\
-		  Something unexpected happen with the intent-parser plugin? \
-		  <br>Want to request a feature support? \
-		  <p> \
-		  Send a bug report <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>here</a>. \
-		  </p>\
+		  <p>Something unexpected happen with the intent-parser plugin?</p> \
+		  <p>Want to request a feature support?</p> \
+		  <p>Send a bug report <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>here</a>.</p> \
 		  '
 	verFormattedHTML = Utilities.formatString(helpHTML, versionString)
-	showModalDialog(verFormattedHTML, 'Issues', 300, 100)
+	showModalDialog(verFormattedHTML, 'Issues', 400, 200)
 }
 
 function sendValidateStructuredRequest() {

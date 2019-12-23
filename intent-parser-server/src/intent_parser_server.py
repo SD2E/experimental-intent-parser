@@ -21,7 +21,7 @@ from spellchecker import SpellChecker
 from multiprocessing import Pool
 import intent_parser_utils
 import numpy as np
-
+import table_utils
 #import logging
 import logging.config
 
@@ -907,10 +907,11 @@ class IntentParserServer:
                         except:
                             measurement['replicates'] = -1
                             self.logger.info('WARNING: failed to parse number of replicates! Trying to parse: %s' % cellTxt)
+                    elif header == self.col_header_notes:
+                        continue
                     elif header == self.col_header_samples:
-                        #measurement['samples'] = cellTxt
                         #samples isn't part of the schema and is just there for auditing purposes
-                        pass
+                        continue 
                     elif header == self.col_header_strain:
                         measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
                     elif header == self.col_header_ods:
@@ -967,33 +968,28 @@ class IntentParserServer:
                         reagent_header = header
                         reagent_name = header
                         timepoint_str = reagent_header.split('@')
+                        # Check header if it contains time sequence
                         if len(timepoint_str) > 1:
                             reagent_name = timepoint_str[0].strip()
-                            timepoint_data = timepoint_str[1].split()
-                            if len(timepoint_data) > 1:
-                                time_val = float(timepoint_data[0].strip())
-                                time_unit = timepoint_data[1].strip()
-                                reagent_timepoint_dict = {'value' : time_val, 'unit' : time_unit}
+                            defaultUnit = 'unspecified'
+                            spec, unit = self.detect_and_remove_time_unit(timepoint_str[1]);
+                            if unit is not None and unit is not 'unspecified':
+                                defaultUnit = unit
+
+                            reagent_timepoint_dict = {'value' : float(spec), 'unit' : defaultUnit}
+                        
+                        # Retrieve SBH URI
                         uri = 'NO PROGRAM DICTIONARY ENTRY'
                         if len(paragraph_element['elements']) > 0 and 'link' in paragraph_element['elements'][0]['textRun']['textStyle']:
                             uri = paragraph_element['elements'][0]['textRun']['textStyle']['link']['url']
-                        reagent_strings = [s.strip() for s in cellTxt.split(sep=',')]
                         
-                        defaultUnit = 'unspecified'
-                        for value in reagent_strings:
-                            spec, unit = self.detect_and_remove_fluid_unit(value);
-                            if unit is not None and unit is not 'unspecified':
-                                defaultUnit = unit
-                        for value in reagent_strings:
-                            spec, unit = self.detect_and_remove_fluid_unit(value);
-                            reagent_amount = float(spec)
-                            if unit is None or unit == 'unspecified':
-                                unit = defaultUnit
+                        # Determine if cells is reagent or media
+                        for value,unit in table_utils.transform_cell(cellTxt, self.fluid_units, cell_type='fluid'):
                             try:
                                 if reagent_timepoint_dict:
-                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit, 'timepoint' : reagent_timepoint_dict}
+                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : value, 'unit' : unit, 'timepoint' : reagent_timepoint_dict}
                                 else:
-                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit}
+                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : value, 'unit' : unit}
                                     
                             except:
                                 self.logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % spec)
@@ -1025,6 +1021,10 @@ class IntentParserServer:
         request['runs'] = [{ 'measurements' : measurements}]
 
         return request
+    
+    def is_cell_value_media(self, cell_value):
+        reagent_exp = re.compile('(\d+)(,\s?(\d+))*[a-zA-Z]+')
+        reagent_exp.match(cell_value)
     
     def process_generate_request(self, httpMessage, sm):
         """
