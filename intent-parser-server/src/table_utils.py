@@ -10,6 +10,18 @@ _abbreviated_unit_dict = {'temperature' : _temperature_units,
                           'fluid' : _fluid_units}
 
 def transform_cell(cell, units, cell_type=None):
+    """
+    Parses the content of a cell to identify its value and unit. 
+    Args: 
+        cell: the content of a cell
+        units: a list of units that the cell can be assigned to as its unit type.
+        cell_type: an optional variable to specify what type of cell this function is parsing.
+        
+    Return:
+        Yield two variable values found from a cell's content. 
+        The first variable represents the cell's content.
+        The second variable represents an identified unit for the cell.
+    """
     tokens = _tokenize(cell) 
     if not _is_valued_cells(tokens):
         yield cell, 'unspecified'
@@ -31,6 +43,15 @@ def transform_cell(cell, units, cell_type=None):
             yield tokens[index][1], unit 
 
 def _tokenize(cell):
+    """
+    Tokenize the content from a given cell into numbers and names. 
+    Args: 
+        cell: Content of a cell
+    Returns:
+        A tokenized representation for the content of a cell.
+        A token with type NUMBER has a integer value parsed from a cell.
+        A token with type NAME has a string value parsed from a cell. 
+    """
     tokens = []
     token_specification = [
         ('NUMBER',   r'\d+(\.\d*)?'),
@@ -49,6 +70,18 @@ def _tokenize(cell):
     return tokens
      
 def _is_valued_cells(tokens):
+    """
+    Check if an array of tokens follows a valued-cell pattern. 
+    A valued-cell pattern can be a list of integer values propagated with units. 
+    Alternatively, the valued-cell pattern can be a list of integer values ending with unit.
+    
+    Args:
+        tokens: a representation of a valued-cell pattern
+    
+    Returns:
+        True if tokens follows a valued-cell pattern.
+        Otherwise, False is returned.
+    """
     if len(tokens) < 2:
         return False
     next = 'NUMBER'
@@ -65,7 +98,18 @@ def _is_valued_cells(tokens):
     return True
 
 def _determine_unit(tokens, units, abbrev_units):
+    """
+    Identify the unit assigned to an array of tokens.
     
+    Args:
+        tokens: An array of tokens. 
+        units: A list of units that an array of tokens can map to.
+        abbrev_units: A list of abbreviated units. 
+        
+    Returns:
+        An identified unit corresponding to tokens. 
+        unspecified is returned if no unit were identified. 
+    """
     if tokens[-1][0] == 'NAME':
         unit = tokens[-1][1].lower()
         if unit in abbrev_units:
@@ -75,6 +119,15 @@ def _determine_unit(tokens, units, abbrev_units):
     return 'unspecified'
 
 def _canonicalize_units(units):
+    """
+    Standardized units to a lower case representation. 
+    
+    Args: 
+        units: A list of strings
+        
+    Returns:
+        A dictionary that maps a lower case unit to its corresponding unit.
+    """
     unit_dict = {}
     for unit in units:
         unit_dict[unit.lower()] = unit 
