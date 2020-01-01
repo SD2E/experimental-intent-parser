@@ -1,6 +1,5 @@
 import collections
 import re
-from git import index
 
 _Token = collections.namedtuple('Token', ['type', 'value'])
 _temperature_units = {'c' : 'celsius', 
