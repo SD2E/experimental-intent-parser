@@ -72,7 +72,13 @@ class TableUtilsTest(unittest.TestCase):
             self.assertEqual(unit, 'unspecified')
             self.assertTrue(value == cell_str)
     
-    
+    def test_cell_without_cell_type(self):
+        cell_str = '1, 2 hour'
+        expected_values = ['1', '2']
+        for value, unit in tu.transform_cell(cell_str, ['hour']):
+            self.assertEqual(unit, 'hour')
+            self.assertTrue(value in expected_values) 
+            
                     
 if __name__ == "__main__":
     unittest.main()
