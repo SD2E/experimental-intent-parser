@@ -943,24 +943,14 @@ class IntentParserServer:
                         measurement['temperatures'] = temps
                     elif header == self.col_header_timepoint:
                         timepoints = []
-                        timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
-                        # First, determine default unit
-                        defaultUnit = 'unspecified'
-                        for time_str in timepoint_strings:
-                            spec, unit = self.detect_and_remove_time_unit(time_str);
-                            if unit is not None and unit is not 'unspecified':
-                                defaultUnit = unit
-
-                        for time_str in timepoint_strings:
-                            spec, unit = self.detect_and_remove_time_unit(time_str);
-                            if unit is None or unit == 'unspecified':
-                                unit = defaultUnit
+                        for value,unit in table_utils.transform_cell(cellTxt, self.time_units):
                             try:
                                 time_dict = {'value' : float(spec), 'unit' : unit}
                             except:
                                 time_dict = {'value' : -1, 'unit' : 'unspecified'}
                                 self.logger.info('WARNING: failed to parse time unit! Trying to parse: %s' % spec)
                             timepoints.append(time_dict)
+                       
                         measurement['timepoints'] = timepoints
                     else:
                         reagents = []
