@@ -78,7 +78,23 @@ class TableUtilsTest(unittest.TestCase):
         for value, unit in tu.transform_cell(cell_str, ['hour']):
             self.assertEqual(unit, 'hour')
             self.assertTrue(value in expected_values) 
-            
-                    
+    
+    def test_cell_values_with_numbers(self):
+        cell_str = '1, 2'
+        expected_values = ['1', '2']
+        self.assertListEqual(expected_values, tu.extract_number_value(cell_str))
+        
+    def test_cell_values_with_names(self):
+        cell_str = 'AND_00, NAND_00'
+        expected_values = ['AND_00', 'NAND_00']
+        self.assertListEqual(expected_values, tu.extract_name_value(cell_str))
+        
+    def test_cell_values_with_names2(self):
+        cell_str = 'B_subtilis_WT_JH642_Colony_1, B_subtilis_WT_JH642_Colony_2, B_subtilis_WT_JH642_Colony_3'
+        expected_values = ['B_subtilis_WT_JH642_Colony_1', 
+                           'B_subtilis_WT_JH642_Colony_2', 
+                           'B_subtilis_WT_JH642_Colony_3']
+        self.assertListEqual(expected_values, tu.extract_name_value(cell_str))  
+        
 if __name__ == "__main__":
     unittest.main()
