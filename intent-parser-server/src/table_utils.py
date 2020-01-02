@@ -17,9 +17,8 @@ def extract_number_value(cell):
         cell: the content of a cell.
         
     Returns:
-        An array of strings that were identified as a number.
+        An array of strings that are identified as a number.
     """
-    
     cell_values = []
     tokens = _tokenize(cell)
     for token in tokens:
@@ -35,7 +34,7 @@ def extract_name_value(cell):
         cell: the content of a cell.
     
     Returns:
-        An array of strings.
+        An array of strings that are identified as a name.
     """
     cell_str = []
     tokens = _tokenize(cell)

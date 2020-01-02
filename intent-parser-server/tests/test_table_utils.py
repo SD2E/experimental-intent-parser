@@ -84,17 +84,28 @@ class TableUtilsTest(unittest.TestCase):
         expected_values = ['1', '2']
         self.assertListEqual(expected_values, tu.extract_number_value(cell_str))
         
-    def test_cell_values_with_names(self):
+    def test_cell_values_with_name_containing_underscore_numbers(self):
         cell_str = 'AND_00, NAND_00'
         expected_values = ['AND_00', 'NAND_00']
         self.assertListEqual(expected_values, tu.extract_name_value(cell_str))
         
-    def test_cell_values_with_names2(self):
+    def test_cell_values_with_long_name(self):
         cell_str = 'B_subtilis_WT_JH642_Colony_1, B_subtilis_WT_JH642_Colony_2, B_subtilis_WT_JH642_Colony_3'
         expected_values = ['B_subtilis_WT_JH642_Colony_1', 
                            'B_subtilis_WT_JH642_Colony_2', 
                            'B_subtilis_WT_JH642_Colony_3']
         self.assertListEqual(expected_values, tu.extract_name_value(cell_str))  
-        
+    
+    def test_cell_values_without_underscore(self):
+        cell_str = 'CSV, FCS'
+        expected_values = ['CSV', 'FCS']
+        self.assertListEqual(expected_values, tu.extract_name_value(cell_str))
+    
+    def test_cell_values_with_one_name(self):
+        cell_str = 'CSV'
+        expected_values = ['CSV']
+        self.assertListEqual(expected_values, tu.extract_name_value(cell_str))
+    
+       
 if __name__ == "__main__":
     unittest.main()
