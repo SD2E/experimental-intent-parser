@@ -913,13 +913,9 @@ class IntentParserServer:
                         #samples isn't part of the schema and is just there for auditing purposes
                         continue 
                     elif header == self.col_header_strain:
-                        measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
+                        measurement['strains'] = [value for value in table_utils.extract_name_value(cellTxt)]
                     elif header == self.col_header_ods:
-                        #ods_strings = [float(s.strip()) for s in cellTxt.split(sep=',')]
-                        ods_strings = []
-                        for s in cellTxt.split(sep=','):
-                            ods_strings.append(float(s.strip()))
-                        measurement['ods'] = ods_strings
+                        measurement['ods'] = [float(value) for value in table_utils.extract_number_value(cellTxt)]
                     elif header == self.col_header_temperature:
                         temps = []
                         for value,unit in table_utils.transform_cell(cellTxt, self.temp_units, cell_type='temperature'):

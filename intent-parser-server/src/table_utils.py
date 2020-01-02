@@ -1,5 +1,6 @@
 import collections
 import re
+from pycparser.ply.yacc import _token
 
 _Token = collections.namedtuple('Token', ['type', 'value'])
 _temperature_units = {'c' : 'celsius', 
@@ -8,9 +9,45 @@ _fluid_units = {'fold' : 'X'}
 _abbreviated_unit_dict = {'temperature' : _temperature_units,
                           'fluid' : _fluid_units}
 
+def extract_number_value(cell):
+    """
+    Retrieve the content of a cell containing a list of numbers.
+    
+    Args:
+        cell: the content of a cell.
+        
+    Returns:
+        An array of strings that were identified as a number.
+    """
+    
+    cell_values = []
+    tokens = _tokenize(cell)
+    for token in tokens:
+        if token[0] == 'NUMBER':
+            cell_values.append(token[1])
+    return cell_values
+
+def extract_name_value(cell):
+    """
+    Retrieve the content of a cell containing a list of strings.
+    
+    Args:
+        cell: the content of a cell.
+    
+    Returns:
+        An array of strings.
+    """
+    cell_str = []
+    tokens = _tokenize(cell)
+    for token in tokens:
+        if token[0] == 'NAME':
+            cell_str.append(token[1])
+    return cell_str
+
 def transform_cell(cell, units, cell_type=None):
     """
     Parses the content of a cell to identify its value and unit. 
+    
     Args: 
         cell: the content of a cell
         units: a list of units that the cell can be assigned to as its unit type.
@@ -44,8 +81,10 @@ def transform_cell(cell, units, cell_type=None):
 def _tokenize(cell):
     """
     Tokenize the content from a given cell into numbers and names. 
+    
     Args: 
         cell: Content of a cell
+        
     Returns:
         A tokenized representation for the content of a cell.
         A token with type NUMBER has a integer value parsed from a cell.
@@ -54,8 +93,7 @@ def _tokenize(cell):
     tokens = []
     token_specification = [
         ('NUMBER',   r'\d+(\.\d*)?'),
-        ('NAME',       r'[A-Za-z]+'),
-        ('ID',       r'[A-Za-z0-9_]+'),
+        ('NAME',       r'[A-Za-z][A-Za-z0-9_]*'),
         ('SKIP',     r'[ \t]+'),
         ('SEPARATOR',     r'[,]')
     ]
