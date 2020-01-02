@@ -900,7 +900,7 @@ class IntentParserServer:
                     if header == self.col_header_measurement_type:
                         measurement['measurement_type'] = self.get_measurement_type(cellTxt)
                     elif header == self.col_header_file_type:
-                        measurement['file_type'] = [s.strip() for s in cellTxt.split(sep=',')]
+                        measurement['file_type'] = [value for value in table_utils.extract_name_value(cellTxt)] 
                     elif header == self.col_header_replicate:
                         try:
                             measurement['replicates'] = int(cellTxt)
