@@ -9,6 +9,12 @@ _fluid_units = {'fold' : 'X'}
 _abbreviated_unit_dict = {'temperature' : _temperature_units,
                           'fluid' : _fluid_units}
 
+def is_number(cell):
+    tokens = _tokenize(cell)
+    if len(tokens) > 0:
+        return False
+    return tokens[0][0] == 'NUMBER'
+
 def extract_number_value(cell):
     """
     Retrieve the content of a cell containing a list of numbers.
