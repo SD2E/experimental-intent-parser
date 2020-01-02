@@ -922,33 +922,22 @@ class IntentParserServer:
                         measurement['ods'] = ods_strings
                     elif header == self.col_header_temperature:
                         temps = []
-                        temp_strings = [s.strip() for s in cellTxt.split(sep=',')]
-                        # First, determine default unit
-                        defaultUnit = 'unspecified'
-                        for temp_str in temp_strings:
-                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
-                            if unit is not None and unit is not 'unspecified':
-                                defaultUnit = unit
-
-                        for temp_str in temp_strings:
-                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
-                            if unit is None or unit == 'unspecified':
-                                unit = defaultUnit
+                        for value,unit in table_utils.transform_cell(cellTxt, self.temp_units, cell_type='temperature'):
                             try:
-                                temp_dict = {'value' : float(spec), 'unit' : unit}
+                                temp_dict = {'value' : float(value), 'unit' : unit}
                             except:
                                 temp_dict = {'value' : -1, 'unit' : 'unspecified'}
-                                self.logger.info('WARNING: failed to parse temp unit! Trying to parse: %s' % spec)
+                                self.logger.info('WARNING: failed to parse temp unit! Trying to parse: %s' % cellTxt)
                             temps.append(temp_dict)
                         measurement['temperatures'] = temps
                     elif header == self.col_header_timepoint:
                         timepoints = []
                         for value,unit in table_utils.transform_cell(cellTxt, self.time_units):
                             try:
-                                time_dict = {'value' : float(spec), 'unit' : unit}
+                                time_dict = {'value' : float(value), 'unit' : unit}
                             except:
                                 time_dict = {'value' : -1, 'unit' : 'unspecified'}
-                                self.logger.info('WARNING: failed to parse time unit! Trying to parse: %s' % spec)
+                                self.logger.info('WARNING: failed to parse time unit! Trying to parse: %s' % cellTxt)
                             timepoints.append(time_dict)
                        
                         measurement['timepoints'] = timepoints
@@ -982,7 +971,7 @@ class IntentParserServer:
                                     reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : value, 'unit' : unit}
                                     
                             except:
-                                self.logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % spec)
+                                self.logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % cellTxt)
                             reagents.append(reagent_dict)
                         content.append(reagents)
                 if content:
