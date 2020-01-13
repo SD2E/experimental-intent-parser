@@ -9,9 +9,7 @@ class LabTable(object):
     _logger = logging.getLogger('intent_parser_server')
 
     def __init__(self):
-        '''
-        Constructor
-        '''
+        pass
        
     def parse_table(self, table):
         rows = table['tableRows']
