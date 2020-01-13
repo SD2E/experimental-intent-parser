@@ -103,9 +103,9 @@ class MeasurementTable:
                 else:
                     reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : value, 'unit' : unit}
                                     
+                reagents.append(reagent_dict)
             except:
                 self._logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % cellTxt)
-            reagents.append(reagent_dict)
         
         return reagents
     
