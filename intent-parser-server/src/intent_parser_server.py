@@ -445,11 +445,7 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
 
-    def detect_and_remove_time_unit(self, text):
-        """
-        """
-        return self.detect_and_remove_unit(text, 'time')
-
+  
     def detect_and_remove_temp_unit(self, text):
         """
         """
