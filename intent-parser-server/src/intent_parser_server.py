@@ -115,7 +115,6 @@ class IntentParserServer:
     uid_length_exception = ['M9', 'LB']
 
     # String defines for headers in the new-style measurements table
-    col_header_strain = 'strains'
     col_header_samples = 'samples'
     col_header_ods = 'ods'
     col_header_notes = 'notes'
@@ -650,7 +649,7 @@ class IntentParserServer:
                 headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
                 rowIdx = 1;
                 # Skip columns that has no units to propagate 
-                if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == constants.COL_HEADER_FILE_TYPE or headerTxt == constants.COL_HEADER_REPLICATE or headerTxt == self.col_header_strain or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
+                if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == constants.COL_HEADER_FILE_TYPE or headerTxt == constants.COL_HEADER_REPLICATE or headerTxt == constants.COL_HEADER_STRAIN or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
                     continue
                 for rowIdx in range(1,len(rows)):  
                     row = rows[rowIdx]
@@ -3094,12 +3093,12 @@ class IntentParserServer:
         header.append(constants.COL_HEADER_MEASUREMENT_TYPE)
         header.append(constants.COL_HEADER_FILE_TYPE)
         header.append(constants.COL_HEADER_REPLICATE)
-        header.append(self.col_header_strain)
+        header.append(constants.COL_HEADER_STRAIN)
 
         col_sizes.append(len(constants.COL_HEADER_MEASUREMENT_TYPE) + 1)
         col_sizes.append(len(constants.COL_HEADER_FILE_TYPE) + 1)
         col_sizes.append(len(constants.COL_HEADER_REPLICATE) + 1)
-        col_sizes.append(len(self.col_header_strain) + 1)
+        col_sizes.append(len(constants.COL_HEADER_STRAIN) + 1)
         if has_ods:
             header.append(self.col_header_ods)
             col_sizes.append(len(self.col_header_ods) + 1)
