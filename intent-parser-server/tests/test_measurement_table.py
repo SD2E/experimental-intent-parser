@@ -803,10 +803,19 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEquals(1, len(actual_result))
         self.assertEquals(actual_result[0]['measurement_type'], 'FLOW')
 
+    def test_measurement_table_with_empty_file_type(self):
+        input_table = {"tableRows": [
+            {"tableCells": [{"content": [{"paragraph": {"elements": [{"textRun": {
+                "content": "file-type\n" }}]}}]}]},
+            {"tableCells": [{"content": [{"paragraph": {"elements": [{"textRun": {
+                "content": "\n"}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable()
+        actual_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(actual_result))
+        self.assertTrue(not actual_result[0])
         
-        
-    def tearDown(self):
-        pass
-
+          
 if __name__ == "__main__":
     unittest.main()
