@@ -115,7 +115,6 @@ class IntentParserServer:
     uid_length_exception = ['M9', 'LB']
 
     # String defines for headers in the new-style measurements table
-    col_header_ods = 'ods'
     col_header_notes = 'notes'
     col_header_temperature = 'temperature'
     col_header_timepoint = 'timepoint'
@@ -3099,8 +3098,8 @@ class IntentParserServer:
         col_sizes.append(len(constants.COL_HEADER_REPLICATE) + 1)
         col_sizes.append(len(constants.COL_HEADER_STRAIN) + 1)
         if has_ods:
-            header.append(self.col_header_ods)
-            col_sizes.append(len(self.col_header_ods) + 1)
+            header.append(constants.COL_HEADER_ODS)
+            col_sizes.append(len(constants.COL_HEADER_ODS) + 1)
         if has_time:
             header.append(self.col_header_timepoint)
             col_sizes.append(len(self.col_header_timepoint) + 1)
