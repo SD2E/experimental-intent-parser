@@ -1,29 +1,23 @@
+import constants
+import intent_parser_utils
+import logging
 import table_utils
-
 
 '''
 Class handles measurement from Experimental Request tables in Google Docs.
 '''
-from table_utils import _temperature_units
 class MeasurementTable:
     
-    # String defines for headers in the new-style measurements table
-    COL_HEADER_MEASUREMENT_TYPE = 'measurement-type'
-    COL_HEADER_FILE_TYPE = 'file-type'
-    COL_HEADER_REPLICATE = 'replicate'
-    COL_HEADER_STRAIN = 'strains'
-    COL_HEADER_SAMPLES = 'samples'
-    COL_HEADER_ODS = 'ods'
-    COL_HEADER_NOTES = 'notes'
-    COL_HEADER_TEMPERATURE = 'temperature'
-    COL_HEADER_TIMEPOINT = 'timepoint'
-    IGNORE_COLUMNS = [COL_HEADER_SAMPLES, COL_HEADER_NOTES]
+    _logger = logging.getLogger('intent_parser_server')
+    IGNORE_COLUMNS = [constants.COL_HEADER_SAMPLES, constants.COL_HEADER_NOTES]
   
-    def __init__(self, temperature_units={}, timepoint_units={}, fluid_units={}):
+    def __init__(self, temperature_units={}, timepoint_units={}, fluid_units={}, measurement_types={}, file_type={}):
         self._temperature_units = temperature_units
         self._timepoint_units = timepoint_units
         self._fluid_units = fluid_units
-        
+        self._measurement_types = measurement_types
+        self._file_type = file_type
+         
     def parse_table(self, table):
         measurements = []
         rows = table['tableRows']
@@ -37,57 +31,57 @@ class MeasurementTable:
         num_cols = len(row['tableCells'])
         for i in range(0, num_cols): 
             paragraph_element = header_row['tableCells'][i]['content'][0]['paragraph']
-            header = self.get_paragraph_text(header_row['tableCells'][i]['content'][0]['paragraph']).strip()
-            cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][i]['content']])
+            header = table_utils.get_paragraph_text(paragraph_element).strip()
+            cellTxt = ' '.join([table_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][i]['content']])
             if not cellTxt or header in self.IGNORE_COLUMNS:
                 continue
-            elif header == self.COL_HEADER_MEASUREMENT_TYPE:
-                # TODO: 
-                measurement['measurement_type'] = self.get_measurement_type(cellTxt)
-            elif header == self.COL_HEADER_FILE_TYPE:
+            elif header == constants.COL_HEADER_MEASUREMENT_TYPE:
+                measurement['measurement_type'] = self._get_measurement_type(cellTxt)
+            elif header == constants.COL_HEADER_FILE_TYPE:
                 measurement['file_type'] = [value for value in table_utils.extract_name_value(cellTxt)] 
-            elif header == self.COL_HEADER_REPLICATE:
+            elif header == constants.COL_HEADER_REPLICATE:
                 if table_utils.is_number(cellTxt):
                     measurement['replicates'] = int(cellTxt)
                 else:
                     measurement['replicates'] = -1
-                    self.logger.info('WARNING: failed to parse number of replicates! Trying to parse: %s' % cellTxt)
-            elif header == self.COL_HEADER_STRAIN:
+                    self._logger.info('WARNING: failed to parse number of replicates! Trying to parse: %s' % cellTxt)
+            elif header == constants.COL_HEADER_STRAIN:
                 measurement['strains'] = [value for value in table_utils.extract_name_value(cellTxt)]
-            elif header == self.COL_HEADER_ODS:
-                measurement['ods'] = [float(value) for value in table_utils.extract_number_value(cellTxt)
-            elif header == self.COL_HEADER_TEMPERATURE:
+            elif header == constants.COL_HEADER_ODS:
+                measurement['ods'] = [float(value) for value in table_utils.extract_number_value(cellTxt)]
+            elif header == constants.COL_HEADER_TEMPERATURE:
                 temps = []
                 for value,unit in table_utils.transform_cell(cellTxt, self._temperature_units, cell_type='temperature'):
                     try:
                         temp_dict = {'value' : float(value), 'unit' : unit}
                     except:
                         temp_dict = {'value' : -1, 'unit' : 'unspecified'}
-                        self.logger.info('WARNING: failed to parse temp unit! Trying to parse: %s' % cellTxt)
+                        self._logger.info('WARNING: failed to parse temp unit! Trying to parse: %s' % cellTxt)
                     temps.append(temp_dict)
                 measurement['temperatures'] = temps
-            elif header == self.COL_HEADER_TIMEPOINT:
+            elif header == constants.COL_HEADER_TIMEPOINT:
                 timepoints = []
                 for value,unit in table_utils.transform_cell(cellTxt, self._timepoint_units):
                     try:
                         time_dict = {'value' : float(value), 'unit' : unit}
                     except:
                         time_dict = {'value' : -1, 'unit' : 'unspecified'}
-                        self.logger.info('WARNING: failed to parse time unit! Trying to parse: %s' % cellTxt)
+                        self._logger.info('WARNING: failed to parse time unit! Trying to parse: %s' % cellTxt)
                     timepoints.append(time_dict)
-                measurement['timepoints'] = timepoint
+                measurement['timepoints'] = timepoints
             else:
-                reagents = self._parse_reagent(header, cellTxt)
+                reagents = self._parse_reagent(paragraph_element, cellTxt)
                 content.append(reagents)
         if content:
             measurement['contents'] = content
         return measurement 
         
-    def _parse_reagent(self, reagent_name, cellTxt):
+    def _parse_reagent(self, paragraph_element, cellTxt):
         reagents = []
-      
-        timepoint_str = reagent_name.split('@')
+        reagent_name = table_utils.get_paragraph_text(paragraph_element).strip()
+        
         # Check header if it contains time sequence
+        timepoint_str = reagent_name.split('@')
         if len(timepoint_str) > 1:
             reagent_name = timepoint_str[0].strip()
             defaultUnit = 'unspecified'
@@ -110,7 +104,25 @@ class MeasurementTable:
                     reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : value, 'unit' : unit}
                                     
             except:
-                self.logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % cellTxt)
+                self._logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % cellTxt)
             reagents.append(reagent_dict)
         
-        return reagents 
+        return reagents
+    
+    
+    def _get_measurement_type(self, text):
+        """
+        Find the closest matching measurement type to the given type, and return that as a string
+        """
+        # measurement types have underscores, so replace spaces with underscores to make the inputs match better
+        text = text.replace(' ', '_')
+        best_match_type = ''
+        best_match_size = 0
+        for mtype in self._measurement_types:
+            matches = intent_parser_utils.find_common_substrings(text.lower(), mtype.lower(), 1, 0)
+            for m in matches:
+                if m.size > best_match_size:
+                    best_match_type = mtype
+                    best_match_size = m.size
+        return best_match_type
+     
