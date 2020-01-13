@@ -115,7 +115,6 @@ class IntentParserServer:
     uid_length_exception = ['M9', 'LB']
 
     # String defines for headers in the new-style measurements table
-    col_header_notes = 'notes'
     col_header_temperature = 'temperature'
     col_header_timepoint = 'timepoint'
 
@@ -580,7 +579,7 @@ class IntentParserServer:
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
                     headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
                     # Certain columns don't contain info about samples
-                    if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == self.col_header_notes or headerTxt == constants.COL_HEADER_SAMPLES:
+                    if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == constants.COL_HEADER_NOTES or headerTxt == constants.COL_HEADER_SAMPLES:
                         colIdx += 1
                         continue
 
@@ -647,7 +646,7 @@ class IntentParserServer:
                 headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
                 rowIdx = 1;
                 # Skip columns that has no units to propagate 
-                if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == constants.COL_HEADER_FILE_TYPE or headerTxt == constants.COL_HEADER_REPLICATE or headerTxt == constants.COL_HEADER_STRAIN or headerTxt == self.col_header_notes or headerTxt == constants.COL_HEADER_SAMPLES:
+                if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == constants.COL_HEADER_FILE_TYPE or headerTxt == constants.COL_HEADER_REPLICATE or headerTxt == constants.COL_HEADER_STRAIN or headerTxt == constants.COL_HEADER_NOTES or headerTxt == constants.COL_HEADER_SAMPLES:
                     continue
                 for rowIdx in range(1,len(rows)):  
                     row = rows[rowIdx]
@@ -3108,8 +3107,8 @@ class IntentParserServer:
             col_sizes.append(len(self.col_header_temperature) + 1)
 
         if has_notes:
-            header.append(self.col_header_notes)
-            col_sizes.append(len(self.col_header_notes) + 1)
+            header.append(constants.COL_HEADER_NOTES)
+            col_sizes.append(len(constants.COL_HEADER_NOTES) + 1)
 
         table_data.append(header)
 
