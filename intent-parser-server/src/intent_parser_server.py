@@ -1,29 +1,30 @@
-import socket
-import threading
-import json
-import urllib.request
-from socket_manager import SocketManager
-from google_accessor import GoogleAccessor
-from sbh_accessor import SBHAccessor
-import http_message;
-import traceback
-import sbol
-import sys
-import getopt
-import re
-import time
-import os
-import signal
-import inspect
+
 from datetime import datetime
-from operator import itemgetter
-from spellchecker import SpellChecker
+from google_accessor import GoogleAccessor
 from multiprocessing import Pool
+from operator import itemgetter
+from sbh_accessor import SBHAccessor
+from socket_manager import SocketManager
+from spellchecker import SpellChecker
+import getopt
+import http_message;
+import inspect
 import intent_parser_utils
-import numpy as np
-import table_utils
-#import logging
+import json
 import logging.config
+import numpy as np
+import os
+import re
+import sbol
+import signal
+import socket
+import sys
+import table_utils
+import threading
+import time
+import traceback
+import urllib.request
+#import logging
 
 from jsonschema import validate
 from jsonschema import ValidationError
@@ -881,98 +882,9 @@ class IntentParserServer:
         if measurement_table_new_idx >= 0:
             # Each non-header row represents a measurement in the run
             table = doc_tables[measurement_table_new_idx]
-            rows = table['tableRows']
-            headerRow = rows[0]
-            numCols = len(headerRow['tableCells'])
             
-            for row in rows[1:]:
-                cells = row['tableCells']
-                content = []
-            
-                # Parse rest of table
-                measurement = {}
-                for i in range(0, numCols): 
-                    paragraph_element = headerRow['tableCells'][i]['content'][0]['paragraph']
-                    header = self.get_paragraph_text(headerRow['tableCells'][i]['content'][0]['paragraph']).strip()
-                    cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in cells[i]['content']])
-                    if not cellTxt:
-                        continue
-                    if header == self.col_header_measurement_type:
-                        measurement['measurement_type'] = self.get_measurement_type(cellTxt)
-                    elif header == self.col_header_file_type:
-                        measurement['file_type'] = [value for value in table_utils.extract_name_value(cellTxt)] 
-                    elif header == self.col_header_replicate:
-                        try:
-                            measurement['replicates'] = int(cellTxt)
-                        except:
-                            measurement['replicates'] = -1
-                            self.logger.info('WARNING: failed to parse number of replicates! Trying to parse: %s' % cellTxt)
-                    elif header == self.col_header_notes:
-                        continue
-                    elif header == self.col_header_samples:
-                        #samples isn't part of the schema and is just there for auditing purposes
-                        continue 
-                    elif header == self.col_header_strain:
-                        measurement['strains'] = [value for value in table_utils.extract_name_value(cellTxt)]
-                    elif header == self.col_header_ods:
-                        measurement['ods'] = [float(value) for value in table_utils.extract_number_value(cellTxt)]
-                    elif header == self.col_header_temperature:
-                        temps = []
-                        for value,unit in table_utils.transform_cell(cellTxt, self.temp_units, cell_type='temperature'):
-                            try:
-                                temp_dict = {'value' : float(value), 'unit' : unit}
-                            except:
-                                temp_dict = {'value' : -1, 'unit' : 'unspecified'}
-                                self.logger.info('WARNING: failed to parse temp unit! Trying to parse: %s' % cellTxt)
-                            temps.append(temp_dict)
-                        measurement['temperatures'] = temps
-                    elif header == self.col_header_timepoint:
-                        timepoints = []
-                        for value,unit in table_utils.transform_cell(cellTxt, self.time_units):
-                            try:
-                                time_dict = {'value' : float(value), 'unit' : unit}
-                            except:
-                                time_dict = {'value' : -1, 'unit' : 'unspecified'}
-                                self.logger.info('WARNING: failed to parse time unit! Trying to parse: %s' % cellTxt)
-                            timepoints.append(time_dict)
-                       
-                        measurement['timepoints'] = timepoints
-                    else:
-                        reagents = []
-                        reagent_timepoint_dict = {}
-                        reagent_header = header
-                        reagent_name = header
-                        timepoint_str = reagent_header.split('@')
-                        # Check header if it contains time sequence
-                        if len(timepoint_str) > 1:
-                            reagent_name = timepoint_str[0].strip()
-                            defaultUnit = 'unspecified'
-                            spec, unit = self.detect_and_remove_time_unit(timepoint_str[1]);
-                            if unit is not None and unit is not 'unspecified':
-                                defaultUnit = unit
-
-                            reagent_timepoint_dict = {'value' : float(spec), 'unit' : defaultUnit}
-                        
-                        # Retrieve SBH URI
-                        uri = 'NO PROGRAM DICTIONARY ENTRY'
-                        if len(paragraph_element['elements']) > 0 and 'link' in paragraph_element['elements'][0]['textRun']['textStyle']:
-                            uri = paragraph_element['elements'][0]['textRun']['textStyle']['link']['url']
-                        
-                        # Determine if cells is reagent or media
-                        for value,unit in table_utils.transform_cell(cellTxt, self.fluid_units, cell_type='fluid'):
-                            try:
-                                if reagent_timepoint_dict:
-                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : value, 'unit' : unit, 'timepoint' : reagent_timepoint_dict}
-                                else:
-                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : value, 'unit' : unit}
-                                    
-                            except:
-                                self.logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % cellTxt)
-                            reagents.append(reagent_dict)
-                        content.append(reagents)
-                if content:
-                    measurement['contents'] = content
-                measurements.append(measurement)
+#             measurement = 
+            measurements.append(measurement)
 
         if lab_table_idx >= 0:
             table = doc_tables[lab_table_idx]
