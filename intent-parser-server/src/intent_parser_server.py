@@ -9,6 +9,7 @@ from operator import itemgetter
 from sbh_accessor import SBHAccessor
 from socket_manager import SocketManager
 from spellchecker import SpellChecker
+import constants
 import getopt
 import http_message;
 import inspect
@@ -114,7 +115,6 @@ class IntentParserServer:
     uid_length_exception = ['M9', 'LB']
 
     # String defines for headers in the new-style measurements table
-    col_header_measurement_type = 'measurement-type'
     col_header_file_type = 'file-type'
     col_header_replicate = 'replicate'
     col_header_strain = 'strains'
@@ -572,7 +572,7 @@ class IntentParserServer:
                 while colIdx < numCols and not is_type_col:
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
                     headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
-                    if headerTxt == self.col_header_measurement_type:
+                    if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE:
                         is_type_col = True
                     else:
                         cellContent = row['tableCells'][colIdx]['content']
@@ -585,7 +585,7 @@ class IntentParserServer:
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
                     headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
                     # Certain columns don't contain info about samples
-                    if headerTxt == self.col_header_measurement_type or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
+                    if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
                         colIdx += 1
                         continue
 
@@ -652,7 +652,7 @@ class IntentParserServer:
                 headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
                 rowIdx = 1;
                 # Skip columns that has no units to propagate 
-                if headerTxt == self.col_header_measurement_type or headerTxt == self.col_header_file_type or headerTxt == self.col_header_replicate or headerTxt == self.col_header_strain or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
+                if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == self.col_header_file_type or headerTxt == self.col_header_replicate or headerTxt == self.col_header_strain or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
                     continue
                 for rowIdx in range(1,len(rows)):  
                     row = rows[rowIdx]
@@ -3093,12 +3093,12 @@ class IntentParserServer:
             header.append('')
             col_sizes.append(4)
 
-        header.append(self.col_header_measurement_type)
+        header.append(constants.COL_HEADER_MEASUREMENT_TYPE)
         header.append(self.col_header_file_type)
         header.append(self.col_header_replicate)
         header.append(self.col_header_strain)
 
-        col_sizes.append(len(self.col_header_measurement_type) + 1)
+        col_sizes.append(len(constants.COL_HEADER_MEASUREMENT_TYPE) + 1)
         col_sizes.append(len(self.col_header_file_type) + 1)
         col_sizes.append(len(self.col_header_replicate) + 1)
         col_sizes.append(len(self.col_header_strain) + 1)
