@@ -556,7 +556,7 @@ class IntentParserServer:
             headerRow = rows[0]
             samples_col = -1
             for cell_idx in range(len(headerRow['tableCells'])):
-                cellTxt = self.get_paragraph_text(headerRow['tableCells'][cell_idx]['content'][0]['paragraph']).strip()
+                cellTxt = table_utils.get_paragraph_text(headerRow['tableCells'][cell_idx]['content'][0]['paragraph']).strip()
                 if cellTxt == self.col_header_samples:
                     samples_col = cell_idx
 
@@ -571,26 +571,26 @@ class IntentParserServer:
                 # Process reagents
                 while colIdx < numCols and not is_type_col:
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
-                    headerTxt =  self.get_paragraph_text(paragraph_element).strip()
+                    headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
                     if headerTxt == self.col_header_measurement_type:
                         is_type_col = True
                     else:
                         cellContent = row['tableCells'][colIdx]['content']
-                        cellTxt = ' '.join([self.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+                        cellTxt = ' '.join([table_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
                         comp_count.append(len(cellTxt.split(sep=',')))
                     colIdx += 1
 
                 # Process the rest of the columns
                 while colIdx < numCols:
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
-                    headerTxt =  self.get_paragraph_text(paragraph_element).strip()
+                    headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
                     # Certain columns don't contain info about samples
                     if headerTxt == self.col_header_measurement_type or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
                         colIdx += 1
                         continue
 
                     cellContent = row['tableCells'][colIdx]['content']
-                    cellTxt = ' '.join([self.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+                    cellTxt = ' '.join([table_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
 
                     if headerTxt == self.col_header_replicate:
                         comp_count.append(int(cellTxt))
@@ -649,7 +649,7 @@ class IntentParserServer:
             is_type_col = False
             for colIdx in range(numCols):
                 paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
-                headerTxt =  self.get_paragraph_text(paragraph_element).strip()
+                headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
                 rowIdx = 1;
                 # Skip columns that has no units to propagate 
                 if headerTxt == self.col_header_measurement_type or headerTxt == self.col_header_file_type or headerTxt == self.col_header_replicate or headerTxt == self.col_header_strain or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
@@ -657,7 +657,7 @@ class IntentParserServer:
                 for rowIdx in range(1,len(rows)):  
                     row = rows[rowIdx]
                     cellContent = row['tableCells'][colIdx]['content']
-                    cellTxt = ' '.join([self.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+                    cellTxt = ' '.join([table_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
                     
                      
                     if headerTxt == self.col_header_timepoint:
@@ -826,7 +826,7 @@ class IntentParserServer:
         for tIdx in range(len(doc_tables)):
             table = doc_tables[tIdx]
             rows = table['tableRows']
-            is_measurement_table = "Measurement type" in self.get_paragraph_text(rows[0]['tableCells'][0]['content'][0]['paragraph'])
+            is_measurement_table = "Measurement type" in table_utils.get_paragraph_text(rows[0]['tableCells'][0]['content'][0]['paragraph'])
             if is_measurement_table:
                 measurement_table_idx = tIdx
 
@@ -1047,7 +1047,7 @@ class IntentParserServer:
         headerIdx = -1
         contentIdx = -1
         for pIdx in range(len(paragraphs)):
-            para_text = self.get_paragraph_text(paragraphs[pIdx])
+            para_text = table_utils.get_paragraph_text(paragraphs[pIdx])
             if para_text == "Experiment Results\n":
                 headerIdx = pIdx
             elif headerIdx >= 0 and not para_text == '\n':
@@ -1697,24 +1697,6 @@ class IntentParserServer:
 
         return action
 
-    def get_paragraph_text(self, paragraph):
-        elements = paragraph['elements']
-        paragraph_text = '';
-
-        for element_index in range( len(elements) ):
-            element = elements[ element_index ]
-
-            if 'textRun' not in element:
-                continue
-            text_run = element['textRun']
-
-            #end_index = element['endIndex']
-            #start_index = element['startIndex']
-
-            paragraph_text += text_run['content']
-
-        return paragraph_text
-
     def find_exact_text(self, text, starting_pos, paragraphs):
         """
         Search through the whole document, beginning at starting_pos and return the first exact match to text.
@@ -2164,7 +2146,7 @@ class IntentParserServer:
             doc_content = body.get('content')
             paragraphs = self.get_paragraphs(doc_content)
 
-            paragraph_text = self.get_paragraph_text(
+            paragraph_text = table_utils.get_paragraph_text(
                 paragraphs[start_paragraph])
 
 
@@ -2671,7 +2653,7 @@ class IntentParserServer:
         doc_content = body.get('content')
         paragraphs = self.get_paragraphs(doc_content)
         # work on the paragraph text directly
-        paragraph_text = self.get_paragraph_text(paragraphs[para_index])
+        paragraph_text = table_utils.get_paragraph_text(paragraphs[para_index])
         para_text_len = len(paragraph_text)
 
         # Determine which directions to search in, based on selection or removal, prev/next
