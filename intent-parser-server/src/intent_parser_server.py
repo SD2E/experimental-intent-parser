@@ -4,7 +4,6 @@ from google_accessor import GoogleAccessor
 from lab_table import LabTable
 from measurement_table import MeasurementTable
 from multiprocessing import Pool
-from old_measurement_table import OldMeasurementTable
 from operator import itemgetter
 from sbh_accessor import SBHAccessor
 from socket_manager import SocketManager
@@ -638,16 +637,11 @@ class IntentParserServer:
 
         measurements = []
         doc_tables = self.get_element_type(doc, 'table')
-        measurement_table_idx = -1
         measurement_table_new_idx = -1
         lab_table_idx = -1
         for tIdx in range(len(doc_tables)):
             table = doc_tables[tIdx]
-            rows = table['tableRows']
-            is_measurement_table = "Measurement type" in table_utils.get_paragraph_text(rows[0]['tableCells'][0]['content'][0]['paragraph'])
-            if is_measurement_table:
-                measurement_table_idx = tIdx
-
+            
             is_new_measurement_table = table_utils.detect_new_measurement_table(table)
             if is_new_measurement_table:
                 measurement_table_new_idx = tIdx
@@ -656,13 +650,6 @@ class IntentParserServer:
             if is_lab_table:
                 lab_table_idx = tIdx
 
-        # Old-style measurement table - can really only get the measurement-type
-        if measurement_table_idx >= 0 and measurement_table_new_idx == -1:
-            table = doc_tables[measurement_table_idx]
-            old_meas_table = OldMeasurementTable()
-            measurements = old_meas_table.parse_table(table)
-            
-        # New-style measurement table - can pull much more information
         if measurement_table_new_idx >= 0:
             table = doc_tables[measurement_table_new_idx]
             meas_table = MeasurementTable(self.temp_units, self.time_units, self.fluid_units)
