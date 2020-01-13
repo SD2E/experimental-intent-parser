@@ -850,9 +850,9 @@ class IntentParserServer:
 
         # New-style measurement table - can pull much more information
         if measurement_table_new_idx >= 0:
-            # Each non-header row represents a measurement in the run
             table = doc_tables[measurement_table_new_idx]
-            
+            meas_table = MeasurementTable(self.temp_units, self.time_units, self.fluid_units)
+            measurement = meas_table.parse_table(table)
             measurements.append(measurement)
 
         if lab_table_idx >= 0:
