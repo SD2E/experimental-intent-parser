@@ -789,19 +789,6 @@ class MeasurementTableTest(unittest.TestCase):
     """
        Class to test measurement table
     """
-    
-#     def setUp(self):
-#         curr_path = os.path.dirname(os.path.realpath(__file__))
-#         data_dir = os.path.join(curr_path, '../tests/data')
-#         with open(os.path.join(data_dir, 'test_tables.json'), 'r') as file:
-#             self.input_tables = json.load(file)
-#         
-#         self.collected_meas_table = []
-#         self.table_ids = []
-#         for table_indx in range(len(self.input_tables)):
-#             table = self.input_tables[table_indx]
-#             if table_utils.detect_new_measurement_table(table):
-#                 self.collected_meas_table.append(table)
                 
     def test_measurement_table_with_measurement_type(self):
         input_table = {"tableRows": [
