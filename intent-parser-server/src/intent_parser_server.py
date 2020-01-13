@@ -115,7 +115,6 @@ class IntentParserServer:
     uid_length_exception = ['M9', 'LB']
 
     # String defines for headers in the new-style measurements table
-    col_header_samples = 'samples'
     col_header_ods = 'ods'
     col_header_notes = 'notes'
     col_header_temperature = 'temperature'
@@ -554,7 +553,7 @@ class IntentParserServer:
             samples_col = -1
             for cell_idx in range(len(headerRow['tableCells'])):
                 cellTxt = table_utils.get_paragraph_text(headerRow['tableCells'][cell_idx]['content'][0]['paragraph']).strip()
-                if cellTxt == self.col_header_samples:
+                if cellTxt == constants.COL_HEADER_SAMPLES:
                     samples_col = cell_idx
 
             samples = []
@@ -582,7 +581,7 @@ class IntentParserServer:
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
                     headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
                     # Certain columns don't contain info about samples
-                    if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
+                    if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == self.col_header_notes or headerTxt == constants.COL_HEADER_SAMPLES:
                         colIdx += 1
                         continue
 
@@ -649,7 +648,7 @@ class IntentParserServer:
                 headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
                 rowIdx = 1;
                 # Skip columns that has no units to propagate 
-                if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == constants.COL_HEADER_FILE_TYPE or headerTxt == constants.COL_HEADER_REPLICATE or headerTxt == constants.COL_HEADER_STRAIN or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
+                if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == constants.COL_HEADER_FILE_TYPE or headerTxt == constants.COL_HEADER_REPLICATE or headerTxt == constants.COL_HEADER_STRAIN or headerTxt == self.col_header_notes or headerTxt == constants.COL_HEADER_SAMPLES:
                     continue
                 for rowIdx in range(1,len(rows)):  
                     row = rows[rowIdx]
@@ -3108,13 +3107,11 @@ class IntentParserServer:
         if has_temp:
             header.append(self.col_header_temperature)
             col_sizes.append(len(self.col_header_temperature) + 1)
-        #header.append(self.col_header_samples)
 
         if has_notes:
             header.append(self.col_header_notes)
             col_sizes.append(len(self.col_header_notes) + 1)
 
-        #col_sizes.append(len(self.col_header_samples) + 1)
         table_data.append(header)
 
         for r in range(num_rows):
