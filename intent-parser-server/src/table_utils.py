@@ -1,6 +1,7 @@
 import collections
+import constants
 import re
-from pycparser.ply.yacc import _token
+
 
 _Token = collections.namedtuple('Token', ['type', 'value'])
 _temperature_units = {'c' : 'celsius', 
@@ -9,6 +10,54 @@ _fluid_units = {'fold' : 'X'}
 _abbreviated_unit_dict = {'temperature' : _temperature_units,
                           'fluid' : _fluid_units}
 
+
+def detect_lab_table(table):
+    """
+    Determine if the given table is a lab table, defining the lab to run measurements.
+    """
+    rows = table['tableRows']
+    numRows = len(rows)
+    labRow = rows[0]
+    numCols = len(labRow['tableCells'])
+    lab = get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph'])
+    return numRows == 1 and numCols == 1 and 'lab' in lab.lower()
+
+
+def detect_new_measurement_table(table):
+    """
+    Scan the header row to see if it contains what we expect in a new-style measurements table.
+    """
+    found_replicates = False
+    found_strain = False
+    found_measurement_type = False
+    found_file_type = False
+
+    rows = table['tableRows']
+    headerRow = rows[0]
+    for cell in headerRow['tableCells']:
+        cellTxt = get_paragraph_text(cell['content'][0]['paragraph']).strip()
+        found_replicates |= cellTxt == constants.COL_HEADER_REPLICATE 
+        found_strain |= cellTxt == constants.COL_HEADER_STRAIN 
+        found_measurement_type |= cellTxt == constants.COL_HEADER_MEASUREMENT_TYPE
+        found_file_type |= cellTxt == constants.COL_HEADER_FILE_TYPE 
+
+    return found_replicates and found_strain and found_measurement_type and found_file_type
+
+
+def get_paragraph_text(paragraph):
+    elements = paragraph['elements']
+    paragraph_text = '';
+
+    for element_index in range( len(elements) ):
+        element = elements[ element_index ]
+
+        if 'textRun' not in element:
+            continue
+        text_run = element['textRun']
+        paragraph_text += text_run['content']
+
+    return paragraph_text
+    
 def is_number(cell):
     tokens = _tokenize(cell)
     if len(tokens) > 0:
