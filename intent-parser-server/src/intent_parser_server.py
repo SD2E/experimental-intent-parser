@@ -524,18 +524,6 @@ class IntentParserServer:
             text = text.replace(best_match, '').strip()
         return value_tok, best_match
 
-    def detect_lab_table(self, table):
-        """
-        Determine if the given table is a lab table, defining the lab to run measurements.
-        """
-        rows = table['tableRows']
-        numRows = len(rows)
-        labRow = rows[0]
-        numCols = len(labRow['tableCells'])
-        lab = self.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph'])
-        return numRows == 1 and numCols == 1 and 'lab' in lab.lower()
-
-    
     def process_calculate_samples(self, httpMessage, sm):
         """
         Find all measurements tables and update the samples columns, or add the samples column if it doesn't exist.
@@ -865,7 +853,6 @@ class IntentParserServer:
             # Each non-header row represents a measurement in the run
             table = doc_tables[measurement_table_new_idx]
             
-#             measurement = 
             measurements.append(measurement)
 
         if lab_table_idx >= 0:
