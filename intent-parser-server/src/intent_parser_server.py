@@ -114,9 +114,6 @@ class IntentParserServer:
     # Some lab UIDs are short but still valid.  This defines an exceptions to the length threshold.
     uid_length_exception = ['M9', 'LB']
 
-    # String defines for headers in the new-style measurements table
-    col_header_timepoint = 'timepoint'
-
     def __init__(self, bind_port=8081, bind_ip="0.0.0.0",
                  sbh_collection_uri=None,
                  sbh_spoofing_prefix=None,
@@ -653,7 +650,7 @@ class IntentParserServer:
                     cellTxt = ' '.join([table_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
                     
                      
-                    if headerTxt == self.col_header_timepoint:
+                    if headerTxt == constants.COL_HEADER_TIMEPOINT:
                         timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
                         prop_unit = [] 
                         defaultUnit = 'unspecified'
@@ -3099,8 +3096,8 @@ class IntentParserServer:
             header.append(constants.COL_HEADER_ODS)
             col_sizes.append(len(constants.COL_HEADER_ODS) + 1)
         if has_time:
-            header.append(self.col_header_timepoint)
-            col_sizes.append(len(self.col_header_timepoint) + 1)
+            header.append(constants.COL_HEADER_TIMEPOINT)
+            col_sizes.append(len(constants.COL_HEADER_TIMEPOINT) + 1)
         if has_temp:
             header.append(constants.COL_HEADER_TEMPERATURE)
             col_sizes.append(len(constants.COL_HEADER_TEMPERATURE) + 1)
