@@ -115,8 +115,6 @@ class IntentParserServer:
     uid_length_exception = ['M9', 'LB']
 
     # String defines for headers in the new-style measurements table
-    col_header_file_type = 'file-type'
-    col_header_replicate = 'replicate'
     col_header_strain = 'strains'
     col_header_samples = 'samples'
     col_header_ods = 'ods'
@@ -592,7 +590,7 @@ class IntentParserServer:
                     cellContent = row['tableCells'][colIdx]['content']
                     cellTxt = ' '.join([table_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
 
-                    if headerTxt == self.col_header_replicate:
+                    if headerTxt == constants.COL_HEADER_REPLICATE:
                         comp_count.append(int(cellTxt))
                     else:
                         comp_count.append(len(cellTxt.split(sep=',')))
@@ -652,7 +650,7 @@ class IntentParserServer:
                 headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
                 rowIdx = 1;
                 # Skip columns that has no units to propagate 
-                if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == self.col_header_file_type or headerTxt == self.col_header_replicate or headerTxt == self.col_header_strain or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
+                if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == constants.COL_HEADER_FILE_TYPE or headerTxt == constants.COL_HEADER_REPLICATE or headerTxt == self.col_header_strain or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
                     continue
                 for rowIdx in range(1,len(rows)):  
                     row = rows[rowIdx]
@@ -3094,13 +3092,13 @@ class IntentParserServer:
             col_sizes.append(4)
 
         header.append(constants.COL_HEADER_MEASUREMENT_TYPE)
-        header.append(self.col_header_file_type)
-        header.append(self.col_header_replicate)
+        header.append(constants.COL_HEADER_FILE_TYPE)
+        header.append(constants.COL_HEADER_REPLICATE)
         header.append(self.col_header_strain)
 
         col_sizes.append(len(constants.COL_HEADER_MEASUREMENT_TYPE) + 1)
-        col_sizes.append(len(self.col_header_file_type) + 1)
-        col_sizes.append(len(self.col_header_replicate) + 1)
+        col_sizes.append(len(constants.COL_HEADER_FILE_TYPE) + 1)
+        col_sizes.append(len(constants.COL_HEADER_REPLICATE) + 1)
         col_sizes.append(len(self.col_header_strain) + 1)
         if has_ods:
             header.append(self.col_header_ods)
