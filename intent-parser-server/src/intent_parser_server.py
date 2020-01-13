@@ -115,7 +115,6 @@ class IntentParserServer:
     uid_length_exception = ['M9', 'LB']
 
     # String defines for headers in the new-style measurements table
-    col_header_temperature = 'temperature'
     col_header_timepoint = 'timepoint'
 
     def __init__(self, bind_port=8081, bind_ip="0.0.0.0",
@@ -670,7 +669,7 @@ class IntentParserServer:
                         meas_tableIdx['row'].append(rowIdx)
                         meas_tableIdx['col'].append(colIdx)
                         meas_tableIdx['cell'].append(newCellTxt)
-                    elif headerTxt == self.col_header_temperature:
+                    elif headerTxt == constants.COL_HEADER_TEMPERATURE:
                         temperature_strings = [s.strip() for s in cellTxt.split(sep=',')]
                         prop_unit = [] 
                         defaultUnit = 'unspecified'
@@ -3103,8 +3102,8 @@ class IntentParserServer:
             header.append(self.col_header_timepoint)
             col_sizes.append(len(self.col_header_timepoint) + 1)
         if has_temp:
-            header.append(self.col_header_temperature)
-            col_sizes.append(len(self.col_header_temperature) + 1)
+            header.append(constants.COL_HEADER_TEMPERATURE)
+            col_sizes.append(len(constants.COL_HEADER_TEMPERATURE) + 1)
 
         if has_notes:
             header.append(constants.COL_HEADER_NOTES)
