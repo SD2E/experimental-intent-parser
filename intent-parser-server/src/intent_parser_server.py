@@ -1,6 +1,7 @@
 
 from datetime import datetime
 from google_accessor import GoogleAccessor
+from measurement_table import MeasurementTable
 from multiprocessing import Pool
 from operator import itemgetter
 from sbh_accessor import SBHAccessor
@@ -534,26 +535,7 @@ class IntentParserServer:
         lab = self.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph'])
         return numRows == 1 and numCols == 1 and 'lab' in lab.lower()
 
-    def detect_new_measurement_table(self, table):
-        """
-        Scan the header row to see if it contains what we expect in a new-style measurements table.
-        """
-        found_replicates = False
-        found_strain = False
-        found_measurement_type = False
-        found_file_type = False
-
-        rows = table['tableRows']
-        headerRow = rows[0]
-        for cell in headerRow['tableCells']:
-            cellTxt = self.get_paragraph_text(cell['content'][0]['paragraph']).strip()
-            found_replicates |= cellTxt == self.col_header_replicate
-            found_strain |= cellTxt == self.col_header_strain
-            found_measurement_type |= cellTxt == self.col_header_measurement_type
-            found_file_type |= cellTxt == self.col_header_file_type
-
-        return found_replicates and found_strain and found_measurement_type and found_file_type
-
+    
     def process_calculate_samples(self, httpMessage, sm):
         """
         Find all measurements tables and update the samples columns, or add the samples column if it doesn't exist.
@@ -576,7 +558,7 @@ class IntentParserServer:
             table = doc_tables[tIdx]
 
             # Only process new style measurement tables
-            is_new_measurement_table = self.detect_new_measurement_table(table)
+            is_new_measurement_table = table_utils.detect_new_measurement_table(table)
             if not is_new_measurement_table:
                 continue
 
@@ -662,7 +644,7 @@ class IntentParserServer:
             table = doc_tables[tIdx]
             
             # Only process new style measurement tables
-            is_new_measurement_table = self.detect_new_measurement_table(table)
+            is_new_measurement_table = table_utils.detect_new_measurement_table(table)
             if not is_new_measurement_table:
                 continue
 
@@ -858,11 +840,11 @@ class IntentParserServer:
             if is_measurement_table:
                 measurement_table_idx = tIdx
 
-            is_new_measurement_table = self.detect_new_measurement_table(table)
+            is_new_measurement_table = table_utils.detect_new_measurement_table(table)
             if is_new_measurement_table:
                 measurement_table_new_idx = tIdx
 
-            is_lab_table = self.detect_lab_table(table)
+            is_lab_table = table_utils.detect_lab_table(table)
             if is_lab_table:
                 lab_table_idx = tIdx
 
