@@ -1,6 +1,7 @@
 
 from datetime import datetime
 from google_accessor import GoogleAccessor
+from lab_table import LabTable
 from measurement_table import MeasurementTable
 from multiprocessing import Pool
 from operator import itemgetter
@@ -857,15 +858,9 @@ class IntentParserServer:
 
         if lab_table_idx >= 0:
             table = doc_tables[lab_table_idx]
-            rows = table['tableRows']
-            numRows = len(rows)
-            labRow = rows[0]
-            numCols = len(labRow['tableCells'])
-            if numRows > 1 or numCols > 1:
-                self.logger.info('WARNING: Lab table size differs from expectation! Expecting 1 row and 1 col, found %d rows and %d cols' % (numRows, numCols))
-            # The lab text is expected to be in row 0, col 0 and have the form: Lab: <X>
-            lab = self.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph']).strip().split(sep=':')[1].strip()
-
+            lab_table = LabTable()
+            lab = lab_table.parse_table(table)
+            
         request = {}
         request['name'] = doc['title']
         request['experiment_id'] = experiment_id
