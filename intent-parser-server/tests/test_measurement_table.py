@@ -979,6 +979,32 @@ class MeasurementTableTest(unittest.TestCase):
         for list in meas_result[0]['temperatures']:
             self.assertFalse(list != exp_res1 and list != exp_res2 and list != exp_res3)  
     
+    def test_table_with_samples(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'samples\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': '5, 10, 15\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable()
+        meas_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(meas_result))
+        self.assertTrue(not meas_result[0])
+    
+    def test_table_with_notes(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'notes\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'A simple string\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable()
+        meas_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(meas_result))
+        self.assertTrue(not meas_result[0])
+        
     
                
 if __name__ == '__main__':
