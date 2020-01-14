@@ -5,27 +5,27 @@ import table_utils
 import unittest
 
 input_table_def = {
-    "rows": 5,
-    "columns": 9,
-    "tableRows": [
+    'rows': 5,
+    'columns': 9,
+    'tableRows': [
       {
-        "tableCells": [
+        'tableCells': [
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "IPTG",
-                        "textStyle": {
-                          "bold": True
+                      'textRun': {
+                        'content': 'IPTG',
+                        'textStyle': {
+                          'bold': True
                         }
                       }
                     },
                     {
-                      "textRun": {
-                        "content": "\n"
+                      'textRun': {
+                        'content': '\n'
                       }
                     }
                   ]
@@ -34,21 +34,21 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "Kanamycin Sulfate",
-                        "textStyle": {
-                          "bold": True
+                      'textRun': {
+                        'content': 'Kanamycin Sulfate',
+                        'textStyle': {
+                          'bold': True
                         }
                       }
                     },
                     {
-                      "textRun": {
-                        "content": "\n"
+                      'textRun': {
+                        'content': '\n'
                       }
                     }
                   ]
@@ -57,23 +57,23 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "L-arabinose",
-                        "textStyle": {
-                          "link": {
-                            "url": "https://hub.sd2e.org/user/sd2e/design/Larabinose/1"
+                      'textRun': {
+                        'content': 'L-arabinose',
+                        'textStyle': {
+                          'link': {
+                            'url': 'https://hub.sd2e.org/user/sd2e/design/Larabinose/1'
                           }
                         }
                       }
                     },
                     {
-                      "textRun": {
-                        "content": "\n"
+                      'textRun': {
+                        'content': '\n'
                       }
                     }
                   ]
@@ -82,13 +82,13 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "measurement-type\n"
+                      'textRun': {
+                        'content': 'measurement-type\n'
                       }
                     }
                   ]
@@ -97,18 +97,18 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "file-type"
+                      'textRun': {
+                        'content': 'file-type'
                       }
                     },
                     {
-                      "textRun": {
-                        "content": "\n"
+                      'textRun': {
+                        'content': '\n'
                       }
                     }
                   ]
@@ -117,13 +117,13 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "replicate\n"
+                      'textRun': {
+                        'content': 'replicate\n'
                       }
                     }
                   ]
@@ -132,13 +132,13 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "strains\n"
+                      'textRun': {
+                        'content': 'strains\n'
                       }
                     }
                   ]
@@ -147,13 +147,13 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "timepoint\n"
+                      'textRun': {
+                        'content': 'timepoint\n'
                       }
                     }
                   ]
@@ -162,13 +162,13 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "samples\n"
+                      'textRun': {
+                        'content': 'samples\n'
                       }
                     }
                   ]
@@ -179,16 +179,16 @@ input_table_def = {
         ]
       },
       {
-        "tableCells": [
+        'tableCells': [
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "0.0 mM,7e-5 mM\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '0.0 mM,7e-5 mM\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -197,14 +197,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "0.0019 mM\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '0.0019 mM\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -213,14 +213,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "0 mM, 0.0125 mM\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '0 mM, 0.0125 mM\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -229,14 +229,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "FLOW\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': 'FLOW\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -245,14 +245,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "FCS\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': 'FCS\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -261,14 +261,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "4\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '4\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -277,14 +277,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "MG1655, MG1655_LPV3,MG1655_RPU_Standard\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': 'MG1655, MG1655_LPV3,MG1655_RPU_Standard\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -293,14 +293,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "5.0 hour, 18 hour\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '5.0 hour, 18 hour\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -309,14 +309,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "1088\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '1088\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -327,16 +327,16 @@ input_table_def = {
         ]
       },
       {
-        "tableCells": [
+        'tableCells': [
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "0 mM,7e-5 mM\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '0 mM,7e-5 mM\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -345,14 +345,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -361,14 +361,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "0 mM, 0.0125 mM\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '0 mM, 0.0125 mM\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -377,26 +377,26 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "RNA_SEQ\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': 'RNA_SEQ\n',
+                        'textStyle': {}
                       }
                     }
                   ]
                 }
               },
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -405,14 +405,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "FASTQ, FASTQ\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': 'FASTQ, FASTQ\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -421,14 +421,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "4\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '4\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -437,14 +437,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "MG1655, MG1655_LPV3\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': 'MG1655, MG1655_LPV3\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -453,14 +453,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "5.0 hour, 18 hour\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '5.0 hour, 18 hour\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -469,14 +469,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "1056\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '1056\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -487,16 +487,16 @@ input_table_def = {
         ]
       },
       {
-        "tableCells": [
+        'tableCells': [
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "0 mM,7e-5 mM\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '0 mM,7e-5 mM\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -505,14 +505,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "4.98e-8 mM\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '4.98e-8 mM\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -521,14 +521,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "0 mM, 0.0125 mM\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '0 mM, 0.0125 mM\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -537,14 +537,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "RNA_SEQ\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': 'RNA_SEQ\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -553,14 +553,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "FASTQ, FASTQ\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': 'FASTQ, FASTQ\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -569,14 +569,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "4\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '4\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -585,14 +585,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "MG1655_RPU_Standard\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': 'MG1655_RPU_Standard\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -601,14 +601,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "5.0 hour, 18 hour\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '5.0 hour, 18 hour\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -617,14 +617,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "64\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '64\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -635,16 +635,16 @@ input_table_def = {
         ]
       },
       {
-        "tableCells": [
+        'tableCells': [
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "0 mM,7e-5 mM\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '0 mM,7e-5 mM\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -653,14 +653,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "4.98e-8 mM\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '4.98e-8 mM\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -669,14 +669,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "0 mM, 0.0125 mM\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '0 mM, 0.0125 mM\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -685,14 +685,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "PLATE_READER\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': 'PLATE_READER\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -701,14 +701,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "PLAIN,CSV\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': 'PLAIN,CSV\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -717,14 +717,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "4\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '4\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -733,14 +733,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "MG1655, MG1655_LPV3\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': 'MG1655, MG1655_LPV3\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -749,14 +749,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "5.0 hour, 18 hour\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '5.0 hour, 18 hour\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -765,14 +765,14 @@ input_table_def = {
             ]
           },
           {
-            "content": [
+            'content': [
               {
-                "paragraph": {
-                  "elements": [
+                'paragraph': {
+                  'elements': [
                     {
-                      "textRun": {
-                        "content": "2112\n",
-                        "textStyle": {}
+                      'textRun': {
+                        'content': '2112\n',
+                        'textStyle': {}
                       }
                     }
                   ]
@@ -786,16 +786,16 @@ input_table_def = {
   } 
 
 class MeasurementTableTest(unittest.TestCase):
-    """
+    '''
        Class to test measurement table
-    """
+    '''
                 
-    def test_measurement_table_with_measurement_type(self):
-        input_table = {"tableRows": [
-            {"tableCells": [{"content": [{"paragraph": {"elements": [{"textRun": {
-                "content": "measurement-type\n" }}]}}]}]},
-            {"tableCells": [{"content": [{"paragraph": {"elements": [{"textRun": {
-                "content": "FLOW\n"}}]}}]}]}]
+    def test_table_with_measurement_type(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'measurement-type\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'FLOW\n'}}]}}]}]}]
         } 
     
         meas_table = MeasurementTable(measurement_types={'PLATE_READER', 'FLOW'})
@@ -803,19 +803,76 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEquals(1, len(actual_result))
         self.assertEquals(actual_result[0]['measurement_type'], 'FLOW')
 
-    def test_measurement_table_with_empty_file_type(self):
-        input_table = {"tableRows": [
-            {"tableCells": [{"content": [{"paragraph": {"elements": [{"textRun": {
-                "content": "file-type\n" }}]}}]}]},
-            {"tableCells": [{"content": [{"paragraph": {"elements": [{"textRun": {
-                "content": "\n"}}]}}]}]}]
+    def test_table_with_empty_file_type(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'file-type\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': '\n'}}]}}]}]}]
         } 
     
         meas_table = MeasurementTable()
         actual_result = meas_table.parse_table(input_table)
         self.assertEquals(1, len(actual_result))
         self.assertTrue(not actual_result[0])
+    
+    def test_table_with_file_type(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'file-type\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'FASTQ\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable()
+        actual_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(actual_result))
+        self.assertEquals(1, len(actual_result[0]['file_type']))
+        self.assertEquals(actual_result[0]['file_type'][0], 'FASTQ')  
+    
+    def test_table_with_1_replicate(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'replicate\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': '3\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable()
+        actual_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(actual_result))
+        self.assertEquals(actual_result[0]['replicates'], 3)  
+    
+    def test_table_with_1_strain(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'strains\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'AND_00\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable()
+        actual_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(actual_result))
+        self.assertEqual(1, len(actual_result[0]['strains']))
+        self.assertEqual('AND_00', actual_result[0]['strains'][0]) 
         
-          
-if __name__ == "__main__":
+        
+    def test_table_with_3_strains(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'strains\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'MG1655, MG1655_LPV3,MG1655_RPU_Standard\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable()
+        actual_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(actual_result))
+        
+        exp_res = ['MG1655', 'MG1655_LPV3','MG1655_RPU_Standard']
+        self.assertListEqual(exp_res, actual_result[0]['strains'])
+           
+             
+if __name__ == '__main__':
     unittest.main()
