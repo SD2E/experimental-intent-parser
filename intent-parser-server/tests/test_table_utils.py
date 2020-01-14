@@ -106,6 +106,13 @@ class TableUtilsTest(unittest.TestCase):
         expected_values = ['CSV']
         self.assertListEqual(expected_values, tu.extract_name_value(cell_str))
     
-       
+    def test_cell_is_number(self):  
+        self.assertTrue(tu.is_number('3'))
+        
+    def test_extract_number_value_with_unit(self):
+        self.assertListEqual(['1', '2'], tu.extract_number_value('1, 2 X'))
+                             
+                             
+                              
 if __name__ == "__main__":
     unittest.main()
