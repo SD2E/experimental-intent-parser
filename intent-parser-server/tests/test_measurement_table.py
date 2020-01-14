@@ -872,7 +872,47 @@ class MeasurementTableTest(unittest.TestCase):
         
         exp_res = ['MG1655', 'MG1655_LPV3','MG1655_RPU_Standard']
         self.assertListEqual(exp_res, actual_result[0]['strains'])
-           
-             
+    
+    
+    def test_table_with_1_timepoint(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'timepoint\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': '3 hour\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable(timepoint_units={'hour'})
+        meas_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(meas_result))
+        
+        exp_res1 = {'value': 3.0, 'unit': 'hour'}
+        self.assertEquals(1, len(meas_result[0]['timepoints']))
+        self.assertDictEqual(exp_res1, meas_result[0]['timepoints'][0])
+                  
+    def test_table_with_3_timepoint(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'timepoint\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': '6, 12, 24 hour\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable(timepoint_units={'hour'})
+        meas_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(meas_result))
+        
+        exp_res1 = {'value': 6.0, 'unit': 'hour'}
+        exp_res2 = {'value': 12.0, 'unit': 'hour'}
+        exp_res3 = {'value': 24.0, 'unit': 'hour'}
+        self.assertEquals(3, len(meas_result[0]['timepoints']))
+        for list in meas_result[0]['timepoints']:
+            self.assertFalse(list != exp_res1 and list != exp_res2 and list != exp_res3)
+        
+ 
+        
+    
+    
+               
 if __name__ == '__main__':
     unittest.main()
