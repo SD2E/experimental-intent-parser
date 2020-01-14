@@ -908,9 +908,76 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEquals(3, len(meas_result[0]['timepoints']))
         for list in meas_result[0]['timepoints']:
             self.assertFalse(list != exp_res1 and list != exp_res2 and list != exp_res3)
+    
+    def test_table_with_1_temperature(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'temperature\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': '1 fahrenheit\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable(temperature_units={'fahrenheit'})
+        meas_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(meas_result))
         
- 
+        exp_res1 = {'value': 1.0, 'unit': 'fahrenheit'}
+        self.assertEquals(1, len(meas_result[0]['temperatures']))
+        self.assertDictEqual(exp_res1, meas_result[0]['temperatures'][0]) 
         
+    def test_table_with_1_temperature_and_unspecified_unit(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'temperature\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': '1 dummy\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable(temperature_units={'celsius', 'fahrenheit'})
+        meas_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(meas_result))
+        
+        exp_res1 = {'value': 1.0, 'unit': 'unspecified'}
+        self.assertEquals(1, len(meas_result[0]['temperatures']))
+        self.assertDictEqual(exp_res1, meas_result[0]['temperatures'][0])  
+    
+    def test_table_with_2_temperature_and_unit_abbreviation(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'temperature\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': '3, 2, 1 C\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable(temperature_units={'celsius'})
+        meas_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(meas_result))
+        
+        exp_res1 = {'value': 3.0, 'unit': 'celsius'}
+        exp_res2 = {'value': 2.0, 'unit': 'celsius'}
+        exp_res3 = {'value': 1.0, 'unit': 'celsius'}
+        self.assertEquals(3, len(meas_result[0]['temperatures']))
+        for list in meas_result[0]['temperatures']:
+            self.assertFalse(list != exp_res1 and list != exp_res2 and list != exp_res3)  
+             
+    def test_table_with_3_temperature(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'temperature\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': '3, 2, 1 celsius\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable(temperature_units={'celsius'})
+        meas_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(meas_result))
+        
+        exp_res1 = {'value': 3.0, 'unit': 'celsius'}
+        exp_res2 = {'value': 2.0, 'unit': 'celsius'}
+        exp_res3 = {'value': 1.0, 'unit': 'celsius'}
+        self.assertEquals(3, len(meas_result[0]['temperatures']))
+        for list in meas_result[0]['temperatures']:
+            self.assertFalse(list != exp_res1 and list != exp_res2 and list != exp_res3)  
     
     
                
