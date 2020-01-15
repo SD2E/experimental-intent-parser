@@ -6,6 +6,7 @@ import sys
 import os
 import time
 import urllib.request
+from unittest.mock import Mock
 
 try:
     from intent_parser_server import IntentParserServer
@@ -17,6 +18,8 @@ from google_accessor import GoogleAccessor
 
 
 class TestIntentParserServer(unittest.TestCase):
+
+    data_dir = 'data'
 
     @classmethod
     def setUpClass(self):
@@ -100,6 +103,26 @@ class TestIntentParserServer(unittest.TestCase):
                                                 bind_port=8081)
         self.intent_parser.serverRunLoop(background=True)
 
+
+    def test_document_request1(self):
+        doc_id = '13tJ1JdCxL9bA9x3oNxGPm-LymW91-OT7SRW6fHyEBCo'
+
+        httpMessage = Mock()
+        httpMessage.get_resource = Mock(return_value='/document_report?' + doc_id)
+
+        payload = {'documentId':  doc_id, 'user' : 'test@bbn.com', 'userEmail' : 'test@bbn.com'}
+        payload_bytes = json.dumps(payload).encode()
+
+        self.intent_parser.send_response = Mock()
+
+        # Send a request to analyze the document
+        self.intent_parser.process_generate_request(httpMessage, [])
+
+        actual_data = json.loads(self.intent_parser.send_response.call_args[0][2])
+
+        with open(os.path.join(self.data_dir, doc_id + '_expected.json'), 'r') as file:
+            expected_data = json.load(file)
+            self.assertEqual(expected_data, actual_data)
 
     def test_analyze_doc(self):
         payload = {'documentId':  self.template_doc_id, 'user' : 'test@bbn.com', 'userEmail' : 'test@bbn.com'}
