@@ -89,28 +89,28 @@ class MeasurementTable:
              
         # Check header if it contains time sequence
         timepoint_str = reagent_media_name.split('@')
-        reagent_timepoint_dict = {}
+        timepoint_dict = {}
         if len(timepoint_str) > 1:
             reagent_media_name = timepoint_str[0].strip()
             for value,unit in table_utils.transform_cell(timepoint_str[1], self._timepoint_units):
-                reagent_timepoint_dict = {'value' : float(value), 'unit' : unit}
+                timepoint_dict = {'value' : float(value), 'unit' : unit}
         
         label_uri_dict = {'label' : reagent_media_name, 'sbh_uri' : uri}    
         
         # Determine if cells is reagent or media. 
         if table_utils.is_name(cellTxt):
             value = ' '.join(table_utils.extract_name_value(cellTxt))
-            media_dict = {'name' : label_uri_dict, 'value' : value}
-            reagents_media.append(media_dict)
+            named_dict = {'name' : label_uri_dict, 'value' : value}
+            reagents_media.append(named_dict)
         else:                   
             for value,unit in table_utils.transform_cell(cellTxt, self._fluid_units, cell_type='fluid'):
                 try:
-                    if reagent_timepoint_dict:
-                        reagent_dict = {'name' : label_uri_dict, 'value' : value, 'unit' : unit, 'timepoint' : reagent_timepoint_dict}
+                    if timepoint_dict:
+                        numerical_dict = {'name' : label_uri_dict, 'value' : value, 'unit' : unit, 'timepoint' : timepoint_dict}
                     else:
-                        reagent_dict = {'name' : label_uri_dict, 'value' : value, 'unit' : unit}
+                        numerical_dict = {'name' : label_uri_dict, 'value' : value, 'unit' : unit}
                                     
-                    reagents_media.append(reagent_dict)
+                    reagents_media.append(numerical_dict)
                 except:
                     self._logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % cellTxt)
         
