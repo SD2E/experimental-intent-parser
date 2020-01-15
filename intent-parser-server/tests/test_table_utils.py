@@ -48,10 +48,10 @@ class TableUtilsTest(unittest.TestCase):
     
     def test_cell_with_incorrect_unit_location2(self):
         cell_str = '1, 2, X 3'
-        expected_values = ['1', '2', '3']
+        
         for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
            self.assertEqual(unit, 'unspecified')
-           self.assertTrue(value in expected_values)   
+           self.assertEqual(cell_str, value)   
     
     def test_cell_with_single_value(self):
         cell_str = '1 X'
@@ -109,9 +109,30 @@ class TableUtilsTest(unittest.TestCase):
     def test_cell_is_number(self):  
         self.assertTrue(tu.is_number('3'))
         
+    def test_cell_list_is_number(self):
+        self.assertTrue(tu.is_number('3, 5, 7'))
+    
+    def test_cell_list_is_number(self):
+        self.assertFalse(tu.is_number('3, X'))
+        
+    def test_cell_is_number_with_unit(self):
+        self.assertFalse(tu.is_number('3 X'))
+    
+    def test_cell_unit_is_not_number(self):
+        self.assertFalse(tu.is_number('x'))
+        
     def test_extract_number_value_with_unit(self):
         self.assertListEqual(['1', '2'], tu.extract_number_value('1, 2 X'))
-                             
+        
+    def test_cell_values_with_special_character(self):
+        for value,unit in tu.transform_cell('8 %', ['%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L']):
+            self.assertEqual('8', value)
+            self.assertEqual('%', unit)
+        
+    def test_cell_values_with_backslash(self):
+        for value,unit in tu.transform_cell('9 g/L', ['%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L']):
+            self.assertEqual('9', value)
+            self.assertEqual('g/L', unit)
                              
                               
 if __name__ == "__main__":

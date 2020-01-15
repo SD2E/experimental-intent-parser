@@ -59,11 +59,34 @@ def get_paragraph_text(paragraph):
     return paragraph_text
     
 def is_number(cell):
+    """
+    Check if the cell only contains numbers.
+    """ 
     tokens = _tokenize(cell)
-    if len(tokens) > 0:
+    if len(tokens) < 0:
         return False
-    return tokens[0][0] == 'NUMBER'
+    if len(tokens) == 1:
+        return tokens[0][0] == 'NUMBER'
+    for tok in tokens:
+        if tok[0] == 'NAME':
+            return False
+    
+    return True
 
+def is_name(cell):
+    """
+    Check if the cell only contains named strings.
+    """
+    tokens = _tokenize(cell)
+    if len(tokens) < 0:
+        return False
+    if len(tokens) == 1:
+        return tokens[0][0] == 'NAME'
+    for tok in tokens:
+        if tok[0] == 'NUMBER':
+            return False
+    return True
+        
 def extract_number_value(cell):
     """
     Retrieve the content of a cell containing a list of numbers.
@@ -98,6 +121,8 @@ def extract_name_value(cell):
             cell_str.append(token[1])
     return cell_str
 
+
+
 def transform_cell(cell, units, cell_type=None):
     """
     Parses the content of a cell to identify its value and unit. 
@@ -117,11 +142,12 @@ def transform_cell(cell, units, cell_type=None):
         yield cell, 'unspecified'
     else:
         index = 0
-        
+        tokens = [token for token in tokens if token[0] != 'SEPARATOR']
         abbrev_units = _abbreviated_unit_dict[cell_type] if cell_type is not None else {}
         unit = _determine_unit(tokens, _canonicalize_units(units), abbrev_units)
         while index < len(tokens) - 1:
             value = tokens[index][1]
+            
             if tokens[index+1][0] == 'NAME':
                 index = index+2
             # throw an exception if token mismatch unit
@@ -147,7 +173,7 @@ def _tokenize(cell):
     tokens = []
     token_specification = [
         ('NUMBER',   r'\d+(\.\d*)?'),
-        ('NAME',       r'[A-Za-z][A-Za-z0-9_]*'),
+        ('NAME',       r'[^\t \d,][^ \t,]*'),
         ('SKIP',     r'[ \t]+'),
         ('SEPARATOR',     r'[,]')
     ]
@@ -155,7 +181,7 @@ def _tokenize(cell):
     for mo in re.finditer(tok_regex, cell):
         kind = mo.lastgroup
         value = mo.group()
-        if kind == 'SKIP' or kind == 'SEPARATOR':
+        if kind == 'SKIP':
             continue
         tokens.append(_Token(kind, value))
     return tokens
@@ -179,12 +205,19 @@ def _is_valued_cells(tokens):
     for token in tokens:
         if next == 'NUMBER' and token[0] != 'NUMBER':
             return False
-        if next == 'EITHER'and token[0] not in ['NUMBER', 'NAME']:
+        if next == 'SEPARATOR' and token[0] != 'SEPARATOR':
             return False
-        if token[0] == 'NUMBER':
+        if next == 'EITHER'and token[0] not in ['NUMBER', 'NAME', 'SEPARATOR']:
+            return False
+        
+        if token[0] == 'NUMBER': 
             next = 'EITHER' 
-        else:
+        elif token[0] == 'NAME':
+            next = 'SEPARATOR'
+        elif token[0] == 'SEPARATOR':
             next = 'NUMBER'
+        else:
+            return False
             
     return True
 
@@ -224,13 +257,5 @@ def _canonicalize_units(units):
         unit_dict[unit.lower()] = unit 
     return unit_dict
 
-    
-if __name__ == '__main__':
-    statements = '1 c, 2 c, 3 c'
-    tokens = _tokenize(statements)
-    print(_is_valued_cells(tokens))
-    for value, unit in transform_cell(statements, ['celsius', 'nM'], cell_type='temperature'):
-        print(value + ' ' + unit)
-    for token in _tokenize(statements):
-        print(token)
+   
         
