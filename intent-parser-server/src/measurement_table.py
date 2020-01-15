@@ -70,44 +70,51 @@ class MeasurementTable:
                     timepoints.append(time_dict)
                 measurement['timepoints'] = timepoints
             else:
-                reagents = self._parse_reagent(paragraph_element, cellTxt)
+                reagents = self._parse_reagent_media(paragraph_element, cellTxt)
                 content.append(reagents)
         if content:
             measurement['contents'] = content
         return measurement 
-        
-    def _parse_reagent(self, paragraph_element, cellTxt):
-        reagents = []
-        reagent_name = table_utils.get_paragraph_text(paragraph_element).strip()
-        
-        # Check header if it contains time sequence
-        timepoint_str = reagent_name.split('@')
-        if len(timepoint_str) > 1:
-            reagent_name = timepoint_str[0].strip()
-            defaultUnit = 'unspecified'
-            spec, unit = self.detect_and_remove_time_unit(timepoint_str[1]);
-            if unit is not None and unit is not 'unspecified':
-                defaultUnit = unit
-            reagent_timepoint_dict = {'value' : float(spec), 'unit' : defaultUnit}
-                        
+    
+    
+    
+    def _parse_reagent_media(self, paragraph_element, cellTxt):
+        reagents_media = []
+        reagent_media_name = table_utils.get_paragraph_text(paragraph_element).strip()
+       
         # Retrieve SBH URI
         uri = 'NO PROGRAM DICTIONARY ENTRY'
         if len(paragraph_element['elements']) > 0 and 'link' in paragraph_element['elements'][0]['textRun']['textStyle']:
             uri = paragraph_element['elements'][0]['textRun']['textStyle']['link']['url']
-                        
-        # Determine if cells is reagent or media
-        for value,unit in table_utils.transform_cell(cellTxt, self._fluid_units, cell_type='fluid'):
-            try:
-                if reagent_timepoint_dict:
-                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : value, 'unit' : unit, 'timepoint' : reagent_timepoint_dict}
-                else:
-                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : value, 'unit' : unit}
-                                    
-                reagents.append(reagent_dict)
-            except:
-                self._logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % cellTxt)
+             
+        # Check header if it contains time sequence
+        timepoint_str = reagent_media_name.split('@')
+        reagent_timepoint_dict = {}
+        if len(timepoint_str) > 1:
+            reagent_media_name = timepoint_str[0].strip()
+            for value,unit in table_utils.transform_cell(timepoint_str[1], self._timepoint_units):
+                reagent_timepoint_dict = {'value' : float(value), 'unit' : unit}
         
-        return reagents
+        label_uri_dict = {'label' : reagent_media_name, 'sbh_uri' : uri}    
+        
+        # Determine if cells is reagent or media. 
+        if table_utils.is_name(cellTxt):
+            value = ' '.join(table_utils.extract_name_value(cellTxt))
+            media_dict = {'name' : label_uri_dict, 'value' : value}
+            reagents_media.append(media_dict)
+        else:                   
+            for value,unit in table_utils.transform_cell(cellTxt, self._fluid_units, cell_type='fluid'):
+                try:
+                    if reagent_timepoint_dict:
+                        reagent_dict = {'name' : label_uri_dict, 'value' : value, 'unit' : unit, 'timepoint' : reagent_timepoint_dict}
+                    else:
+                        reagent_dict = {'name' : label_uri_dict, 'value' : value, 'unit' : unit}
+                                    
+                    reagents_media.append(reagent_dict)
+                except:
+                    self._logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % cellTxt)
+        
+        return reagents_media
     
     
     def _get_measurement_type(self, text):
