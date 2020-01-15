@@ -3,7 +3,7 @@ import os
 import requests
 import unittest
 
-class TestGETGeneratedStruturalRequest(unittest.TestCase):
+class TestGETGeneratedStruturedRequest(unittest.TestCase):
     """
     Class to test RESTful API calls to generate a structural request from intent parser. 
     """
@@ -12,7 +12,7 @@ class TestGETGeneratedStruturalRequest(unittest.TestCase):
         curr_path = os.path.dirname(os.path.realpath(__file__))
         self.data_dir = os.path.join(curr_path, '../tests/data')
         self.request_uri = 'http://intentparser.sd2e.org/document_request?'
-        
+        self.maxDiff = None
     def tearDown(self):
         pass
    
