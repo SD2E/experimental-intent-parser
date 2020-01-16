@@ -97,11 +97,11 @@ class MeasurementTable:
         
         label_uri_dict = {'label' : reagent_media_name, 'sbh_uri' : uri}    
         
-        # Determine if cells is reagent or media. 
+        # Determine if cells is numerical or name value 
         if table_utils.is_name(cellTxt):
-            value = ' '.join(table_utils.extract_name_value(cellTxt))
-            named_dict = {'name' : label_uri_dict, 'value' : value}
-            reagents_media.append(named_dict)
+            for name in table_utils.extract_name_value(cellTxt):
+                named_dict = {'name' : label_uri_dict, 'value' : name}
+                reagents_media.append(named_dict)
         else:                   
             for value,unit in table_utils.transform_cell(cellTxt, self._fluid_units, cell_type='fluid'):
                 try:
@@ -132,4 +132,3 @@ class MeasurementTable:
                     best_match_type = mtype
                     best_match_size = m.size
         return best_match_type
-     

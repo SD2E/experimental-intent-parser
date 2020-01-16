@@ -127,12 +127,14 @@ class IntentParserServer:
 
         fh = logging.FileHandler('intent_parser_server.log')
         self.logger.addHandler(fh)
-
+        
         self.sbh = None
         self.server = None
         self.shutdownThread = False
         self.event = threading.Event()
-
+        self.curr_running_threads = {}
+        self.client_thread_lock = threading.Lock()
+        
         self.my_path = os.path.dirname(os.path.realpath(__file__))
 
         f = open(self.my_path + '/create_measurements_table.html', 'r')
@@ -324,13 +326,21 @@ class IntentParserServer:
                 return
             except Exception as e:
                 raise e
-
+            
+            if self.shutdownThread:
+                    return
+            
+            
             client_handler = threading.Thread(
                 target=self.handle_client_connection,
                 args=(client_sock,)  # without comma you'd get a... TypeError: handle_client_connection() argument after * must be a sequence, not _socketobject
             )
             client_handler.start()
-
+            
+            self.client_thread_lock.acquire()
+            self.curr_running_threads[client_handler.ident] = client_handler
+            self.client_thread_lock.release()
+            
     def handle_client_connection(self, client_socket):
         self.logger.info('Connection')
         sm = SocketManager(client_socket)
@@ -365,6 +375,8 @@ class IntentParserServer:
             self.logger.info('Exception: {}'.format(e))
 
         client_socket.close()
+        client_socket.shutdown(socket.SHUT_RDWR)
+        
 
     def send_response(self, code, message, content, sm, content_type='text/html'):
             response = http_message.HttpMessage()
@@ -652,7 +664,7 @@ class IntentParserServer:
 
         if measurement_table_new_idx >= 0:
             table = doc_tables[measurement_table_new_idx]
-            meas_table = MeasurementTable(self.temp_units, self.time_units, self.fluid_units)
+            meas_table = MeasurementTable(self.temp_units, self.time_units, self.fluid_units, self.measurement_types, self.file_types)
             measurements = meas_table.parse_table(table)
 
         if lab_table_idx >= 0:
@@ -1643,6 +1655,11 @@ class IntentParserServer:
             self.logger.info('Closing server...')
             self.server.shutdown(socket.SHUT_RDWR)
             self.server.close()
+            for key in self.curr_running_threads:
+                client_thread = self.curr_running_threads[key]
+                if client_thread.isAlive():
+                    client_thread.join()
+                    
         self.logger.info('Shutdown complete')
 
     def housekeeping(self):
