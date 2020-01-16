@@ -172,7 +172,7 @@ def _tokenize(cell):
     """
     tokens = []
     token_specification = [
-        ('NUMBER',   r'\d+(\.\d*)?'),
+        ('NUMBER',   r'\d+(\.\d*)?([eE]([-+])?\d+)?'),
         ('NAME',       r'[^\t \d,][^ \t,]*'),
         ('SKIP',     r'[ \t]+'),
         ('SEPARATOR',     r'[,]')

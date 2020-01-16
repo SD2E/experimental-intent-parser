@@ -133,6 +133,14 @@ class TableUtilsTest(unittest.TestCase):
         for value,unit in tu.transform_cell('9 g/L', ['%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L']):
             self.assertEqual('9', value)
             self.assertEqual('g/L', unit)
+    
+    def test_cell_values_with_exponent(self):
+        self.assertTrue(tu.is_number('5e-06'))  
+        self.assertTrue(tu.is_number('5e+06'))  
+        self.assertTrue(tu.is_number('5e06'))  
+        self.assertTrue(tu.is_number('2.05e7'))  
+        self.assertFalse(tu.is_number('2.0e.07'))  
+        self.assertFalse(tu.is_number('2.0e'))  
                              
                               
 if __name__ == "__main__":
