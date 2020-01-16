@@ -1121,22 +1121,6 @@ class IntentParserServer:
 
         return elements
 
-    def get_measurement_type(self, text):
-        """
-        Find the closest matching measurement type to the given type, and return that as a string
-        """
-        # measurement types have underscores, so replace spaces with underscores to make the inputs match better
-        text = text.replace(' ', '_')
-        best_match_type = ''
-        best_match_size = 0
-        for mtype in self.measurement_types:
-            matches = intent_parser_utils.find_common_substrings(text.lower(), mtype.lower(), 1, 0)
-            for m in matches:
-                if m.size > best_match_size:
-                    best_match_type = mtype
-                    best_match_size = m.size
-        return best_match_type
-
     def get_challenge_problem_id(self, text):
         """
         Find the closest matching measurement type to the given type, and return that as a string
