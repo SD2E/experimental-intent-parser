@@ -102,9 +102,11 @@ class TestIntentParserServer(unittest.TestCase):
                                                 bind_ip='localhost',
                                                 bind_port=8081)
         self.intent_parser.serverRunLoop(background=True)
-
+        
+        self.maxDiff = None
 
     def test_document_request1(self):
+        
         doc_id = '13tJ1JdCxL9bA9x3oNxGPm-LymW91-OT7SRW6fHyEBCo'
 
         httpMessage = Mock()
@@ -119,10 +121,10 @@ class TestIntentParserServer(unittest.TestCase):
         self.intent_parser.process_generate_request(httpMessage, [])
 
         actual_data = json.loads(self.intent_parser.send_response.call_args[0][2])
-
         with open(os.path.join(self.data_dir, doc_id + '_expected.json'), 'r') as file:
             expected_data = json.load(file)
             self.assertEqual(expected_data, actual_data)
+        
 
     def test_analyze_doc(self):
         payload = {'documentId':  self.template_doc_id, 'user' : 'test@bbn.com', 'userEmail' : 'test@bbn.com'}
@@ -218,7 +220,7 @@ class TestIntentParserServer(unittest.TestCase):
 
         if self.doc is not None:
             self.google_accessor.delete_file(file_id=self.spreadsheet_id)
-
+        time.sleep(60)
         print('done')
 
 def usage():

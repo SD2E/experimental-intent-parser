@@ -292,9 +292,9 @@ class IntentParserServer:
         """
         Initialize the server.
         """
-
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.server.bind((bind_ip, bind_port))
 
         self.server.listen(5)
@@ -1637,8 +1637,11 @@ class IntentParserServer:
 
         if self.server is not None:
             self.logger.info('Closing server...')
-            self.server.shutdown(socket.SHUT_RDWR)
-            self.server.close()
+            try:
+                self.server.shutdown(socket.SHUT_RDWR)
+                self.server.close()
+            except OSError as ex:
+                return
             for key in self.curr_running_threads:
                 client_thread = self.curr_running_threads[key]
                 if client_thread.isAlive():
