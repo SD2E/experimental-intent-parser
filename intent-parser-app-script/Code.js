@@ -20,9 +20,9 @@ function onOpen() {
   menu.addItem('Generate Report', 'sendGenerateReport')
   menu.addItem('Update experimental results', 'updateExperimentalResults')
   menu.addItem('Calculate samples for measurements table', 'calculateSamples')
-  menu.addItem('Propagate Measurement Units', 'propagateMeasurementUnits')
   menu.addSubMenu(tablesMenu)
 
+  menu.addItem('File Issues', 'reportIssues')
   menu.addItem('Help', 'showHelp')
 
   menu.addToUi()
@@ -55,6 +55,9 @@ For instance, the entry "0, 4, 8, 12 hour" will use the unit of hour for each en
 Once the measurements table is complete, a structured request can be generated with the <b><i>Generate Structured Request</i></b> file menu option, which will create a json file that can be saved for later use.  \
 Additionally, the <b><i>Validate Structured Request</i></b> option can be used to generate and validate a structured request.  \
 If the request fails validation, an error message will be printed which indicates that the request failed validation, and why.  \
+</p>\
+<p>\
+Problems? <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>File and issue</a>\
 </p>\
 '
   verFormattedHTML = Utilities.formatString(helpHTML, versionString)
@@ -165,26 +168,6 @@ function processActions(response) {
             }
         }
 
-        break
-      case 'propagateMeasurementUnits':
-        var updates = actionDesc['updates'];
-        var doc = DocumentApp.getActiveDocument();
-        var body = doc.getBody();
-        var tables = body.getTables();
-        for(var updateIdx = 0; updateIdx < updates.length; updateIdx++){
-        	var update = updates[updateIdx];
-        	var tableIdx = update['table'];
-        	var n = update['cell'].length;
-        	for(var i = 0; i < n; i++){
-        		var row = update['row'][i];
-            	var col = update['col'][i];
-            	var cell = update['cell'][i];
-            	var tableCell = tables[tableIdx].getCell(row, col);
-        		tableCell.setText(cell);
-        	}
-        	
-        }
-        
         break
       case 'addTable':
         var childIndex = actionDesc['cursorChildIndex']
@@ -559,10 +542,6 @@ function calculateSamples() {
   sendPost('/calculateSamples')
 }
 
-function propagateMeasurementUnits() {
-  sendPost('/propagateMeasurementUnits')
-}
-
 function sendAnalyzeFromTop() {
   sendPost('/analyzeDocument')
 }
@@ -597,6 +576,16 @@ function sendGenerateReport() {
   html += '</center>'
 
   showModalDialog(html, 'Download', 300, 100)
+}
+
+function reportIssues(){
+	helpHTML = '\
+		  <p>Something unexpected happen with the intent-parser plugin?</p> \
+		  <p>Want to request a feature support?</p> \
+		  <p>Send a bug report <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>here</a>.</p> \
+		  '
+	verFormattedHTML = Utilities.formatString(helpHTML, versionString)
+	showModalDialog(verFormattedHTML, 'Issues', 400, 200)
 }
 
 function sendValidateStructuredRequest() {

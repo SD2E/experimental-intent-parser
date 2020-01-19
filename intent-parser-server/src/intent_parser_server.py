@@ -1,29 +1,32 @@
-import socket
-import threading
-import json
-import urllib.request
-from socket_manager import SocketManager
-from google_accessor import GoogleAccessor
-from sbh_accessor import SBHAccessor
-import http_message;
-import traceback
-import sbol
-import sys
-import getopt
-import re
-import time
-import os
-import signal
-import inspect
 from datetime import datetime
-from operator import itemgetter
-from spellchecker import SpellChecker
+from google_accessor import GoogleAccessor
+from lab_table import LabTable
+from measurement_table import MeasurementTable
 from multiprocessing import Pool
+from operator import itemgetter
+from sbh_accessor import SBHAccessor
+from socket_manager import SocketManager
+from spellchecker import SpellChecker
+import constants
+import getopt
+import http_message;
+import inspect
 import intent_parser_utils
-import numpy as np
-from synbiohub_adapter import query_synbiohub
-#import logging
+import json
 import logging.config
+import numpy as np
+import os
+import re
+import sbol
+import signal
+import socket
+import sys
+import table_utils
+import threading
+import time
+import traceback
+import urllib.request
+#import logging
 
 from jsonschema import validate
 from jsonschema import ValidationError
@@ -109,21 +112,6 @@ class IntentParserServer:
     # Some lab UIDs are short but still valid.  This defines an exceptions to the length threshold.
     uid_length_exception = ['M9', 'LB']
 
-    # String defines for headers in the new-style measurements table
-    col_header_measurement_type = 'measurement-type'
-    col_header_file_type = 'file-type'
-    col_header_replicate = 'replicate'
-    col_header_strain = 'strains'
-    col_header_samples = 'samples'
-    col_header_ods = 'ods'
-    col_header_notes = 'notes'
-    col_header_temperature = 'temperature'
-    col_header_timepoint = 'timepoint'
-    
-    # Column names for Parameter table
-    col_header_parameter = 'Parameter'
-    col_header_param_value = 'Value'
-
     def __init__(self, bind_port=8081, bind_ip="0.0.0.0",
                  sbh_collection_uri=None,
                  sbh_spoofing_prefix=None,
@@ -138,12 +126,14 @@ class IntentParserServer:
 
         fh = logging.FileHandler('intent_parser_server.log')
         self.logger.addHandler(fh)
-
+        
         self.sbh = None
         self.server = None
         self.shutdownThread = False
         self.event = threading.Event()
-
+        self.curr_running_threads = {}
+        self.client_thread_lock = threading.Lock()
+        
         self.my_path = os.path.dirname(os.path.realpath(__file__))
 
         f = open(self.my_path + '/create_measurements_table.html', 'r')
@@ -301,9 +291,9 @@ class IntentParserServer:
         """
         Initialize the server.
         """
-
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.server.bind((bind_ip, bind_port))
 
         self.server.listen(5)
@@ -335,13 +325,21 @@ class IntentParserServer:
                 return
             except Exception as e:
                 raise e
-
+            
+            if self.shutdownThread:
+                    return
+            
+            
             client_handler = threading.Thread(
                 target=self.handle_client_connection,
                 args=(client_sock,)  # without comma you'd get a... TypeError: handle_client_connection() argument after * must be a sequence, not _socketobject
             )
             client_handler.start()
-
+            
+            self.client_thread_lock.acquire()
+            self.curr_running_threads[client_handler.ident] = client_handler
+            self.client_thread_lock.release()
+            
     def handle_client_connection(self, client_socket):
         self.logger.info('Connection')
         sm = SocketManager(client_socket)
@@ -376,6 +374,8 @@ class IntentParserServer:
             self.logger.info('Exception: {}'.format(e))
 
         client_socket.close()
+        client_socket.shutdown(socket.SHUT_RDWR)
+        
 
     def send_response(self, code, message, content, sm, content_type='text/html'):
             response = http_message.HttpMessage()
@@ -393,8 +393,6 @@ class IntentParserServer:
             self.process_update_exp_results(httpMessage, sm)
         elif resource == '/calculateSamples':
             self.process_calculate_samples(httpMessage, sm)
-        elif resource == '/propagateMeasurementUnits':
-            self.process_propagate_measurement_units(httpMessage, sm)
         elif resource == '/message':
             self.process_message(httpMessage, sm)
         elif resource == '/buttonClick':
@@ -457,118 +455,6 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
 
-    def detect_and_remove_time_unit(self, text):
-        """
-        """
-        return self.detect_and_remove_unit(text, 'time')
-
-    def detect_and_remove_temp_unit(self, text):
-        """
-        """
-        return self.detect_and_remove_unit(text, 'temp')
-
-    def detect_and_remove_fluid_unit(self, text):
-        """
-        """
-        return self.detect_and_remove_unit(text, 'fluid')
-
-    def detect_and_remove_unit(self, text, unit_type):
-        """
-        Given a string that contains a unit, detect the unit and remove it from the input string,
-        returning the unit itself, and the string with the unit removed.
-        Takes a unit_type string to determine what unit type to detect.
-        """
-        best_match = None
-        best_length = 0
-        toks = text.strip().split(sep=' ')
-
-        # Only value, no unit
-        if len(toks) == 1:
-            return text, 'unspecified'
-
-        # Too many tokens
-        if len(toks) > 2:
-            self.logger.info('WARNING: trying to detect units, got %d tokens, but expected 2!  Input text: %s' % (len(toks), text))
-            return text, 'unspecified'
-
-        value_tok = toks[0]
-        unit_tok = toks[1]
-
-        if (unit_type == 'time'):
-            # Test time units
-            for unit in self.time_units:
-                if unit.lower() in unit_tok.lower():
-                    if len(unit) > best_length:
-                        best_match = unit
-                        best_length = len(unit)
-        elif (unit_type == 'fluid'):
-            if (unit_tok.lower() == 'fold'):
-                unit_tok = 'X'
-            # Test fluid units
-            for unit in self.fluid_units:
-                if unit.lower() in unit_tok.lower():
-                    if len(unit) > best_length:
-                        best_match = unit
-                        best_length = len(unit)
-        elif (unit_type == 'temp'):
-            if (unit_tok.lower() == 'c'):
-                unit_tok = 'celsius'
-            elif (unit_tok.lower() == 'f'):
-                unit_tok = 'fahrenheit'
-            # Test temp units
-            for unit in self.temp_units:
-                if unit.lower() in unit_tok.lower():
-                    if len(unit) > best_length:
-                        best_match = unit
-                        best_length = len(unit)
-
-        if best_match is not None:
-            text = text.replace(best_match, '').strip()
-        return value_tok, best_match
-
-    def detect_lab_table(self, table):
-        """
-        Determine if the given table is a lab table, defining the lab to run measurements.
-        """
-        rows = table['tableRows']
-        numRows = len(rows)
-        labRow = rows[0]
-        numCols = len(labRow['tableCells'])
-        lab = self.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph'])
-        return numRows == 1 and numCols == 1 and 'lab' in lab.lower()
-
-    def detect_new_measurement_table(self, table):
-        """
-        Scan the header row to see if it contains what we expect in a new-style measurements table.
-        """
-        found_replicates = False
-        found_strain = False
-        found_measurement_type = False
-        found_file_type = False
-
-        rows = table['tableRows']
-        headerRow = rows[0]
-        for cell in headerRow['tableCells']:
-            cellTxt = self.get_paragraph_text(cell['content'][0]['paragraph']).strip()
-            found_replicates |= cellTxt == self.col_header_replicate
-            found_strain |= cellTxt == self.col_header_strain
-            found_measurement_type |= cellTxt == self.col_header_measurement_type
-            found_file_type |= cellTxt == self.col_header_file_type
-
-        return found_replicates and found_strain and found_measurement_type and found_file_type
-
-    def detect_parameter_table(self, table):
-        rows = table['tableRows']
-        headerRow = rows[0]
-        numCols = len(headerRow['tableCells'])
-        has_parameter_col_headers = True
-        for cell in headerRow['tableCells']:
-            cellTxt = self.get_paragraph_text(cell['content'][0]['paragraph']).strip()
-            if cellTxt != self.col_header_parameter and cellTxt != self.col_header_param_value:
-                has_parameter_col_headers = False
-            
-        return numCols == 2 and has_parameter_col_headers
-    
     def process_calculate_samples(self, httpMessage, sm):
         """
         Find all measurements tables and update the samples columns, or add the samples column if it doesn't exist.
@@ -591,7 +477,7 @@ class IntentParserServer:
             table = doc_tables[tIdx]
 
             # Only process new style measurement tables
-            is_new_measurement_table = self.detect_new_measurement_table(table)
+            is_new_measurement_table = table_utils.detect_new_measurement_table(table)
             if not is_new_measurement_table:
                 continue
 
@@ -599,8 +485,8 @@ class IntentParserServer:
             headerRow = rows[0]
             samples_col = -1
             for cell_idx in range(len(headerRow['tableCells'])):
-                cellTxt = self.get_paragraph_text(headerRow['tableCells'][cell_idx]['content'][0]['paragraph']).strip()
-                if cellTxt == self.col_header_samples:
+                cellTxt = table_utils.get_paragraph_text(headerRow['tableCells'][cell_idx]['content'][0]['paragraph']).strip()
+                if cellTxt == constants.COL_HEADER_SAMPLES:
                     samples_col = cell_idx
 
             samples = []
@@ -614,28 +500,28 @@ class IntentParserServer:
                 # Process reagents
                 while colIdx < numCols and not is_type_col:
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
-                    headerTxt =  self.get_paragraph_text(paragraph_element).strip()
-                    if headerTxt == self.col_header_measurement_type:
+                    headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
+                    if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE:
                         is_type_col = True
                     else:
                         cellContent = row['tableCells'][colIdx]['content']
-                        cellTxt = ' '.join([self.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+                        cellTxt = ' '.join([table_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
                         comp_count.append(len(cellTxt.split(sep=',')))
                     colIdx += 1
 
                 # Process the rest of the columns
                 while colIdx < numCols:
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
-                    headerTxt =  self.get_paragraph_text(paragraph_element).strip()
+                    headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
                     # Certain columns don't contain info about samples
-                    if headerTxt == self.col_header_measurement_type or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
+                    if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == constants.COL_HEADER_NOTES or headerTxt == constants.COL_HEADER_SAMPLES:
                         colIdx += 1
                         continue
 
                     cellContent = row['tableCells'][colIdx]['content']
-                    cellTxt = ' '.join([self.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+                    cellTxt = ' '.join([table_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
 
-                    if headerTxt == self.col_header_replicate:
+                    if headerTxt == constants.COL_HEADER_REPLICATE:
                         comp_count.append(int(cellTxt))
                     else:
                         comp_count.append(len(cellTxt.split(sep=',')))
@@ -659,108 +545,7 @@ class IntentParserServer:
 
         self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
 
-    def process_propagate_measurement_units(self, httpMessage, sm):
-        start = time.time()
-
-        json_body = self.get_json_body(httpMessage)
-        document_id = json_body['documentId']
-        try:
-            doc = self.google_accessor.get_document(document_id=document_id)
-        except Exception as ex:
-            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
-            raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
-
-        doc_tables = self.get_element_type(doc, 'table')
-        
-        table_updates = []
-        for tIdx in range(len(doc_tables)):
-            table = doc_tables[tIdx]
-            
-            # Only process new style measurement tables
-            is_new_measurement_table = self.detect_new_measurement_table(table)
-            if not is_new_measurement_table:
-                continue
-
-            rows = table['tableRows']
-            headerRow = rows[0]
-            
-            meas_tableIdx = {'table':tIdx, 'col':[], 'row':[], 'cell':[]}
-            table_updates.append(meas_tableIdx)
-            
-            numCols = len(headerRow['tableCells'])
-
-            is_type_col = False
-            for colIdx in range(numCols):
-                paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
-                headerTxt =  self.get_paragraph_text(paragraph_element).strip()
-                rowIdx = 1;
-                # Skip columns that has no units to propagate 
-                if headerTxt == self.col_header_measurement_type or headerTxt == self.col_header_file_type or headerTxt == self.col_header_replicate or headerTxt == self.col_header_strain or headerTxt == self.col_header_notes or headerTxt == self.col_header_samples:
-                    continue
-                for rowIdx in range(1,len(rows)):  
-                    row = rows[rowIdx]
-                    cellContent = row['tableCells'][colIdx]['content']
-                    cellTxt = ' '.join([self.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
-                    
-                     
-                    if headerTxt == self.col_header_timepoint:
-                        timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
-                        prop_unit = [] 
-                        defaultUnit = 'unspecified'
-                        for time_str in timepoint_strings:
-                            spec, unit = self.detect_and_remove_time_unit(time_str);
-                            if unit is not None and unit is not 'unspecified':
-                                defaultUnit = unit
-                                
-                        for time_str in timepoint_strings:
-                            spec, unit = self.detect_and_remove_time_unit(time_str);
-                            prop_unit.append(spec + ' ' + defaultUnit)
-                        newCellTxt = (', ').join(map(str, prop_unit)) 
-                        meas_tableIdx['row'].append(rowIdx)
-                        meas_tableIdx['col'].append(colIdx)
-                        meas_tableIdx['cell'].append(newCellTxt)
-                    elif headerTxt == self.col_header_temperature:
-                        temperature_strings = [s.strip() for s in cellTxt.split(sep=',')]
-                        prop_unit = [] 
-                        defaultUnit = 'unspecified'
-                        for temp_str in temperature_strings:
-                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
-                            if unit is not None and unit is not 'unspecified':
-                                defaultUnit = unit
-                                
-                        for temp_str in temperature_strings:
-                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
-                            prop_unit.append(spec + ' ' + defaultUnit)
-                        newCellTxt = (', ').join(map(str, prop_unit)) 
-                        meas_tableIdx['row'].append(rowIdx)
-                        meas_tableIdx['col'].append(colIdx)
-                        meas_tableIdx['cell'].append(newCellTxt)
-                    else:
-                        reagent_strings = [s.strip() for s in cellTxt.split(sep=',')]
-                        prop_unit = [] 
-                        defaultUnit = 'unspecified'
-                        for reag_str in reagent_strings:
-                            spec, unit = self.detect_and_remove_fluid_unit(reag_str);
-                            if unit is not None and unit is not 'unspecified':
-                                defaultUnit = unit
-                                
-                        for reag_str in reagent_strings:
-                            spec, unit = self.detect_and_remove_fluid_unit(reag_str);
-                            prop_unit.append(spec + ' ' + defaultUnit)
-                        newCellTxt = (', ').join(map(str, prop_unit)) 
-                        meas_tableIdx['row'].append(rowIdx)
-                        meas_tableIdx['col'].append(colIdx)
-                        meas_tableIdx['cell'].append(newCellTxt)
-
-        action = {}
-        action['action'] = 'propagateMeasurementUnits'
-        action['updates'] = table_updates
-        actions = {'actions': [action]}
-
-        end = time.time()
-
-        self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
-        
+    
     def process_validate_structured_request(self, httpMessage, sm):
         """
         Generate a structured request from a given document, then run it against the validation.
@@ -863,205 +648,31 @@ class IntentParserServer:
 
         measurements = []
         doc_tables = self.get_element_type(doc, 'table')
-        measurement_table_idx = -1
         measurement_table_new_idx = -1
         lab_table_idx = -1
         parameter_table_idx = -1
         for tIdx in range(len(doc_tables)):
             table = doc_tables[tIdx]
-            rows = table['tableRows']
-            is_measurement_table = "Measurement type" in self.get_paragraph_text(rows[0]['tableCells'][0]['content'][0]['paragraph'])
-            if is_measurement_table:
-                measurement_table_idx = tIdx
-
-            is_new_measurement_table = self.detect_new_measurement_table(table)
+            
+            is_new_measurement_table = table_utils.detect_new_measurement_table(table)
             if is_new_measurement_table:
                 measurement_table_new_idx = tIdx
 
-            is_lab_table = self.detect_lab_table(table)
+            is_lab_table = table_utils.detect_lab_table(table)
             if is_lab_table:
                 lab_table_idx = tIdx
-            
-            is_parameter_table = self.detect_parameter_table(table)
-            if is_parameter_table:
-                parameter_table_idx = tIdx
-                
-        # Old-style measurement table - can really only get the measurement-type
-        if measurement_table_idx >= 0 and measurement_table_new_idx == -1:
-            table = doc_tables[measurement_table_idx]
-            rows = table['tableRows']
-            # Each non-header row represents a measurement in the run
-            for row in rows[1:]:
-                cells = row['tableCells']
-                measurement_type = self.get_measurement_type(self.get_paragraph_text(cells[0]['content'][0]['paragraph']))
-                # Ignore the rest of the cells for now
-                measurement = {'measurement_type' : measurement_type}
-                measurements.append(measurement)
 
-        # New-style measurement table - can pull much more information
         if measurement_table_new_idx >= 0:
-            # Each non-header row represents a measurement in the run
             table = doc_tables[measurement_table_new_idx]
-            rows = table['tableRows']
-            headerRow = rows[0]
-            numCols = len(headerRow['tableCells'])
-            
-            for row in rows[1:]:
-                cells = row['tableCells']
-                content = []
-            
-                # Parse rest of table
-                measurement = {}
-                for i in range(0, numCols): 
-                    paragraph_element = headerRow['tableCells'][i]['content'][0]['paragraph']
-                    header = self.get_paragraph_text(headerRow['tableCells'][i]['content'][0]['paragraph']).strip()
-                    cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in cells[i]['content']])
-                    if not cellTxt:
-                        continue
-                    if header == self.col_header_measurement_type:
-                        measurement['measurement_type'] = self.get_measurement_type(cellTxt)
-                    elif header == self.col_header_file_type:
-                        measurement['file_type'] = [s.strip() for s in cellTxt.split(sep=',')]
-                    elif header == self.col_header_replicate:
-                        try:
-                            measurement['replicates'] = int(cellTxt)
-                        except:
-                            measurement['replicates'] = -1
-                            self.logger.info('WARNING: failed to parse number of replicates! Trying to parse: %s' % cellTxt)
-                    elif header == self.col_header_samples:
-                        #measurement['samples'] = cellTxt
-                        #samples isn't part of the schema and is just there for auditing purposes
-                        pass
-                    elif header == self.col_header_strain:
-                        measurement['strains'] = [s.strip() for s in cellTxt.split(sep=',')]
-                    elif header == self.col_header_ods:
-                        #ods_strings = [float(s.strip()) for s in cellTxt.split(sep=',')]
-                        ods_strings = []
-                        for s in cellTxt.split(sep=','):
-                            ods_strings.append(float(s.strip()))
-                        measurement['ods'] = ods_strings
-                    elif header == self.col_header_temperature:
-                        temps = []
-                        temp_strings = [s.strip() for s in cellTxt.split(sep=',')]
-                        # First, determine default unit
-                        defaultUnit = 'unspecified'
-                        for temp_str in temp_strings:
-                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
-                            if unit is not None and unit is not 'unspecified':
-                                defaultUnit = unit
-
-                        for temp_str in temp_strings:
-                            spec, unit = self.detect_and_remove_temp_unit(temp_str);
-                            if unit is None or unit == 'unspecified':
-                                unit = defaultUnit
-                            try:
-                                temp_dict = {'value' : float(spec), 'unit' : unit}
-                            except:
-                                temp_dict = {'value' : -1, 'unit' : 'unspecified'}
-                                self.logger.info('WARNING: failed to parse temp unit! Trying to parse: %s' % spec)
-                            temps.append(temp_dict)
-                        measurement['temperatures'] = temps
-                    elif header == self.col_header_timepoint:
-                        timepoints = []
-                        timepoint_strings = [s.strip() for s in cellTxt.split(sep=',')]
-                        # First, determine default unit
-                        defaultUnit = 'unspecified'
-                        for time_str in timepoint_strings:
-                            spec, unit = self.detect_and_remove_time_unit(time_str);
-                            if unit is not None and unit is not 'unspecified':
-                                defaultUnit = unit
-
-                        for time_str in timepoint_strings:
-                            spec, unit = self.detect_and_remove_time_unit(time_str);
-                            if unit is None or unit == 'unspecified':
-                                unit = defaultUnit
-                            try:
-                                time_dict = {'value' : float(spec), 'unit' : unit}
-                            except:
-                                time_dict = {'value' : -1, 'unit' : 'unspecified'}
-                                self.logger.info('WARNING: failed to parse time unit! Trying to parse: %s' % spec)
-                            timepoints.append(time_dict)
-                        measurement['timepoints'] = timepoints
-                    else:
-                        reagents = []
-                        reagent_timepoint_dict = {}
-                        reagent_header = header
-                        reagent_name = header
-                        timepoint_str = reagent_header.split('@')
-                        if len(timepoint_str) > 1:
-                            reagent_name = timepoint_str[0].strip()
-                            timepoint_data = timepoint_str[1].split()
-                            if len(timepoint_data) > 1:
-                                time_val = float(timepoint_data[0].strip())
-                                time_unit = timepoint_data[1].strip()
-                                reagent_timepoint_dict = {'value' : time_val, 'unit' : time_unit}
-                        uri = 'NO PROGRAM DICTIONARY ENTRY'
-                        if len(paragraph_element['elements']) > 0 and 'link' in paragraph_element['elements'][0]['textRun']['textStyle']:
-                            uri = paragraph_element['elements'][0]['textRun']['textStyle']['link']['url']
-                        reagent_strings = [s.strip() for s in cellTxt.split(sep=',')]
-                        
-                        defaultUnit = 'unspecified'
-                        for value in reagent_strings:
-                            spec, unit = self.detect_and_remove_fluid_unit(value);
-                            if unit is not None and unit is not 'unspecified':
-                                defaultUnit = unit
-                        for value in reagent_strings:
-                            spec, unit = self.detect_and_remove_fluid_unit(value);
-                            reagent_amount = float(spec)
-                            if unit is None or unit == 'unspecified':
-                                unit = defaultUnit
-                            try:
-                                if reagent_timepoint_dict:
-                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit, 'timepoint' : reagent_timepoint_dict}
-                                else:
-                                    reagent_dict = {'name' : {'label' : reagent_name, 'sbh_uri' : uri}, 'value' : spec, 'unit' : unit}
-                                    
-                            except:
-                                self.logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % spec)
-                            reagents.append(reagent_dict)
-                        content.append(reagents)
-                if content:
-                    measurement['contents'] = content
-                measurements.append(measurement)
+            meas_table = MeasurementTable(self.temp_units, self.time_units, self.fluid_units, self.measurement_types, self.file_types)
+            measurements = meas_table.parse_table(table)
 
         if lab_table_idx >= 0:
             table = doc_tables[lab_table_idx]
-            rows = table['tableRows']
-            numRows = len(rows)
-            labRow = rows[0]
-            numCols = len(labRow['tableCells'])
-            if numRows > 1 or numCols > 1:
-                self.logger.info('WARNING: Lab table size differs from expectation! Expecting 1 row and 1 col, found %d rows and %d cols' % (numRows, numCols))
-            # The lab text is expected to be in row 0, col 0 and have the form: Lab: <X>
-            lab = self.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph']).strip().split(sep=':')[1].strip()
-        
-        if parameter_table_idx >= 0:
-            table = doc_tables[parameter_table_idx]
-            rows = table['tableRows']
-            headerRow = rows[0]
-            numCols = len(headerRow['tableCells'])
-            parameter_data = {} 
-            for row in rows[1:]:
-                cells = row['tableCells']
-                p = None
-                p_val = None
-                
-                for i in range(0, numCols): 
-                    paragraph_element = headerRow['tableCells'][i]['content'][0]['paragraph']
-                    header = self.get_paragraph_text(headerRow['tableCells'][i]['content'][0]['paragraph']).strip()
-                    cellTxt = ' '.join([self.get_paragraph_text(content['paragraph']).strip() for content in cells[i]['content']])
-                    if not cellTxt:
-                        continue
-                    if header == self.col_header_parameter:
-                        if cellTxt == 'Inoculation volume':
-                            p = 'inoc_info.inoc_vol' 
-                        elif cellTxt == 'Inoculation media volume':
-                            p = 'inoc_info.inoc_media_vol'
-                    elif header == self.col_header_param_value:
-                        p_val = cellTxt
-                if p is not None and p_val is not None:
-                    parameter_data[p] = p_val
-                        
+
+            lab_table = LabTable()
+            lab = lab_table.parse_table(table)
+            
         request = {}
         request['name'] = doc['title']
         request['experiment_id'] = experiment_id
@@ -1071,9 +682,13 @@ class IntentParserServer:
         request['experiment_version'] = 1
         request['lab'] = lab
         request['runs'] = [{ 'measurements' : measurements}]
-        request['protocol_parameters'] = parameter_data 
+        request['protocol_parameters'] = [] #TODO:  
 
         return request
+    
+    def is_cell_value_media(self, cell_value):
+        reagent_exp = re.compile('(\d+)(,\s?(\d+))*[a-zA-Z]+')
+        reagent_exp.match(cell_value)
     
     def process_generate_request(self, httpMessage, sm):
         """
@@ -1251,7 +866,7 @@ class IntentParserServer:
         headerIdx = -1
         contentIdx = -1
         for pIdx in range(len(paragraphs)):
-            para_text = self.get_paragraph_text(paragraphs[pIdx])
+            para_text = table_utils.get_paragraph_text(paragraphs[pIdx])
             if para_text == "Experiment Results\n":
                 headerIdx = pIdx
             elif headerIdx >= 0 and not para_text == '\n':
@@ -1507,22 +1122,6 @@ class IntentParserServer:
                                                   element_type)
 
         return elements
-
-    def get_measurement_type(self, text):
-        """
-        Find the closest matching measurement type to the given type, and return that as a string
-        """
-        # measurement types have underscores, so replace spaces with underscores to make the inputs match better
-        text = text.replace(' ', '_')
-        best_match_type = ''
-        best_match_size = 0
-        for mtype in self.measurement_types:
-            matches = intent_parser_utils.find_common_substrings(text.lower(), mtype.lower(), 1, 0)
-            for m in matches:
-                if m.size > best_match_size:
-                    best_match_type = mtype
-                    best_match_size = m.size
-        return best_match_type
 
     def get_challenge_problem_id(self, text):
         """
@@ -1901,24 +1500,6 @@ class IntentParserServer:
 
         return action
 
-    def get_paragraph_text(self, paragraph):
-        elements = paragraph['elements']
-        paragraph_text = '';
-
-        for element_index in range( len(elements) ):
-            element = elements[ element_index ]
-
-            if 'textRun' not in element:
-                continue
-            text_run = element['textRun']
-
-            #end_index = element['endIndex']
-            #start_index = element['startIndex']
-
-            paragraph_text += text_run['content']
-
-        return paragraph_text
-
     def find_exact_text(self, text, starting_pos, paragraphs):
         """
         Search through the whole document, beginning at starting_pos and return the first exact match to text.
@@ -2058,8 +1639,16 @@ class IntentParserServer:
 
         if self.server is not None:
             self.logger.info('Closing server...')
-            self.server.shutdown(socket.SHUT_RDWR)
-            self.server.close()
+            try:
+                self.server.shutdown(socket.SHUT_RDWR)
+                self.server.close()
+            except OSError as ex:
+                return
+            for key in self.curr_running_threads:
+                client_thread = self.curr_running_threads[key]
+                if client_thread.isAlive():
+                    client_thread.join()
+                    
         self.logger.info('Shutdown complete')
 
     def housekeeping(self):
@@ -2376,7 +1965,7 @@ class IntentParserServer:
             doc_content = body.get('content')
             paragraphs = self.get_paragraphs(doc_content)
 
-            paragraph_text = self.get_paragraph_text(
+            paragraph_text = table_utils.get_paragraph_text(
                 paragraphs[start_paragraph])
 
 
@@ -2883,7 +2472,7 @@ class IntentParserServer:
         doc_content = body.get('content')
         paragraphs = self.get_paragraphs(doc_content)
         # work on the paragraph text directly
-        paragraph_text = self.get_paragraph_text(paragraphs[para_index])
+        paragraph_text = table_utils.get_paragraph_text(paragraphs[para_index])
         para_text_len = len(paragraph_text)
 
         # Determine which directions to search in, based on selection or removal, prev/next
@@ -3323,31 +2912,29 @@ class IntentParserServer:
             header.append('')
             col_sizes.append(4)
 
-        header.append(self.col_header_measurement_type)
-        header.append(self.col_header_file_type)
-        header.append(self.col_header_replicate)
-        header.append(self.col_header_strain)
+        header.append(constants.COL_HEADER_MEASUREMENT_TYPE)
+        header.append(constants.COL_HEADER_FILE_TYPE)
+        header.append(constants.COL_HEADER_REPLICATE)
+        header.append(constants.COL_HEADER_STRAIN)
 
-        col_sizes.append(len(self.col_header_measurement_type) + 1)
-        col_sizes.append(len(self.col_header_file_type) + 1)
-        col_sizes.append(len(self.col_header_replicate) + 1)
-        col_sizes.append(len(self.col_header_strain) + 1)
+        col_sizes.append(len(constants.COL_HEADER_MEASUREMENT_TYPE) + 1)
+        col_sizes.append(len(constants.COL_HEADER_FILE_TYPE) + 1)
+        col_sizes.append(len(constants.COL_HEADER_REPLICATE) + 1)
+        col_sizes.append(len(constants.COL_HEADER_STRAIN) + 1)
         if has_ods:
-            header.append(self.col_header_ods)
-            col_sizes.append(len(self.col_header_ods) + 1)
+            header.append(constants.COL_HEADER_ODS)
+            col_sizes.append(len(constants.COL_HEADER_ODS) + 1)
         if has_time:
-            header.append(self.col_header_timepoint)
-            col_sizes.append(len(self.col_header_timepoint) + 1)
+            header.append(constants.COL_HEADER_TIMEPOINT)
+            col_sizes.append(len(constants.COL_HEADER_TIMEPOINT) + 1)
         if has_temp:
-            header.append(self.col_header_temperature)
-            col_sizes.append(len(self.col_header_temperature) + 1)
-        #header.append(self.col_header_samples)
+            header.append(constants.COL_HEADER_TEMPERATURE)
+            col_sizes.append(len(constants.COL_HEADER_TEMPERATURE) + 1)
 
         if has_notes:
-            header.append(self.col_header_notes)
-            col_sizes.append(len(self.col_header_notes) + 1)
+            header.append(constants.COL_HEADER_NOTES)
+            col_sizes.append(len(constants.COL_HEADER_NOTES) + 1)
 
-        #col_sizes.append(len(self.col_header_samples) + 1)
         table_data.append(header)
 
         for r in range(num_rows):
