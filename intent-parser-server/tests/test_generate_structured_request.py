@@ -47,23 +47,23 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         self.maxDiff = None # Set flag for testing to diff between large strings 
    
     def test_document_requests(self):
-        doc_id_list = ['13tJ1JdCxL9bA9x3oNxGPm-LymW91-OT7SRW6fHyEBCo', #pass
-                       '1WOa8crKEpJX0ZFJv4NtMjVaI-35__sdEMc5aPxb1al4', #pass
-                       '1uv_X7CSD5cONEjW7yq4ecI89XQxPQuG5lnmaqshj47o', #pass 
-                       '1XFC1onvvrhggNHiAci-iu2msXZQg3_SyiGdKnKUwrpM', #pass 
-                       '1v5UHLS4qvVovMK8GP9MgoboiPGsg_YzgyE9H4E5DTHg', #expected hour, actual: hours & expected: unspecified, actual: uM & expected: UWBF_6390, actual: \u000bUWBF_6390
-                       '15aMX9WdN1gyvjG30sXQZYPdTSTGbxoIRJbqtOvoKyQ0', #pass
-                       '1N0i5RPY-xEsM_MIjqeWZI6cjb9rj3B7L1PGR-Q-ufe0', #expected hour, actual: hours & expected: Modified M9 Media, actual: Modified actual: M9 actual: Media. Document has multiple tables 
-                       '16p9WmU9_dEz6wGN5_maotPl5uGrAIxPZ3-pNq1hipfI', #expected hour, actual: hours & expected: 'B. subtilis 168 PmtlA-comKS', actual: 'B.' actual:'subtilis' actual:'PmtlA-comKS' . A lot of spacing issues for named cells
-                       '1ZPLjkEODVzRlqRA110cDVT3wK6nvvNr4wKMMPoDLnTY', #pass
-                       '16eroq4UtIPhP89_PiKnvfi4wxV52vdKtUwPmBBu6OMc', #pass
-                       '1IlR2-ufP_vVfHt15uYocExhyQfEkPnOljYf3Y-rB08g', #pass
-                       '1ISVqTR3GfnzWB7pq66CbAWdVTn2RHBs4rgBbQt9N2Oo', #pass
+        doc_id_list = ['13tJ1JdCxL9bA9x3oNxGPm-LymW91-OT7SRW6fHyEBCo',
+                       '1WOa8crKEpJX0ZFJv4NtMjVaI-35__sdEMc5aPxb1al4', 
+                       '1uv_X7CSD5cONEjW7yq4ecI89XQxPQuG5lnmaqshj47o', 
+                       '1XFC1onvvrhggNHiAci-iu2msXZQg3_SyiGdKnKUwrpM', 
+#                        '1v5UHLS4qvVovMK8GP9MgoboiPGsg_YzgyE9H4E5DTHg', #expected: UWBF_6390, actual: \u000bUWBF_6390
+                       '15aMX9WdN1gyvjG30sXQZYPdTSTGbxoIRJbqtOvoKyQ0',
+                       '1N0i5RPY-xEsM_MIjqeWZI6cjb9rj3B7L1PGR-Q-ufe0', #expected hour, actual: hours &  Document has multiple tables 
+                       '16p9WmU9_dEz6wGN5_maotPl5uGrAIxPZ3-pNq1hipfI', #expected hour, actual: hours 
+                       '1ZPLjkEODVzRlqRA110cDVT3wK6nvvNr4wKMMPoDLnTY', 
+                       '16eroq4UtIPhP89_PiKnvfi4wxV52vdKtUwPmBBu6OMc', 
+                       '1IlR2-ufP_vVfHt15uYocExhyQfEkPnOljYf3Y-rB08g', 
+                       '1ISVqTR3GfnzWB7pq66CbAWdVTn2RHBs4rgBbQt9N2Oo', 
                        '138hHqZ-HT6owJ3DxANcrds67j8dZG8GPt4KLTTS1jU4', #expected hour, actual: hours expected unspecified, actual: mmol 
-                       '1PmSRNQUpvFTjANQpktjxjrfItPMTNgGVry5fT3mLmzc', #pass
-                       '1oIBd-a_n8pGNtoM9zYkWjhlsG04B2lmfYKhlLSAkRFw', #expected hour, actual: hours & spacing issues for named cells
-                       '1h_VBtGgUa4pFrR5pTksogFpzSMuE6cyRRjJmFuJpKSk', #expected hour, actual: hours & spacing issues for named cells
-                       '1b81XIA-e_5D6we8nVnMJe6fahizTw4qNSxlOkTI2PNs'  #pass
+                       '1PmSRNQUpvFTjANQpktjxjrfItPMTNgGVry5fT3mLmzc', 
+                       '1oIBd-a_n8pGNtoM9zYkWjhlsG04B2lmfYKhlLSAkRFw', #expected hour, actual: hours 
+                       '1h_VBtGgUa4pFrR5pTksogFpzSMuE6cyRRjJmFuJpKSk', #expected hour, actual: hours
+                       '1b81XIA-e_5D6we8nVnMJe6fahizTw4qNSxlOkTI2PNs'  
                        ]
         for doc_id in doc_id_list:
             httpMessage = Mock()
@@ -77,22 +77,16 @@ class GenerateStruturedRequestTest(unittest.TestCase):
             self.intent_parser.process_generate_request(httpMessage, [])
 
             actual_data = json.loads(self.intent_parser.send_response.call_args[0][2])
-#             with open(doc_id + '_actual.json', 'w') as outfile:
-#                 json.dump(actual_data, outfile)
-            
             with open(os.path.join(self.data_dir, doc_id + '_expected.json'), 'r') as file:
                 expected_data = json.load(file)
                 self.assertEqual(expected_data, actual_data)
-
+    
     @classmethod
     def tearDownClass(self):
         print('\nstart teardown')
         if self.intent_parser is not None:
             self.intent_parser.stop()
-
-#         if self.spreadsheet_id:
-#             response = self.google_accessor.delete_spreadsheet(sheet_id=self.spreadsheet_id)
-#             print(response)
+        # TODO: delete unit test spreadsheet or else it will populate on google drive 
         print('done')
         
 if __name__ == "__main__":
