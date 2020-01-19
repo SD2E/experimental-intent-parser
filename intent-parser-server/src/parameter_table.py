@@ -1,3 +1,4 @@
+import constants
 import table_utils
 
 class ParameterTable(object):
@@ -5,10 +6,8 @@ class ParameterTable(object):
     Class handles parameter tables 
     '''
 
-    def __init__(self, params):
-        '''
-        Constructor
-        '''
+    def __init__(self, parameter_fields={}):
+        self._parameter_fields = parameter_fields
     
     def parse_table(self, table):
         parameter = []
@@ -21,11 +20,25 @@ class ParameterTable(object):
         parameter_data = {}
         content = []
         num_cols = len(row['tableCells'])
-        for i in range(0, num_cols): 
-            paragraph_element = header_row['tableCells'][i]['content'][0]['paragraph']
+        param_field = ''
+        param_value = 'unspecified'
+        for col_index in range(0, num_cols): 
+            paragraph_element = header_row['tableCells'][col_index]['content'][0]['paragraph']
             header = table_utils.get_paragraph_text(paragraph_element).strip()
-            cellTxt = ' '.join([table_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][i]['content']])
-            if not cellTxt:
+            cell_txt = ' '.join([table_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][col_index]['content']])
+            if not cell_txt:
                 continue
+            elif header == constants.COL_HEADER_PARAMETER:
+                param_field = self._get_parameter_field(cell_txt)
+            elif header == constants.COL_HEADER_PARAMETER_VALUE:
+                param_value = table_utils.transform_number_name_cell(cell_txt)
+                
+        if param_field:
+            parameter_data[param_field] = param_value
             
         return parameter_data 
+    
+    def _get_parameter_field(self, cell_txt):
+        return self._parameter_fields[cell_txt]
+            
+        
