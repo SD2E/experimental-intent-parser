@@ -19,7 +19,7 @@ except Exception as e:
 from google_accessor import GoogleAccessor
 
 
-class TestIntentParserServer(unittest.TestCase):
+class IntegrationSbhTest(unittest.TestCase):
 
     spellcheckFile = 'doc_1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA.json'
 
@@ -34,11 +34,11 @@ class TestIntentParserServer(unittest.TestCase):
         Configure an instance of IntentParserServer for spellcheck testing.
         """
         # If we don't have the necessary credentials, try reading them in from json
-        if not hasattr(TestIntentParserServer, 'sbh_username') or not hasattr(TestIntentParserServer, 'sbh_password'):
+        if not hasattr(IntegrationSbhTest, 'sbh_username') or not hasattr(IntegrationSbhTest, 'sbh_password'):
             with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sbh_creds.json'), 'r') as fin:
                 creds = json.load(fin)
-                TestIntentParserServer.sbh_username = creds['username']
-                TestIntentParserServer.sbh_password = creds['password']
+                IntegrationSbhTest.sbh_username = creds['username']
+                IntegrationSbhTest.sbh_password = creds['password']
 
         self.google_accessor = GoogleAccessor.create()
 
@@ -66,8 +66,8 @@ class TestIntentParserServer(unittest.TestCase):
 
         self.ips = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
                                     sbh_spoofing_prefix='https://hub.sd2e.org',
-                                    sbh_username=TestIntentParserServer.sbh_username,
-                                    sbh_password=TestIntentParserServer.sbh_password,
+                                    sbh_username=IntegrationSbhTest.sbh_username,
+                                    sbh_password=IntegrationSbhTest.sbh_password,
                                     spreadsheet_id=self.spreadsheet_id, init_server=False)
 
         self.ips.google_accessor = Mock()
