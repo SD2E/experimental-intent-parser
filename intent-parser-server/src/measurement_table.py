@@ -3,11 +3,11 @@ import intent_parser_utils
 import logging
 import table_utils
 
-'''
-Class handles measurement from Experimental Request tables in Google Docs.
-'''
+
 class MeasurementTable:
-    
+    '''
+    Class handles measurement from Experimental Request tables in Google Docs.
+    '''    
     _logger = logging.getLogger('intent_parser_server')
     IGNORE_COLUMNS = [constants.COL_HEADER_SAMPLES, constants.COL_HEADER_NOTES]
   
