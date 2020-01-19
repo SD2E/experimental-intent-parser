@@ -81,9 +81,9 @@ def is_name(cell):
     if len(tokens) < 0:
         return False
     if len(tokens) == 1:
-        return tokens[0][0] == 'NAME'
-    for tok in tokens:
-        if tok[0] == 'NUMBER':
+        return _get_token_type(tokens[0]) == 'NAME'
+    for token in tokens:
+        if _get_token_type(token) == 'NUMBER':
             return False
     return True
         
@@ -100,8 +100,8 @@ def extract_number_value(cell):
     cell_values = []
     tokens = _tokenize(cell)
     for token in tokens:
-        if token[0] == 'NUMBER':
-            cell_values.append(token[1])
+        if _get_token_type(token) == 'NUMBER':
+            cell_values.append(_get_token_value(token))
     return cell_values
 
 def extract_name_value(cell):
@@ -112,16 +112,27 @@ def extract_name_value(cell):
         cell: the content of a cell.
     
     Returns:
-        An array of strings that are identified as a name.
+        A list of named values
     """
     cell_str = []
+    result = []
     tokens = _tokenize(cell)
+    if _get_token_type(tokens[-1]) == 'SKIP':
+        tokens = tokens[:-1]
     for token in tokens:
-        if token[0] == 'NAME':
-            cell_str.append(token[1])
-    return cell_str
-
-
+        if _get_token_type(token) == 'SKIP':
+            if len(cell_str) > 0:
+                cell_str.append(_get_token_value(token))
+        elif _get_token_type(token) == 'SEPARATOR':
+            result.append(''.join(cell_str))
+            cell_str = []
+        else:
+            cell_str.append(_get_token_value(token))
+    # if last item or cell does not contain SEPARATOR
+    if len(cell_str) > 0 :
+        result.append(''.join(cell_str))
+    
+    return result
 
 def transform_cell(cell, units, cell_type=None):
     """
@@ -142,13 +153,13 @@ def transform_cell(cell, units, cell_type=None):
         yield cell, 'unspecified'
     else:
         index = 0
-        tokens = [token for token in tokens if token[0] != 'SEPARATOR']
+        tokens = [token for token in tokens if _get_token_type(token) not in ['SEPARATOR', 'SKIP']]
         abbrev_units = _abbreviated_unit_dict[cell_type] if cell_type is not None else {}
         unit = _determine_unit(tokens, _canonicalize_units(units), abbrev_units)
         while index < len(tokens) - 1:
             value = tokens[index][1]
             
-            if tokens[index+1][0] == 'NAME':
+            if _get_token_type(tokens[index+1]) == 'NAME':
                 index = index+2
             # throw an exception if token mismatch unit
             else:
@@ -156,7 +167,13 @@ def transform_cell(cell, units, cell_type=None):
             yield value, unit
             
         if index == len(tokens) - 1:
-            yield tokens[index][1], unit 
+            yield _get_token_value(tokens[index]), unit 
+
+def _get_token_type(token):
+    return token[0]
+
+def _get_token_value(token):
+    return token[1]
 
 def _tokenize(cell):
     """
@@ -181,8 +198,6 @@ def _tokenize(cell):
     for mo in re.finditer(tok_regex, cell):
         kind = mo.lastgroup
         value = mo.group()
-        if kind == 'SKIP':
-            continue
         tokens.append(_Token(kind, value))
     return tokens
      
@@ -201,20 +216,21 @@ def _is_valued_cells(tokens):
     """
     if len(tokens) < 2:
         return False
+    tokens = [token for token in tokens if _get_token_type(token) != 'SKIP']
     next = 'NUMBER'
     for token in tokens:
-        if next == 'NUMBER' and token[0] != 'NUMBER':
+        if next == 'NUMBER' and _get_token_type(token) != 'NUMBER':
             return False
-        if next == 'SEPARATOR' and token[0] != 'SEPARATOR':
+        if next == 'SEPARATOR' and _get_token_type(token) != 'SEPARATOR':
             return False
-        if next == 'EITHER'and token[0] not in ['NUMBER', 'NAME', 'SEPARATOR']:
+        if next == 'EITHER'and _get_token_type(token) not in ['NUMBER', 'NAME', 'SEPARATOR']:
             return False
         
-        if token[0] == 'NUMBER': 
+        if _get_token_type(token) == 'NUMBER': 
             next = 'EITHER' 
-        elif token[0] == 'NAME':
+        elif _get_token_type(token) == 'NAME':
             next = 'SEPARATOR'
-        elif token[0] == 'SEPARATOR':
+        elif _get_token_type(token) == 'SEPARATOR':
             next = 'NUMBER'
         else:
             return False
@@ -234,8 +250,8 @@ def _determine_unit(tokens, units, abbrev_units):
         An identified unit corresponding to tokens. 
         unspecified is returned if no unit were identified. 
     """
-    if tokens[-1][0] == 'NAME':
-        unit = tokens[-1][1].lower()
+    if _get_token_type(tokens[-1]) == 'NAME':
+        unit = _get_token_value(tokens[-1]).lower()
         if unit in abbrev_units:
             unit = abbrev_units[unit].lower()
         if unit in units:
