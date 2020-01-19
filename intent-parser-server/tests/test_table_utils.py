@@ -94,7 +94,8 @@ class TableUtilsTest(unittest.TestCase):
         expected_values = ['B_subtilis_WT_JH642_Colony_1', 
                            'B_subtilis_WT_JH642_Colony_2', 
                            'B_subtilis_WT_JH642_Colony_3']
-        self.assertListEqual(expected_values, tu.extract_name_value(cell_str))  
+        self.assertListEqual(expected_values, tu.extract_name_value(cell_str)) 
+         
     
     def test_cell_values_without_underscore(self):
         cell_str = 'CSV, FCS'
@@ -142,6 +143,22 @@ class TableUtilsTest(unittest.TestCase):
         self.assertFalse(tu.is_number('2.0e.07'))  
         self.assertFalse(tu.is_number('2.0e'))  
                              
-                              
+    def test_cell_values_with_named_spacing(self):
+        cell_str = 'Yeast_Extract_Peptone_Adenine_Dextrose (a.k.a. YPAD Media)'   
+        for name in tu.extract_name_value(cell_str):
+            self.assertEquals(cell_str, name)
+    
+    def test_cell_values_with_named_and_numerical_spacing(self):
+        cell_str = 'B. subtilis 168 PmtlA-comKS'   
+        for name in tu.extract_name_value(cell_str):
+            self.assertEquals(cell_str, name)
+    
+    def test_cell_with_trailing_whitespace(self):
+        cell_str = 'Yeast1_, Yeast2_, Yeast3_ '
+        exp_res = ['Yeast1_', 'Yeast2_', 'Yeast3_']
+        for name in tu.extract_name_value(cell_str):
+            print(name)
+            self.assertTrue(name in exp_res)
+                               
 if __name__ == "__main__":
     unittest.main()
