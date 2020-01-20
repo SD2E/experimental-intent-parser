@@ -1,6 +1,7 @@
 """
 Collecton of utility functions for the unit tests
 """
+import table_utils
 
 def get_currently_selected_text(testcase, ips, doc_id, doc_content):
     """
@@ -16,7 +17,7 @@ def get_currently_selected_text(testcase, ips, doc_id, doc_content):
 
     paragraphs = ips.get_paragraphs(doc_content)
     paragraph = paragraphs[select_start['paragraph_index']]
-    para_text = ips.get_paragraph_text(paragraph)
+    para_text = table_utils.get_paragraph_text(paragraph)
     return para_text[select_start['cursor_index']:(select_end['cursor_index'] + 1)]
 
 def compare_search_results(r1, r2):
