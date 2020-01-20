@@ -22,7 +22,7 @@ except Exception as e:
 
 from google_accessor import GoogleAccessor
 
-class TestIntentParserServer(unittest.TestCase):
+class IpsGenerateTest(unittest.TestCase):
 
     authn_file = 'authn.json'
 
@@ -119,18 +119,14 @@ class TestIntentParserServer(unittest.TestCase):
 
         self.ips.google_accessor.get_document_parents = Mock(return_value = self.parent_list)
         self.ips.google_accessor.get_document_metadata = Mock(return_value = self.parent_meta)
-
+        self.maxDiff = None
 
     def test_generate_report_basic(self):
         """
         Basic check, ensure that spellcheck runs and the results are as expected
         """
-
         self.ips.process_generate_report(self.httpMessage, [])
-
-        # Basic sanity checks
         gen_results = json.loads(self.ips.send_response.call_args[0][2])
-
         self.assertTrue(gen_results['mapped_names'] is not None)
 
     def test_generate_request_basic(self):
@@ -144,7 +140,8 @@ class TestIntentParserServer(unittest.TestCase):
 
         self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
         self.assertTrue(gen_results['challenge_problem'] == 'INTENT_PARSER_TEST')
-        self.assertTrue(len(gen_results['runs'][0]['measurements']) == 6)
+        # check number of required fields that should appear when calling generate request
+        self.assertEquals(len(gen_results['runs'][0]['measurements']), 0) 
 
         # Test for when map_experiment_reference fails
         self.ips.datacatalog_config['mongodb']['authn'] = ''
@@ -155,7 +152,7 @@ class TestIntentParserServer(unittest.TestCase):
 
         self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
         self.assertTrue(gen_results['challenge_problem'] == 'NOVEL_CHASSIS')
-        self.assertTrue(len(gen_results['runs'][0]['measurements']) == 6)
+        self.assertEquals(len(gen_results['runs'][0]['measurements']), 0)
 
     def test_generate_request_specific(self):
         """
@@ -183,7 +180,8 @@ class TestIntentParserServer(unittest.TestCase):
             if k in first_table_gt and gen_results[k] != first_table_gt[k]:
                 print(first_table_gt[k])
                 print(gen_results[k])
-                
+        
+        self.assertEquals(gen_results, first_table_gt)   
         self.assertTrue(gen_results == first_table_gt)
 
         self.ips.process_validate_structured_request(self.httpMessage, [])
@@ -212,27 +210,7 @@ class TestIntentParserServer(unittest.TestCase):
         self.assertTrue('Warning: IPTG does not have a SynbioHub URI specified' in validate_results['actions'][0]['html'])
         self.assertTrue('Warning: Kanamycin Sulfate does not have a SynbioHub URI specified' in validate_results['actions'][0]['html'])
 
-    def test_generate_request_hand_crafted(self):
-        """
-        Compare against the hand-generated structured requests from Mark Weston.
-        """
-        # TODO: this is incomplete right now.  The idea is to compare the generated requests against hand-crafted requests
-        # However, the exp request docs don't yet have the measurement tables defined to make this possible.
-        request_doc_url = []
-        request_doc_url.append('https://docs.google.com/document/d/1RenmUdhsXMgk4OUWReI2oS6iF5R5rfWU5t7vJ0NZOHw')
-
-        client = pymongo.MongoClient("mongodb://readonly:WNCPXXd8ccpjs73zxyBV@catalog.sd2e.org:27020/admin?readPreference=primary")
-
-        for doc_url in request_doc_url:
-            gt_req = client.catalog_staging.structured_requests.find_one( { 'experiment_reference_url' : doc_url } )
-            doc_id = doc_url.split(sep='/')[4]
-
-            self.httpMessage.get_resource = Mock(return_value='/document_report?%s' % doc_id)
-            #self.ips.process_generate_request(self.httpMessage, [])
-
-            #gen_results = json.loads(self.ips.send_response.call_args[0][2])
-
-            #self.assertTrue(gt_req == gen_results)
+  
 
     def tearDown(self):
         """
