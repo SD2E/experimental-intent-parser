@@ -148,16 +148,26 @@ def extract_name_value(cell):
 
 def transform_number_name_cell(cell):
     """
-    Parses a given string with a value that follows a numerical named pattern (ex: 9 microliter).
-    This function takes the cell and return the pattern separated by a colon (ex: 9:microliter).
+    Parses a given string with a value for three different pattern:
+    1. number followed by a named value
+    2. named value
+    3. a list of numbered value
+    
+    Args:
+        cell: Content of a cell
+    
+    Return:
+    Array containing the result of the identified pattern for a cell.
     """
+    
     tokens = _tokenize(cell, keep_space=False) 
-    if not _is_valued_cells(tokens):
-        return 'unspecified'
-    if len(tokens) == 2:
-        if _get_token_type(tokens[0]) == 'NUMBER' and _get_token_type(tokens[1]) == 'NAME':
-            return _get_token_value(tokens[0]) + ':' + _get_token_value(tokens[1])
-    return 'unspecified'
+    if _is_valued_cells(tokens):
+        if len(tokens) == 2:
+            if _get_token_type(tokens[0]) == 'NUMBER' and _get_token_type(tokens[1]) == 'NAME':
+                return [_get_token_value(tokens[0]) + ':' + _get_token_value(tokens[1])]
+        return extract_number_value(cell)
+    
+    return [cell]
 
 def transform_cell(cell, units, cell_type=None):
     """

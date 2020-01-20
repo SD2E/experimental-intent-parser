@@ -34,7 +34,8 @@ class ParameterTable(object):
                 param_value = table_utils.transform_number_name_cell(cell_txt)
                 
         if param_field:
-            parameter_data[param_field] = param_value
+            # TODO: Support nested result from parameter_value.  
+            parameter_data[param_field] = param_value[0]
             
         return parameter_data 
     
