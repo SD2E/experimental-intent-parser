@@ -6,6 +6,7 @@ import sys
 import os
 import time
 import urllib.request
+from unittest.mock import Mock
 
 try:
     from intent_parser_server import IntentParserServer
@@ -16,7 +17,9 @@ except Exception as e:
 from google_accessor import GoogleAccessor
 
 
-class TestIntentParserServer(unittest.TestCase):
+class IntegrationIpsTest(unittest.TestCase):
+
+    data_dir = 'data'
 
     @classmethod
     def setUpClass(self):
@@ -41,11 +44,11 @@ class TestIntentParserServer(unittest.TestCase):
                                 category=ResourceWarning)
 
         # If we don't have the necessary credentials, try reading them in from json
-        if not hasattr(TestIntentParserServer, 'sbh_username') or not hasattr(TestIntentParserServer, 'sbh_password'):
+        if not hasattr(IntegrationIpsTest, 'sbh_username') or not hasattr(IntegrationIpsTest, 'sbh_password'):
             with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sbh_creds.json'), 'r') as fin:
                 creds = json.load(fin)
-                TestIntentParserServer.sbh_username = creds['username']
-                TestIntentParserServer.sbh_password = creds['password']
+                IntegrationIpsTest.sbh_username = creds['username']
+                IntegrationIpsTest.sbh_password = creds['password']
 
         self.google_accessor = GoogleAccessor.create()
         #f = open('test-doc.json', 'r')
@@ -92,14 +95,15 @@ class TestIntentParserServer(unittest.TestCase):
             'intent_parser/intent_parser_collection/1'
 
         self.intent_parser = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
-                                                sbh_username=TestIntentParserServer.sbh_username,
-                                                sbh_password=TestIntentParserServer.sbh_password,
+                                                sbh_username=IntegrationIpsTest.sbh_username,
+                                                sbh_password=IntegrationIpsTest.sbh_password,
                                                 spreadsheet_id=self.spreadsheet_id,
                                                 item_map_cache=False,
                                                 bind_ip='localhost',
                                                 bind_port=8081)
         self.intent_parser.serverRunLoop(background=True)
-
+        
+        self.maxDiff = None
 
     def test_analyze_doc(self):
         payload = {'documentId':  self.template_doc_id, 'user' : 'test@bbn.com', 'userEmail' : 'test@bbn.com'}
@@ -195,7 +199,7 @@ class TestIntentParserServer(unittest.TestCase):
 
         if self.doc is not None:
             self.google_accessor.delete_file(file_id=self.spreadsheet_id)
-
+        time.sleep(60)
         print('done')
 
 def usage():
@@ -219,21 +223,21 @@ if __name__ == '__main__':
 
     for opt,arg in opts:
         if opt in ('-u', '--username'):
-            TestIntentParserServer.sbh_username = arg
+            IntegrationIpsTest.sbh_username = arg
 
         elif opt in ('-p', '--password'):
-            TestIntentParserServer.sbh_password = arg
+            IntegrationIpsTest.sbh_password = arg
 
         elif opt in ('-h', '--help'):
             usage()
             sys.exit(0)
 
-    if not hasattr(TestIntentParserServer, 'sbh_username'):
+    if not hasattr(IntegrationIpsTest, 'sbh_username'):
         print('ERROR: Missing required parameter -u/--username!')
         usage()
         sys.exit(0)
 
-    if not hasattr(TestIntentParserServer, 'sbh_password'):
+    if not hasattr(IntegrationIpsTest, 'sbh_password'):
         print('ERROR: Missing required parameter -p/--password!')
         usage()
         sys.exit(0)
