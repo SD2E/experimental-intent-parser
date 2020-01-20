@@ -157,7 +157,6 @@ class TableUtilsTest(unittest.TestCase):
         cell_str = 'Yeast1_, Yeast2_, Yeast3_ '
         exp_res = ['Yeast1_', 'Yeast2_', 'Yeast3_']
         for name in tu.extract_name_value(cell_str):
-            print(name)
             self.assertTrue(name in exp_res)
                                
 if __name__ == "__main__":
