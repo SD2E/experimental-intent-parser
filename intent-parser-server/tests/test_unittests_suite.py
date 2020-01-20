@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 from test_generate_structured_request import GenerateStruturedRequestTest
 from test_integration_ips import IntegrationIpsTest
 from test_integration_sbh import IntegrationSbhTest 
