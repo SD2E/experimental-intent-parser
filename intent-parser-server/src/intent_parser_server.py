@@ -4,6 +4,7 @@ from lab_table import LabTable
 from measurement_table import MeasurementTable
 from multiprocessing import Pool
 from operator import itemgetter
+from parameter_table import ParameterTable
 from sbh_accessor import SBHAccessor
 from socket_manager import SocketManager
 from spellchecker import SpellChecker
@@ -661,6 +662,10 @@ class IntentParserServer:
             is_lab_table = table_utils.detect_lab_table(table)
             if is_lab_table:
                 lab_table_idx = tIdx
+                
+            is_parameter_table = table_utils.detect_lab_table(table)
+            if is_parameter_table:
+                parameter_table_idx = tIdx
 
         if measurement_table_new_idx >= 0:
             table = doc_tables[measurement_table_new_idx]
@@ -672,6 +677,11 @@ class IntentParserServer:
 
             lab_table = LabTable()
             lab = lab_table.parse_table(table)
+        
+        if parameter_table_idx >=0:
+            table = doc_tables[parameter_table_idx]
+            parameter_table = ParameterTable()
+            parameter = parameter_table.parse_table(table)
             
         request = {}
         request['name'] = doc['title']
@@ -682,7 +692,7 @@ class IntentParserServer:
         request['experiment_version'] = 1
         request['lab'] = lab
         request['runs'] = [{ 'measurements' : measurements}]
-        request['protocol_parameters'] = [] #TODO:  
+        request['protocol_parameters'] = parameter 
 
         return request
     
