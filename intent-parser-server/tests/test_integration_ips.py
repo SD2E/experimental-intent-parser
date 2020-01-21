@@ -44,7 +44,7 @@ class IntegrationIpsTest(unittest.TestCase):
                                 category=ResourceWarning)
 
         # If we don't have the necessary credentials, try reading them in from json
-        if not hasattr(IntentParserServer, 'sbh_username') or not hasattr(IntentParserServer, 'sbh_password'):
+        if not hasattr(IntegrationIpsTest, 'sbh_username') or not hasattr(IntegrationIpsTest, 'sbh_password'):
             with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sbh_creds.json'), 'r') as fin:
                 creds = json.load(fin)
                 IntegrationIpsTest.sbh_username = creds['username']

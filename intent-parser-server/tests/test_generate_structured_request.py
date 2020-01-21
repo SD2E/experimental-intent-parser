@@ -17,16 +17,13 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         self.data_dir = os.path.join(curr_path, '../tests/data')
        
         # If we don't have the necessary credentials, try reading them in from json
-        if not hasattr(IntentParserServer, 'sbh_username') or not hasattr(IntentParserServer, 'sbh_password'):
-            self.skipTest('Unable to locate external resource', 'no reason')
-            with open(os.path.join(self.data_dir, 'sbh_creds.json'), 'r') as file:
-                creds = json.load(file)
-                IntentParserServer.sbh_username = creds['username']
-                IntentParserServer.sbh_password = creds['password']
+        with open(os.path.join(curr_path, 'sbh_creds.json'), 'r') as file:
+            creds = json.load(file)
+            self.sbh_username = creds['username']
+            self.sbh_password = creds['password']
         
-        if not hasattr(IntentParserServer, 'authn'):
-            with open(os.path.join(self.data_dir, 'authn.json'), 'r') as file:
-                IntentParserServer.authn = json.load(file)['authn']
+        with open(os.path.join(self.data_dir, 'authn.json'), 'r') as file:
+            self.authn = json.load(file)['authn']
             
         self.google_accessor = GoogleAccessor.create()
         
@@ -40,8 +37,8 @@ class GenerateStruturedRequestTest(unittest.TestCase):
             'intent_parser/intent_parser_collection/1'
 
         self.intent_parser = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
-                                                sbh_username=IntentParserServer.sbh_username,
-                                                sbh_password=IntentParserServer.sbh_password,
+                                                sbh_username=self.sbh_username,
+                                                sbh_password=self.sbh_password,
                                                 spreadsheet_id=self.spreadsheet_id,
                                                 item_map_cache=False,
                                                 bind_ip='localhost',
