@@ -17,23 +17,16 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         self.data_dir = os.path.join(curr_path, '../tests/data')
        
         # If we don't have the necessary credentials, try reading them in from json
-        if not hasattr(GenerateStruturedRequestTest, 'sbh_username') or not hasattr(GenerateStruturedRequestTest, 'sbh_password'):
-            with open(os.path.join(curr_path, 'sbh_creds.json'), 'r') as file:
+        if not hasattr(IntentParserServer, 'sbh_username') or not hasattr(IntentParserServer, 'sbh_password'):
+            self.skipTest('Unable to locate external resource', 'no reason')
+            with open(os.path.join(self.data_dir, 'sbh_creds.json'), 'r') as file:
                 creds = json.load(file)
-                GenerateStruturedRequestTest.sbh_username = creds['username']
-                GenerateStruturedRequestTest.sbh_password = creds['password']
+                IntentParserServer.sbh_username = creds['username']
+                IntentParserServer.sbh_password = creds['password']
         
-        if not hasattr(GenerateStruturedRequestTest, 'authn'):
+        if not hasattr(IntentParserServer, 'authn'):
             with open(os.path.join(self.data_dir, 'authn.json'), 'r') as file:
-                GenerateStruturedRequestTest.authn = json.load(file)['authn']
-                                                                       
-#         with open(os.path.join(curr_path, 'sbh_creds.json'), 'r') as fin:
-#             creds = json.load(fin)
-#             self.sbh_username = creds['username']
-#             self.sbh_password = creds['password']
-        
-#         with open(os.path.join(self.data_dir, 'authn.json'), 'r') as file:
-#             self.authn = json.load(file)['authn']
+                IntentParserServer.authn = json.load(file)['authn']
             
         self.google_accessor = GoogleAccessor.create()
         
@@ -47,8 +40,8 @@ class GenerateStruturedRequestTest(unittest.TestCase):
             'intent_parser/intent_parser_collection/1'
 
         self.intent_parser = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
-                                                sbh_username=GenerateStruturedRequestTest.sbh_username,
-                                                sbh_password=GenerateStruturedRequestTest.sbh_password,
+                                                sbh_username=IntentParserServer.sbh_username,
+                                                sbh_password=IntentParserServer.sbh_password,
                                                 spreadsheet_id=self.spreadsheet_id,
                                                 item_map_cache=False,
                                                 bind_ip='localhost',
