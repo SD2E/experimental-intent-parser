@@ -680,8 +680,8 @@ class IntentParserServer:
         
         if parameter_table_idx >=0:
             table = doc_tables[parameter_table_idx]
-            parameter_table = ParameterTable()
-            parameter = parameter_table.parse_table(table)
+#             parameter_table = ParameterTable()
+#             parameter = parameter_table.parse_table(table)
             
         request = {}
         request['name'] = doc['title']
@@ -692,7 +692,7 @@ class IntentParserServer:
         request['experiment_version'] = 1
         request['lab'] = lab
         request['runs'] = [{ 'measurements' : measurements}]
-        request['protocol_parameters'] = parameter 
+#         request['protocol_parameters'] = parameter 
 
         return request
     
