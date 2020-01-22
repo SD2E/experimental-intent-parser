@@ -1,11 +1,28 @@
-import Levenshtein
 
 from collections import namedtuple as _namedtuple
-
 from difflib import Match
+import Levenshtein
 
 IPSMatch = _namedtuple('Match', 'a b size content_word_length')
 
+def get_strateos_mapping(sheet_data):
+    attribute_tab = None
+    for tab in sheet_data:
+        if tab == 'Attribute':
+            attribute_tab = sheet_data[tab]
+            break 
+    
+    result = {}
+    for row in attribute_tab:
+        if not 'Common Name' in row and not 'Transcriptic UID' in row:
+            continue
+        common_name = row['Common Name']
+        strateos_id = row ['Transcriptic UID']
+        if strateos_id:
+            result[common_name] =  strateos_id
+   
+    return result
+    
 def analyze_term(entry):
     term = entry[0]
     start_offset = entry[1]
