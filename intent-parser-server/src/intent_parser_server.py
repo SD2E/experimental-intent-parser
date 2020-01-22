@@ -272,8 +272,9 @@ class IntentParserServer:
         self.item_map_lock = threading.Lock()
         self.item_map_lock.acquire()
         self.item_map = self.generate_item_map(use_cache=item_map_cache)
+        self.strateos_mapping = intent_parser_utils.get_strateos_mapping(self.fetch_spreadsheet_data())
         self.item_map_lock.release()
-
+        
         # Inverse map of typeTabs
         self.type2tab = {}
         for tab_name in self.google_accessor.type_tabs.keys():
@@ -663,7 +664,7 @@ class IntentParserServer:
             if is_lab_table:
                 lab_table_idx = tIdx
                 
-            is_parameter_table = table_utils.detect_lab_table(table)
+            is_parameter_table = table_utils.detect_parameter_table(table)
             if is_parameter_table:
                 parameter_table_idx = tIdx
 
@@ -680,8 +681,8 @@ class IntentParserServer:
         
         if parameter_table_idx >=0:
             table = doc_tables[parameter_table_idx]
-#             parameter_table = ParameterTable()
-#             parameter = parameter_table.parse_table(table)
+            parameter_table = ParameterTable(self.strateos_mapping)
+            parameter = parameter_table.parse_table(table)
             
         request = {}
         request['name'] = doc['title']
@@ -692,7 +693,7 @@ class IntentParserServer:
         request['experiment_version'] = 1
         request['lab'] = lab
         request['runs'] = [{ 'measurements' : measurements}]
-#         request['protocol_parameters'] = parameter 
+        request['protocol_parameters'] = parameter 
 
         return request
     
@@ -1745,7 +1746,8 @@ class IntentParserServer:
         for cid in data['enum']:
             self.lab_ids.append(cid)
         self.lab_ids = sorted(self.lab_ids)
-
+    
+        
     def generate_item_map(self, *, use_cache=True):
         item_map = {}
         self.logger.info('Generating item map, %d' % time.time())
@@ -3061,9 +3063,9 @@ class IntentParserServer:
         self.send_response(200, 'OK', json.dumps(response), sm,
                            'application/json')
 
-#spreadsheet_id = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program dict
+spreadsheet_id = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program dict
 # spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
-spreadsheet_id = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0' #sd2 unit test dictionary 
+# spreadsheet_id = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0' #sd2 unit test dictionary 
 sbh_spoofing_prefix=None
 sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
 bind_port = 8081
