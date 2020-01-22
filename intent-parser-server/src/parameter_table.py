@@ -37,7 +37,7 @@ class ParameterTable(object):
         content = []
         num_cols = len(row['tableCells'])
         param_field = ''
-        param_value = 'unspecified'
+        param_value = ['unspecified']
         for col_index in range(0, num_cols): 
             paragraph_element = header_row['tableCells'][col_index]['content'][0]['paragraph']
             header = table_utils.get_paragraph_text(paragraph_element).strip()
