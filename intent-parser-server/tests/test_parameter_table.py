@@ -9,7 +9,9 @@ class ParameterTableTest(unittest.TestCase):
         self.parameter_fields = {
             'Inoculation volume' : 'inoc_info.inoc_vol',
             'Inoculation media volume' : 'inoc_info.inoc_media_vol',
-            'Inoculation increment time 1' : 'inoc_info.inc_time_1'
+            'Inoculation media' : 'inoc_info.inoculation_media',
+            'Inoculation increment time 1' : 'inoc_info.inc_time_1',
+            'Sample has sbh_uri as an aliquot property' : 'validate_samples'
             }
 
     def test_parameter_field(self):
@@ -23,7 +25,8 @@ class ParameterTableTest(unittest.TestCase):
         param_table = ParameterTable(parameter_fields=self.parameter_fields)
         param_result = param_table.parse_table(input_table)
         self.assertEquals(1, len(param_result))
-        self.assertTrue('inoc_info.inoc_vol' in param_result[0])
+        self.assertTrue('inoc_info.inoc_vol' in param_result)
+        self.assertEquals('unspecified', param_result['inoc_info.inoc_vol'])
        
     def test_parameter_string_value_with_colon_separator(self):
         input_table = {'tableRows': [
@@ -43,9 +46,9 @@ class ParameterTableTest(unittest.TestCase):
         param_table = ParameterTable(parameter_fields=self.parameter_fields)
         param_result = param_table.parse_table(input_table)
         self.assertEquals(1, len(param_result))
-        self.assertEquals('5:microliter', param_result[0]['inoc_info.inoc_vol'])
+        self.assertEquals('5:microliter', param_result['inoc_info.inoc_vol'])
         
-    def test_parameter_string_value_with_colon_separator(self):
+    def test_parameter_string_value_without_colon_separator(self):
         input_table = {'tableRows': [
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
                 'content': 'Parameter\n' }}]}}]},
@@ -63,7 +66,7 @@ class ParameterTableTest(unittest.TestCase):
         param_table = ParameterTable(parameter_fields=self.parameter_fields)
         param_result = param_table.parse_table(input_table)
         self.assertEquals(1, len(param_result))
-        self.assertEquals('sc_media', param_result[0]['inoc_info.inoculation_media'])
+        self.assertEquals('sc_media', param_result['inoc_info.inoculation_media'])
         
     def test_parameter_boolean_value(self):
         input_table = {'tableRows': [
@@ -83,7 +86,7 @@ class ParameterTableTest(unittest.TestCase):
         param_table = ParameterTable(parameter_fields=self.parameter_fields)
         param_result = param_table.parse_table(input_table)
         self.assertEquals(1, len(param_result))
-        self.assertEquals(False, param_result[0]['validate_samples'])
+        self.assertEquals(False, param_result['validate_samples'])
 
 if __name__ == "__main__":
     unittest.main()
