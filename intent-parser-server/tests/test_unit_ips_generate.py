@@ -22,7 +22,6 @@ except Exception as e:
 
 from google_accessor import GoogleAccessor
 
-# @unittest.skip("Skip IPG Generate")
 class IpsGenerateTest(unittest.TestCase):
 
     authn_file = 'authn.json'
