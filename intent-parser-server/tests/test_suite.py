@@ -9,6 +9,7 @@ from test_unit_ips_generate import IpsGenerateTest
 from test_unit_ips_spellcheck import IpsSpellcheckTest
 from test_unit_ips_utils import IpsUtilsTest
 
+@unittest.skip('Skip Test suite')
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(GenerateStruturedRequestTest)

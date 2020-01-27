@@ -16,7 +16,7 @@ except Exception as e:
 
 from google_accessor import GoogleAccessor
 
-
+# @unittest.skip("Skip IntegrationIPS ")
 class IntegrationIpsTest(unittest.TestCase):
 
     data_dir = 'data'
