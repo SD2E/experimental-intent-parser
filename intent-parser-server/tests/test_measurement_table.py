@@ -4,7 +4,7 @@ import os
 import table_utils
 import unittest
 
-@unittest.skip("Skip Measurement Table test ")
+# @unittest.skip("Skip Measurement Table test ")
 class MeasurementTableTest(unittest.TestCase):
     '''
        Class to test measurement table
