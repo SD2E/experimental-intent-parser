@@ -25,7 +25,6 @@ except Exception as e:
 
 from google_accessor import GoogleAccessor
 
-
 class IpsAnalyzeTest(unittest.TestCase):
 
     spellcheckFile = 'doc_1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA.json'
