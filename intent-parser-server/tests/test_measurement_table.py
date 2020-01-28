@@ -4,7 +4,7 @@ import os
 import table_utils
 import unittest
 
-
+# @unittest.skip("Skip Measurement Table test ")
 class MeasurementTableTest(unittest.TestCase):
     '''
        Class to test measurement table
@@ -91,6 +91,21 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEquals(1, len(meas_result))
         
         exp_res = ['MG1655', 'MG1655_LPV3','MG1655_RPU_Standard']
+        self.assertListEqual(exp_res, meas_result[0]['strains'])
+        
+    def test_table_with_unicode_strains(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'strains\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'UWBF_24926, UWBF_24952, UWBF_24959, UWBF_24960, UWBF_25784, UWBF_24962, UWBF_24963, UWBF_24961, UWBF_6390, UWBF_23970, UWBF_24864, UWBF_32302\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable()
+        meas_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(meas_result))
+        
+        exp_res = ['UWBF_24926', 'UWBF_24952','UWBF_24959', 'UWBF_24960', 'UWBF_25784', 'UWBF_24962', 'UWBF_24963', 'UWBF_24961', 'UWBF_6390', 'UWBF_23970', 'UWBF_24864', 'UWBF_32302']
         self.assertListEqual(exp_res, meas_result[0]['strains'])
     
     
