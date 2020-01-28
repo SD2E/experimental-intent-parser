@@ -4,11 +4,18 @@ import re
 
 
 _Token = collections.namedtuple('Token', ['type', 'value'])
+_fluid_units = {'fold' : 'X',
+                'mmol' : 'mM',
+                'um' : 'micromole'}
 _temperature_units = {'c' : 'celsius', 
                       'f' : 'fahrenheit'}
-_fluid_units = {'fold' : 'X'}
-_abbreviated_unit_dict = {'temperature' : _temperature_units,
-                          'fluid' : _fluid_units}
+_timepoint_units = {'hours' : 'hour',
+                    'hr' : 'hour',
+                    'h' : 'hour'}
+_abbreviated_unit_dict = {'fluid' : _fluid_units,
+                          'temperature' : _temperature_units,
+                          'timepoints' : _timepoint_units
+                          }
 
 
 def detect_lab_table(table):
@@ -254,6 +261,7 @@ def _determine_unit(tokens, units, abbrev_units):
         unit = _get_token_value(tokens[-1]).lower()
         if unit in abbrev_units:
             unit = abbrev_units[unit].lower()
+        
         if unit in units:
             return units[unit]
     return 'unspecified'
