@@ -6,10 +6,9 @@ import json
 import os 
 import time
 
-@unittest.skip('Skip test for comparing Google Documents results')
 class GenerateStruturedRequestTest(unittest.TestCase):
     """
-    Class to test RESTful API calls to generate a structural request from intent parser. 
+    Class to test RESTful API calls to generate a structural request from intent parser.
     """
     
     @classmethod
@@ -47,7 +46,15 @@ class GenerateStruturedRequestTest(unittest.TestCase):
 
         self.maxDiff = None # Set flag for testing to diff between large strings 
    
+    @unittest.skip('Skip test for comparing Google Documents results')
     def test_document_requests(self):
+        '''
+        This method compares a list of Google documents with its corresponding golden file.
+        This test method should be skipped when for deployment. 
+        This test method should only run locally by commenting out the @unittest.skip. 
+        These Google documents are modified by active users in the SD2 program and information generated for a structured request will change.
+        Golden files used for testing these Google documents should be updated when new feature are supported for intent parser.   
+        '''
         doc_id_list = ['13tJ1JdCxL9bA9x3oNxGPm-LymW91-OT7SRW6fHyEBCo',
                         '1WOa8crKEpJX0ZFJv4NtMjVaI-35__sdEMc5aPxb1al4', 
                         '1uv_X7CSD5cONEjW7yq4ecI89XQxPQuG5lnmaqshj47o', 
@@ -76,9 +83,6 @@ class GenerateStruturedRequestTest(unittest.TestCase):
             self.intent_parser.process_generate_request(httpMessage, [])
 
             actual_data = json.loads(self.intent_parser.send_response.call_args[0][2])
-#             with open(doc_id + '_actual.json', 'w') as file:
-#                 json.dump(actual_data, file)
-                
             with open(os.path.join(self.data_dir, doc_id + '_expected.json'), 'r') as file:
                 expected_data = json.load(file)
                 self.assertEqual(expected_data, actual_data)
