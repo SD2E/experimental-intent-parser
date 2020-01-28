@@ -1,26 +1,22 @@
-import unittest
-import warnings
-import json
-import getopt
-import sys
-import os
-import time
-import urllib.request
-import pickle
-
-import intent_parser_utils
-
+from google_accessor import GoogleAccessor
 from intent_parser_utils import IPSMatch
-
 from unittest.mock import Mock, patch, DEFAULT
+import getopt
+import intent_parser_utils
+import json
+import os
+import pickle
+import sys
+import time
+import unittest
+import urllib.request
+import warnings
 
 try:
     from intent_parser_server import IntentParserServer
 except Exception as e:
     sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'../src'))
     from intent_parser_server import IntentParserServer
-
-from google_accessor import GoogleAccessor
 
 class IpsUtilsTest(unittest.TestCase):
 
