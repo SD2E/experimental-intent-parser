@@ -165,6 +165,10 @@ class TableUtilsTest(unittest.TestCase):
         for value, unit in tu.transform_cell(cell_str, ['hour'], cell_type='timepoints'):
            self.assertEqual(unit, 'hour')
            self.assertTrue(value in expected_values)
-           
+          
+    def test_cell_with_unicode_characters(self):
+        cell_str = '\x0bApp'
+        self.assertTrue('App', tu.extract_name_value(cell_str))
+        
 if __name__ == "__main__":
     unittest.main()

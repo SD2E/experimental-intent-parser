@@ -205,6 +205,8 @@ def _tokenize(cell):
     for mo in re.finditer(tok_regex, cell):
         kind = mo.lastgroup
         value = mo.group()
+        if value.startswith('\u000b') :
+            value = value.replace('\u000b', '') 
         tokens.append(_Token(kind, value))
     return tokens
      
