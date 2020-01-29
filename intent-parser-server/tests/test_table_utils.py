@@ -1,7 +1,6 @@
 import table_utils as tu
 import unittest
 
-@unittest.skip("Skip TableUtils test ")
 class TableUtilsTest(unittest.TestCase):
     """Unit test for table_utils class"""
 
