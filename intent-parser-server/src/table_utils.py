@@ -4,11 +4,18 @@ import re
 
 
 _Token = collections.namedtuple('Token', ['type', 'value'])
+_fluid_units = {'fold' : 'X',
+                'mmol' : 'mM',
+                'um' : 'micromole'}
 _temperature_units = {'c' : 'celsius', 
                       'f' : 'fahrenheit'}
-_fluid_units = {'fold' : 'X'}
-_abbreviated_unit_dict = {'temperature' : _temperature_units,
-                          'fluid' : _fluid_units}
+_timepoint_units = {'hours' : 'hour',
+                    'hr' : 'hour',
+                    'h' : 'hour'}
+_abbreviated_unit_dict = {'fluid' : _fluid_units,
+                          'temperature' : _temperature_units,
+                          'timepoints' : _timepoint_units
+                          }
 
 
 def detect_lab_table(table):
@@ -236,6 +243,8 @@ def _tokenize(cell, keep_space=True):
         value = mo.group()
         if kind != 'SKIP' or keep_space: 
             tokens.append(_Token(kind, value))
+        if value.startswith('\u000b') :
+            value = value.replace('\u000b', '') 
     return tokens
      
 def _is_valued_cells(tokens):
@@ -291,6 +300,7 @@ def _determine_unit(tokens, units, abbrev_units):
         unit = _get_token_value(tokens[-1]).lower()
         if unit in abbrev_units:
             unit = abbrev_units[unit].lower()
+        
         if unit in units:
             return units[unit]
     return 'unspecified'

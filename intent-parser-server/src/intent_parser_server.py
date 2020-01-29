@@ -649,6 +649,7 @@ class IntentParserServer:
                         cp_id = new_cp_id
 
         measurements = []
+        parameter = []
         doc_tables = self.get_element_type(doc, 'table')
         measurement_table_new_idx = -1
         lab_table_idx = -1
