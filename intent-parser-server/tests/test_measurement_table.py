@@ -4,7 +4,6 @@ import os
 import table_utils
 import unittest
 
-
 class MeasurementTableTest(unittest.TestCase):
     '''
        Class to test measurement table
@@ -92,8 +91,7 @@ class MeasurementTableTest(unittest.TestCase):
         
         exp_res = ['MG1655', 'MG1655_LPV3','MG1655_RPU_Standard']
         self.assertListEqual(exp_res, meas_result[0]['strains'])
-    
-    
+        
     def test_table_with_1_timepoint(self):
         input_table = {'tableRows': [
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {

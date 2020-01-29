@@ -61,7 +61,7 @@ class MeasurementTable:
                 measurement['temperatures'] = temps
             elif header == constants.COL_HEADER_TIMEPOINT:
                 timepoints = []
-                for value,unit in table_utils.transform_cell(cellTxt, self._timepoint_units):
+                for value,unit in table_utils.transform_cell(cellTxt, self._timepoint_units, cell_type='timepoints'):
                     try:
                         time_dict = {'value' : float(value), 'unit' : unit}
                     except:
@@ -92,7 +92,7 @@ class MeasurementTable:
         timepoint_dict = {}
         if len(timepoint_str) > 1:
             reagent_media_name = timepoint_str[0].strip()
-            for value,unit in table_utils.transform_cell(timepoint_str[1], self._timepoint_units):
+            for value,unit in table_utils.transform_cell(timepoint_str[1], self._timepoint_units, cell_type='timepoints'):
                 timepoint_dict = {'value' : float(value), 'unit' : unit}
         
         label_uri_dict = {'label' : reagent_media_name, 'sbh_uri' : uri}    
