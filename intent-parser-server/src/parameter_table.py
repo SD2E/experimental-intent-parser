@@ -5,7 +5,12 @@ class ParameterTable(object):
     '''
     Class handles parameter tables 
     '''
-    FIELD_WITH_BOOLEAN_VALUE = [constants.PARAMETER_VALIDATE_SAMPLES]
+    FIELD_WITH_BOOLEAN_VALUE = [constants.PARAMETER_VALIDATE_SAMPLES, 
+                                constants.PARAMETER_RUN_INFO_READ_EACH_RECOVER,
+                                constants.PARAMETER_RUN_INFO_READ_EACH_INDUCTION,
+                                constants.PARAMETER_RUN_INFO_SAVE_FOR_RNASEQ, 
+                                constants.PARAMETER_RUN_INFO_SKIP_FIRST_FLOW, 
+                                constants.PARAMETER_RUN_INFO_ONLY_ENDPOINT_FLOW]
     FIELD_WITH_FLOAT_VALUE = [constants.PARAMETER_PLATE_READER_INFO_GAIN]
     
     def __init__(self, parameter_fields={}):
