@@ -1,6 +1,9 @@
 
+from datacatalog.formats.common import map_experiment_reference
 from datetime import datetime
 from google_accessor import GoogleAccessor
+from jsonschema import validate
+from jsonschema import ValidationError
 from lab_table import LabTable
 from measurement_table import MeasurementTable
 from multiprocessing import Pool
@@ -27,12 +30,7 @@ import threading
 import time
 import traceback
 import urllib.request
-#import logging
 
-from jsonschema import validate
-from jsonschema import ValidationError
-
-from datacatalog.formats.common import map_experiment_reference
 
 class ConnectionException(Exception):
     def __init__(self, code, message, content=""):
