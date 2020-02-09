@@ -1,3 +1,4 @@
+from intent_parser_exceptions import TableException
 import table_utils as tu
 import unittest
 
@@ -21,9 +22,8 @@ class TableUtilsTest(unittest.TestCase):
     def test_cell_without_units(self):
         cell_str = '1, 2, 3'
         expected_values = ['1', '2', '3']
-        for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
-           self.assertEqual(unit, 'unspecified')
-           self.assertTrue(value in expected_values) 
+        with self.assertRaises(TableException):
+            value, unit = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
 
     def test_cell_with_unit_abbreviation(self):
         cell_str = '1, 2, 3 fold'
@@ -34,24 +34,18 @@ class TableUtilsTest(unittest.TestCase):
     
     def test_cell_with_unspecified_unit(self):
         cell_str = '1, 2, 3 foo'
-        expected_values = ['1', '2', '3']
-        for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
-           self.assertEqual(unit, 'unspecified')
-           self.assertTrue(value in expected_values)  
+        with self.assertRaises(TableException):
+            value, unit = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
     
     def test_cell_with_incorrect_unit_location(self):
         cell_str = '1 X, 2, 3'
-        expected_values = ['1', '2', '3']
-        for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
-           self.assertEqual(unit, 'unspecified')
-           self.assertTrue(value in expected_values)  
+        with self.assertRaises(TableException):
+            value, unit = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
     
     def test_cell_with_incorrect_unit_value_swapped(self):
         cell_str = '1, 2, X 3'
-        
-        for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
-           self.assertEqual(unit, 'unspecified')
-           self.assertEqual(cell_str, value)   
+        with self.assertRaises(TableException):
+            value, unit = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
     
     def test_cell_with_single_value(self):
         cell_str = '1 X'
@@ -62,15 +56,14 @@ class TableUtilsTest(unittest.TestCase):
 
     def test_cell_with_nonvalues(self):
         cell_str = 'one, two X'
-        for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
-            self.assertEqual(unit, 'unspecified')
-            self.assertTrue(value == cell_str)
+        with self.assertRaises(TableException):
+            value, unit = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
 
     def test_cell_not_type_value_unit(self):
         cell_str = 'A simple string'
-        for value, unit in tu.transform_cell(cell_str, ['celsius', 'fahrenheit'], cell_type='temperature'):
-            self.assertEqual(unit, 'unspecified')
-            self.assertTrue(value == cell_str)
+        with self.assertRaises(TableException):
+            value, unit = tu.transform_cell(cell_str, ['celsius', 'fahrenheit'], cell_type='temperature')
+                
     
     def test_cell_without_cell_type(self):
         cell_str = '1, 2 hour'
@@ -169,6 +162,8 @@ class TableUtilsTest(unittest.TestCase):
     def test_cell_with_unicode_characters(self):
         cell_str = '\x0bApp'
         self.assertTrue('App', tu.extract_name_value(cell_str))
+        
+        
         
 if __name__ == "__main__":
     unittest.main()
