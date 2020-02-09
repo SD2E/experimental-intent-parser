@@ -32,8 +32,7 @@ class MeasurementTableTest(unittest.TestCase):
     
         meas_table = MeasurementTable()
         meas_result = meas_table.parse_table(input_table)
-        self.assertEquals(1, len(meas_result))
-        self.assertTrue(not meas_result[0])
+        self.assertEquals(0, len(meas_result))
     
     def test_table_with_file_type(self):
         input_table = {'tableRows': [
@@ -153,11 +152,8 @@ class MeasurementTableTest(unittest.TestCase):
     
         meas_table = MeasurementTable(temperature_units={'celsius', 'fahrenheit'})
         meas_result = meas_table.parse_table(input_table)
-        self.assertEquals(1, len(meas_result))
+        self.assertEquals(0, len(meas_result))
         
-        exp_res1 = {'value': 1.0, 'unit': 'unspecified'}
-        self.assertEquals(1, len(meas_result[0]['temperatures']))
-        self.assertDictEqual(exp_res1, meas_result[0]['temperatures'][0])  
     
     def test_table_with_2_temperature_and_unit_abbreviation(self):
         input_table = {'tableRows': [
@@ -207,8 +203,7 @@ class MeasurementTableTest(unittest.TestCase):
     
         meas_table = MeasurementTable()
         meas_result = meas_table.parse_table(input_table)
-        self.assertEquals(1, len(meas_result))
-        self.assertTrue(not meas_result[0])
+        self.assertEquals(0, len(meas_result))
     
     def test_table_with_notes(self):
         input_table = {'tableRows': [
@@ -220,8 +215,7 @@ class MeasurementTableTest(unittest.TestCase):
     
         meas_table = MeasurementTable()
         meas_result = meas_table.parse_table(input_table)
-        self.assertEquals(1, len(meas_result))
-        self.assertTrue(not meas_result[0])
+        self.assertEquals(0, len(meas_result))
     
     def test_table_with_1_ods(self):
         input_table = {'tableRows': [
