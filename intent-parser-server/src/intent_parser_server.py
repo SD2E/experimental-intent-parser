@@ -1,6 +1,7 @@
 from datacatalog.formats.common import map_experiment_reference
 from datetime import datetime
 from google_accessor import GoogleAccessor
+from intent_parser_exceptions import ConnectionException
 from jsonschema import validate
 from jsonschema import ValidationError
 from lab_table import LabTable
@@ -32,12 +33,7 @@ import traceback
 import urllib.request
 
 
-class ConnectionException(Exception):
-    def __init__(self, code, message, content=""):
-        super(ConnectionException, self).__init__(message);
-        self.code = code
-        self.message = message
-        self.content = content
+
 
 class IntentParserServer:
 
