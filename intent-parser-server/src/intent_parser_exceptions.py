@@ -1,7 +1,14 @@
 
 class Error(Exception):
     pass
-    
+
+class ConnectionException(Exception):
+    def __init__(self, code, message, content=""):
+        super(ConnectionException, self).__init__(message);
+        self.code = code
+        self.message = message
+        self.content = content
+ 
 class TableException(Error):
     '''
     Class for catch exceptions related to parsing a table. 
