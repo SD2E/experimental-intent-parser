@@ -1,3 +1,4 @@
+from intent_parser_exceptions import TableException 
 import collections
 import constants
 import re
@@ -192,7 +193,7 @@ def transform_cell(cell, units, cell_type=None):
     """
     tokens = _tokenize(cell) 
     if not _is_valued_cells(tokens):
-        yield cell, 'unspecified'
+        raise TableException(cell, 'Unable to detect a value or a list of values') 
     else:
         index = 0
         tokens = [token for token in tokens if _get_token_type(token) not in ['SEPARATOR', 'SKIP']]
@@ -203,7 +204,6 @@ def transform_cell(cell, units, cell_type=None):
             
             if _get_token_type(tokens[index+1]) == 'NAME':
                 index = index+2
-            # throw an exception if token mismatch unit
             else:
                 index = index+1
             yield value, unit
@@ -263,21 +263,21 @@ def _is_valued_cells(tokens):
     if len(tokens) < 2:
         return False
     tokens = [token for token in tokens if _get_token_type(token) != 'SKIP']
-    next = 'NUMBER'
+    next_token = 'NUMBER'
     for token in tokens:
-        if next == 'NUMBER' and _get_token_type(token) != 'NUMBER':
+        if next_token == 'NUMBER' and _get_token_type(token) != 'NUMBER':
             return False
-        if next == 'SEPARATOR' and _get_token_type(token) != 'SEPARATOR':
+        if next_token == 'SEPARATOR' and _get_token_type(token) != 'SEPARATOR':
             return False
-        if next == 'EITHER'and _get_token_type(token) not in ['NUMBER', 'NAME', 'SEPARATOR']:
+        if next_token == 'EITHER'and _get_token_type(token) not in ['NUMBER', 'NAME', 'SEPARATOR']:
             return False
         
         if _get_token_type(token) == 'NUMBER': 
-            next = 'EITHER' 
+            next_token = 'EITHER' 
         elif _get_token_type(token) == 'NAME':
-            next = 'SEPARATOR'
+            next_token = 'SEPARATOR'
         elif _get_token_type(token) == 'SEPARATOR':
-            next = 'NUMBER'
+            next_token = 'NUMBER'
         else:
             return False
             
@@ -296,14 +296,15 @@ def _determine_unit(tokens, units, abbrev_units):
         An identified unit corresponding to tokens. 
         unspecified is returned if no unit were identified. 
     """
-    if _get_token_type(tokens[-1]) == 'NAME':
-        unit = _get_token_value(tokens[-1]).lower()
-        if unit in abbrev_units:
-            unit = abbrev_units[unit].lower()
-        
-        if unit in units:
-            return units[unit]
-    return 'unspecified'
+    if _get_token_type(tokens[-1]) != 'NAME':
+        raise TableException(_get_token_value(tokens[-1]), 'Unable to detect unit')
+    unit = _get_token_value(tokens[-1]).lower()
+    if unit in abbrev_units:
+        unit = abbrev_units[unit].lower()
+    
+    if unit not in units:
+        raise TableException(unit, 'Intent Parser does not support unit')
+    return units[unit]
 
 def _canonicalize_units(units):
     """
