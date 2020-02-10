@@ -1,10 +1,15 @@
+from intent_parser_exceptions import TableException
 import constants
+import logging
 import table_utils
 
 class ParameterTable(object):
     '''
     Class handles parameter tables 
     '''
+    
+    _logger = logging.getLogger('intent_parser_server')
+    
     FIELD_WITH_BOOLEAN_VALUE = [constants.PARAMETER_VALIDATE_SAMPLES, 
                                 constants.PARAMETER_RUN_INFO_READ_EACH_RECOVER,
                                 constants.PARAMETER_RUN_INFO_READ_EACH_INDUCTION,
@@ -38,25 +43,28 @@ class ParameterTable(object):
         return parameter_data
     
     def _parse_row(self, header_row, row):
-        
-        content = []
         num_cols = len(row['tableCells'])
-        param_field = ''
-        param_value = ['unspecified']
-        for col_index in range(0, num_cols): 
-            paragraph_element = header_row['tableCells'][col_index]['content'][0]['paragraph']
-            header = table_utils.get_paragraph_text(paragraph_element).strip()
-            cell_txt = ' '.join([table_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][col_index]['content']])
-            if not cell_txt:
-                continue
-            elif header == constants.COL_HEADER_PARAMETER:
-                param_field = self._get_parameter_field(cell_txt)
-            elif header == constants.COL_HEADER_PARAMETER_VALUE:
-                param_value = table_utils.transform_number_name_cell(cell_txt)
+        try:
+            param_field = ''
+            param_value = ['unspecified']
+            for col_index in range(0, num_cols): 
+                paragraph_element = header_row['tableCells'][col_index]['content'][0]['paragraph']
+                header = table_utils.get_paragraph_text(paragraph_element).strip()
+                cell_txt = ' '.join([table_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][col_index]['content']])
+                if not cell_txt:
+                    continue
+                elif header == constants.COL_HEADER_PARAMETER:
+                    param_field = self._get_parameter_field(cell_txt)
+                elif header == constants.COL_HEADER_PARAMETER_VALUE:
+                    param_value = table_utils.transform_number_name_cell(cell_txt)
+                
+            return param_field, param_value 
+        except TableException as err:
+            self._logger.info('WARNING in Parameter Table: ' + err.get_message() + ' for ' + err.get_expression())
             
-        return param_field, param_value 
-    
     def _get_parameter_field(self, cell_txt):
+        if not cell_txt in self._parameter_fields:
+            raise TableException(cell_txt, 'Strateos does not support parameter field')
         return self._parameter_fields[cell_txt]
             
         
