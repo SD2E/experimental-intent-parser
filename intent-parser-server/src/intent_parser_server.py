@@ -32,9 +32,6 @@ import time
 import traceback
 import urllib.request
 
-
-
-
 class IntentParserServer:
 
     # Used for inserting experiment result data
@@ -2883,6 +2880,11 @@ class IntentParserServer:
                 result = {'actions': actions,
                           'results': {'operationSucceeded': True}
                 }
+            elif action == 'createParameterTable':
+                actions.self.process_create_parameter_table(data)
+                result = {'actions': actions,
+                          'results': {'operationSucceeded': True}
+                }
             else:
                 self.logger.error('Unsupported form action: {}'.format(action))
 
@@ -2972,7 +2974,25 @@ class IntentParserServer:
         create_table['colSizes'] = col_sizes
 
         return [create_table]
-
+    
+    def process_create_parameter_table(self, data):
+        col_sizes = [2]
+        table_data = []
+        
+        header = [constants.COL_HEADER_PARAMETER, constants.COL_HEADER_PARAMETER_VALUE]
+        table_data.append(header)
+        
+        for parameter_field in self.strateos_mapping:
+            table_data.append([parameter_field, '']) 
+                
+        
+        create_table = {}
+        create_table['action'] = 'addTable'
+        create_table['cursorChildIndex'] = data['cursorChildIndex']
+        create_table['tableData'] = table_data
+        create_table['tableType'] = 'parameters'
+        create_table['colSizes'] = col_sizes
+    
     def process_form_link_all(self, data):
         document_id = data['documentId']
         doc = self.google_accessor.get_document(
