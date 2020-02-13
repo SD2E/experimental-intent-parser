@@ -1,14 +1,22 @@
+from intent_parser_exceptions import TableException 
 import collections
 import constants
 import re
 
 
 _Token = collections.namedtuple('Token', ['type', 'value'])
+_fluid_units = {'fold' : 'X',
+                'mmol' : 'mM',
+                'um' : 'micromole'}
 _temperature_units = {'c' : 'celsius', 
                       'f' : 'fahrenheit'}
-_fluid_units = {'fold' : 'X'}
-_abbreviated_unit_dict = {'temperature' : _temperature_units,
-                          'fluid' : _fluid_units}
+_timepoint_units = {'hours' : 'hour',
+                    'hr' : 'hour',
+                    'h' : 'hour'}
+_abbreviated_unit_dict = {'fluid' : _fluid_units,
+                          'temperature' : _temperature_units,
+                          'timepoints' : _timepoint_units
+                          }
 
 
 def detect_lab_table(table):
@@ -150,7 +158,7 @@ def transform_cell(cell, units, cell_type=None):
     """
     tokens = _tokenize(cell) 
     if not _is_valued_cells(tokens):
-        yield cell, 'unspecified'
+        raise TableException(cell, 'does not contain a unit') 
     else:
         index = 0
         tokens = [token for token in tokens if _get_token_type(token) not in ['SEPARATOR', 'SKIP']]
@@ -161,7 +169,6 @@ def transform_cell(cell, units, cell_type=None):
             
             if _get_token_type(tokens[index+1]) == 'NAME':
                 index = index+2
-            # throw an exception if token mismatch unit
             else:
                 index = index+1
             yield value, unit
@@ -198,6 +205,8 @@ def _tokenize(cell):
     for mo in re.finditer(tok_regex, cell):
         kind = mo.lastgroup
         value = mo.group()
+        if value.startswith('\u000b') :
+            value = value.replace('\u000b', '') 
         tokens.append(_Token(kind, value))
     return tokens
      
@@ -217,21 +226,21 @@ def _is_valued_cells(tokens):
     if len(tokens) < 2:
         return False
     tokens = [token for token in tokens if _get_token_type(token) != 'SKIP']
-    next = 'NUMBER'
+    next_token = 'NUMBER'
     for token in tokens:
-        if next == 'NUMBER' and _get_token_type(token) != 'NUMBER':
+        if next_token == 'NUMBER' and _get_token_type(token) != 'NUMBER':
             return False
-        if next == 'SEPARATOR' and _get_token_type(token) != 'SEPARATOR':
+        if next_token == 'SEPARATOR' and _get_token_type(token) != 'SEPARATOR':
             return False
-        if next == 'EITHER'and _get_token_type(token) not in ['NUMBER', 'NAME', 'SEPARATOR']:
+        if next_token == 'EITHER'and _get_token_type(token) not in ['NUMBER', 'NAME', 'SEPARATOR']:
             return False
         
         if _get_token_type(token) == 'NUMBER': 
-            next = 'EITHER' 
+            next_token = 'EITHER' 
         elif _get_token_type(token) == 'NAME':
-            next = 'SEPARATOR'
+            next_token = 'SEPARATOR'
         elif _get_token_type(token) == 'SEPARATOR':
-            next = 'NUMBER'
+            next_token = 'NUMBER'
         else:
             return False
             
@@ -250,13 +259,15 @@ def _determine_unit(tokens, units, abbrev_units):
         An identified unit corresponding to tokens. 
         unspecified is returned if no unit were identified. 
     """
-    if _get_token_type(tokens[-1]) == 'NAME':
-        unit = _get_token_value(tokens[-1]).lower()
-        if unit in abbrev_units:
-            unit = abbrev_units[unit].lower()
-        if unit in units:
-            return units[unit]
-    return 'unspecified'
+    if _get_token_type(tokens[-1]) != 'NAME':
+        raise TableException(_get_token_value(tokens[-1]), 'does not contain a unit')
+    unit = _get_token_value(tokens[-1]).lower()
+    if unit in abbrev_units:
+        unit = abbrev_units[unit].lower()
+    
+    if unit not in units:
+        raise TableException(unit, 'is an invalid unit')
+    return units[unit]
 
 def _canonicalize_units(units):
     """
