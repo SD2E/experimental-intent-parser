@@ -1,6 +1,9 @@
 
+from datacatalog.formats.common import map_experiment_reference
 from datetime import datetime
 from google_accessor import GoogleAccessor
+from jsonschema import validate
+from jsonschema import ValidationError
 from lab_table import LabTable
 from measurement_table import MeasurementTable
 from multiprocessing import Pool
@@ -27,12 +30,7 @@ import threading
 import time
 import traceback
 import urllib.request
-#import logging
 
-from jsonschema import validate
-from jsonschema import ValidationError
-
-from datacatalog.formats.common import map_experiment_reference
 
 class ConnectionException(Exception):
     def __init__(self, code, message, content=""):
@@ -554,41 +552,50 @@ class IntentParserServer:
         try:
             json_body = self.get_json_body(httpMessage)
             document_id = json_body['documentId']
-            request = self.internal_generate_request(document_id)
+            request, errors = self.internal_generate_request(document_id)
             schema = { "$ref" : "https://schema.catalog.sd2e.org/schemas/structured_request.json" }
-
-            try:
-                validate(request, schema)
-                msg = 'Validation Passed!&#13;&#10;'
-                result = 'Passed!'
-                height = 100
-                textAreaRows = 1
-            except ValidationError as err:
-                msg = 'Validation Failed!\n'
-                msg += 'Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;')
+            
+            height = 600
+            textAreaRows = 33 
+            result = 'Passed!'
+            if len(errors) > 0:
+                msg = 'Validation Failed! Invalid entries found: \n'
+                msg += '\n'.join(errors)
                 result = 'Failed!'
-                height = 600
-                textAreaRows = 33
+            
+            else:
+                try:
+                    validate(request, schema)
+                    msg = 'Validation Passed!&#13;&#10;'
+                    result = 'Passed!'
+                    height = 100
+                    textAreaRows = 1
+                except ValidationError as err:
+                    msg = 'Validation Failed!\n'
+                    msg += 'Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;')
+                    result = 'Failed!'
+                    height = 600
+                    textAreaRows = 33
 
-            reagent_with_no_uri = set()
-            if 'runs' in request:
-                for run in request['runs']:
-                    if 'measurements' not in run:
-                        continue;
-                    for measurement in run['measurements']:
-                        if 'contents' not in measurement:
-                            continue
-                        for reagent_entry in measurement['contents']:
-                            for reagent in reagent_entry:
-                                name_dict = reagent['name']
-                                if name_dict['sbh_uri'] == 'NO PROGRAM DICTIONARY ENTRY':
-                                    reagent_with_no_uri.add(name_dict['label'])
+                reagent_with_no_uri = set()
+                if 'runs' in request:
+                    for run in request['runs']:
+                        if 'measurements' not in run:
+                            continue;
+                        for measurement in run['measurements']:
+                            if 'contents' not in measurement:
+                                continue
+                            for reagent_entry in measurement['contents']:
+                                for reagent in reagent_entry:
+                                    name_dict = reagent['name']
+                                    if name_dict['sbh_uri'] == 'NO PROGRAM DICTIONARY ENTRY':
+                                        reagent_with_no_uri.add(name_dict['label'])
 
-            for reagent in reagent_with_no_uri:
-                textAreaRows += 1
-                height += 20
-                msg += 'Warning: %s does not have a SynbioHub URI specified!&#13;&#10;' % reagent
-
+                for reagent in reagent_with_no_uri:
+                    textAreaRows += 1
+                    height += 20
+                    msg += 'Warning: %s does not have a SynbioHub URI specified!&#13;&#10;' % reagent
+            
             msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (textAreaRows, msg)
             buttons = [('Ok', 'process_nop')]
             dialog_action = self.simple_modal_dialog(msg, buttons, 'Structured request validation: %s' % result, 600, height)
@@ -648,6 +655,7 @@ class IntentParserServer:
                         cp_id = new_cp_id
 
         measurements = []
+        errors = []
         doc_tables = self.get_element_type(doc, 'table')
         measurement_table_new_idx = -1
         lab_table_idx = -1
@@ -661,11 +669,12 @@ class IntentParserServer:
             is_lab_table = table_utils.detect_lab_table(table)
             if is_lab_table:
                 lab_table_idx = tIdx
-
+                
         if measurement_table_new_idx >= 0:
             table = doc_tables[measurement_table_new_idx]
             meas_table = MeasurementTable(self.temp_units, self.time_units, self.fluid_units, self.measurement_types, self.file_types)
             measurements = meas_table.parse_table(table)
+            errors = errors + meas_table.get_validation_errors()
 
         if lab_table_idx >= 0:
             table = doc_tables[lab_table_idx]
@@ -682,7 +691,7 @@ class IntentParserServer:
         request['lab'] = lab
         request['runs'] = [{ 'measurements' : measurements}]
 
-        return request
+        return request, errors
     
     def is_cell_value_media(self, cell_value):
         reagent_exp = re.compile('(\d+)(,\s?(\d+))*[a-zA-Z]+')
@@ -697,8 +706,7 @@ class IntentParserServer:
 
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
-
-        request = self.internal_generate_request(document_id)
+        request, errors = self.internal_generate_request(document_id)
 
         end = time.time()
 
@@ -3041,9 +3049,9 @@ class IntentParserServer:
         self.send_response(200, 'OK', json.dumps(response), sm,
                            'application/json')
 
-#spreadsheet_id = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program dict
+spreadsheet_id = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program dict
 # spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
-spreadsheet_id = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0' #sd2 unit test dictionary 
+# spreadsheet_id = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0' #sd2 unit test dictionary 
 sbh_spoofing_prefix=None
 sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
 bind_port = 8081
