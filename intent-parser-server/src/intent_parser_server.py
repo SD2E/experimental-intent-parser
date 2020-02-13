@@ -706,7 +706,7 @@ class IntentParserServer:
 
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
-        request = self.internal_generate_request(document_id)
+        request, errors = self.internal_generate_request(document_id)
 
         end = time.time()
 
