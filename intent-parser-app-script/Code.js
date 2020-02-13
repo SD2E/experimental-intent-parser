@@ -1,4 +1,4 @@
-var serverURL = 'http://intentparser.sd2e.org/'
+var serverURL = 'http://intentparser.sd2e.org'
 
 var versionString = '2.4'
 
