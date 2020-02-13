@@ -20,33 +20,45 @@ class ParameterTable(object):
     
     def __init__(self, parameter_fields={}):
         self._parameter_fields = parameter_fields
+        self._validation_errors = []
     
     def parse_table(self, table):
         parameter_data = {}
         rows = table['tableRows']
         for row in rows[1:]:
             param_field, param_value = self._parse_row(rows[0], row)
-            # TODO: Support nested result from parameter_value.  
             if not param_field:
                 continue
-            
-            if param_field in self.FIELD_WITH_FLOAT_VALUE:  
-                parameter_data[param_field] = float(param_value[0])
-            elif param_field in self.FIELD_WITH_BOOLEAN_VALUE:
-                if param_value[0] == 'false':
-                    parameter_data[param_field] = False
-                elif param_value[0] == 'true':
-                    parameter_data[param_field] = True 
+            # TODO: raise exception for empty parameter value?
+            if len(param_value) == 0:
+                continue
+            elif len(param_value) == 1:
+                key, value = self._parse_parameter_field_value(param_field, param_field, param_value[0])
+                parameter_data[key] = value
             else:
-                parameter_data[param_field] = param_value[0]
+                for index in range(len(param_value)):
+                    param_field_id = '.'.join([param_field, str(index)])
+                    key, value = self._parse_parameter_field_value(param_field, param_field_id, param_value[index])
+                    parameter_data[key] = value
                     
         return parameter_data
     
+    def _parse_parameter_field_value(self, parameter_field, parameter_field_id, parameter_value):
+        if parameter_field in self.FIELD_WITH_FLOAT_VALUE:  
+            return parameter_field_id, float(parameter_value)
+        elif parameter_field in self.FIELD_WITH_BOOLEAN_VALUE:
+            if parameter_value == 'false':
+                return parameter_field_id, False
+            elif parameter_value == 'true':
+                return parameter_field_id, True
+        
+        return parameter_field_id, parameter_value
+        
     def _parse_row(self, header_row, row):
         num_cols = len(row['tableCells'])
         try:
             param_field = ''
-            param_value = ['unspecified']
+            param_value = []
             for col_index in range(0, num_cols): 
                 paragraph_element = header_row['tableCells'][col_index]['content'][0]['paragraph']
                 header = table_utils.get_paragraph_text(paragraph_element).strip()
@@ -60,11 +72,13 @@ class ParameterTable(object):
                 
             return param_field, param_value 
         except TableException as err:
-            self._logger.info('WARNING in Parameter Table: ' + err.get_message() + ' for ' + err.get_expression())
+            message = ' '.join(['In Parameter Table: ', err.get_expression(), err.get_message(), 'for', cell_txt]) 
+            self._logger.info('WARNING ' + message)
+            self._validation_errors.append(message)
             
     def _get_parameter_field(self, cell_txt):
         if not cell_txt in self._parameter_fields:
-            raise TableException(cell_txt, 'Strateos does not support parameter field')
+            raise TableException(cell_txt, 'is a parameter field not supported for Strateos')
         return self._parameter_fields[cell_txt]
             
         
