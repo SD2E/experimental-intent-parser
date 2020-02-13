@@ -402,6 +402,8 @@ class IntentParserServer:
             self.process_create_table_template(httpMessage, sm)
         elif resource == '/validateStructuredRequest':
             self.process_validate_structured_request(httpMessage, sm)
+        elif resource == '/createParameterTable':
+            self.process_submit_form(httpMessage, sm)
         else:
             self.send_response(404, 'Not Found', 'Resource Not Found\n', sm)
 
@@ -696,7 +698,7 @@ class IntentParserServer:
         request['experiment_version'] = 1
         request['lab'] = lab
         request['runs'] = [{ 'measurements' : measurements}]
-        request['protocol_parameters'] = parameter 
+        request['parameters'] = parameter 
 
         return request, errors
     
