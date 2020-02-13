@@ -1,3 +1,4 @@
+from intent_parser_exceptions import TableException
 import constants
 import intent_parser_utils
 import logging
@@ -17,12 +18,15 @@ class MeasurementTable:
         self._fluid_units = fluid_units
         self._measurement_types = measurement_types
         self._file_type = file_type
-         
+        self._validation_errors = []
+        
     def parse_table(self, table):
         measurements = []
         rows = table['tableRows']
         for row in rows[1:]:
-            measurements.append(self._parse_row(rows[0], row))
+            meas_data = self._parse_row(rows[0], row)
+            if meas_data:
+                measurements.append(meas_data)
         return measurements   
             
     def _parse_row(self, header_row, row):
@@ -32,53 +36,64 @@ class MeasurementTable:
         for i in range(0, num_cols): 
             paragraph_element = header_row['tableCells'][i]['content'][0]['paragraph']
             header = table_utils.get_paragraph_text(paragraph_element).strip()
-            cellTxt = ' '.join([table_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][i]['content']])
-            if not cellTxt or header in self.IGNORE_COLUMNS:
+            cell_txt = ' '.join([table_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][i]['content']])
+            if not cell_txt or header in self.IGNORE_COLUMNS:
                 continue
             elif header == constants.COL_HEADER_MEASUREMENT_TYPE:
-                measurement['measurement_type'] = self._get_measurement_type(cellTxt)
+                measurement['measurement_type'] = self._get_measurement_type(cell_txt)
             elif header == constants.COL_HEADER_FILE_TYPE:
-                measurement['file_type'] = [value for value in table_utils.extract_name_value(cellTxt)] 
+                measurement['file_type'] = [value for value in table_utils.extract_name_value(cell_txt)] 
             elif header == constants.COL_HEADER_REPLICATE:
-                if table_utils.is_number(cellTxt):
-                    measurement['replicates'] = int(cellTxt)
-                else:
-                    measurement['replicates'] = -1
-                    self._logger.info('WARNING: failed to parse number of replicates! Trying to parse: %s' % cellTxt)
+                try:
+                    if not table_utils.is_number(cell_txt):
+                        raise TableException(cell_txt, 'is not a numerical value')
+                    measurement['replicates'] = int(cell_txt)
+                except TableException as err:
+                    message =  ' '.join(['Under replicate: ', err.get_expression(), err.get_message(), 'for', cell_txt]) 
+                    self._logger.info('WARNING ' + message)
+                    self._validation_errors.append(message)
             elif header == constants.COL_HEADER_STRAIN:
-                measurement['strains'] = [value for value in table_utils.extract_name_value(cellTxt)]
+                measurement['strains'] = [value for value in table_utils.extract_name_value(cell_txt)]
             elif header == constants.COL_HEADER_ODS:
-                measurement['ods'] = [float(value) for value in table_utils.extract_number_value(cellTxt)]
+                measurement['ods'] = [float(value) for value in table_utils.extract_number_value(cell_txt)]
             elif header == constants.COL_HEADER_TEMPERATURE:
-                temps = []
-                for value,unit in table_utils.transform_cell(cellTxt, self._temperature_units, cell_type='temperature'):
-                    try:
-                        temp_dict = {'value' : float(value), 'unit' : unit}
-                    except:
-                        temp_dict = {'value' : -1, 'unit' : 'unspecified'}
-                        self._logger.info('WARNING: failed to parse temp unit! Trying to parse: %s' % cellTxt)
-                    temps.append(temp_dict)
-                measurement['temperatures'] = temps
+                try:
+                    measurement['temperatures'] = self._parse_and_append_value_unit(cell_txt, 'temperature', self._temperature_units)
+                except TableException as err:
+                    message = ' '.join(['Under temperature: ', err.get_expression(), err.get_message(), 'for', cell_txt]) 
+                    self._logger.info('WARNING ' + message)
+                    self._validation_errors.append(message)
             elif header == constants.COL_HEADER_TIMEPOINT:
-                timepoints = []
-                for value,unit in table_utils.transform_cell(cellTxt, self._timepoint_units):
-                    try:
-                        time_dict = {'value' : float(value), 'unit' : unit}
-                    except:
-                        time_dict = {'value' : -1, 'unit' : 'unspecified'}
-                        self._logger.info('WARNING: failed to parse time unit! Trying to parse: %s' % cellTxt)
-                    timepoints.append(time_dict)
-                measurement['timepoints'] = timepoints
+                try:
+                    measurement['timepoints'] = self._parse_and_append_value_unit(cell_txt, 'timepoints', self._timepoint_units) 
+                except TableException as err:
+                    message = ' '.join(['Under timepoint: ', err.get_expression(), err.get_message(), 'for', cell_txt]) 
+                    self._logger.info('WARNING ' + message)
+                    self._validation_errors.append(message)
             else:
-                reagents = self._parse_reagent_media(paragraph_element, cellTxt)
-                content.append(reagents)
+                reagents = self._parse_reagent_media(paragraph_element, cell_txt)
+                try:
+                    if not reagents:
+                        raise TableException(header, 'cannot parse as a reagent/media')
+                    content.append(reagents)
+                except TableException as err:
+                    message = ' '.join(['Under', header, ':', err.get_expression(), err.get_message()]) 
+                    self._logger.info('Warning ' + message)
+                    self._validation_errors.append(message)
+            
         if content:
             measurement['contents'] = content
         return measurement 
     
+    def _parse_and_append_value_unit(self, cell_txt, cell_type, unit_list):
+        result = []
+        for value,unit in table_utils.transform_cell(cell_txt, unit_list, cell_type=cell_type):
+            temp_dict = {'value' : float(value), 'unit' : unit}
+            result.append(temp_dict)
+        return result 
+        
     
-    
-    def _parse_reagent_media(self, paragraph_element, cellTxt):
+    def _parse_reagent_media(self, paragraph_element, cell_txt):
         reagents_media = []
         reagent_media_name = table_utils.get_paragraph_text(paragraph_element).strip()
        
@@ -92,27 +107,28 @@ class MeasurementTable:
         timepoint_dict = {}
         if len(timepoint_str) > 1:
             reagent_media_name = timepoint_str[0].strip()
-            for value,unit in table_utils.transform_cell(timepoint_str[1], self._timepoint_units):
+            for value,unit in table_utils.transform_cell(timepoint_str[1], self._timepoint_units, cell_type='timepoints'):
                 timepoint_dict = {'value' : float(value), 'unit' : unit}
         
         label_uri_dict = {'label' : reagent_media_name, 'sbh_uri' : uri}    
         
         # Determine if cells is numerical or name value 
-        if table_utils.is_name(cellTxt):
-            for name in table_utils.extract_name_value(cellTxt):
+        if table_utils.is_name(cell_txt):
+            for name in table_utils.extract_name_value(cell_txt):
                 named_dict = {'name' : label_uri_dict, 'value' : name}
                 reagents_media.append(named_dict)
         else:                   
-            for value,unit in table_utils.transform_cell(cellTxt, self._fluid_units, cell_type='fluid'):
-                try:
+            try:
+                for value,unit in table_utils.transform_cell(cell_txt, self._fluid_units, cell_type='fluid'):
                     if timepoint_dict:
                         numerical_dict = {'name' : label_uri_dict, 'value' : value, 'unit' : unit, 'timepoint' : timepoint_dict}
                     else:
                         numerical_dict = {'name' : label_uri_dict, 'value' : value, 'unit' : unit}
-                                    
                     reagents_media.append(numerical_dict)
-                except:
-                    self._logger.info('WARNING: failed to parse reagent! Trying to parse: %s' % cellTxt)
+            except TableException as err:
+                message = ' '.join([err.get_expression(), err.get_message(), 'for', cell_txt]) 
+                self._logger.info('Warning ' + message)
+                self._validation_errors.append(message)
         
         return reagents_media
     
@@ -132,3 +148,7 @@ class MeasurementTable:
                     best_match_type = mtype
                     best_match_size = m.size
         return best_match_type
+    
+    def get_validation_errors(self):
+        return self._validation_errors
+    
