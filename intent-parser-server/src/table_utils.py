@@ -175,7 +175,7 @@ def transform_number_name_cell(cell):
                 return [_get_token_value(tokens[0]) + ':' + _get_token_value(tokens[1])]
         return extract_number_value(cell)
     
-    return [cell]
+    return extract_name_value(cell)
 
 def transform_cell(cell, units, cell_type=None):
     """
