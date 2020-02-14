@@ -688,6 +688,7 @@ class IntentParserServer:
             table = doc_tables[parameter_table_idx]
             parameter_table = ParameterTable(self.strateos_mapping)
             parameter = parameter_table.parse_table(table)
+            errors = errors + parameter_table.get_validation_errors()
             
         request = {}
         request['name'] = doc['title']
@@ -698,7 +699,8 @@ class IntentParserServer:
         request['experiment_version'] = 1
         request['lab'] = lab
         request['runs'] = [{ 'measurements' : measurements}]
-        request['parameters'] = parameter 
+        if parameter:
+            request['parameters'] = parameter 
 
         return request, errors
     
