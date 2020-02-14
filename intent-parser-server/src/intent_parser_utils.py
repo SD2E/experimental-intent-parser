@@ -1,6 +1,7 @@
 
 from collections import namedtuple as _namedtuple
 from difflib import Match
+from intent_parser_exceptions import DictionaryMaintainerException
 import Levenshtein
 
 IPSMatch = _namedtuple('Match', 'a b size content_word_length')
@@ -11,6 +12,9 @@ def get_strateos_mapping(sheet_data):
         if tab == 'Attribute':
             attribute_tab = sheet_data[tab]
             break 
+    
+    if attribute_tab is None:
+        raise DictionaryMaintainerException('Attribute column', 'cannot be found in spreadsheet.')
     
     result = {}
     for row in attribute_tab:
