@@ -47,6 +47,19 @@ class TableUtilsTest(unittest.TestCase):
         with self.assertRaises(TableException):
             value, unit = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
     
+    def test_cell_with_unit_without_spacing(self):
+        cell_str = '1X'
+        for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
+           self.assertEqual(unit, 'X')
+           self.assertEqual('1', value)
+           
+    def test_cell_with_multiple_value_unit_without_space(self):
+        cell_str = '1X,2X,3X'
+        expected_values = ['1', '2', '3']
+        for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
+           self.assertEqual(unit, 'X')
+           self.assertTrue(value in expected_values)
+           
     def test_cell_with_single_value(self):
         cell_str = '1 X'
         expected_values = ['1']
