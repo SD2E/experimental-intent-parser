@@ -84,7 +84,7 @@ class IntegrationSbhTest(unittest.TestCase):
         Integration test for Add to SynbioHub feature
         """
         expected_results = IntentParserServer.sparql_limit
-        term = 'MG1655'
+        term = 'aTc'
         self.add_sbh_test_func(term, expected_results)
 
     def add_sbh_test_func(self, term, expected_results):
