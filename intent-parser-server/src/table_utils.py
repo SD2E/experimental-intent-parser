@@ -86,9 +86,9 @@ def is_number(cell):
     if len(tokens) < 0:
         return False
     if len(tokens) == 1:
-        return tokens[0][0] == 'NUMBER'
-    for tok in tokens:
-        if tok[0] == 'NAME':
+        return _get_token_type(tokens[0]) == 'NUMBER'
+    for token in tokens:
+        if _get_token_type(token) == 'NAME':
             return False
     
     return True
