@@ -32,7 +32,7 @@ class GoogleAccessor:
         self.MAPPING_FAILURES = 'Mapping Failures'
 
         self.type_tabs = {
-            #'Attribute': ['Attribute'],  We don't want to parse this tab
+            'Attribute': ['Attribute'],  
             'Reagent': ['Bead', 'CHEBI', 'Protein',
                         'Media', 'Stain', 'Buffer',
                         'Solution'],
@@ -114,7 +114,7 @@ class GoogleAccessor:
         create_sheets_request = spreadsheets.create(body=spreadsheet,
                                                     fields='spreadsheetId')
         return self._execute_request(create_sheets_request)
-
+    
     def delete_file(self, file_id: str):
         """Delete an existing file
           Arguements:

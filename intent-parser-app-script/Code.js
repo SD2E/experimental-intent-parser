@@ -1,12 +1,13 @@
-var serverURL = 'http://intentparser.sd2e.org/'
+var serverURL = 'http://intentparser.sd2e.org'
 
-var versionString = '2.3.2post'
+var versionString = '2.4.1pre'
 
 function onOpen() {
   var ui = DocumentApp.getUi()
 
   var tablesMenu = ui.createMenu('Create table templates')
   tablesMenu.addItem('Create Measurements Table', 'createTableMeasurements')
+  tablesMenu.addItem('Create Parameter Table', 'createParameterTable')
 
   var menu = ui.createMenu('Parse Intent')
 
@@ -206,6 +207,11 @@ function processActions(response) {
             labTableData = actionDesc['tableLab']
             var newLabTable = body.insertTable(childIndex, labTableData);
             newLabTable.setAttributes(tableStyle)
+        }
+        else if (actionDesc['tableType'] == 'parameters') {
+            parameterTableData = actionDesc['tableData']
+            var parameterTable = body.insertTable(childIndex, parameterTableData);
+            parameterTable.setAttributes(tableStyle)
         }
         break
 
@@ -684,4 +690,25 @@ function createTableMeasurements() {
   data = {'childIndex' : childIndex, 'tableType' : 'measurements'}
 
   sendPost('/createTableTemplate', data)
+}
+
+function createParameterTable(){
+	var doc = DocumentApp.getActiveDocument();
+	  var cursorPosition = doc.getCursor();
+
+	  if(cursorPosition == null) {
+	      // Cursor position is null, so assume a selection
+	      selectionRange = doc.getSelection()
+	      rangeElement = selectionRange.getRangeElements()[0]
+	      // Extract element and offset from end of selection
+	      var el = rangeElement.getElement()
+	  } else {
+	      // Select element and off set from current position
+	      var el = cursorPosition.getElement()
+	  }
+	  childIndex = doc.getBody().getChildIndex(el)
+
+	  data = {'childIndex' : childIndex, 'tableType' : 'parameter'}
+
+	  sendPost('/createParameterTable', data)
 }

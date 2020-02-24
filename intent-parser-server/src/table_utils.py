@@ -51,6 +51,18 @@ def detect_new_measurement_table(table):
 
     return found_replicates and found_strain and found_measurement_type and found_file_type
 
+def detect_parameter_table(table):
+    has_parameter_field = False
+    has_parameter_value = False 
+    rows = table['tableRows']
+    headerRow = rows[0]
+    for cell in headerRow['tableCells']:
+        cellTxt = get_paragraph_text(cell['content'][0]['paragraph']).strip()
+        if cellTxt == constants.COL_HEADER_PARAMETER:
+            has_parameter_field = True
+        elif cellTxt == constants.COL_HEADER_PARAMETER_VALUE:
+            has_parameter_value = True
+    return has_parameter_field and has_parameter_value
 
 def get_paragraph_text(paragraph):
     elements = paragraph['elements']
@@ -142,6 +154,29 @@ def extract_name_value(cell):
     
     return result
 
+def transform_number_name_cell(cell):
+    """
+    Parses a given string with a value for three different pattern:
+    1. number followed by a named value
+    2. named value
+    3. a list of numbered value
+    
+    Args:
+        cell: Content of a cell
+    
+    Return:
+    Array containing the result of the identified pattern for a cell.
+    """
+    
+    tokens = _tokenize(cell, keep_space=False) 
+    if _is_valued_cells(tokens):
+        if len(tokens) == 2:
+            if _get_token_type(tokens[0]) == 'NUMBER' and _get_token_type(tokens[1]) == 'NAME':
+                return [_get_token_value(tokens[0]) + ':' + _get_token_value(tokens[1])]
+        return extract_number_value(cell)
+    
+    return extract_name_value(cell)
+
 def transform_cell(cell, units, cell_type=None):
     """
     Parses the content of a cell to identify its value and unit. 
@@ -182,12 +217,13 @@ def _get_token_type(token):
 def _get_token_value(token):
     return token[1]
 
-def _tokenize(cell):
+def _tokenize(cell, keep_space=True):
     """
     Tokenize the content from a given cell into numbers and names. 
     
     Args: 
         cell: Content of a cell
+        keep_space: A flag to include white space tokens in the result. Default to True
         
     Returns:
         A tokenized representation for the content of a cell.
@@ -205,9 +241,10 @@ def _tokenize(cell):
     for mo in re.finditer(tok_regex, cell):
         kind = mo.lastgroup
         value = mo.group()
+        if kind != 'SKIP' or keep_space: 
+            tokens.append(_Token(kind, value))
         if value.startswith('\u000b') :
             value = value.replace('\u000b', '') 
-        tokens.append(_Token(kind, value))
     return tokens
      
 def _is_valued_cells(tokens):
