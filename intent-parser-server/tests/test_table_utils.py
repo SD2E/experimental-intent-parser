@@ -47,6 +47,19 @@ class TableUtilsTest(unittest.TestCase):
         with self.assertRaises(TableException):
             value, unit = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
     
+    def test_cell_with_unit_without_spacing(self):
+        cell_str = '1X'
+        for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
+           self.assertEqual(unit, 'X')
+           self.assertEqual('1', value)
+           
+    def test_cell_with_multiple_value_unit_without_space(self):
+        cell_str = '1X,2X,3X'
+        expected_values = ['1', '2', '3']
+        for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
+           self.assertEqual(unit, 'X')
+           self.assertTrue(value in expected_values)
+           
     def test_cell_with_single_value(self):
         cell_str = '1 X'
         expected_values = ['1']
@@ -151,7 +164,27 @@ class TableUtilsTest(unittest.TestCase):
         exp_res = ['Yeast1_', 'Yeast2_', 'Yeast3_']
         for name in tu.extract_name_value(cell_str):
             self.assertTrue(name in exp_res)
-            
+
+    def test_cell_with_number_name(self):
+        cell_str = '5 microliter'
+        actual_res = tu.transform_number_name_cell(cell_str)   
+        self.assertEquals(1, len(actual_res))
+        self.assertEquals('5:microliter', actual_res[0])
+        
+    def test_cell_with_name(self):
+        cell_str = 'sc_media'
+        actual_res = tu.transform_number_name_cell(cell_str)   
+        self.assertEquals(1, len(actual_res))
+        self.assertEquals('sc_media', actual_res[0])
+    
+    def test_cell_with_numbered_list(self):
+        cell_str = '0.1, 0.2, 0.3'
+        actual_res = tu.transform_number_name_cell(cell_str)   
+        self.assertEquals(3, len(actual_res))
+        self.assertEquals('0.1', actual_res[0])    
+        self.assertEquals('0.2', actual_res[1]) 
+        self.assertEquals('0.3', actual_res[2])    
+                        
     def test_cell_with_unit_containing_multiple_abbreviations(self):
         cell_str = '1 h, 2 hr, 3 hours'
         expected_values = ['1', '2', '3']

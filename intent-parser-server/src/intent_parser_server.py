@@ -1,13 +1,14 @@
-
 from datacatalog.formats.common import map_experiment_reference
 from datetime import datetime
 from google_accessor import GoogleAccessor
+from intent_parser_exceptions import ConnectionException
 from jsonschema import validate
 from jsonschema import ValidationError
 from lab_table import LabTable
 from measurement_table import MeasurementTable
 from multiprocessing import Pool
 from operator import itemgetter
+from parameter_table import ParameterTable
 from sbh_accessor import SBHAccessor
 from socket_manager import SocketManager
 from spellchecker import SpellChecker
@@ -30,14 +31,6 @@ import threading
 import time
 import traceback
 import urllib.request
-
-
-class ConnectionException(Exception):
-    def __init__(self, code, message, content=""):
-        super(ConnectionException, self).__init__(message);
-        self.code = code
-        self.message = message
-        self.content = content
 
 class IntentParserServer:
 
@@ -270,8 +263,9 @@ class IntentParserServer:
         self.item_map_lock = threading.Lock()
         self.item_map_lock.acquire()
         self.item_map = self.generate_item_map(use_cache=item_map_cache)
+        self.strateos_mapping = intent_parser_utils.get_strateos_mapping(self.fetch_spreadsheet_data())
         self.item_map_lock.release()
-
+        
         # Inverse map of typeTabs
         self.type2tab = {}
         for tab_name in self.google_accessor.type_tabs.keys():
@@ -408,6 +402,8 @@ class IntentParserServer:
             self.process_create_table_template(httpMessage, sm)
         elif resource == '/validateStructuredRequest':
             self.process_validate_structured_request(httpMessage, sm)
+        elif resource == '/createParameterTable':
+            self.process_submit_form(httpMessage, sm)
         else:
             self.send_response(404, 'Not Found', 'Resource Not Found\n', sm)
 
@@ -655,10 +651,12 @@ class IntentParserServer:
                         cp_id = new_cp_id
 
         measurements = []
+        parameter = []
         errors = []
         doc_tables = self.get_element_type(doc, 'table')
         measurement_table_new_idx = -1
         lab_table_idx = -1
+        parameter_table_idx = -1
         for tIdx in range(len(doc_tables)):
             table = doc_tables[tIdx]
             
@@ -670,6 +668,10 @@ class IntentParserServer:
             if is_lab_table:
                 lab_table_idx = tIdx
                 
+            is_parameter_table = table_utils.detect_parameter_table(table)
+            if is_parameter_table:
+                parameter_table_idx = tIdx
+
         if measurement_table_new_idx >= 0:
             table = doc_tables[measurement_table_new_idx]
             meas_table = MeasurementTable(self.temp_units, self.time_units, self.fluid_units, self.measurement_types, self.file_types)
@@ -678,8 +680,15 @@ class IntentParserServer:
 
         if lab_table_idx >= 0:
             table = doc_tables[lab_table_idx]
+
             lab_table = LabTable()
             lab = lab_table.parse_table(table)
+        
+        if parameter_table_idx >=0:
+            table = doc_tables[parameter_table_idx]
+            parameter_table = ParameterTable(self.strateos_mapping)
+            parameter = parameter_table.parse_table(table)
+            errors = errors + parameter_table.get_validation_errors()
             
         request = {}
         request['name'] = doc['title']
@@ -690,6 +699,8 @@ class IntentParserServer:
         request['experiment_version'] = 1
         request['lab'] = lab
         request['runs'] = [{ 'measurements' : measurements}]
+        if parameter:
+            request['parameters'] = parameter 
 
         return request, errors
     
@@ -1724,6 +1735,14 @@ class IntentParserServer:
         self.temp_units = []
         for cid in data['enum']:
             self.temp_units.append(cid)
+            
+        # Volume units
+        response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/volume_unit.json',timeout=60)
+        data = json.loads(response.read().decode('utf-8'))
+
+        self.volume_units = []
+        for cid in data['enum']:
+            self.volume_units.append(cid)
 
         # Lab Ids
         response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/lab.json',timeout=60)
@@ -1733,7 +1752,8 @@ class IntentParserServer:
         for cid in data['enum']:
             self.lab_ids.append(cid)
         self.lab_ids = sorted(self.lab_ids)
-
+    
+        
     def generate_item_map(self, *, use_cache=True):
         item_map = {}
         self.logger.info('Generating item map, %d' % time.time())
@@ -2874,6 +2894,11 @@ class IntentParserServer:
                 result = {'actions': actions,
                           'results': {'operationSucceeded': True}
                 }
+            elif action == 'createParameterTable':
+                actions.self.process_create_parameter_table(data)
+                result = {'actions': actions,
+                          'results': {'operationSucceeded': True}
+                }
             else:
                 self.logger.error('Unsupported form action: {}'.format(action))
 
@@ -2963,7 +2988,25 @@ class IntentParserServer:
         create_table['colSizes'] = col_sizes
 
         return [create_table]
-
+    
+    def process_create_parameter_table(self, data):
+        col_sizes = [2]
+        table_data = []
+        
+        header = [constants.COL_HEADER_PARAMETER, constants.COL_HEADER_PARAMETER_VALUE]
+        table_data.append(header)
+        
+        for parameter_field in self.strateos_mapping:
+            table_data.append([parameter_field, '']) 
+                
+        
+        create_table = {}
+        create_table['action'] = 'addTable'
+        create_table['cursorChildIndex'] = data['cursorChildIndex']
+        create_table['tableData'] = table_data
+        create_table['tableType'] = 'parameters'
+        create_table['colSizes'] = col_sizes
+    
     def process_form_link_all(self, data):
         document_id = data['documentId']
         doc = self.google_accessor.get_document(

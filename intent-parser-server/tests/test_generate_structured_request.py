@@ -16,8 +16,9 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         curr_path = os.path.dirname(os.path.realpath(__file__))
         self.data_dir = os.path.join(curr_path, '../tests/data')
        
-        with open(os.path.join(curr_path, 'sbh_creds.json'), 'r') as fin:
-            creds = json.load(fin)
+        # If we don't have the necessary credentials, try reading them in from json
+        with open(os.path.join(curr_path, 'sbh_creds.json'), 'r') as file:
+            creds = json.load(file)
             self.sbh_username = creds['username']
             self.sbh_password = creds['password']
         
@@ -36,8 +37,8 @@ class GenerateStruturedRequestTest(unittest.TestCase):
             'intent_parser/intent_parser_collection/1'
 
         self.intent_parser = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
-                                                sbh_username=GenerateStruturedRequestTest.sbh_username,
-                                                sbh_password=GenerateStruturedRequestTest.sbh_password,
+                                                sbh_username=self.sbh_username,
+                                                sbh_password=self.sbh_password,
                                                 spreadsheet_id=self.spreadsheet_id,
                                                 item_map_cache=False,
                                                 bind_ip='localhost',
@@ -60,7 +61,7 @@ class GenerateStruturedRequestTest(unittest.TestCase):
                         '1A8-57gZue9h0ryDfASF7fH2maBPhOZ1e_AJCtIAez58', # 1WOa8crKEpJX0ZFJv4NtMjVaI-35__sdEMc5aPxb1al4
                         '1180pM7EEEboemf_wdAdw6RnwD0-dk9o4OJpvSdmhaIY', # 1uv_X7CSD5cONEjW7yq4ecI89XQxPQuG5lnmaqshj47o 
                         '1YlmQGx-i8IhLpWAp6lEiuRHNuGHzfNkgVfk1UhsPW1c', # 1XFC1onvvrhggNHiAci-iu2msXZQg3_SyiGdKnKUwrpM
-                        '1ANYsKgAkY1InQmaIPMJ91-GOgBJpBveWcngFCl6fPdY', # 1v5UHLS4qvVovMK8GP9MgoboiPGsg_YzgyE9H4E5DTHg #expected: UWBF_6390, actual: \u000bUWBF_6390
+                        '1ANYsKgAkY1InQmaIPMJ91-GOgBJpBveWcngFCl6fPdY', # 1v5UHLS4qvVovMK8GP9MgoboiPGsg_YzgyE9H4E5DTHg 
                         '1sM6wz4s7K5DpPupz8Jn5RFW1ETkP91_zLpBCJPP7HC8', # 15aMX9WdN1gyvjG30sXQZYPdTSTGbxoIRJbqtOvoKyQ0
                         '1xzl0dgRLuSLDvAcsNzZwvZL3ILAzq03Xbj9oAlLe9lo', # 1N0i5RPY-xEsM_MIjqeWZI6cjb9rj3B7L1PGR-Q-ufe0 
                         '1WjMSia1kHh9szIuIZ6VAlWl5-rCbTQ9GGzetqPds0qM', # 16p9WmU9_dEz6wGN5_maotPl5uGrAIxPZ3-pNq1hipfI
