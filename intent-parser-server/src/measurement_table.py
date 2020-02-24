@@ -4,11 +4,11 @@ import intent_parser_utils
 import logging
 import table_utils
 
-'''
-Class handles measurement from Experimental Request tables in Google Docs.
-'''
+
 class MeasurementTable:
-    
+    '''
+    Class handles measurement from Experimental Request tables in Google Docs.
+    '''    
     _logger = logging.getLogger('intent_parser_server')
     IGNORE_COLUMNS = [constants.COL_HEADER_SAMPLES, constants.COL_HEADER_NOTES]
   
@@ -40,7 +40,14 @@ class MeasurementTable:
             if not cell_txt or header in self.IGNORE_COLUMNS:
                 continue
             elif header == constants.COL_HEADER_MEASUREMENT_TYPE:
-                measurement['measurement_type'] = self._get_measurement_type(cell_txt)
+                try:
+                    if not cell_txt in self._measurement_types:
+                        raise TableException(cell_txt, 'does not match one of the following measurement types: ' + '\n'.join((map(str, self._measurement_types))))
+                    measurement['measurement_type'] = self._get_measurement_type(cell_txt)
+                except TableException as err:
+                    message = ' '.join(['Under measurement_type: ', err.get_expression(), err.get_message()]) 
+                    self._logger.info('WARNING ' + message)
+                    self._validation_errors.append(message)
             elif header == constants.COL_HEADER_FILE_TYPE:
                 measurement['file_type'] = [value for value in table_utils.extract_name_value(cell_txt)] 
             elif header == constants.COL_HEADER_REPLICATE:
