@@ -26,7 +26,7 @@ class ParameterTable(object):
                                    constants.PARAMETER_MEASUREMENT_INFO_PLATE_READER_INFO, 
                                    constants.PARAMETER_REAGENT_INFO_INDUCER_INFO, 
                                    constants.PARAMETER_REAGENT_INFO_KILL_SWITCH,
-                                   constants.PARAMETER_RECOVER_INFO]
+                                   constants.PARAMETER_RECOVERY_INFO]
     
     FIELD_WITH_LIST_OF_STRING = [constants.PARAMETER_EXP_INFO_MEDIA_WELL_STRINGS]
      
