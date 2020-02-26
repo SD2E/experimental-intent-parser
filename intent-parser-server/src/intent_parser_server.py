@@ -698,9 +698,11 @@ class IntentParserServer:
         request['experiment_reference_url'] = experiment_reference_url
         request['experiment_version'] = 1
         request['lab'] = lab
-        request['runs'] = [{ 'measurements' : measurements}]
+        if measurements:
+            request['runs'] = [{ 'measurements' : measurements}]
+            
         if parameter:
-            request['parameters'] = parameter 
+            request['parameters'] = [parameter] 
 
         return request, errors
     
