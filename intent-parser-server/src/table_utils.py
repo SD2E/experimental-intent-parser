@@ -246,7 +246,11 @@ def _tokenize(cell, keep_space=True):
         if value.startswith('\u000b') :
             value = value.replace('\u000b', '') 
     return tokens
-     
+
+def is_valued_cells(cell_txt):
+    tokens = _tokenize(cell_txt)
+    return _is_valued_cells(tokens)
+
 def _is_valued_cells(tokens):
     """
     Check if an array of tokens follows a valued-cell pattern. 
