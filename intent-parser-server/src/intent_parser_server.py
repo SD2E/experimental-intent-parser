@@ -604,7 +604,57 @@ class IntentParserServer:
             self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
         except Exception as e:
             raise e
+    
+    def internal_validate(self, document_id):
+        request, errors = self.internal_generate_request(document_id)
+        schema = { "$ref" : "https://schema.catalog.sd2e.org/schemas/structured_request.json" }
+            
+        height = 600
+        textAreaRows = 33 
+        result = 'Passed!'
+        msg = 'Validation Passed!&#13;&#10;'
+        if len(errors) > 0:
+            msg = 'Validation Failed! Invalid entries found: \n'
+            msg += '\n'.join(errors)
+            result = 'Failed!'
+        else:
+            try:
+                validate(request, schema)
+                height = 100
+                textAreaRows = 1
+            except ValidationError as err:
+                msg = 'Validation Failed!\n'
+                msg += 'Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;')
+                result = 'Failed!'
+                height = 600
+                textAreaRows = 33
 
+            reagent_with_no_uri = set()
+            if 'runs' in request:
+                for run in request['runs']:
+                    if 'measurements' not in run:
+                        continue;
+                    for measurement in run['measurements']:
+                        if 'contents' not in measurement:
+                            continue
+                        for reagent_entry in measurement['contents']:
+                            for reagent in reagent_entry:
+                                name_dict = reagent['name']
+                                if name_dict['sbh_uri'] == 'NO PROGRAM DICTIONARY ENTRY':
+                                    reagent_with_no_uri.add(name_dict['label'])
+
+            for reagent in reagent_with_no_uri:
+                textAreaRows += 1
+                height += 20
+                msg += 'Warning: %s does not have a SynbioHub URI specified!&#13;&#10;' % reagent
+        
+        msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (textAreaRows, msg)
+        buttons = [('Ok', 'process_nop')]
+        dialog_action = self.simple_modal_dialog(msg, buttons, 'Structured request validation: %s' % result, 600, height)
+        actionList = [dialog_action]
+        
+        return actionList, request
+                    
     def internal_generate_request(self, document_id):
         """
         Generates a structured request for a given doc id
@@ -701,13 +751,12 @@ class IntentParserServer:
         """
         Handles a request to generate a structured request json
         """
-
         start = time.time()
 
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
-        request, errors = self.internal_generate_request(document_id)
-
+        actionList, request = self.internal_validate(document_id)
+        request['actions'] = actionList
         end = time.time()
 
         self.logger.info('Generated request in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
