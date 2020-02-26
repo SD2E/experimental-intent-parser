@@ -63,16 +63,16 @@ class GenerateStruturedRequestTest(unittest.TestCase):
                         '1YlmQGx-i8IhLpWAp6lEiuRHNuGHzfNkgVfk1UhsPW1c', # 1XFC1onvvrhggNHiAci-iu2msXZQg3_SyiGdKnKUwrpM
                         '1ANYsKgAkY1InQmaIPMJ91-GOgBJpBveWcngFCl6fPdY', # 1v5UHLS4qvVovMK8GP9MgoboiPGsg_YzgyE9H4E5DTHg 
                         '1sM6wz4s7K5DpPupz8Jn5RFW1ETkP91_zLpBCJPP7HC8', # 15aMX9WdN1gyvjG30sXQZYPdTSTGbxoIRJbqtOvoKyQ0
-                        '1xzl0dgRLuSLDvAcsNzZwvZL3ILAzq03Xbj9oAlLe9lo', # 1N0i5RPY-xEsM_MIjqeWZI6cjb9rj3B7L1PGR-Q-ufe0 
+                        '1xzl0dgRLuSLDvAcsNzZwvZL3ILAzq03Xbj9oAlLe9lo', # 1N0i5RPY-xEsM_MIjqeWZI6cjb9rj3B7L1PGR-Q-ufe0 Note: contain list of strings 
                         '1WjMSia1kHh9szIuIZ6VAlWl5-rCbTQ9GGzetqPds0qM', # 16p9WmU9_dEz6wGN5_maotPl5uGrAIxPZ3-pNq1hipfI
                         '1TeJpHmKOSm8Lhc-7V0Csl0x8fPL83lFCZV16HXFge80', # 1ZPLjkEODVzRlqRA110cDVT3wK6nvvNr4wKMMPoDLnTY 
                         '1XbmjAgXl5U66ETKJqyUEVuI8FNuKw-BIh4tJ_xeGRd0', # 16eroq4UtIPhP89_PiKnvfi4wxV52vdKtUwPmBBu6OMc 
-                        '1qNcpdPbyf-hb5w_nV9Nu7TC6nvzdcdUKQtS0kKJCMI4', # 1IlR2-ufP_vVfHt15uYocExhyQfEkPnOljYf3Y-rB08g 
-                        '1TMNRf0CB_7wCQEq7Rq4_gfpcnRke7B-Px4c3ZFr7a4o', # 1ISVqTR3GfnzWB7pq66CbAWdVTn2RHBs4rgBbQt9N2Oo 
+                        '1qNcpdPbyf-hb5w_nV9Nu7TC6nvzdcdUKQtS0kKJCMI4', # 1IlR2-ufP_vVfHt15uYocExhyQfEkPnOljYf3Y-rB08g Note: contain list of float
+                        '1TMNRf0CB_7wCQEq7Rq4_gfpcnRke7B-Px4c3ZFr7a4o', # 1ISVqTR3GfnzWB7pq66CbAWdVTn2RHBs4rgBbQt9N2Oo Note: contain list of float
                         '13qZX3MdSMiGx0wYDCATJpvEXcxbIdrwDJmlctrdUk8o', # 138hHqZ-HT6owJ3DxANcrds67j8dZG8GPt4KLTTS1jU4 
                         '12S2lPHkvjiX97lTxIlAcWuGiemL7AqGbT4s8oNMX0vU', # 1PmSRNQUpvFTjANQpktjxjrfItPMTNgGVry5fT3mLmzc 
-                        '1Sw5pjLu3HZnX4JKDSbXCHUL8Xgla5mpsRCvdmdhDv78', # 1oIBd-a_n8pGNtoM9zYkWjhlsG04B2lmfYKhlLSAkRFw 
-                        '1usvQw8uwvg61j7gnaEE3eSl7y69rdQYirnkNIzLdKdQ', # 1h_VBtGgUa4pFrR5pTksogFpzSMuE6cyRRjJmFuJpKSk
+                        '1Sw5pjLu3HZnX4JKDSbXCHUL8Xgla5mpsRCvdmdhDv78', # 1oIBd-a_n8pGNtoM9zYkWjhlsG04B2lmfYKhlLSAkRFw Note: contain list of strings
+                        '1usvQw8uwvg61j7gnaEE3eSl7y69rdQYirnkNIzLdKdQ', # 1h_VBtGgUa4pFrR5pTksogFpzSMuE6cyRRjJmFuJpKSk Note: contain list of strings
                         '112W4VmUTwXmJzREeQqZPNiFElwJvzZd8m-v5_rES49I' # 1b81XIA-e_5D6we8nVnMJe6fahizTw4qNSxlOkTI2PNs  
                        ]
         for doc_id in doc_id_list:
