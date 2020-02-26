@@ -76,8 +76,8 @@ class MeasurementTable:
                     self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
             else:
-                reagents = self._parse_reagent_media(paragraph_element, cell_txt)
                 try:
+                    reagents = self._parse_reagent_media(paragraph_element, cell_txt)
                     if not reagents:
                         raise TableException(header, 'cannot parse as a reagent/media')
                     content.append(reagents)
@@ -118,11 +118,7 @@ class MeasurementTable:
         label_uri_dict = {'label' : reagent_media_name, 'sbh_uri' : uri}    
         
         # Determine if cells is numerical or name value 
-        if table_utils.is_name(cell_txt):
-            for name in table_utils.extract_name_value(cell_txt):
-                named_dict = {'name' : label_uri_dict, 'value' : name}
-                reagents_media.append(named_dict)
-        else:                   
+        if table_utils.is_valued_cells(cell_txt):                   
             try:
                 for value,unit in table_utils.transform_cell(cell_txt, self._fluid_units, cell_type='fluid'):
                     if timepoint_dict:
@@ -134,6 +130,12 @@ class MeasurementTable:
                 message = ' '.join([err.get_expression(), err.get_message(), 'for', cell_txt]) 
                 self._logger.info('Warning ' + message)
                 self._validation_errors.append(message)
+        elif table_utils.is_number(cell_txt):
+            raise TableException(cell_txt, 'is missing a unit')
+        else:
+            for name in table_utils.extract_name_value(cell_txt):
+                named_dict = {'name' : label_uri_dict, 'value' : name}
+                reagents_media.append(named_dict)
         
         return reagents_media
     
