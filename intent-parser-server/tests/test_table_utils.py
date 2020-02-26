@@ -198,6 +198,8 @@ class TableUtilsTest(unittest.TestCase):
         
     def test_cell_valued(self):
         self.assertFalse(tu.is_valued_cells('Modified M9 Media + Kan 5_ug_per_ml')) 
+        self.assertTrue(tu.is_valued_cells('5X'))
+        self.assertTrue(tu.is_valued_cells('1X,2X,3X'))
         
 if __name__ == "__main__":
     unittest.main()
