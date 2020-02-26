@@ -154,12 +154,11 @@ def extract_name_value(cell):
     
     return result
 
-def transform_number_name_cell(cell):
+def transform_strateos_string(cell):
     """
-    Parses a given string with a value for three different pattern:
-    1. number followed by a named value
+    Parses a given string to generate strateos string patterns:
+    1. number followed by a named value (ex: 1:microliter)
     2. named value
-    3. a list of numbered value
     
     Args:
         cell: Content of a cell
@@ -173,7 +172,6 @@ def transform_number_name_cell(cell):
         if len(tokens) == 2:
             if _get_token_type(tokens[0]) == 'NUMBER' and _get_token_type(tokens[1]) == 'NAME':
                 return [_get_token_value(tokens[0]) + ':' + _get_token_value(tokens[1])]
-        return extract_number_value(cell)
     
     return extract_name_value(cell)
 
