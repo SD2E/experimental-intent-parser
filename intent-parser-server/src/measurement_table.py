@@ -76,8 +76,8 @@ class MeasurementTable:
                     self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
             else:
-                reagents = self._parse_reagent_media(paragraph_element, cell_txt)
                 try:
+                    reagents = self._parse_reagent_media(paragraph_element, cell_txt)
                     if not reagents:
                         raise TableException(header, 'cannot parse as a reagent/media')
                     content.append(reagents)
@@ -130,6 +130,8 @@ class MeasurementTable:
                 message = ' '.join([err.get_expression(), err.get_message(), 'for', cell_txt]) 
                 self._logger.info('Warning ' + message)
                 self._validation_errors.append(message)
+        elif table_utils.is_number(cell_txt):
+            raise TableException(cell_txt, 'is missing a unit')
         else:
             for name in table_utils.extract_name_value(cell_txt):
                 named_dict = {'name' : label_uri_dict, 'value' : name}
