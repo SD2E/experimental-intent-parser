@@ -31,7 +31,7 @@ class IntegrationSbhTest(unittest.TestCase):
         Configure an instance of IntentParserServer for spellcheck testing.
         """
         # If we don't have the necessary credentials, try reading them in from json
-        if not hasattr(IntegrationSbhTest, 'sbh_username') or not hasattr(IntegrationSbhTest, 'sbh_password'):
+        if not hasattr(IntentParserServer, 'sbh_username') or not hasattr(IntentParserServer, 'sbh_password'):
             with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sbh_creds.json'), 'r') as fin:
                 creds = json.load(fin)
                 IntegrationSbhTest.sbh_username = creds['username']
@@ -84,7 +84,7 @@ class IntegrationSbhTest(unittest.TestCase):
         Integration test for Add to SynbioHub feature
         """
         expected_results = IntentParserServer.sparql_limit
-        term = 'aTc'
+        term = 'MG1655'
         self.add_sbh_test_func(term, expected_results)
 
     def add_sbh_test_func(self, term, expected_results):
