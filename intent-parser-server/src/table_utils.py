@@ -86,9 +86,9 @@ def is_number(cell):
     if len(tokens) < 0:
         return False
     if len(tokens) == 1:
-        return tokens[0][0] == 'NUMBER'
-    for tok in tokens:
-        if tok[0] == 'NAME':
+        return _get_token_type(tokens[0]) == 'NUMBER'
+    for token in tokens:
+        if _get_token_type(token) == 'NAME':
             return False
     
     return True
@@ -109,13 +109,13 @@ def is_name(cell):
         
 def extract_number_value(cell):
     """
-    Retrieve the content of a cell containing a list of numbers.
+    Parse cell containing a number or a list of numbers.
     
     Args:
         cell: the content of a cell.
         
     Returns:
-        An array of strings that are identified as a number.
+        A list of strings that identified as a NUMBER.
     """
     cell_values = []
     tokens = _tokenize(cell)
@@ -126,13 +126,13 @@ def extract_number_value(cell):
 
 def extract_name_value(cell):
     """
-    Retrieve the content of a cell containing a list of strings.
+    Parse cell containing a string or a list of strings.
     
     Args:
         cell: the content of a cell.
     
     Returns:
-        A list of named values
+        A list of strings identified as a NAME.
     """
     cell_str = []
     result = []
@@ -182,12 +182,13 @@ def transform_cell(cell, units, cell_type=None):
     Args: 
         cell: the content of a cell
         units: a list of units that the cell can be assigned to as its unit type.
-        cell_type: an optional variable to specify what type of cell this function is parsing.
+        cell_type: an optional variable to specify what type of cell this function is parsing. Default to None. 
         
     Return:
-        Yield two variable values found from a cell's content. 
+        Yield two variables. 
         The first variable represents the cell's content.
         The second variable represents an identified unit for the cell.
+        A TableException is thrown for a cell that has no unit. 
     """
     tokens = _tokenize(cell) 
     if not _is_valued_cells(tokens):
@@ -217,14 +218,14 @@ def _get_token_value(token):
 
 def _tokenize(cell, keep_space=True):
     """
-    Tokenize the content from a given cell into numbers and names. 
+    Identify NUMBER and NAME pattern from a cell by classifying the pattern into tokens. 
     
     Args: 
         cell: Content of a cell
-        keep_space: A flag to include white space tokens in the result. Default to True
+        keep_space: A flag to include identifying white space tokens in the result. Default to True
         
     Returns:
-        A tokenized representation for the content of a cell.
+        A list of tokens for the content of a cell.
         A token with type NUMBER has a integer value parsed from a cell.
         A token with type NAME has a string value parsed from a cell. 
     """
@@ -244,20 +245,24 @@ def _tokenize(cell, keep_space=True):
         if value.startswith('\u000b') :
             value = value.replace('\u000b', '') 
     return tokens
-     
-def _is_valued_cells(tokens):
+
+def is_valued_cells(cell_txt):
     """
-    Check if an array of tokens follows a valued-cell pattern. 
+    Check if a string follows a valued-cell pattern. 
     A valued-cell pattern can be a list of integer values propagated with units. 
     Alternatively, the valued-cell pattern can be a list of integer values ending with unit.
     
     Args:
-        tokens: a representation of a valued-cell pattern
+        cell_txt: a string 
     
     Returns:
         True if tokens follows a valued-cell pattern.
         Otherwise, False is returned.
     """
+    tokens = _tokenize(cell_txt)
+    return _is_valued_cells(tokens)
+
+def _is_valued_cells(tokens):
     if len(tokens) < 2:
         return False
     tokens = [token for token in tokens if _get_token_type(token) != 'SKIP']

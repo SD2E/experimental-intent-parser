@@ -1,6 +1,6 @@
 var serverURL = 'http://intentparser.sd2e.org'
 
-var versionString = '2.4.1pre'
+var versionString = '2.4'
 
 function onOpen() {
   var ui = DocumentApp.getUi()
@@ -599,29 +599,7 @@ function sendValidateStructuredRequest() {
 }
 
 function sendGenerateStructuredRequest() {
-  var docId = DocumentApp.getActiveDocument().getId();
-
-  var html = ''
-  html += '<script>\n'
-  html += 'function onSuccess() {\n'
-  html += '  google.script.host.close()\n'
-  html += '}\n'
-  html += '</script>\n'
-  html += '\n'
-  html += '<p>'
-  html += '<center>'
-
-  html += 'Download Structured Request '
-  html += '<a href=' + serverURL + '/document_request?'
-  html += docId + ' target=_blank>here</a>'
-
-  html += '</p>'
-  html += '\n'
-  html += '<input id=okButton Button value="Done" '
-  html += 'type="button" onclick="onSuccess()" />\n'
-  html += '</center>'
-
-  showModalDialog(html, 'Download', 300, 100)
+  sendPost('/generateStructuredRequest')
 }
 
 function addToSynBioHub() {
