@@ -1,13 +1,12 @@
 var serverURL = 'http://intentparser.sd2e.org'
 
-var versionString = '2.4.1pre'
+var versionString = '2.4'
 
 function onOpen() {
   var ui = DocumentApp.getUi()
 
   var tablesMenu = ui.createMenu('Create table templates')
   tablesMenu.addItem('Create Measurements Table', 'createTableMeasurements')
-  tablesMenu.addItem('Create Parameter Table', 'createParameterTable')
 
   var menu = ui.createMenu('Parse Intent')
 
@@ -599,29 +598,7 @@ function sendValidateStructuredRequest() {
 }
 
 function sendGenerateStructuredRequest() {
-  var docId = DocumentApp.getActiveDocument().getId();
-
-  var html = ''
-  html += '<script>\n'
-  html += 'function onSuccess() {\n'
-  html += '  google.script.host.close()\n'
-  html += '}\n'
-  html += '</script>\n'
-  html += '\n'
-  html += '<p>'
-  html += '<center>'
-
-  html += 'Download Structured Request '
-  html += '<a href=' + serverURL + '/document_request?'
-  html += docId + ' target=_blank>here</a>'
-
-  html += '</p>'
-  html += '\n'
-  html += '<input id=okButton Button value="Done" '
-  html += 'type="button" onclick="onSuccess()" />\n'
-  html += '</center>'
-
-  showModalDialog(html, 'Download', 300, 100)
+  sendPost('/generateStructuredRequest')
 }
 
 function addToSynBioHub() {
@@ -692,23 +669,3 @@ function createTableMeasurements() {
   sendPost('/createTableTemplate', data)
 }
 
-function createParameterTable(){
-	var doc = DocumentApp.getActiveDocument();
-	  var cursorPosition = doc.getCursor();
-
-	  if(cursorPosition == null) {
-	      // Cursor position is null, so assume a selection
-	      selectionRange = doc.getSelection()
-	      rangeElement = selectionRange.getRangeElements()[0]
-	      // Extract element and offset from end of selection
-	      var el = rangeElement.getElement()
-	  } else {
-	      // Select element and off set from current position
-	      var el = cursorPosition.getElement()
-	  }
-	  childIndex = doc.getBody().getChildIndex(el)
-
-	  data = {'childIndex' : childIndex, 'tableType' : 'parameter'}
-
-	  sendPost('/createParameterTable', data)
-}
