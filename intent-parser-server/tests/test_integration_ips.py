@@ -230,12 +230,12 @@ if __name__ == '__main__':
             usage()
             sys.exit(0)
 
-    if not hasattr(IntegrationIpsTest, 'sbh_username'):
+    if not hasattr(IntentParserServer, 'sbh_username'):
         print('ERROR: Missing required parameter -u/--username!')
         usage()
         sys.exit(0)
 
-    if not hasattr(IntegrationIpsTest, 'sbh_password'):
+    if not hasattr(IntentParserServer, 'sbh_password'):
         print('ERROR: Missing required parameter -p/--password!')
         usage()
         sys.exit(0)

@@ -1,13 +1,14 @@
-
 from datacatalog.formats.common import map_experiment_reference
 from datetime import datetime
 from google_accessor import GoogleAccessor
+from intent_parser_exceptions import ConnectionException
 from jsonschema import validate
 from jsonschema import ValidationError
 from lab_table import LabTable
 from measurement_table import MeasurementTable
 from multiprocessing import Pool
 from operator import itemgetter
+from parameter_table import ParameterTable
 from sbh_accessor import SBHAccessor
 from socket_manager import SocketManager
 from spellchecker import SpellChecker
@@ -30,14 +31,7 @@ import threading
 import time
 import traceback
 import urllib.request
-
-
-class ConnectionException(Exception):
-    def __init__(self, code, message, content=""):
-        super(ConnectionException, self).__init__(message);
-        self.code = code
-        self.message = message
-        self.content = content
+import errno
 
 class IntentParserServer:
 
@@ -270,8 +264,9 @@ class IntentParserServer:
         self.item_map_lock = threading.Lock()
         self.item_map_lock.acquire()
         self.item_map = self.generate_item_map(use_cache=item_map_cache)
+        self.strateos_mapping = intent_parser_utils.get_strateos_mapping(self.fetch_spreadsheet_data())
         self.item_map_lock.release()
-
+        
         # Inverse map of typeTabs
         self.type2tab = {}
         for tab_name in self.google_accessor.type_tabs.keys():
@@ -408,6 +403,10 @@ class IntentParserServer:
             self.process_create_table_template(httpMessage, sm)
         elif resource == '/validateStructuredRequest':
             self.process_validate_structured_request(httpMessage, sm)
+        elif resource == '/generateStructuredRequest':
+            self.process_validate_and_generate_structured_request(httpMessage, sm)
+        elif resource == '/createParameterTable':
+            self.process_submit_form(httpMessage, sm)
         else:
             self.send_response(404, 'Not Found', 'Resource Not Found\n', sm)
 
@@ -546,65 +545,61 @@ class IntentParserServer:
 
     
     def process_validate_structured_request(self, httpMessage, sm):
-        """
+        '''
         Generate a structured request from a given document, then run it against the validation.
-        """
-        try:
-            json_body = self.get_json_body(httpMessage)
+        '''
+        json_body = self.get_json_body(httpMessage)
+        result = 'Passed!'
+        msg = ''
+        if json_body is None:
+            result = 'Failed!'
+            msg = 'Unable to get information from Google document.'
+        else:
             document_id = json_body['documentId']
-            request, errors = self.internal_generate_request(document_id)
-            schema = { "$ref" : "https://schema.catalog.sd2e.org/schemas/structured_request.json" }
-            
+            result, msg = self._internal_validate_request(document_id)
+        
+        text_area_rows = 33
+        height = 600
+        if result == 'Passed!':
+            height = 300
+            text_area_rows = 15
+        elif result == 'Failed!':
             height = 600
-            textAreaRows = 33 
-            result = 'Passed!'
+            
+        msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, msg)
+        buttons = [('Ok', 'process_nop')]
+        dialog_action = self.simple_modal_dialog(msg, buttons, 'Structured request validation: %s' % result, 500, height)
+        actionList = [dialog_action]
+        actions = {'actions': actionList}
+        self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+    
+    def _internal_validate_request(self, document_id):
+        request, errors = self.internal_generate_request(document_id)
+        result = 'Passed!'
+        msg = 'Validation Passed!&#13;&#10;'
+            
+        try:
+            schema = { "$ref" : "https://schema.catalog.sd2e.org/schemas/structured_request.json" }
+            validate(request, schema)
+            
+            reagent_with_no_uri = intent_parser_utils.get_reagent_with_no_uri(request)
+            for reagent in reagent_with_no_uri:
+                msg += 'Warning: %s does not have a SynbioHub URI specified!&#13;&#10;' % reagent
+            
             if len(errors) > 0:
-                msg = 'Validation Failed! Invalid entries found: \n'
+                msg = 'The provided structured request is faulty. Invalid information will be ignored.\n'
                 msg += '\n'.join(errors)
-                result = 'Failed!'
+                result = 'Failed!'  
+            else:      
+                result = 'Passed!'
             
-            else:
-                try:
-                    validate(request, schema)
-                    msg = 'Validation Passed!&#13;&#10;'
-                    result = 'Passed!'
-                    height = 100
-                    textAreaRows = 1
-                except ValidationError as err:
-                    msg = 'Validation Failed!\n'
-                    msg += 'Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;')
-                    result = 'Failed!'
-                    height = 600
-                    textAreaRows = 33
-
-                reagent_with_no_uri = set()
-                if 'runs' in request:
-                    for run in request['runs']:
-                        if 'measurements' not in run:
-                            continue;
-                        for measurement in run['measurements']:
-                            if 'contents' not in measurement:
-                                continue
-                            for reagent_entry in measurement['contents']:
-                                for reagent in reagent_entry:
-                                    name_dict = reagent['name']
-                                    if name_dict['sbh_uri'] == 'NO PROGRAM DICTIONARY ENTRY':
-                                        reagent_with_no_uri.add(name_dict['label'])
-
-                for reagent in reagent_with_no_uri:
-                    textAreaRows += 1
-                    height += 20
-                    msg += 'Warning: %s does not have a SynbioHub URI specified!&#13;&#10;' % reagent
-            
-            msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (textAreaRows, msg)
-            buttons = [('Ok', 'process_nop')]
-            dialog_action = self.simple_modal_dialog(msg, buttons, 'Structured request validation: %s' % result, 600, height)
-            actionList = [dialog_action]
-            actions = {'actions': actionList}
-            self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
-        except Exception as e:
-            raise e
-
+        except ValidationError as err:
+            msg = 'Validation Failed!\n'
+            msg += 'Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;')
+            result = 'Failed!'
+    
+        return result, msg
+    
     def internal_generate_request(self, document_id):
         """
         Generates a structured request for a given doc id
@@ -655,10 +650,12 @@ class IntentParserServer:
                         cp_id = new_cp_id
 
         measurements = []
+        parameter = []
         errors = []
         doc_tables = self.get_element_type(doc, 'table')
         measurement_table_new_idx = -1
         lab_table_idx = -1
+        parameter_table_idx = -1
         for tIdx in range(len(doc_tables)):
             table = doc_tables[tIdx]
             
@@ -670,6 +667,10 @@ class IntentParserServer:
             if is_lab_table:
                 lab_table_idx = tIdx
                 
+            is_parameter_table = table_utils.detect_parameter_table(table)
+            if is_parameter_table:
+                parameter_table_idx = tIdx
+
         if measurement_table_new_idx >= 0:
             table = doc_tables[measurement_table_new_idx]
             meas_table = MeasurementTable(self.temp_units, self.time_units, self.fluid_units, self.measurement_types, self.file_types)
@@ -678,8 +679,15 @@ class IntentParserServer:
 
         if lab_table_idx >= 0:
             table = doc_tables[lab_table_idx]
+
             lab_table = LabTable()
             lab = lab_table.parse_table(table)
+        
+        if parameter_table_idx >=0:
+            table = doc_tables[parameter_table_idx]
+            parameter_table = ParameterTable(self.strateos_mapping)
+            parameter = parameter_table.parse_table(table)
+            errors = errors + parameter_table.get_validation_errors()
             
         request = {}
         request['name'] = doc['title']
@@ -690,24 +698,61 @@ class IntentParserServer:
         request['experiment_version'] = 1
         request['lab'] = lab
         request['runs'] = [{ 'measurements' : measurements}]
+            
+        if parameter:
+            request['parameters'] = [parameter] 
 
         return request, errors
     
-    def is_cell_value_media(self, cell_value):
-        reagent_exp = re.compile('(\d+)(,\s?(\d+))*[a-zA-Z]+')
-        reagent_exp.match(cell_value)
+             
+    
+    def process_validate_and_generate_structured_request(self, httpMessage, sm):
+        '''
+        Validates then generates an HTML link to retrieve a structured request.
+        '''
+        stuctured_request_link = ''
+        result = 'Passed!'
+        text_area_rows = 33
+        height = 600
+        json_body = self.get_json_body(httpMessage)
+        http_host = httpMessage.get_header('Host')
+        if json_body is None or http_host is None:
+            result = 'Failed!'
+            msg = 'Unable to get information from Google document.'
+        else:
+            document_id = json_body['documentId']
+            result, msg = self._internal_validate_request(document_id)
+            stuctured_request_link += 'Download Structured Request '
+            stuctured_request_link += '<a href=http://' + http_host + '/document_request?' + document_id + ' target=_blank>here</a> \n\n'
+        
+        if result == 'Passed!':
+            height = 300
+            text_area_rows = 15
+        elif result == 'Failed!':
+            height = 600
+       
+        if stuctured_request_link:
+            msg = stuctured_request_link + "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, msg)
+        else:
+            msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, msg)
+            
+        buttons = [('Ok', 'process_nop')]
+        dialog_action = self.simple_modal_dialog(msg, buttons, 'Structured request validation: %s' % result, 500, height)
+        actionList = [dialog_action]
+        actions = {'actions': actionList}
+        self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+        
     
     def process_generate_request(self, httpMessage, sm):
         """
         Handles a request to generate a structured request json
         """
-
         start = time.time()
 
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
         request, errors = self.internal_generate_request(document_id)
-
+        
         end = time.time()
 
         self.logger.info('Generated request in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
@@ -1724,6 +1769,14 @@ class IntentParserServer:
         self.temp_units = []
         for cid in data['enum']:
             self.temp_units.append(cid)
+            
+        # Volume units
+        response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/volume_unit.json',timeout=60)
+        data = json.loads(response.read().decode('utf-8'))
+
+        self.volume_units = []
+        for cid in data['enum']:
+            self.volume_units.append(cid)
 
         # Lab Ids
         response = urllib.request.urlopen('https://schema.catalog.sd2e.org/schemas/lab.json',timeout=60)
@@ -1733,7 +1786,8 @@ class IntentParserServer:
         for cid in data['enum']:
             self.lab_ids.append(cid)
         self.lab_ids = sorted(self.lab_ids)
-
+    
+        
     def generate_item_map(self, *, use_cache=True):
         item_map = {}
         self.logger.info('Generating item map, %d' % time.time())
@@ -2874,6 +2928,11 @@ class IntentParserServer:
                 result = {'actions': actions,
                           'results': {'operationSucceeded': True}
                 }
+            elif action == 'createParameterTable':
+                actions.self.process_create_parameter_table(data)
+                result = {'actions': actions,
+                          'results': {'operationSucceeded': True}
+                }
             else:
                 self.logger.error('Unsupported form action: {}'.format(action))
 
@@ -2963,7 +3022,25 @@ class IntentParserServer:
         create_table['colSizes'] = col_sizes
 
         return [create_table]
-
+    
+    def process_create_parameter_table(self, data):
+        col_sizes = [2]
+        table_data = []
+        
+        header = [constants.COL_HEADER_PARAMETER, constants.COL_HEADER_PARAMETER_VALUE]
+        table_data.append(header)
+        
+        for parameter_field in self.strateos_mapping:
+            table_data.append([parameter_field, '']) 
+                
+        
+        create_table = {}
+        create_table['action'] = 'addTable'
+        create_table['cursorChildIndex'] = data['cursorChildIndex']
+        create_table['tableData'] = table_data
+        create_table['tableType'] = 'parameters'
+        create_table['colSizes'] = col_sizes
+    
     def process_form_link_all(self, data):
         document_id = data['documentId']
         doc = self.google_accessor.get_document(
