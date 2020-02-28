@@ -600,7 +600,6 @@ class IntentParserServer:
     
         return result, msg
     
-
     def internal_generate_request(self, document_id):
         """
         Generates a structured request for a given doc id
