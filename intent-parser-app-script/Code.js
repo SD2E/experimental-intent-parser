@@ -7,7 +7,6 @@ function onOpen() {
 
   var tablesMenu = ui.createMenu('Create table templates')
   tablesMenu.addItem('Create Measurements Table', 'createTableMeasurements')
-  tablesMenu.addItem('Create Parameter Table', 'createParameterTable')
 
   var menu = ui.createMenu('Parse Intent')
 
@@ -670,23 +669,3 @@ function createTableMeasurements() {
   sendPost('/createTableTemplate', data)
 }
 
-function createParameterTable(){
-	var doc = DocumentApp.getActiveDocument();
-	  var cursorPosition = doc.getCursor();
-
-	  if(cursorPosition == null) {
-	      // Cursor position is null, so assume a selection
-	      selectionRange = doc.getSelection()
-	      rangeElement = selectionRange.getRangeElements()[0]
-	      // Extract element and offset from end of selection
-	      var el = rangeElement.getElement()
-	  } else {
-	      // Select element and off set from current position
-	      var el = cursorPosition.getElement()
-	  }
-	  childIndex = doc.getBody().getChildIndex(el)
-
-	  data = {'childIndex' : childIndex, 'tableType' : 'parameter'}
-
-	  sendPost('/createParameterTable', data)
-}
