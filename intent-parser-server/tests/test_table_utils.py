@@ -188,9 +188,11 @@ class TableUtilsTest(unittest.TestCase):
         cell_str = '\x0bApp'
         self.assertTrue('App', tu.extract_name_value(cell_str))
         
-    def test_name(self):
-        cell_str = 'Modified M9 Media + Kan 5_ug_per_ml'
-        self.assertTrue(cell_str, tu.is_name('Modified M9 Media + Kan 5_ug_per_ml'))    
+    def test_cell_valued(self):
+        self.assertFalse(tu.is_valued_cells('Modified M9 Media + Kan 5_ug_per_ml')) 
+        self.assertTrue(tu.is_valued_cells('5X'))
+        self.assertTrue(tu.is_valued_cells('1X,2X,3X'))
+
         
 if __name__ == "__main__":
     unittest.main()
