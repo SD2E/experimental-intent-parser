@@ -31,6 +31,7 @@ import threading
 import time
 import traceback
 import urllib.request
+import errno
 
 class IntentParserServer:
 
@@ -544,53 +545,61 @@ class IntentParserServer:
 
     
     def process_validate_structured_request(self, httpMessage, sm):
-        """
+        '''
         Generate a structured request from a given document, then run it against the validation.
-        """
-        try:
-            json_body = self.get_json_body(httpMessage)
+        '''
+        json_body = self.get_json_body(httpMessage)
+        result = 'Passed!'
+        msg = ''
+        if json_body is None:
+            result = 'Failed!'
+            msg = 'Unable to get information from Google document.'
+        else:
             document_id = json_body['documentId']
-            request, errors = self.internal_generate_request(document_id)
-            schema = { "$ref" : "https://schema.catalog.sd2e.org/schemas/structured_request.json" }
-            
+            result, msg = self._internal_validate_request(document_id)
+        
+        text_area_rows = 33
+        height = 600
+        if result == 'Passed!':
+            height = 300
+            text_area_rows = 15
+        elif result == 'Failed!':
             height = 600
-            textAreaRows = 33 
-            result = 'Passed!'
+            
+        msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, msg)
+        buttons = [('Ok', 'process_nop')]
+        dialog_action = self.simple_modal_dialog(msg, buttons, 'Structured request validation: %s' % result, 500, height)
+        actionList = [dialog_action]
+        actions = {'actions': actionList}
+        self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
+    
+    def _internal_validate_request(self, document_id):
+        request, errors = self.internal_generate_request(document_id)
+        result = 'Passed!'
+        msg = 'Validation Passed!&#13;&#10;'
+            
+        try:
+            schema = { "$ref" : "https://schema.catalog.sd2e.org/schemas/structured_request.json" }
+            validate(request, schema)
+            
+            reagent_with_no_uri = intent_parser_utils.get_reagent_with_no_uri(request)
+            for reagent in reagent_with_no_uri:
+                msg += 'Warning: %s does not have a SynbioHub URI specified!&#13;&#10;' % reagent
+            
             if len(errors) > 0:
-                msg = 'Validation Failed! Invalid entries found: \n'
+                msg = 'The provided structured request is faulty. Invalid information will be ignored.\n'
                 msg += '\n'.join(errors)
-                result = 'Failed!'
+                result = 'Failed!'  
+            else:      
+                result = 'Passed!'
             
-            else:
-                try:
-                    validate(request, schema)
-                    msg = 'Validation Passed!&#13;&#10;'
-                    result = 'Passed!'
-                    height = 100
-                    textAreaRows = 1
-                except ValidationError as err:
-                    msg = 'Validation Failed!\n'
-                    msg += 'Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;')
-                    result = 'Failed!'
-                    height = 600
-                    textAreaRows = 33
-
-                reagent_with_no_uri = intent_parser_utils.get_reagent_with_no_uri(request)
-
-                for reagent in reagent_with_no_uri:
-                    textAreaRows += 1
-                    height += 20
-                    msg += 'Warning: %s does not have a SynbioHub URI specified!&#13;&#10;' % reagent
-            
-            msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (textAreaRows, msg)
-            buttons = [('Ok', 'process_nop')]
-            dialog_action = self.simple_modal_dialog(msg, buttons, 'Structured request validation: %s' % result, 600, height)
-            actionList = [dialog_action]
-            actions = {'actions': actionList}
-            self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
-        except Exception as e:
-            raise e
-     
+        except ValidationError as err:
+            msg = 'Validation Failed!\n'
+            msg += 'Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;')
+            result = 'Failed!'
+    
+        return result, msg
+    
     def internal_generate_request(self, document_id):
         """
         Generates a structured request for a given doc id
@@ -699,56 +708,36 @@ class IntentParserServer:
     
     def process_validate_and_generate_structured_request(self, httpMessage, sm):
         '''
-        Validate a structured request. 
-        An HTML link to download the structured request is generated if validation is successful or semi successful.
+        Validates then generates an HTML link to retrieve a structured request.
         '''
         stuctured_request_link = ''
-        try:
-            json_body = self.get_json_body(httpMessage)
-            http_host = httpMessage.get_header('Host')
+        result = 'Passed!'
+        text_area_rows = 33
+        height = 600
+        json_body = self.get_json_body(httpMessage)
+        http_host = httpMessage.get_header('Host')
+        if json_body is None or http_host is None:
+            result = 'Failed!'
+            msg = 'Unable to get information from Google document.'
+        else:
             document_id = json_body['documentId']
-            request, errors = self.internal_generate_request(document_id)
-            
-            height = 100
-            textAreaRows = 33 
-            result = 'Passed!'
-            msg = 'Validation Passed!&#13;&#10;'
-            
-            schema = { "$ref" : "https://schema.catalog.sd2e.org/schemas/structured_request.json" }
-            validate(request, schema)
-            
-            reagent_with_no_uri = intent_parser_utils.get_reagent_with_no_uri(request)
-            for reagent in reagent_with_no_uri:
-                textAreaRows += 1
-                height += 20
-                msg += 'Warning: %s does not have a SynbioHub URI specified!&#13;&#10;' % reagent
-            
-            if len(errors) > 0:
-                msg = 'Validation Failed! Beware, faulty information is generated.\n'
-                msg += '\n'.join(errors)
-                result = 'Failed!'  
-                height = 600
-            else:      
-                result = 'Passed!'
-                textAreaRows = 1
-            
+            result, msg = self._internal_validate_request(document_id)
             stuctured_request_link += 'Download Structured Request '
             stuctured_request_link += '<a href=http://' + http_host + '/document_request?' + document_id + ' target=_blank>here</a> \n\n'
-            
-        except (ValidationError, Exception) as err:
-            msg = 'Validation Failed!\n'
-            msg += 'Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;')
-            result = 'Failed!'
-            height = 600
-            textAreaRows = 33
         
+        if result == 'Passed!':
+            height = 300
+            text_area_rows = 15
+        elif result == 'Failed!':
+            height = 600
+       
         if stuctured_request_link:
-            msg = stuctured_request_link + "<textarea cols='80' rows='%d'> %s </textarea>" % (textAreaRows, msg)
+            msg = stuctured_request_link + "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, msg)
         else:
-            msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (textAreaRows, msg)
+            msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, msg)
             
         buttons = [('Ok', 'process_nop')]
-        dialog_action = self.simple_modal_dialog(msg, buttons, 'Structured request validation: %s' % result, 600, height)
+        dialog_action = self.simple_modal_dialog(msg, buttons, 'Structured request validation: %s' % result, 500, height)
         actionList = [dialog_action]
         actions = {'actions': actionList}
         self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
