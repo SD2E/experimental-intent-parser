@@ -51,6 +51,18 @@ def detect_new_measurement_table(table):
 
     return found_replicates and found_strain and found_measurement_type and found_file_type
 
+def detect_parameter_table(table):
+    has_parameter_field = False
+    has_parameter_value = False 
+    rows = table['tableRows']
+    headerRow = rows[0]
+    for cell in headerRow['tableCells']:
+        cellTxt = get_paragraph_text(cell['content'][0]['paragraph']).strip()
+        if cellTxt == constants.COL_HEADER_PARAMETER:
+            has_parameter_field = True
+        elif cellTxt == constants.COL_HEADER_PARAMETER_VALUE:
+            has_parameter_value = True
+    return has_parameter_field and has_parameter_value
 
 def get_paragraph_text(paragraph):
     elements = paragraph['elements']
@@ -74,9 +86,9 @@ def is_number(cell):
     if len(tokens) < 0:
         return False
     if len(tokens) == 1:
-        return tokens[0][0] == 'NUMBER'
-    for tok in tokens:
-        if tok[0] == 'NAME':
+        return _get_token_type(tokens[0]) == 'NUMBER'
+    for token in tokens:
+        if _get_token_type(token) == 'NAME':
             return False
     
     return True
@@ -97,13 +109,13 @@ def is_name(cell):
         
 def extract_number_value(cell):
     """
-    Retrieve the content of a cell containing a list of numbers.
+    Parse cell containing a number or a list of numbers.
     
     Args:
         cell: the content of a cell.
         
     Returns:
-        An array of strings that are identified as a number.
+        A list of strings that identified as a NUMBER.
     """
     cell_values = []
     tokens = _tokenize(cell)
@@ -114,13 +126,13 @@ def extract_number_value(cell):
 
 def extract_name_value(cell):
     """
-    Retrieve the content of a cell containing a list of strings.
+    Parse cell containing a string or a list of strings.
     
     Args:
         cell: the content of a cell.
     
     Returns:
-        A list of named values
+        A list of strings identified as a NAME.
     """
     cell_str = []
     result = []
@@ -142,6 +154,27 @@ def extract_name_value(cell):
     
     return result
 
+def transform_strateos_string(cell):
+    """
+    Parses a given string to generate strateos string patterns:
+    1. number followed by a named value (ex: 1:microliter)
+    2. named value
+    
+    Args:
+        cell: Content of a cell
+    
+    Return:
+    Array containing the result of the identified pattern for a cell.
+    """
+    
+    tokens = _tokenize(cell, keep_space=False) 
+    if _is_valued_cells(tokens):
+        if len(tokens) == 2:
+            if _get_token_type(tokens[0]) == 'NUMBER' and _get_token_type(tokens[1]) == 'NAME':
+                return [_get_token_value(tokens[0]) + ':' + _get_token_value(tokens[1])]
+    
+    return extract_name_value(cell)
+
 def transform_cell(cell, units, cell_type=None):
     """
     Parses the content of a cell to identify its value and unit. 
@@ -149,12 +182,13 @@ def transform_cell(cell, units, cell_type=None):
     Args: 
         cell: the content of a cell
         units: a list of units that the cell can be assigned to as its unit type.
-        cell_type: an optional variable to specify what type of cell this function is parsing.
+        cell_type: an optional variable to specify what type of cell this function is parsing. Default to None. 
         
     Return:
-        Yield two variable values found from a cell's content. 
+        Yield two variables. 
         The first variable represents the cell's content.
         The second variable represents an identified unit for the cell.
+        A TableException is thrown for a cell that has no unit. 
     """
     tokens = _tokenize(cell) 
     if not _is_valued_cells(tokens):
@@ -182,15 +216,16 @@ def _get_token_type(token):
 def _get_token_value(token):
     return token[1]
 
-def _tokenize(cell):
+def _tokenize(cell, keep_space=True):
     """
-    Tokenize the content from a given cell into numbers and names. 
+    Identify NUMBER and NAME pattern from a cell by classifying the pattern into tokens. 
     
     Args: 
         cell: Content of a cell
+        keep_space: A flag to include identifying white space tokens in the result. Default to True
         
     Returns:
-        A tokenized representation for the content of a cell.
+        A list of tokens for the content of a cell.
         A token with type NUMBER has a integer value parsed from a cell.
         A token with type NAME has a string value parsed from a cell. 
     """
@@ -205,24 +240,29 @@ def _tokenize(cell):
     for mo in re.finditer(tok_regex, cell):
         kind = mo.lastgroup
         value = mo.group()
+        if kind != 'SKIP' or keep_space: 
+            tokens.append(_Token(kind, value))
         if value.startswith('\u000b') :
             value = value.replace('\u000b', '') 
-        tokens.append(_Token(kind, value))
     return tokens
-     
-def _is_valued_cells(tokens):
+
+def is_valued_cells(cell_txt):
     """
-    Check if an array of tokens follows a valued-cell pattern. 
+    Check if a string follows a valued-cell pattern. 
     A valued-cell pattern can be a list of integer values propagated with units. 
     Alternatively, the valued-cell pattern can be a list of integer values ending with unit.
     
     Args:
-        tokens: a representation of a valued-cell pattern
+        cell_txt: a string 
     
     Returns:
         True if tokens follows a valued-cell pattern.
         Otherwise, False is returned.
     """
+    tokens = _tokenize(cell_txt)
+    return _is_valued_cells(tokens)
+
+def _is_valued_cells(tokens):
     if len(tokens) < 2:
         return False
     tokens = [token for token in tokens if _get_token_type(token) != 'SKIP']

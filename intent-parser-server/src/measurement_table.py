@@ -4,11 +4,11 @@ import intent_parser_utils
 import logging
 import table_utils
 
-'''
-Class handles measurement from Experimental Request tables in Google Docs.
-'''
+
 class MeasurementTable:
-    
+    '''
+    Class handles measurement from Experimental Request tables in Google Docs.
+    '''    
     _logger = logging.getLogger('intent_parser_server')
     IGNORE_COLUMNS = [constants.COL_HEADER_SAMPLES, constants.COL_HEADER_NOTES]
   
@@ -40,7 +40,12 @@ class MeasurementTable:
             if not cell_txt or header in self.IGNORE_COLUMNS:
                 continue
             elif header == constants.COL_HEADER_MEASUREMENT_TYPE:
-                measurement['measurement_type'] = self._get_measurement_type(cell_txt)
+                try:  
+                    measurement['measurement_type'] = self._get_measurement_type(cell_txt.strip())
+                except TableException as err:
+                    message = ' '.join(['Under measurement_type: ', err.get_expression(), err.get_message()]) 
+                    self._logger.info('WARNING ' + message)
+                    self._validation_errors.append(message)
             elif header == constants.COL_HEADER_FILE_TYPE:
                 measurement['file_type'] = [value for value in table_utils.extract_name_value(cell_txt)] 
             elif header == constants.COL_HEADER_REPLICATE:
@@ -71,8 +76,8 @@ class MeasurementTable:
                     self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
             else:
-                reagents = self._parse_reagent_media(paragraph_element, cell_txt)
                 try:
+                    reagents = self._parse_reagent_media(paragraph_element, cell_txt)
                     if not reagents:
                         raise TableException(header, 'cannot parse as a reagent/media')
                     content.append(reagents)
@@ -113,11 +118,7 @@ class MeasurementTable:
         label_uri_dict = {'label' : reagent_media_name, 'sbh_uri' : uri}    
         
         # Determine if cells is numerical or name value 
-        if table_utils.is_name(cell_txt):
-            for name in table_utils.extract_name_value(cell_txt):
-                named_dict = {'name' : label_uri_dict, 'value' : name}
-                reagents_media.append(named_dict)
-        else:                   
+        if table_utils.is_valued_cells(cell_txt):                   
             try:
                 for value,unit in table_utils.transform_cell(cell_txt, self._fluid_units, cell_type='fluid'):
                     if timepoint_dict:
@@ -129,25 +130,26 @@ class MeasurementTable:
                 message = ' '.join([err.get_expression(), err.get_message(), 'for', cell_txt]) 
                 self._logger.info('Warning ' + message)
                 self._validation_errors.append(message)
+        elif table_utils.is_number(cell_txt):
+            raise TableException(cell_txt, 'is missing a unit')
+        else:
+            for name in table_utils.extract_name_value(cell_txt):
+                named_dict = {'name' : label_uri_dict, 'value' : name}
+                reagents_media.append(named_dict)
         
         return reagents_media
     
     
     def _get_measurement_type(self, text):
-        """
-        Find the closest matching measurement type to the given type, and return that as a string
-        """
-        # measurement types have underscores, so replace spaces with underscores to make the inputs match better
-        text = text.replace(' ', '_')
-        best_match_type = ''
-        best_match_size = 0
+        result = None 
         for mtype in self._measurement_types:
-            matches = intent_parser_utils.find_common_substrings(text.lower(), mtype.lower(), 1, 0)
-            for m in matches:
-                if m.size > best_match_size:
-                    best_match_type = mtype
-                    best_match_size = m.size
-        return best_match_type
+            if mtype == text:
+                result = mtype
+                break
+        
+        if result is None:
+            raise TableException(text, 'does not match one of the following measurement types: \n' + '\n'.join((map(str, self._measurement_types))))
+        return result 
     
     def get_validation_errors(self):
         return self._validation_errors
