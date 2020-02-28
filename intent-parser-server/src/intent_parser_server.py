@@ -587,7 +587,7 @@ class IntentParserServer:
                 msg += 'Warning: %s does not have a SynbioHub URI specified!&#13;&#10;' % reagent
             
             if len(errors) > 0:
-                msg = 'Validation Failed! Beware, faulty information is generated.\n'
+                msg = 'The provided structured request is faulty. Invalid information will be ignored.\n'
                 msg += '\n'.join(errors)
                 result = 'Failed!'  
             else:      
