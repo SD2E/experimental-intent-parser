@@ -20,7 +20,7 @@ class DriveAPI(object):
         return documents
     
     def get_folders_from_drive(self, drive_id):
-        results = service.files().list(
+        results = self._service.files().list(
             q="'%s' in parents and mimeType='application/vnd.google-apps.folder'" % (drive_id,),
             spaces='drive',
             pageSize=1000,
@@ -30,9 +30,11 @@ class DriveAPI(object):
     
     def recursive_list_doc(self, drive_id):
         doc_list = self._recursive_doc(drive_id, [])
-        return doc_list
+        print('Found %s Google Docs' % len(doc_list))
+        return [doc['id'] for doc in doc_list]
         
     def _recursive_doc(self, drive_id, doc_list): 
+        print('Processing folder: ' + drive_id)
         folder_list = self.get_folders_from_drive(drive_id)
         if not folder_list:
             doc_ids = self.get_documents_from_drive(drive_id)

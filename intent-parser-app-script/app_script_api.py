@@ -22,7 +22,7 @@ class AppScriptAPI:
             scriptId=script_id,
             versionNumber=version_number).execute() 
     
-    def get_project_versions(self):
+    def get_project_versions(self, script_id):
         '''
         Get a list of versions generated for the project
         
@@ -31,9 +31,9 @@ class AppScriptAPI:
         '''
         response = self._service.projects().versions().list(
             scriptId=script_id).execute()
-        if not reponse:
+        if not response:
             return []
-        list_of_versions = self._get_versions(response, [])
+        list_of_versions = self._get_versions(script_id, response, [])
         return list_of_versions
     
     def _get_versions(self, script_id, response, list_of_versions):
@@ -55,11 +55,11 @@ class AppScriptAPI:
             version_numbers.append(version_dict['versionNumber'])
         return version_numbers
     
-    def get_head_version(self):
+    def get_head_version(self, script_id):
         '''
         Get the latest project version.
         '''
-        list_of_versions = self.get_project_versions()
+        list_of_versions = self.get_project_versions(script_id)
         if not list_of_versions:
             return 0
         
@@ -89,11 +89,11 @@ class AppScriptAPI:
     
     def load_local_manifest(self, manifest_name='appsscript'):
         file = util.load_json_file(manifest_name)
-        return str(file).strip()
+        return file
     
     def load_local_code(self, code_name='Code'):
         file = util.load_js_file(code_name)
-        return file
+        return str(file).strip()
     
     def update_remote_manifest(self, response):
         file_list = response['files']
