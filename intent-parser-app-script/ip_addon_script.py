@@ -1,8 +1,10 @@
 from app_script_api import AppScriptAPI
 from drive_api import DriveAPI
 from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 import pickle
 import os.path
+import time
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
@@ -54,33 +56,50 @@ def create_and_save_new_script(creds, list_of_doc, save_message):
     '''
     Create and save the add-on script bounded to each Google Doc
     '''
-    if not items:
+    if not list_of_doc:
         print('No files found.')
         return
     
-    print('Files:')
-    script_list = []
+    print('Creating script for doc:')
     app_script_api = AppScriptAPI(creds)
+    index = 1
     for doc_id in list_of_doc:
+        print(str(index) + ' ' + doc_id)
         script_id = app_script_api.create_project('IPProject Test', doc_id)
-        script_list.append(script_id)
-        script_msg = u'{0} ({1})'.format(item['name'], item['id']) + '\n'
-        print('Created script for: ' + script_msg)
-        SCRIPT_IDS.append(script_msg)
-    
-    for script_id in script_list:
         update_script(app_script_api, script_id, save_message)
+
+        print('Updating script ' + script_id)
+        update_script(app_script_api, script_id, save_message)
+        
+        SCRIPT_IDS.append(script_id)
+        index += 1
+    
         
 def update_script(app_script_api, script_proj_id, save_message):
     response = app_script_api.get_project_metadata(script_proj_id)
     app_script_api.update_project(script_proj_id, response)
     
-    new_version = app_script_api.get_head_version() + 1
+    new_version = app_script_api.get_head_version(script_proj_id) + 1
     app_script_api.create_version(script_proj_id, new_version, save_message)
     
+def update_add_on(list_of_script, update_message):
+    creds = authenticate_credentials()
+    script_api = AppScriptAPI(creds)
+    for script_id in list_of_script:
+        update_script(script_api, script_id, update_message)
+    
+    print('Update completed for %s scripts' % len(list_of_script))   
     
     
 if __name__ == '__main__':
-    drive_id = '1693MJT1Up54_aDUp1s3mPH_DRw1_GS5G'
-    publish_message = 'Test1 2.4 Release'
-    publish_ip_add_on(drive_id, publish_message)
+#     drive_id = '1693MJT1Up54_aDUp1s3mPH_DRw1_GS5G'
+#     drive_id = '0BxtlE8cJbmC2RmxqQWRGWVdBd00'
+#     publish_message = 'Test1 2.4 Release'
+#     publish_ip_add_on(drive_id, publish_message)
+
+    script_id = '1B_x_vEazhsdjxEGpCIZgyMOJyG_gPbcM85dH3V5MpQJyYbgRsSCrOZlf'
+    update_add_on([script_id], 'Test update request')
+
+
+
+
