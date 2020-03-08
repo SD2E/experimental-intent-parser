@@ -1,17 +1,23 @@
 from app_script_api import AppScriptAPI
 from drive_api import DriveAPI
+from googleapiclient import errors
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+import datetime
+import script_util as util
+import json 
 import pickle
 import os.path
-import time
+from future.backports.urllib import response
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
           'https://www.googleapis.com/auth/script.projects',
           'https://www.googleapis.com/auth/script.deployments',
-          'https://www.googleapis.com/auth/documents']
-SCRIPT_IDS = []
+          'https://www.googleapis.com/auth/documents',
+          'https://www.googleapis.com/auth/drive.readonly']
+
+NUMBER_OF_CREATION = 0
 
 def authenticate_credentials():
     """
@@ -37,68 +43,178 @@ def authenticate_credentials():
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
     return creds    
-    
-def publish_ip_add_on(drive_id, publish_message):
-    creds = authenticate_credentials()
 
-    # Call the Drive v3 API
+def _contain_folder_id(id, local_folders):
+    for j in range(len(local_folders)):
+        l_folder = local_folders[j]
+        if id == l_folder['id']:
+            return True
+    return False
+
+def _contain_document_id(id, local_documents):
+    for j in range(len(local_documents)):
+        l_doc = local_documents[j]
+        if id == l_doc['id']:
+            return True
+    return False
+
+def _get_local_document(id, local_documents):
+    for j in range(len(local_documents)):
+        l_doc = local_documents[j]
+        if id == l_doc['id']:
+            return l_doc
+    return None
+
+def update_logged_folders(folder_id = '1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'):  
+    '''
+    Update logged_folders.json with new folders found in the given folder_id
+    ''' 
+    print('Updating logged_folders.json')
+    creds = authenticate_credentials()
+    
     drive_api = DriveAPI(creds)
-    doc_list = drive_api.recursive_list_doc(drive_id)
-    create_and_save_new_script(creds, doc_list, publish_message)
-    
-    # Save script id for making future updates to the script file
-    file = open('script_id_mapping.txt', 'w')
-    file.writelines(SCRIPT_IDS)
-    file.close()
-
-
-def create_and_save_new_script(creds, list_of_doc, save_message):
-    '''
-    Create and save the add-on script bounded to each Google Doc
-    '''
-    if not list_of_doc:
-        print('No files found.')
-        return
-    
-    print('Creating script for doc:')
-    app_script_api = AppScriptAPI(creds)
-    index = 1
-    for doc_id in list_of_doc:
-        print(str(index) + ' ' + doc_id)
-        script_id = app_script_api.create_project('IPProject Test', doc_id)
-        update_script(app_script_api, script_id, save_message)
-
-        print('Updating script ' + script_id)
-        update_script(app_script_api, script_id, save_message)
+    remote_folders = drive_api.get_subfolders_from_folder(folder_id)
+   
+    updated_data = {} 
+    with open('logged_folders.json') as in_file:
+        f_data = json.load(in_file)
+        local_folders = f_data['folders']
         
-        SCRIPT_IDS.append(script_id)
-        index += 1
-    
+        d = datetime.datetime.utcnow()
+        current_time = d.isoformat("T") + "Z"
+        for i in range(len(remote_folders)):
+            r_folder = remote_folders[i]
+            r_id = r_folder['id']
+            if _contain_folder_id(r_id, local_folders):
+                local_folders[i]['updateTime'] = current_time
+            else:
+                f_dict = {}
+                f_dict['id'] = r_id
+                f_dict['name'] = r_folder['name']
+                f_dict['createTime'] = current_time
+                f_dict['updateTime'] = current_time
+                local_folders.append(f_dict)
+        updated_data = {'folders' : local_folders}
         
-def update_script(app_script_api, script_proj_id, save_message):
-    response = app_script_api.get_project_metadata(script_proj_id)
-    app_script_api.update_project(script_proj_id, response)
+    with open('logged_folders.json', 'w') as out_file:
+        json.dump(updated_data, out_file)
     
-    new_version = app_script_api.get_head_version(script_proj_id) + 1
-    app_script_api.create_version(script_proj_id, new_version, save_message)
+    return updated_data
+
+def update_logged_documents(folder_id, user_account, publish_message, script_proj_title='IPProject Test'):
+    '''
+    Update Google Docs assigned to a folder_id.
     
-def update_add_on(list_of_script, update_message):
+    Args:
+        publish_message: Message assigned to a script project when making a publish. 
+        script_proj_title: Title of a script project. 
+    '''   
+    print('Updating logged documents for folder %s' % folder_id)
     creds = authenticate_credentials()
-    script_api = AppScriptAPI(creds)
-    for script_id in list_of_script:
-        update_script(script_api, script_id, update_message)
+    drive_api = DriveAPI(creds)
+    remote_documents = drive_api.get_documents_from_folder(folder_id)
+   
+    app_script_api = AppScriptAPI(creds) 
+    with open(folder_id + '_log.json') as in_file:
+        d_data = json.load(in_file)
+        local_documents = d_data['documents']
+        
+        d = datetime.datetime.utcnow()
+        current_time = d.isoformat("T") + "Z"
+        
+        
+        for i in range(len(remote_documents)):
+            r_doc = remote_documents[i]
+            r_id = r_doc['id']
+            
+            if _contain_document_id(r_id, local_documents):
+                print('Updating script project metadata for document %s' % r_id)
+                l_doc = _get_local_document(r_id, local_documents)
+                l_doc['publishSucceed'] = False
+
+                # get script id associated to document
+                script_id = r_doc['scriptId']
+                remote_metadata = app_script_api.get_project_metadata(script_id)
+                
+                # push Code.js and manifest
+                app_script_api.update_project_metadata(script_id, remote_metadata)
+                l_doc['updateTime'] = current_time
+                
+                # create version
+                new_version = app_script_api.get_head_version(script_proj_id) + 1
+                app_script_api.create_version(script_proj_id, new_version, publish_message)
+                l_doc['scriptVersion'] = new_version
+                l_doc['publishSucceed'] = True
+            else:        
+                print('Creating an add-on script project for document %s.' % r_id)
+                d_dict = {}
+                d_dict['id'] = r_id
+                d_dict['name'] = r_doc['name']
+                
+                # create an add-on script project
+                response = app_script_api.create_project(script_proj_title, r_id)
+                global NUMBER_OF_CREATION
+                NUMBER_OF_CREATION = NUMBER_OF_CREATION + 1
+                d_dict['createTime'] = current_time
+                script_id = response['scriptId']
+                d_dict['scriptId'] = script_id
+                d_dict['publishSucceed'] = False
+                
+                # push code.js and manifest
+                remote_metadata = app_script_api.get_project_metadata(script_id)
+                app_script_api.set_project_metadata(script_id, remote_metadata, user_account)
+                d_dict['updateTime'] = current_time
+                    
+                # create version
+                new_version = app_script_api.get_head_version(script_id) + 1
+                app_script_api.create_version(script_id, new_version, publish_message)
+                d_dict['scriptVersion'] = new_version
+                
+                d_dict['publishSucceed'] = True
+                local_documents.append(d_dict)
+        updated_data = {'documents' : local_documents}
+        
+    with open(folder_id + '_log.json', 'w') as out_file:
+        json.dump(updated_data, out_file)
     
-    print('Update completed for %s scripts' % len(list_of_script))   
-    
+    return updated_data
     
 if __name__ == '__main__':
-#     drive_id = '1693MJT1Up54_aDUp1s3mPH_DRw1_GS5G'
-#     drive_id = '0BxtlE8cJbmC2RmxqQWRGWVdBd00'
-#     publish_message = 'Test1 2.4 Release'
-#     publish_ip_add_on(drive_id, publish_message)
-
-    script_id = '1B_x_vEazhsdjxEGpCIZgyMOJyG_gPbcM85dH3V5MpQJyYbgRsSCrOZlf'
-    update_add_on([script_id], 'Test update request')
+    publish_message = 'Test1 2.4 Release'
+    user_account = {
+            "domain": 'gmail.com',
+            "email": 'tramy.nguy@gmail.com',
+            "name": 'Tramy Nguyen'
+      }
+    try:
+        folder_id = '17Uy48TwzRdC1H1MLpxlfOmnQNOvk4S5Q'
+        update_logged_documents(folder_id, user_account, publish_message)
+#         folder_dict = update_logged_folders()
+#         folder_list = folder_dict['folders']
+#         for i in range(len(folder_list)):
+#             folder_id = folder_list[i]['id']
+#             update_logged_documents(folder_id, user_account, publish_message)
+#             with open(folder_id + '_log.json', 'w') as out_file:
+#                 temp = {'documents': [
+#                         {
+#                             "id": "doc_temp_id",
+#                             "name": "doc temp name",
+#                             "createTime": "2020-03-08T04:35:36.732191Z",
+#                             "updateTime": "2020-03-08T04:35:36.732191Z", 
+#                             "scriptId" : "temp_script_id",
+#                             "scriptVersion" : 0,
+#                             "publishSucceed" : False
+#                 }]}
+#                 json.dump(temp, out_file)
+    except errors.HttpError as error:
+        # The API encountered a problem.
+        print(error.content) 
+    finally:
+        print('Calls made for creating a script project %s' % str(NUMBER_OF_CREATION))      
+    
+    
+    
+   
 
 
 

@@ -26,3 +26,9 @@ def write_to_js(data, file_name, file_path=None):
        output_path = '/'.join([file_path, file_name])
     with open(output_path + '.js', 'w') as file:
         file.write(str(data).strip())
+        
+def get_dict_from_list(dictionary_key, list):
+    for index in len(list):
+        if dictionary_key in list[index]:
+            return list[index]
+    return None 

@@ -1,6 +1,6 @@
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
-import app_script_util as util
+import script_util as util
 import datetime
 import json
 
@@ -14,6 +14,17 @@ class AppScriptAPI:
     
    
     def get_project_metadata(self, script_id, version_number=None):
+        '''
+        Returns the script project metadata bounded. 
+        This metadata will include the appscript Code and manifest file.
+        
+        Args:
+            script_id: id of the script project
+            version_number: get the script project base off of a version number. Default to None if no version is provided.
+        
+        Return:
+            A Content object representing the metadata in the json format.
+        '''
         if version_number is None:
             return self._service.projects().getContent(
                 scriptId=script_id).execute()
@@ -88,29 +99,33 @@ class AppScriptAPI:
         return None
     
     def load_local_manifest(self, manifest_name='appsscript'):
+        '''
+        Load local appsscript file into a json format.
+        
+        Args:
+            manifest_name: the manifest file name. Unless specified, variable is default to appsscript.
+        '''
         file = util.load_json_file(manifest_name)
         return file
     
     def load_local_code(self, code_name='Code'):
+        '''
+        Get the local script Code file.
+        
+        Args:
+            code_name: Name of the code file. Unless specified, variable is default to Code.
+        
+        Returns: The Code file loaded as a string
+        '''
         file = util.load_js_file(code_name)
         return str(file).strip()
     
-    def update_remote_manifest(self, response):
-        file_list = response['files']
-        index = self._get_manifest_file_index(file_list)
-        file_list[index]['source'] = self.load_local_manifest()
-        request = {'files' : file_list}
-        return request
+    def load_local_code_functions(selfs, code_name=''):
+        code_functions = util.load_json_file('code_functions')
+        return code_functions
     
-    def update_remote_code(self, response):
-        file_list = response['files']
-        code_index = self._get_code_file_index(file_list)
-        file_list[code_index]['source'] = self.load_local_code()
-        request = {'files' : file_list}
-        return request
-    
-    def update_metadata(self, response):
-        file_list = response['files']
+    def _update_metadata(self, content):
+        file_list = content['files']
         code_index = self._get_code_file_index(file_list)
         file_list[code_index]['source'] = self.load_local_code()
         
@@ -119,11 +134,65 @@ class AppScriptAPI:
         request = {'files' : file_list}
         return request
     
-    def update_project(self, script_id, response):
-        request = self.update_metadata(response)
-        return self._service.projects().updateContent(
+    def update_project_metadata(self, script_id, remote_content):
+        '''
+        Update a script project's remote metadata with local metadata. 
+        
+        Args:
+            script_id: id associated to a script project.
+            remote_content: A Content object
+            
+        Returns:
+            If request is successful, a Content object is returned in the form of json
+        '''
+        request = self._update_metadata(remote_content)
+        content_obj = self._service.projects().updateContent(
             body=request,
             scriptId=script_id).execute()
+        return content_obj
+   
+    def _create_code_file(self, user_obj, code_file_name='Code'):
+        source = self.load_local_code()
+        code_functions = self.load_local_code_functions()
+        
+        d = datetime.datetime.utcnow()
+        created_time = d.isoformat("T") + "Z"
+        
+        file_obj = {
+            "name": code_file_name,
+            "type": 'SERVER_JS',
+            "source": source,
+            "lastModifyUser": user_obj,
+            "createTime": created_time,
+            "updateTime": created_time,
+            "functionSet": code_functions
+        }
+        return file_obj
+    
+    def set_project_metadata(self, script_id, project_metadata, user_obj):
+        '''
+        Set project's remote metadata with local metadata. 
+        This includes updating manifest file and adding to project metadata a SERVER_JS file for the server code.
+         
+        Args:
+            script_id: id associated to a script project.
+         
+        Returns:
+            If request is successful, a Content object representing the metadata is returned in the json format.
+        '''
+        
+        file_list = project_metadata['files']
+        manifest_index = self._get_manifest_file_index(file_list)
+        file_list[manifest_index] = self.load_local_manifest()
+        
+        code_file = self._create_code_file(user_obj)
+        file_list.append(code_file)
+        request = {'files' : file_list}
+        
+        content_obj = self._service.projects().updateContent(
+            body=request,
+            scriptId=script_id).execute()
+        return content_obj
             
     def create_project(self, project_title, doc_id):
         '''
@@ -134,18 +203,29 @@ class AppScriptAPI:
             project_title: name of the script project
         
         Return:
-            The ID generated for the script project
+            If request is successful, a project object is returned in a json format. 
         '''
         request = {
             'title': project_title,
             'parentId': doc_id
         }
-        response = self._service.projects().create(
+        project_obj = self._service.projects().create(
             body=request).execute()
-        return response['scriptId']
+        return project_obj
             
         
     def create_version(self, script_id, number, description):
+        '''
+        Create a new version assigned to the script project. 
+        
+        Args:
+            script_id: the script id of the project
+            number: the version number
+            description: A description for created version. 
+        
+        Returns:
+            If request is successful, a version object is returned in the json format
+        '''
         d = datetime.datetime.utcnow()
         created_time = d.isoformat("T") + "Z"
         
@@ -161,11 +241,19 @@ class AppScriptAPI:
         return version_obj
     
     def get_deployment(self, script_id, deployment_id):
-        response = self._service.projects().deployments().get(
+        '''
+        Get deployment from a script project.
+        Args:
+            script_id: id assigned to the script
+            deployment_id: id assigned to the deployment
+        Returns:
+            If request is successful, a deployment object is returned in json format
+        '''
+        deployment_obj = self._service.projects().deployments().get(
             scriptId=script_id,
             deploymentId=deployment_id).execute()
             
-        return response
+        return deployment_obj
     
     def create_deployment(self, script_id, deploy_version, description):
         request = {
@@ -177,7 +265,15 @@ class AppScriptAPI:
             scriptId=script_id,
             body=request).execute()
         
-    def run_script(self, script_id, function_name, dev_mode=False):   
+    def run_script(self, script_id, function_name, dev_mode=False): 
+        '''
+        Run a specified function within a script project.
+        
+        Args:
+            script_id: The script id assigned to a script project
+            function_name: Name of the function in the script
+            dev_mode: A boolean flag default to False. True indicates that the owner who created the script is running the script. 
+        '''  
         request = {
             'function': function_name,
             'devMode': dev_mode
@@ -189,6 +285,17 @@ class AppScriptAPI:
     
     
     def update_deployment(self, script_id, deploy_id, version_number, description):
+        '''
+        Updates an existing deployment from an app script project. 
+        Args:
+            script_id: The script id that the project updates from.
+            deploy_id: The deploy id assigned to the deployment object.
+            version_number: The version of the deployment
+            description: A description for updating the deployment. 
+        
+        Returns:
+            If request is successful, a Deployment object is returned in the form json.
+        '''
         request = {
             'deploymentConfig': {
                 'scriptId': script_id, 
