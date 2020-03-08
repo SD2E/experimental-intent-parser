@@ -9,6 +9,7 @@ import json
 import pickle
 import os.path
 from future.backports.urllib import response
+from git import remote
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
@@ -113,7 +114,8 @@ def update_logged_documents(folder_id, user_account, publish_message, script_pro
     creds = authenticate_credentials()
     drive_api = DriveAPI(creds)
     remote_documents = drive_api.get_documents_from_folder(folder_id)
-   
+    print('There are % d documents to update.' % len(remote_documents))
+    
     app_script_api = AppScriptAPI(creds) 
     with open(folder_id + '_log.json') as in_file:
         d_data = json.load(in_file)
@@ -199,7 +201,7 @@ if __name__ == '__main__':
         # The API encountered a problem.
         print(error.content) 
     finally:
-        print('Calls made for creating a script project %s' % str(NUMBER_OF_CREATION))      
+        print('Calls made for creating a script project % d' % NUMBER_OF_CREATION)      
     
     
     
