@@ -173,9 +173,6 @@ def update_logged_documents(folder_id, user_account, publish_message, script_pro
                 d_dict['publishSucceed'] = True
                 local_documents.append(d_dict)
         updated_data = {'documents' : local_documents}
-        
-    with open(folder_id + '_log.json', 'w') as out_file:
-        json.dump(updated_data, out_file)
     
     return updated_data
     
@@ -188,24 +185,16 @@ if __name__ == '__main__':
       }
     try:
         folder_id = '17Uy48TwzRdC1H1MLpxlfOmnQNOvk4S5Q'
-        update_logged_documents(folder_id, user_account, publish_message)
+        updated_data = update_logged_documents(folder_id, user_account, publish_message)
+        with open(folder_id + '_log.json', 'w') as out_file:
+            json.dump(updated_data, out_file)
+            
 #         folder_dict = update_logged_folders()
 #         folder_list = folder_dict['folders']
 #         for i in range(len(folder_list)):
 #             folder_id = folder_list[i]['id']
 #             update_logged_documents(folder_id, user_account, publish_message)
-#             with open(folder_id + '_log.json', 'w') as out_file:
-#                 temp = {'documents': [
-#                         {
-#                             "id": "doc_temp_id",
-#                             "name": "doc temp name",
-#                             "createTime": "2020-03-08T04:35:36.732191Z",
-#                             "updateTime": "2020-03-08T04:35:36.732191Z", 
-#                             "scriptId" : "temp_script_id",
-#                             "scriptVersion" : 0,
-#                             "publishSucceed" : False
-#                 }]}
-#                 json.dump(temp, out_file)
+
     except errors.HttpError as error:
         # The API encountered a problem.
         print(error.content) 
