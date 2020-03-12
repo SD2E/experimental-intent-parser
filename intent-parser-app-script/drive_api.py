@@ -13,13 +13,13 @@ class DriveAPI(object):
     
     def get_documents_from_folder(self, folder_id):
         '''
-        Get all documents within a Google Drive folder.
+        Get all Google Docs from a Google Drive folder.
         
         Args:
             folder_id: Google Drive folder id
         
         Returns:
-             A list of ids for  all files located within a Google Drive folder
+             A list of Google Doc ids
         ''' 
         results = self._service.files().list(
             q="'%s' in parents and mimeType='application/vnd.google-apps.document'" % (folder_id,),
@@ -31,6 +31,14 @@ class DriveAPI(object):
         return docs_dict
     
     def get_subfolders_from_folder(self, folder_id):
+        '''
+        Get subfolders found in a Google Drive folder.
+        Args:
+            folder_id: a Google Drive folder id
+        
+        Returns:
+            A dictionary with a list of folder's id and name
+        '''
         results = self._service.files().list(
             q="'%s' in parents and mimeType='application/vnd.google-apps.folder'" % (folder_id,),
             spaces='drive',
@@ -39,6 +47,35 @@ class DriveAPI(object):
         folder_dict = results.get('files', [])
         folder_list = [folder['id'] for folder in folder_dict]
         return folder_dict
+
+    def get_recursive_folders(self, folder_id):
+        '''
+        Iterate over all subfolders found in a Google Drive folder.
+        
+        Args:
+            folder_id: A Google Drive folder id
+        Returns a list of Google Drive folder ids
+        '''
+        return self._recursive_folders(folder_id, [])
+        
+    def _recursive_folders(self, fold_id, folder_list):
+        results = self._service.files().list(
+            q="'%s' in parents and mimeType='application/vnd.google-apps.folder'" % (folder_id,),
+            spaces='drive',
+            pageSize=1000,
+            fields='nextPageToken, files(id, name)').execute()
+        
+        folder_dict = results.get('files', [])
+        if not folder_dict :
+            folder_list.append(folder_id)
+            return folder_list
+        
+        for folder in folder_dict:
+            f_id = folder['id']
+            res = self._recursive_folders(f_id, folder_list)
+            folder_list.extend(res)
+        
+           
     
     def recursive_list_doc(self, folder_id):
         doc_list = self._recursive_doc(folder_id, [])
