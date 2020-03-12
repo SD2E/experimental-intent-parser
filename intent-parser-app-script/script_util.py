@@ -1,17 +1,38 @@
 import json
+import re
 
 def load_js_file(file_name):
-    f = open(file_name + '.js', 'r')
-    if f.mode != 'r':
-        raise Exception('Unable to load file')
-    return f.read()
+    with open(file_name + '.js', 'r') as f:
+        if f.mode != 'r':
+            raise Exception('Unable to load file')
+        file_data = f.read()
+  
+    return file_data
 
 def load_json_file(file_name):
     with open(file_name + '.json', 'r') as file:
         json_data = json.load(file)
         return json_data
-    
 
+def get_function_names_from_js_file(file_name):
+    function_dict = {}
+    values = []
+    
+    function_pattern = re.compile(r'function (?P<name>[a-zA-Z0-9\_]+)')
+    with open(file_name + '.js', 'r') as f:
+        if f.mode != 'r':
+            raise Exception('Unable to load file')
+     
+        for line in f:
+            res = function_pattern.search(line)
+            if res is not None:
+                print(res.group(1))
+                values.append({'name' : res.group(1)})
+        
+        function_dict['values'] = values
+        
+    return function_dict
+    
 def write_to_json(data, file_name, file_path=None):
     output_path = '/'.join([os.path.dirname(os.path.abspath(__file__)), file_name])
     if file_path:
@@ -32,3 +53,9 @@ def get_dict_from_list(dictionary_key, list):
         if dictionary_key in list[index]:
             return list[index]
     return None 
+
+if __name__ == '__main__':
+    file = load_js_file('Code')
+    function_dict = get_function_names_from_js_file('Code')
+    print(json.dumps(function_dict))
+    
