@@ -15,7 +15,7 @@ class AppScriptAPI:
    
     def get_project_metadata(self, script_id, version_number=None):
         '''
-        Returns the script project metadata bounded. 
+        Get metadata of a script project. 
         This metadata will include the appscript Code and manifest file.
         
         Args:
@@ -265,25 +265,6 @@ class AppScriptAPI:
             scriptId=script_id,
             body=request).execute()
         
-    def run_script(self, script_id, function_name, dev_mode=False): 
-        '''
-        Run a specified function within a script project.
-        
-        Args:
-            script_id: The script id assigned to a script project
-            function_name: Name of the function in the script
-            dev_mode: A boolean flag default to False. True indicates that the owner who created the script is running the script. 
-        '''  
-        request = {
-            'function': function_name,
-            'devMode': dev_mode
-        }
-        return self._service.scripts().run(
-            scriptId=script_id,
-            body=request
-            ).execute()
-    
-    
     def update_deployment(self, script_id, deploy_id, version_number, description):
         '''
         Updates an existing deployment from an app script project. 
