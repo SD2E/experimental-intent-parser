@@ -4,12 +4,10 @@ from googleapiclient import errors
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import datetime
-import script_util as util
 import json 
 import pickle
 import os.path
-from future.backports.urllib import response
-from git import remote
+import script_util as util
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
@@ -18,7 +16,10 @@ SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
           'https://www.googleapis.com/auth/documents',
           'https://www.googleapis.com/auth/drive.readonly']
 
+MAXIMUM_CREATE_QUOTA = 50
+DOCUMENT_SIZE = 0
 NUMBER_OF_CREATION = 0
+INCOMPLETE_DOCS = []
 
 def authenticate_credentials():
     """
@@ -66,7 +67,7 @@ def _get_local_document(id, local_documents):
             return l_doc
     return None
 
-def update_logged_folders(folder_id = '1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'):  
+def update_logged_folders(folder_id):  
     '''
     Update logged_folders.json with new folders found in the given folder_id
     ''' 
@@ -104,9 +105,11 @@ def update_logged_folders(folder_id = '1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'):
 
 def update_logged_documents(folder_id, user_account, publish_message, script_proj_title='IPProject Test'):
     '''
-    Update Google Docs assigned to a folder_id.
+    Update Google Docs located in a Google Drive folder.
     
     Args:
+        folder_id: id of Google Drive Folder
+        user_account: gmail account making used to access Google Docs and Drive folder.
         publish_message: Message assigned to a script project when making a publish. 
         script_proj_title: Title of a script project. 
     '''   
@@ -114,7 +117,10 @@ def update_logged_documents(folder_id, user_account, publish_message, script_pro
     creds = authenticate_credentials()
     drive_api = DriveAPI(creds)
     remote_documents = drive_api.get_documents_from_folder(folder_id)
-    print('There are % d documents to update.' % len(remote_documents))
+    
+    global DOCUMENT_SIZE
+    DOCUMENT_SIZE = len(remote_documents)
+    print('Located % d documents.' % DOCUMENT_SIZE)
     
     app_script_api = AppScriptAPI(creds) 
     with open(folder_id + '_log.json') as in_file:
@@ -124,10 +130,13 @@ def update_logged_documents(folder_id, user_account, publish_message, script_pro
         d = datetime.datetime.utcnow()
         current_time = d.isoformat("T") + "Z"
         
-        
-        for i in range(len(remote_documents)):
+        for i in range(DOCUMENT_SIZE):
             r_doc = remote_documents[i]
             r_id = r_doc['id']
+            
+            if i == MAXIMUM_CREATE_QUOTA:
+                INCOMPLETE_DOCS = remote_documents[i:]
+                
             
             if _contain_document_id(r_id, local_documents):
                 print('Updating script project metadata for document %s' % r_id)
@@ -135,7 +144,7 @@ def update_logged_documents(folder_id, user_account, publish_message, script_pro
                 l_doc['publishSucceed'] = False
 
                 # get script id associated to document
-                script_id = r_doc['scriptId']
+                script_id = l_doc['scriptId']
                 remote_metadata = app_script_api.get_project_metadata(script_id)
                 
                 # push Code.js and manifest
@@ -143,29 +152,29 @@ def update_logged_documents(folder_id, user_account, publish_message, script_pro
                 l_doc['updateTime'] = current_time
                 
                 # create version
-                new_version = app_script_api.get_head_version(script_proj_id) + 1
-                app_script_api.create_version(script_proj_id, new_version, publish_message)
+                new_version = app_script_api.get_head_version(script_id) + 1
+                app_script_api.create_version(script_id, new_version, publish_message)
                 l_doc['scriptVersion'] = new_version
                 l_doc['publishSucceed'] = True
             else:        
-                print('Creating an add-on script project for document %s.' % r_id)
+                print('Creating add-on script project for document %s.' % r_id)
                 d_dict = {}
                 d_dict['id'] = r_id
                 d_dict['name'] = r_doc['name']
+                d_dict['publishSucceeded'] = False
                 
                 # create an add-on script project
                 response = app_script_api.create_project(script_proj_title, r_id)
                 global NUMBER_OF_CREATION
                 NUMBER_OF_CREATION = NUMBER_OF_CREATION + 1
                 d_dict['createTime'] = current_time
+                d_dict['updateTime'] = current_time
                 script_id = response['scriptId']
                 d_dict['scriptId'] = script_id
-                d_dict['publishSucceed'] = False
                 
                 # push code.js and manifest
                 remote_metadata = app_script_api.get_project_metadata(script_id)
                 app_script_api.set_project_metadata(script_id, remote_metadata, user_account)
-                d_dict['updateTime'] = current_time
                     
                 # create version
                 new_version = app_script_api.get_head_version(script_id) + 1
@@ -177,6 +186,40 @@ def update_logged_documents(folder_id, user_account, publish_message, script_pro
         updated_data = {'documents' : local_documents}
     
     return updated_data
+
+def perform_daily_run(folder_id, user_account, publish_message):
+    try:
+        folder_dict = update_logged_folders(folder_id)
+        folder_list = folder_dict['folders']
+        for i in range(len(folder_list)):
+            folder_id = folder_list[i]['id']
+            updated_data = update_logged_documents(folder_id, user_account, publish_message)
+        print('Script completed!')
+    except errors.HttpError as error:
+        # The API encountered a problem.
+        print(error.content) 
+    finally:
+        print('%d / %d scripts created' % (NUMBER_OF_CREATION, DOCUMENT_SIZE))     
+        if len(INCOMPLETE_DOCS) > 0: 
+            with open(folder_id + '_incomplete.json', 'w') as out_file:
+                json.dump({'folder_id' : folder_id, 'incomplete' : INCOMPLETE_DOCS}, out_file)
+    
+    
+
+def perform_initial_run(folder_id, user_account, publish_message):
+    try:
+        updated_data = update_logged_documents(folder_id, user_account, publish_message)
+        with open(folder_id + '_log.json', 'w') as out_file:
+            json.dump(updated_data, out_file)
+        print('Script completed!')
+    except errors.HttpError as error:
+        # The API encountered a problem.
+        print(error.content) 
+    finally:
+        print('%d / %d scripts created' % (NUMBER_OF_CREATION, DOCUMENT_SIZE))     
+        if len(INCOMPLETE_DOCS) > 0: 
+            with open(folder_id + '_incomplete.json', 'w') as out_file:
+                json.dump({'folder_id' : folder_id, 'incomplete' : INCOMPLETE_DOCS}, out_file)
     
 if __name__ == '__main__':
     publish_message = 'Test1 2.4 Release'
@@ -185,27 +228,9 @@ if __name__ == '__main__':
             "email": 'tramy.nguy@gmail.com',
             "name": 'Tramy Nguyen'
       }
-    try:
-        folder_id = '17Uy48TwzRdC1H1MLpxlfOmnQNOvk4S5Q'
-        updated_data = update_logged_documents(folder_id, user_account, publish_message)
-        with open(folder_id + '_log.json', 'w') as out_file:
-            json.dump(updated_data, out_file)
-            
-#         folder_dict = update_logged_folders()
-#         folder_list = folder_dict['folders']
-#         for i in range(len(folder_list)):
-#             folder_id = folder_list[i]['id']
-#             update_logged_documents(folder_id, user_account, publish_message)
-
-    except errors.HttpError as error:
-        # The API encountered a problem.
-        print(error.content) 
-    finally:
-        print('Calls made for creating a script project % d' % NUMBER_OF_CREATION)      
-    
-    
-    
-   
+    folder_id = '1tvT29Y20-iXO20TCiCO_61TTv3NAkld9'
+#     perform_daily_run(folder_id, user_account, publish_message)
+    perform_initial_run(folder_id, user_account, publish_message)
 
 
 
