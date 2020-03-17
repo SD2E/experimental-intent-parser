@@ -103,7 +103,7 @@ def update_logged_folders(folder_id):
     creds = authenticate_credentials()
     
     drive_api = DriveAPI(creds)
-    remote_folders = drive_api.get_subfolders_from_folder(folder_id)
+    remote_folders = drive_api.get_recursive_folders(folder_id)
    
     updated_data = {} 
     with open('logged_folders.json') as in_file:
@@ -191,7 +191,7 @@ def update_logged_documents(folder_id, user_account, publish_addon, publish_mess
                     app_script_api.create_version(script_id, new_version, publish_message)
                     l_doc['scriptVersion'] = new_version
                     l_doc['publishSucceeded'] = True
-#                 
+               
                     NUMBER_OF_UPDATES = NUMBER_OF_UPDATES + 1
             if not _contain_document_id(r_id, local_documents):        
                 print('Creating add-on script project for document %s.' % r_id)
@@ -246,33 +246,31 @@ def perform_daily_run(folder_id, user_account, publish_addon, publish_message):
         
        
 
-def perform_initial_run(folder_id, user_account, publish_message):
+def perform_initial_run(folder_id, user_account, publish_addon, publish_message):
     try:
-        updated_data = update_logged_documents(folder_id, user_account, publish_message)
+        updated_data = update_logged_documents(folder_id, user_account, publish_addon, publish_message)
         print('Script completed!')
     except errors.HttpError as error:
         # The API encountered a problem.
         print(error.content) 
     finally:
         print('%d / %d scripts created' % (NUMBER_OF_CREATION, DOCUMENT_SIZE))     
-        
-        with open(folder_id + '_incomplete.json', 'w') as out_file:
-            json.dump({'folder_id' : folder_id, 'incomplete' : INCOMPLETE_DOCS}, out_file)
-        
         with open(folder_id + '_log.json', 'w') as out:
             json.dump({'documents' : COMPLETE_DOCS}, out)
 
+
+
 if __name__ == '__main__':
-    publish_message = 'Test1 2.4 Release'
+    publish_message = '2.4 Release'
     user_account = {
             "domain": 'gmail.com',
-            "email": 'tramy.nguy@gmail.com',
-            "name": 'Tramy Nguyen'
+            "email": 'bbn.intentparser@gmail.com',
+            "name": 'bbn intentparser'
       }
-    folder_id = '1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'
+    folder_id = '1693MJT1Up54_aDUp1s3mPH_DRw1_GS5G'
     publish_addon = False
-
-    perform_daily_run(folder_id, user_account, publish_addon, publish_message)
+#     perform_initial_run(folder_id, user_account, publish_addon, publish_message)
+#     perform_daily_run(folder_id, user_account, publish_addon, publish_message)
 #     while True:
 #         perform_daily_run(folder_id, user_account, publish_message)
 #         time.sleep(900)
