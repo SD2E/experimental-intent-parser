@@ -22,6 +22,7 @@ This error will resolve itself after 24 hours when the quota is reset for the da
 """
 
 from app_script_api import AppScriptAPI
+from document_api import DocumentAPI
 from drive_api import DriveAPI
 from googleapiclient import errors
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -32,6 +33,7 @@ import json
 import os.path
 import pickle
 import script_util as util
+import time
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
@@ -40,9 +42,11 @@ SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
           'https://www.googleapis.com/auth/documents',
           'https://www.googleapis.com/auth/drive.readonly']
 
-MAXIMUM_CREATE_QUOTA = 50 
+MAXIMUM_CREATE_QUOTA = 50
+MAXIMUM_UPDATE_QUOTA = 15 
 DOCUMENT_SIZE = 0
 NUMBER_OF_CREATION = 0
+NUMBER_OF_UPDATES = 0
 COMPLETE_DOCS = []
 INCOMPLETE_DOCS = []
 
@@ -127,7 +131,7 @@ def update_logged_folders(folder_id):
     
     return updated_data
 
-def update_logged_documents(folder_id, user_account, publish_message, script_proj_title='IPProject Test'):
+def update_logged_documents(folder_id, user_account, publish_addon, publish_message, script_proj_title='IPProject Release'):
     """
     Update Google Docs located in a Google Drive folder.
     
@@ -143,6 +147,9 @@ def update_logged_documents(folder_id, user_account, publish_message, script_pro
     remote_documents = drive_api.get_documents_from_folder(folder_id)
     
     global COMPLETE_DOCS
+    global INCOMPLETE_DOCS
+    global NUMBER_OF_UPDATES
+    global MAXIMUM_UPDATE_QUOTA
     global DOCUMENT_SIZE
     DOCUMENT_SIZE = len(remote_documents)
     print('Located % d documents.' % DOCUMENT_SIZE)
@@ -161,27 +168,32 @@ def update_logged_documents(folder_id, user_account, publish_message, script_pro
             
             if i == MAXIMUM_CREATE_QUOTA:
                 INCOMPLETE_DOCS = remote_documents[i:]
-                
+            
+            if (NUMBER_OF_UPDATES > 0) and (NUMBER_OF_UPDATES % MAXIMUM_UPDATE_QUOTA == 0):
+                time.sleep(300)   
             
             if _contain_document_id(r_id, local_documents):
                 print('Updating script project metadata for document %s' % r_id)
-                l_doc = _get_local_document(r_id, local_documents)
-                l_doc['publishSucceeded'] = False
-
-                # get script id associated to document
-                script_id = l_doc['scriptId']
-                remote_metadata = app_script_api.get_project_metadata(script_id)
-                
-                # push Code.js and manifest
-                app_script_api.update_project_metadata(script_id, remote_metadata)
-                l_doc['updateTime'] = current_time
-                
-                # create version
-                new_version = app_script_api.get_head_version(script_id) + 1
-                app_script_api.create_version(script_id, new_version, publish_message)
-                l_doc['scriptVersion'] = new_version
-                l_doc['publishSucceeded'] = True
-            else:        
+                if publish_addon:
+                    l_doc = _get_local_document(r_id, local_documents)
+                    l_doc['publishSucceeded'] = False
+ 
+                    # get script id associated to document
+                    script_id = l_doc['scriptId']
+                    remote_metadata = app_script_api.get_project_metadata(script_id)
+                     
+                    # push Code.js and manifest
+                    app_script_api.update_project_metadata(script_id, remote_metadata)
+                    l_doc['updateTime'] = current_time
+                     
+                    # create version
+                    new_version = app_script_api.get_head_version(script_id) + 1
+                    app_script_api.create_version(script_id, new_version, publish_message)
+                    l_doc['scriptVersion'] = new_version
+                    l_doc['publishSucceeded'] = True
+#                 
+                    NUMBER_OF_UPDATES = NUMBER_OF_UPDATES + 1
+            if not _contain_document_id(r_id, local_documents):        
                 print('Creating add-on script project for document %s.' % r_id)
                 d_dict = {}
                 d_dict['id'] = r_id
@@ -209,17 +221,17 @@ def update_logged_documents(folder_id, user_account, publish_message, script_pro
                 d_dict['publishSucceeded'] = True
                 local_documents.append(d_dict)
                 COMPLETE_DOCS.append(d_dict)
-        updated_data = {'documents' : local_documents}
+        updated_data = local_documents
         
     return updated_data
 
-def perform_daily_run(folder_id, user_account, publish_message):
+def perform_daily_run(folder_id, user_account, publish_addon, publish_message):
     try:
         folder_dict = update_logged_folders(folder_id)
         folder_list = folder_dict['folders']
         for i in range(len(folder_list)):
             folder_id = folder_list[i]['id']
-            updated_data = update_logged_documents(folder_id, user_account, publish_message)
+            updated_data = update_logged_documents(folder_id, user_account, publish_addon, publish_message)
         
             with open(folder_id + '_log.json', 'w') as out:
                 json.dump({'documents' : updated_data}, out)
@@ -229,7 +241,8 @@ def perform_daily_run(folder_id, user_account, publish_message):
         # The API encountered a problem.
         print(error.content) 
     finally:
-        print('%d / %d scripts created' % (NUMBER_OF_CREATION, DOCUMENT_SIZE))     
+        print('%d / %d scripts created' % (NUMBER_OF_CREATION, DOCUMENT_SIZE))
+        print('%d / %d scripts updated' % (NUMBER_OF_UPDATES, DOCUMENT_SIZE))     
         
        
 
@@ -248,7 +261,7 @@ def perform_initial_run(folder_id, user_account, publish_message):
         
         with open(folder_id + '_log.json', 'w') as out:
             json.dump({'documents' : COMPLETE_DOCS}, out)
-            
+
 if __name__ == '__main__':
     publish_message = 'Test1 2.4 Release'
     user_account = {
@@ -257,9 +270,12 @@ if __name__ == '__main__':
             "name": 'Tramy Nguyen'
       }
     folder_id = '1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'
-   
-    perform_daily_run(folder_id, user_account, publish_message)
-#     perform_initial_run(folder_id, user_account, publish_message)
+    publish_addon = False
+
+    perform_daily_run(folder_id, user_account, publish_addon, publish_message)
+#     while True:
+#         perform_daily_run(folder_id, user_account, publish_message)
+#         time.sleep(900)
 
 
 
