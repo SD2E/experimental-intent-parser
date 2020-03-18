@@ -20,13 +20,10 @@ from drive_api import DriveAPI
 from googleapiclient import errors
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-import argparse
-import datetime
 import json 
 import os.path
 import pickle
 import script_util as util
-import time
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
