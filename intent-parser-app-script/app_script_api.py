@@ -153,7 +153,7 @@ class AppScriptAPI:
    
     def _create_code_file(self, user_obj, code_file_name='Code'):
         source = self.load_local_code()
-        code_functions = self.load_local_code_functions()
+        code_functions = util.get_function_names_from_js_file(code_file_name) 
         
         d = datetime.datetime.utcnow()
         created_time = d.isoformat("T") + "Z"
