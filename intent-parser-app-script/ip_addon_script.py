@@ -8,7 +8,6 @@ To do so, remove the token.pickle file in this directory and rerun this script a
 This script will need to get the scriptId assigned to each Google Doc in order to make updates to an add-on.
 Currently, Google App Script API does not have a functionality to get a scriptId from a Google Doc so this script handles this by loading in a local json file that keeps track of scriptIds bounded to each Google Doc.
 If a scriptId exist for a Google Doc, then the script will update the add-on with the appropriate metadata.
-To look for the file that a scriptId bounds to a Google Doc, look for the Google Drive's folder id that the Doc is stored as the file name appended with the _log.json
 If no scriptId exist for a Google Doc, then a new script is created and recorded to the json file.
 Note that Google's REST API has quotas that limits how many create and update methods a user can call per timeframe. 
 If a quota limit is reached, then the script will store each document that needs to process to a queue and move onto the next Google Doc to process.
