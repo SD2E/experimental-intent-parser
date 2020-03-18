@@ -27,7 +27,6 @@ def get_function_names_from_js_file(file_name):
         for line in f:
             res = function_pattern.search(line)
             if res is not None:
-                print(res.group(1))
                 values.append({'name' : res.group(1)})
         
         function_dict['values'] = values
