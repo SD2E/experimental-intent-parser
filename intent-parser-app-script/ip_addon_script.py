@@ -42,13 +42,11 @@ SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
           'https://www.googleapis.com/auth/documents',
           'https://www.googleapis.com/auth/drive.readonly']
 
-MAXIMUM_CREATE_QUOTA = 50
-MAXIMUM_UPDATE_QUOTA = 15 
-DOCUMENT_SIZE = 0
-NUMBER_OF_CREATION = 0
-NUMBER_OF_UPDATES = 0
-COMPLETE_DOCS = []
-INCOMPLETE_DOCS = []
+USER_ACCOUNT = {
+            "domain": 'gmail.com',
+            "email": 'bbn.intentparser@gmail.com',
+            "name": 'bbn intentparser'
+      }
 
 def authenticate_credentials():
     """
@@ -73,63 +71,6 @@ def authenticate_credentials():
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
     return creds    
-
-def _contain_folder_id(id, local_folders):
-    for j in range(len(local_folders)):
-        l_folder = local_folders[j]
-        if id == l_folder['id']:
-            return True
-    return False
-
-def _contain_document_id(id, local_documents):
-    for j in range(len(local_documents)):
-        l_doc = local_documents[j]
-        if id == l_doc['id']:
-            return True
-    return False
-
-def _get_local_document(id, local_documents):
-    for j in range(len(local_documents)):
-        l_doc = local_documents[j]
-        if id == l_doc['id']:
-            return l_doc
-    return None
-
-def update_logged_folders(folder_id):  
-    """
-    Update logged_folders.json with new folders found in the given folder_id
-    """
-    print('Updating logged_folders.json')
-    creds = authenticate_credentials()
-    
-    drive_api = DriveAPI(creds)
-    remote_folders = drive_api.get_recursive_folders(folder_id)
-   
-    updated_data = {} 
-    with open('logged_folders.json') as in_file:
-        f_data = json.load(in_file)
-        local_folders = f_data['folders']
-        
-        d = datetime.datetime.utcnow()
-        current_time = d.isoformat("T") + "Z"
-        for i in range(len(remote_folders)):
-            r_folder = remote_folders[i]
-            r_id = r_folder['id']
-            if _contain_folder_id(r_id, local_folders):
-                local_folders[i]['updateTime'] = current_time
-            else:
-                f_dict = {}
-                f_dict['id'] = r_id
-                f_dict['name'] = r_folder['name']
-                f_dict['createTime'] = current_time
-                f_dict['updateTime'] = current_time
-                local_folders.append(f_dict)
-        updated_data = {'folders' : local_folders}
-        
-    with open('logged_folders.json', 'w') as out_file:
-        json.dump(updated_data, out_file)
-    
-    return updated_data
 
 def update_logged_documents(folder_id, user_account, publish_addon, publish_message, script_proj_title='IPProject Release'):
     """
@@ -225,56 +166,62 @@ def update_logged_documents(folder_id, user_account, publish_addon, publish_mess
         
     return updated_data
 
-def perform_daily_run(folder_id, user_account, publish_addon, publish_message):
-    try:
-        folder_dict = update_logged_folders(folder_id)
-        folder_list = folder_dict['folders']
-        for i in range(len(folder_list)):
-            folder_id = folder_list[i]['id']
-            updated_data = update_logged_documents(folder_id, user_account, publish_addon, publish_message)
-        
-            with open(folder_id + '_log.json', 'w') as out:
-                json.dump({'documents' : updated_data}, out)
-        print('Script completed!')
-        
-    except errors.HttpError as error:
-        # The API encountered a problem.
-        print(error.content) 
-    finally:
-        print('%d / %d scripts created' % (NUMBER_OF_CREATION, DOCUMENT_SIZE))
-        print('%d / %d scripts updated' % (NUMBER_OF_UPDATES, DOCUMENT_SIZE))     
-        
-       
-
-def perform_initial_run(folder_id, user_account, publish_addon, publish_message):
-    try:
-        updated_data = update_logged_documents(folder_id, user_account, publish_addon, publish_message)
-        print('Script completed!')
-    except errors.HttpError as error:
-        # The API encountered a problem.
-        print(error.content) 
-    finally:
-        print('%d / %d scripts created' % (NUMBER_OF_CREATION, DOCUMENT_SIZE))     
-        with open(folder_id + '_log.json', 'w') as out:
-            json.dump({'documents' : COMPLETE_DOCS}, out)
 
 
+def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'):
+    creds = authenticate_credentials()
+    drive_api = DriveAPI(creds)
+    app_script_api = AppScriptAPI(creds) 
+    publish_addon = False
+    
+    # load file
+    local_docs = util.load_json_file('temp_script')
+    remote_docs = drive_api.recursive_list_doc(drive_id)
+    
+    while len(remote_docs) > 0 :
+        doc = remote_docs.pop(0)
+        r_id = doc['id']
+        # create or update add-on script
+        # check if local doc contains remote, then update local doc
+        if r_id in local_docs:
+            print('Updating script project metadata for document %s' % r_id)
+            try:
+                metadata = local_docs[r_id]
+                if metadata['releaseVersion'] != current_release:
+                    script_id = metadata['scriptId']
+                    
+                    remote_metadata = app_script_api.get_project_metadata(script_id)
+                    app_script_api.update_project_metadata(script_id, remote_metadata)
+                    
+                    new_version = app_script_api.get_head_version(script_id) + 1
+                    app_script_api.create_version(script_id, new_version, publish_message)
+                    
+                    local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
+                    util.write_to_json(local_docs, 'temp_script')
+            except errors.HttpError as error:
+                print('Reached update quota limit!')
+                remote_docs.append(doc)
+        else:
+            try:
+                print('Creating add-on for doc %s' % r_id)
+                script_proj_title='IPProject Release'
+                response = app_script_api.create_project(script_proj_title, r_id)
+                script_id = response['scriptId']
+                
+                remote_metadata = app_script_api.get_project_metadata(script_id)
+                app_script_api.set_project_metadata(script_id, remote_metadata, USER_ACCOUNT)
+                
+                local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
+                util.write_to_json(local_docs, 'temp_script')
+            except errors.HttpError as error:
+                print('Reached create quota limit!')
+                remote_docs.append(doc) 
+    print('script stopped!')       
 
 if __name__ == '__main__':
-    publish_message = '2.4 Release'
-    user_account = {
-            "domain": 'gmail.com',
-            "email": 'bbn.intentparser@gmail.com',
-            "name": 'bbn intentparser'
-      }
-    folder_id = '1693MJT1Up54_aDUp1s3mPH_DRw1_GS5G'
-    publish_addon = False
-#     perform_initial_run(folder_id, user_account, publish_addon, publish_message)
-#     perform_daily_run(folder_id, user_account, publish_addon, publish_message)
-#     while True:
-#         perform_daily_run(folder_id, user_account, publish_message)
-#         time.sleep(900)
 
-
+    current_release = '2.4'
+    perform_automatic_run(current_release)
+ 
 
 

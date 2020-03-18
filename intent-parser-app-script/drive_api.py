@@ -74,7 +74,7 @@ class DriveAPI(object):
             f_id = folder['id']
             res = self._recursive_folders(f_id, folder_list)
             folder_list.extend(res)
-        
+        return folder_list
            
     
     def recursive_list_doc(self, folder_id):
@@ -94,4 +94,8 @@ class DriveAPI(object):
         doc_list.extend(doc_ids)  
         
         for dir in folder_list:
-            self._recursive_doc(dir['id'], doc_list)
+            doc_list = self._recursive_doc(dir['id'], doc_list)
+        return doc_list
+            
+            
+            
