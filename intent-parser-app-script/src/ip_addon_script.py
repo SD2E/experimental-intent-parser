@@ -100,6 +100,7 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
             except errors.HttpError as error:
                 logger.info('Reached update quota limit!')
                 remote_docs.append(doc)
+                time.sleep(60) 
         else:
             try:
                 print('Creating add-on for doc: %s' % r_id)
@@ -115,8 +116,9 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                 util.write_to_json(local_docs, ADDON_FILE)
             except errors.HttpError as error:
                 logger.info('Reached create quota limit!')
-                remote_docs.append(doc) 
-    logger.info('script stopped!')       
+                remote_docs.append(doc)
+                time.sleep(60) 
+         
 
 if __name__ == '__main__':
 
@@ -128,8 +130,10 @@ if __name__ == '__main__':
     
     logger.setLevel(logging.INFO)
     logger.info('Running IP addon script for release %s' % current_release)
-    
-
+    while True:
+        perform_automatic_run(current_release)
+        time.sleep(300)
+    logger.info('script stopped!')  
  
 
 
