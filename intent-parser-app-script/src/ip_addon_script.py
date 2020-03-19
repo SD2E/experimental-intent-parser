@@ -13,13 +13,15 @@ Note that Google's REST API has quotas that limits how many create and update me
 If a quota limit is reached, then the script will store each document that needs to process to a queue and move onto the next Google Doc to process.
 """
 
+# from absl import logging 
 from app_script_api import AppScriptAPI
 from document_api import DocumentAPI
 from drive_api import DriveAPI
 from googleapiclient import errors
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-import json 
+import json
+import logging 
 import os.path
 import pickle
 import script_util as util
@@ -38,6 +40,8 @@ USER_ACCOUNT = {
 
 ADDON_FILE = 'addon_file'
 
+logger = logging.getLogger('ip_addon_script_log')
+
 def authenticate_credentials():
     """
     Authenticate credentials for script
@@ -54,8 +58,10 @@ def authenticate_credentials():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
+            curr_path = os.path.dirname(os.path.realpath(__file__))
+            credential_path = os.path.join(curr_path, 'credentials.json')
             flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
+                credential_path, SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open('token.pickle', 'wb') as token:
@@ -73,7 +79,6 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
     # load file
     local_docs = util.load_json_file(ADDON_FILE)
     remote_docs = drive_api.recursive_list_doc(drive_id)
-    
     while len(remote_docs) > 0 :
         doc = remote_docs.pop(0)
         r_id = doc['id']
@@ -82,7 +87,7 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
             try:
                 metadata = local_docs[r_id]
                 if metadata['releaseVersion'] != current_release:
-                    print('Updating script project metadata for doc: %s' % r_id)
+                    logger.info('Updating script project metadata for doc: %s' % r_id)
                     script_id = metadata['scriptId']
                     
                     remote_metadata = app_script_api.get_project_metadata(script_id)
@@ -94,11 +99,12 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                     local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
                     util.write_to_json(local_docs, ADDON_FILE)
             except errors.HttpError as error:
-                print('Reached update quota limit!')
+                logger.info('Reached update quota limit!')
                 remote_docs.append(doc)
         else:
             try:
                 print('Creating add-on for doc: %s' % r_id)
+                logger.info('Creating add-on for doc: %s' % r_id)
                 script_proj_title='IPProject Release'
                 response = app_script_api.create_project(script_proj_title, r_id)
                 script_id = response['scriptId']
@@ -109,13 +115,21 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                 local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
                 util.write_to_json(local_docs, ADDON_FILE)
             except errors.HttpError as error:
-                print('Reached create quota limit!')
+                logger.info('Reached create quota limit!')
                 remote_docs.append(doc) 
-    print('script stopped!')       
+    logger.info('script stopped!')       
 
 if __name__ == '__main__':
 
     current_release = '2.4'
+#     logger.basicConfig(filename='ip_addon_script.log', filemode='w')
+    hdlr = logging.FileHandler('ip_addon_script.log')
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    hdlr.setFormatter(formatter)
+    logger.addHandler(hdlr) 
+    
+    logger.setLevel(logging.INFO)
+    logger.info('Running IP addon script for release %s' % current_release)
     perform_automatic_run(current_release)
 
  
