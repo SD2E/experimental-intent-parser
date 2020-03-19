@@ -24,6 +24,7 @@ import logging
 import os.path
 import pickle
 import script_util as util
+import time
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
@@ -39,7 +40,7 @@ USER_ACCOUNT = {
 
 ADDON_FILE = 'addon_file'
 
-logger = logging.getLogger('ip_addon_script_log')
+logger = logging.getLogger('ip_addon_script')
 
 def authenticate_credentials():
     """
@@ -98,6 +99,7 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                     local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
                     util.write_to_json(local_docs, ADDON_FILE)
             except errors.HttpError as error:
+                print('Reached update quota limit!')
                 logger.info('Reached update quota limit!')
                 remote_docs.append(doc)
                 time.sleep(60) 
@@ -115,10 +117,10 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                 local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
                 util.write_to_json(local_docs, ADDON_FILE)
             except errors.HttpError as error:
+                print('Reached create quota limit!')
                 logger.info('Reached create quota limit!')
                 remote_docs.append(doc)
-                time.sleep(60) 
-         
+                time.sleep(60)  
 
 if __name__ == '__main__':
 
@@ -130,10 +132,15 @@ if __name__ == '__main__':
     
     logger.setLevel(logging.INFO)
     logger.info('Running IP addon script for release %s' % current_release)
-    while True:
-        perform_automatic_run(current_release)
-        time.sleep(300)
-    logger.info('script stopped!')  
+    print('Running IP addon script for release %s' % current_release)
+    try:
+        while True:
+            perform_automatic_run(current_release)
+            print('Run completed! Scheduling next run.')   
+            logger.info('Run completed! Scheduling next run.')  
+            time.sleep(300)
+    except (KeyboardInterrupt, SystemExit) as err:
+        logger.info('Script stopped!')  
  
 
 
