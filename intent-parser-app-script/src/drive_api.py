@@ -79,11 +79,9 @@ class DriveAPI(object):
     
     def recursive_list_doc(self, folder_id):
         doc_list = self._recursive_doc(folder_id, [])
-        print('Found %s Google Docs' % len(doc_list))
         return doc_list 
         
     def _recursive_doc(self, folder_id, doc_list): 
-        print('Processing folder: ' + folder_id)
         folder_list = self.get_subfolders_from_folder(folder_id)
         if not folder_list:
             doc_ids = self.get_documents_from_folder(folder_id)
