@@ -68,6 +68,33 @@ def authenticate_credentials():
             pickle.dump(creds, token)
     return creds    
 
+def setup_logging(
+    default_path='logging.json',
+    default_level=logging.INFO,
+    env_key='LOG_CFG'):
+    """
+    Setup logging configuration
+    """
+    path = default_path
+    value = os.getenv(env_key, None)
+    if value:
+        path = value
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            config = json.load(f)
+        logging.config.dictConfig(config)
+    else:
+        logging.basicConfig(level=default_level, format="[%(levelname)-8s] %(asctime)-24s %(filename)-23s line:%(lineno)-4s  %(message)s")
+    
+    hdlr = logging.FileHandler('ip_addon_script.log')
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    hdlr.setFormatter(formatter)
+    logger.addHandler(hdlr) 
+    
+    logger.setLevel(logging.INFO)
+   
+    logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.CRITICAL)
+    logging.getLogger("googleapiclient.discovery").setLevel(logging.CRITICAL)
 
 
 def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'):
@@ -82,7 +109,7 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
     while len(remote_docs) > 0 :
         doc = remote_docs.pop(0)
         r_id = doc['id']
-       
+        logger.info('Processing doc: ' + r_id)
         if r_id in local_docs:
             try:
                 metadata = local_docs[r_id]
@@ -99,13 +126,11 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                     local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
                     util.write_to_json(local_docs, ADDON_FILE)
             except errors.HttpError as error:
-                print('Reached update quota limit!')
                 logger.info('Reached update quota limit!')
                 remote_docs.append(doc)
                 time.sleep(60) 
         else:
             try:
-                print('Creating add-on for doc: %s' % r_id)
                 logger.info('Creating add-on for doc: %s' % r_id)
                 script_proj_title='IPProject Release'
                 response = app_script_api.create_project(script_proj_title, r_id)
@@ -117,30 +142,26 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                 local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
                 util.write_to_json(local_docs, ADDON_FILE)
             except errors.HttpError as error:
-                print('Reached create quota limit!')
                 logger.info('Reached create quota limit!')
                 remote_docs.append(doc)
                 time.sleep(60)  
 
-if __name__ == '__main__':
-
+def main():
     current_release = '2.4'
-    hdlr = logging.FileHandler('ip_addon_script.log')
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    hdlr.setFormatter(formatter)
-    logger.addHandler(hdlr) 
-    
-    logger.setLevel(logging.INFO)
+    setup_logging()
     logger.info('Running IP addon script for release %s' % current_release)
-    print('Running IP addon script for release %s' % current_release)
     try:
         while True:
             perform_automatic_run(current_release)
-            print('Run completed! Scheduling next run.')   
             logger.info('Run completed! Scheduling next run.')  
             time.sleep(300)
     except (KeyboardInterrupt, SystemExit) as err:
         logger.info('Script stopped!')  
+        
+        
+        
+if __name__ == '__main__':
+    main()
  
 
 
