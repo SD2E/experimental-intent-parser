@@ -101,9 +101,7 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
     creds = authenticate_credentials()
     drive_api = DriveAPI(creds)
     app_script_api = AppScriptAPI(creds) 
-    publish_addon = False
     
-    # load file
     local_docs = util.load_json_file(ADDON_FILE)
     remote_docs = drive_api.recursive_list_doc(drive_id)
     while len(remote_docs) > 0 :
@@ -121,6 +119,7 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                     app_script_api.update_project_metadata(script_id, remote_metadata)
                     
                     new_version = app_script_api.get_head_version(script_id) + 1
+                    publish_message = current_release + ' Release'
                     app_script_api.create_version(script_id, new_version, publish_message)
                     
                     local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
@@ -157,7 +156,6 @@ def main():
             time.sleep(300)
     except (KeyboardInterrupt, SystemExit) as err:
         logger.info('Script stopped!')  
-        
         
         
 if __name__ == '__main__':
