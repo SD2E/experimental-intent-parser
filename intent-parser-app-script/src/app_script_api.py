@@ -1,12 +1,12 @@
 from googleapiclient.discovery import build
-from google.auth.transport.requests import Request
-import script_util as util
 import datetime
-import json
+import os
+import script_util as util
 
 class AppScriptAPI:
     '''
-    A list of APIs to access a Google Add-on Script Project:
+    A list of APIs to access a Google Add-on Script Project.
+    Refer to https://developers.google.com/apps-script/api/reference/rest to get information on how this class is set up.
     '''
  
     def __init__(self, creds):
@@ -20,7 +20,7 @@ class AppScriptAPI:
         
         Args:
             script_id: id of the script project
-            version_number: get the script project base off of a version number. Default to None if no version is provided.
+            version_number: An integer value to get the script project base off of a version number. Default to None if no version is provided.
         
         Return:
             A Content object representing the metadata in the json format.
@@ -69,6 +69,11 @@ class AppScriptAPI:
     def get_head_version(self, script_id):
         '''
         Get the latest project version.
+        Args:
+            script_id: id of the app script.
+            
+        Returns:
+            An integer value for representing the latest version for the app script.
         '''
         list_of_versions = self.get_project_versions(script_id)
         if not list_of_versions:
@@ -98,17 +103,18 @@ class AppScriptAPI:
         
         return None
     
-    def load_local_manifest(self, manifest_name='appsscript'):
+    def load_local_manifest(self, file_dir, manifest_name='appsscript'):
         '''
         Load local appsscript file into a json format.
         
         Args:
             manifest_name: the manifest file name. Unless specified, variable is default to appsscript.
         '''
-        file = util.load_json_file(manifest_name)
+        file_path = file_dir + "/" + manifest_name
+        file = util.load_json_file(file_path)
         return file
     
-    def load_local_code(self, code_name='Code'):
+    def load_local_code(self, file_dir, code_name='Code'):
         '''
         Get the local script Code file.
         
@@ -117,20 +123,19 @@ class AppScriptAPI:
         
         Returns: The Code file loaded as a string
         '''
-        file = util.load_js_file(code_name)
+        file_path = file_dir + "/" + code_name
+        file = util.load_js_file(file_path)
         return str(file).strip()
-    
-    def load_local_code_functions(selfs, code_name=''):
-        code_functions = util.load_json_file('code_functions')
-        return code_functions
     
     def _update_metadata(self, content):
         file_list = content['files']
+        curr_path = os.path.dirname(os.path.realpath(__file__))
+        
         code_index = self._get_code_file_index(file_list)
-        file_list[code_index]['source'] = self.load_local_code()
+        file_list[code_index]['source'] = self.load_local_code(curr_path)
         
         manifest_index = self._get_manifest_file_index(file_list)
-        file_list[manifest_index] = self.load_local_manifest()
+        file_list[manifest_index] = self.load_local_manifest(curr_path)
         request = {'files' : file_list}
         return request
     
@@ -151,9 +156,11 @@ class AppScriptAPI:
             scriptId=script_id).execute()
         return content_obj
    
-    def _create_code_file(self, user_obj, code_file_name='Code'):
-        source = self.load_local_code()
-        code_functions = util.get_function_names_from_js_file(code_file_name) 
+    def _create_code_file(self, user_obj, file_dir, code_file_name='Code'):
+        source = self.load_local_code(file_dir)
+        
+        file_path = file_dir + "/" + code_file_name
+        code_functions = util.get_function_names_from_js_file(file_path) 
         
         d = datetime.datetime.utcnow()
         created_time = d.isoformat("T") + "Z"
@@ -182,10 +189,12 @@ class AppScriptAPI:
         '''
         
         file_list = project_metadata['files']
+        curr_path = os.path.dirname(os.path.realpath(__file__))
+
         manifest_index = self._get_manifest_file_index(file_list)
-        file_list[manifest_index] = self.load_local_manifest()
+        file_list[manifest_index] = self.load_local_manifest(curr_path)
         
-        code_file = self._create_code_file(user_obj)
+        code_file = self._create_code_file(user_obj, curr_path)
         file_list.append(code_file)
         request = {'files' : file_list}
         
@@ -287,5 +296,6 @@ class AppScriptAPI:
         }
         return self._service.projects().deployments().update(
             scriptId=script_id,
-            deploymentId=deploy_id).execute()
+            deploymentId=deploy_id,
+            body=request).execute()
         
