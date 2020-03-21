@@ -1,11 +1,10 @@
-from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
 class DriveAPI(object):
     '''
-    A list of APIs to access Google Drive
+    A list of APIs to access Google Drive. 
+    Refer to https://developers.google.com/drive/api/v3/reference/drives to get information on how this class is set up.
     '''
-
 
     def __init__(self, creds):
         self._service = build('drive', 'v3', credentials=creds)
@@ -19,7 +18,8 @@ class DriveAPI(object):
             folder_id: Google Drive folder id
         
         Returns:
-             A list of Google Doc ids
+             A list of Google Doc ids. 
+             Note that Google Drive will return all documents that were deleted from the given folder as well as the existing documents.
         ''' 
         results = self._service.files().list(
             q="'%s' in parents and mimeType='application/vnd.google-apps.document'" % (folder_id,),
@@ -27,7 +27,6 @@ class DriveAPI(object):
             pageSize=1000,
             fields='nextPageToken, files(id, name)').execute()
         docs_dict = results.get('files', [])
-        doc_list = [doc['id'] for doc in docs_dict]
         return docs_dict
     
     def get_subfolders_from_folder(self, folder_id):
@@ -45,12 +44,11 @@ class DriveAPI(object):
             pageSize=1000,
             fields='nextPageToken, files(id, name)').execute()
         folder_dict = results.get('files', [])
-        folder_list = [folder['id'] for folder in folder_dict]
         return folder_dict
 
     def get_recursive_folders(self, folder_id):
         '''
-        Iterate over all subfolders found in a Google Drive folder.
+        Get current folder and all subfolder ids found in a Google Drive folder.
         
         Args:
             folder_id: A Google Drive folder id
@@ -58,7 +56,7 @@ class DriveAPI(object):
         '''
         return self._recursive_folders(folder_id, [])
         
-    def _recursive_folders(self, fold_id, folder_list):
+    def _recursive_folders(self, folder_id, folder_list):
         results = self._service.files().list(
             q="'%s' in parents and mimeType='application/vnd.google-apps.folder'" % (folder_id,),
             spaces='drive',
@@ -76,7 +74,6 @@ class DriveAPI(object):
             folder_list.extend(res)
         return folder_list
            
-    
     def recursive_list_doc(self, folder_id):
         doc_list = self._recursive_doc(folder_id, [])
         return doc_list 
@@ -91,8 +88,8 @@ class DriveAPI(object):
         doc_ids = self.get_documents_from_folder(folder_id)
         doc_list.extend(doc_ids)  
         
-        for dir in folder_list:
-            doc_list = self._recursive_doc(dir['id'], doc_list)
+        for folder in folder_list:
+            doc_list = self._recursive_doc(folder['id'], doc_list)
         return doc_list
             
             
