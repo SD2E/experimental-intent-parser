@@ -1,5 +1,4 @@
 var serverURL = 'http://intentparser.sd2e.org'
-
 var versionString = '2.4'
 
 function onOpen() {
@@ -668,4 +667,3 @@ function createTableMeasurements() {
 
   sendPost('/createTableTemplate', data)
 }
-
