@@ -1,7 +1,7 @@
 from datacatalog.formats.common import map_experiment_reference
 from datetime import datetime
 from google_accessor import GoogleAccessor
-from intent_parser_exceptions import ConnectionException
+from intent_parser_exceptions import ConnectionException, IntentParserValidation
 from jsonschema import validate
 from jsonschema import ValidationError
 from lab_table import LabTable
@@ -31,7 +31,6 @@ import threading
 import time
 import traceback
 import urllib.request
-import errno
 
 class IntentParserServer:
 
@@ -574,11 +573,15 @@ class IntentParserServer:
         self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
     
     def _internal_validate_request(self, document_id):
-        request, errors = self.internal_generate_request(document_id)
         result = 'Passed!'
         msg = 'Validation Passed!&#13;&#10;'
             
         try:
+            request, errors = self.internal_generate_request(document_id)
+            if len(errors) > 0:
+                msg = '\n'.join(errors)
+                raise IntentParserValidation('Validation Failed!\n', msg)
+            
             schema = { "$ref" : "https://schema.catalog.sd2e.org/schemas/structured_request.json" }
             validate(request, schema)
             
@@ -586,16 +589,13 @@ class IntentParserServer:
             for reagent in reagent_with_no_uri:
                 msg += 'Warning: %s does not have a SynbioHub URI specified!&#13;&#10;' % reagent
             
-            if len(errors) > 0:
-                msg = 'The provided structured request is faulty. Invalid information will be ignored.\n'
-                msg += '\n'.join(errors)
-                result = 'Failed!'  
-            else:      
-                result = 'Passed!'
-            
         except ValidationError as err:
             msg = 'Validation Failed!\n'
             msg += 'Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;')
+            result = 'Failed!'
+        except IntentParserValidation as err:
+            msg = err.get_expression() 
+            msg += err.get_message()
             result = 'Failed!'
     
         return result, msg
@@ -722,14 +722,14 @@ class IntentParserServer:
         else:
             document_id = json_body['documentId']
             result, msg = self._internal_validate_request(document_id)
-            stuctured_request_link += 'Download Structured Request '
-            stuctured_request_link += '<a href=http://' + http_host + '/document_request?' + document_id + ' target=_blank>here</a> \n\n'
         
-        if result == 'Passed!':
-            height = 300
-            text_area_rows = 15
-        elif result == 'Failed!':
-            height = 600
+            if result == 'Passed!':
+                stuctured_request_link += 'Download Structured Request '
+                stuctured_request_link += '<a href=http://' + http_host + '/document_request?' + document_id + ' target=_blank>here</a> \n\n'
+                height = 300
+                text_area_rows = 15
+            elif result == 'Failed!':
+                height = 600
        
         if stuctured_request_link:
             msg = stuctured_request_link + "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, msg)
