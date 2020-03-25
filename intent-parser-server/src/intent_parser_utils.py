@@ -3,8 +3,16 @@ from collections import namedtuple as _namedtuple
 from difflib import Match
 from intent_parser_exceptions import DictionaryMaintainerException
 import Levenshtein
+import re
 
 IPSMatch = _namedtuple('Match', 'a b size content_word_length')
+
+def get_google_doc_id(doc_url):
+    url_pattern = 'https://docs.google.com/document/d/(?P<id>[^//]+)'
+    matched_pattern = re.match(url_pattern, doc_url)
+    doc_id = matched_pattern.group('id')
+    return doc_id
+        
 
 def get_reagent_with_no_uri(request_data):
         reagent_with_no_uri = set()
