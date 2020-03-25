@@ -14,7 +14,6 @@ If a quota limit is reached, then the script will store each document that needs
 """
 
 from app_script_api import AppScriptAPI
-from document_api import DocumentAPI
 from drive_api import DriveAPI
 from googleapiclient import errors
 from google_auth_oauthlib.flow import InstalledAppFlow
