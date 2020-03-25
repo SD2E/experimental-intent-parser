@@ -31,7 +31,6 @@ import threading
 import time
 import traceback
 import urllib.request
-import errno
 
 class IntentParserServer:
 
