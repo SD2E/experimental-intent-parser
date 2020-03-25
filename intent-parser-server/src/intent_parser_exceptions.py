@@ -8,7 +8,18 @@ class ConnectionException(Exception):
         self.code = code
         self.message = message
         self.content = content
- 
+
+class IntentParserValidation(Error):
+    def __init__(self, expression, message):
+        self.expression = expression
+        self.message = message    
+    
+    def get_message(self):
+        return self.message
+
+    def get_expression(self):
+        return self.expression
+    
 class TableException(Error):
     '''
     Class for catch exceptions related to parsing a table. 
