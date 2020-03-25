@@ -21,7 +21,6 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         curr_path = os.path.dirname(os.path.realpath(__file__))
         self.data_dir = os.path.join(curr_path, '../tests/data')
        
-        # If we don't have the necessary credentials, try reading them in from json
         with open(os.path.join(curr_path, 'sbh_creds.json'), 'r') as file:
             creds = json.load(file)
             self.sbh_username = creds['username']
@@ -31,13 +30,11 @@ class GenerateStruturedRequestTest(unittest.TestCase):
             self.authn = json.load(file)['authn']
             
         self.google_accessor = GoogleAccessor.create()
-        
         self.template_spreadsheet_id = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0'
         self.spreadsheet_id = self.google_accessor.copy_file(file_id = self.template_spreadsheet_id,
                                                      new_title='Intent Parser Server Test Sheet')
 
         self.doc = self.google_accessor.set_spreadsheet_id(self.spreadsheet_id)
-
         sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/' + \
             'intent_parser/intent_parser_collection/1'
 
