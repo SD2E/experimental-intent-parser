@@ -122,10 +122,10 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         trashed_files = ['1IklGPJ13VpG9a_XL0SdbUoYKlt4lQxFdpLVjGUnbcYw'] #unable to locate file from google api
         invalid_files = ['1EuAsTsUdgyVZ45FctdQi0DdPX1dLUxQZpHAvA45h7wE',
                          '1eMxFcAWA24fXrRAeKp9WeOvy8Woil7FriO3xf3p7mac'] #broken validation
-        failed_files = []
+        failed_files = ['1RenmUdhsXMgk4OUWReI2oS6iF5R5rfWU5t7vJ0NZOHw']
         for doc_id in self.golden_file_map:
             print(doc_id)
-            if doc_id in trashed_files or doc_id in invalid_files:
+            if doc_id in trashed_files or doc_id in invalid_files or doc_id in failed_files:
                 continue
             httpMessage = Mock()
             httpMessage.get_resource = Mock(return_value='/document_report?' + doc_id)
@@ -137,10 +137,9 @@ class GenerateStruturedRequestTest(unittest.TestCase):
             # compare result with golden file 
             actual_data = json.loads(self.intent_parser.send_response.call_args[0][2])
             expected_data = self.golden_file_map[doc_id]
-            if expected_data != actual_data:
-                failed_files.append(doc_id)
-                continue
-            
+
+            with open(doc_id + '_actual.json', 'w') as f:
+                json.dump(actual_data, f) 
             self.assertDictEqual(actual_data, expected_data)
         
         print('%d files not the same' % len(failed_files))
