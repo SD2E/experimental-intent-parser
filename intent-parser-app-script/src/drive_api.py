@@ -98,5 +98,10 @@ class DriveAPI(object):
             doc_list = self._recursive_doc(folder['id'], doc_list)
         return doc_list
             
+    def list_revision(self, file_id):  
+        results = self._service.revisions().list(
+            fileId=file_id
+            ).execute()
             
+        return results
             
