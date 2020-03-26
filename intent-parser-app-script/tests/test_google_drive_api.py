@@ -29,6 +29,11 @@ class DriveAPITest(unittest.TestCase):
     def test_recursive_list_folders(self):
         response = self.drive_api.get_recursive_folders(self.folder_id)
         self.assertEquals(1, len(response))
+        
+    def test_print_doc_revisions(self):
+        file_id = '1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA'
+        list_of_revisions = self.drive_api.list_revision(file_id)
+        print(list_of_revisions)
 
 if __name__ == "__main__":
     unittest.main()
