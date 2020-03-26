@@ -751,13 +751,17 @@ class IntentParserServer:
 
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
+        result, msg = self._internal_validate_request(document_id)
         request, errors = self.internal_generate_request(document_id)
+        if result == 'Failed!':
+            self.send_response(400, 'OK', json.dumps({'errors' : errors}), sm, 'application/json')
+        else:
+            self.send_response(200, 'OK', json.dumps(request), sm, 'application/json')
         
         end = time.time()
 
         self.logger.info('Generated request in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
-
-        self.send_response(200, 'OK', json.dumps(request), sm, 'application/json')
+        
 
 
     def process_generate_report(self, httpMessage, sm):
