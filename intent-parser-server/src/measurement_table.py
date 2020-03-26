@@ -1,6 +1,5 @@
 from intent_parser_exceptions import TableException
 import constants
-import intent_parser_utils
 import logging
 import table_utils
 
@@ -54,7 +53,7 @@ class MeasurementTable:
                         raise TableException(cell_txt, 'is not a numerical value')
                     measurement['replicates'] = int(cell_txt)
                 except TableException as err:
-                    message =  ' '.join(['Under replicate: ', err.get_expression(), err.get_message(), 'for', cell_txt]) 
+                    message =  ' '.join(['Under replicate: ', err.get_expression(), err.get_message()]) 
                     self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
             elif header == constants.COL_HEADER_STRAIN:
@@ -65,14 +64,14 @@ class MeasurementTable:
                 try:
                     measurement['temperatures'] = self._parse_and_append_value_unit(cell_txt, 'temperature', self._temperature_units)
                 except TableException as err:
-                    message = ' '.join(['Under temperature: ', err.get_expression(), err.get_message(), 'for', cell_txt]) 
+                    message = ' '.join(['Under temperature: ', err.get_expression(), err.get_message()]) 
                     self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
             elif header == constants.COL_HEADER_TIMEPOINT:
                 try:
                     measurement['timepoints'] = self._parse_and_append_value_unit(cell_txt, 'timepoints', self._timepoint_units) 
                 except TableException as err:
-                    message = ' '.join(['Under timepoint: ', err.get_expression(), err.get_message(), 'for', cell_txt]) 
+                    message = ' '.join(['Under timepoint: ', err.get_expression(), err.get_message()]) 
                     self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
             else:
@@ -83,7 +82,7 @@ class MeasurementTable:
                     content.append(reagents)
                 except TableException as err:
                     message = ' '.join(['Under', header, ':', err.get_expression(), err.get_message()]) 
-                    self._logger.info('Warning ' + message)
+                    self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
             
         if content:
@@ -127,7 +126,7 @@ class MeasurementTable:
                         numerical_dict = {'name' : label_uri_dict, 'value' : value, 'unit' : unit}
                     reagents_media.append(numerical_dict)
             except TableException as err:
-                message = ' '.join([err.get_expression(), err.get_message(), 'for', cell_txt]) 
+                message = ' '.join([err.get_expression(), err.get_message()]) 
                 self._logger.info('Warning ' + message)
                 self._validation_errors.append(message)
         elif table_utils.is_number(cell_txt):
