@@ -1,6 +1,10 @@
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
+import io 
+import requests
+from flask.globals import request
 
-class DriveAPI(object):
+class GoogleDriveAccessor(object):
     """
     A list of APIs to access Google Drive. 
     Refer to https://developers.google.com/drive/api/v3/reference/drives to get information on how this class is set up.
@@ -104,4 +108,41 @@ class DriveAPI(object):
             ).execute()
             
         return results
+    
+    def download_file(self, file_id, file_name='temp'):
+        request = self._service.files().export_media(fileId=file_id,
+                                             mimeType='application/pdf')
+#         fh = io.FileIO(file_name, 'wb')
+        fh = io.BytesIO()
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
+            print("Download %d%%." % int(status.progress() * 100))
+            
+        return fh.getvalue()
+    
+    def download_file_with_revision(self, file_name, file_id, revision_id, format_type):
+        """
+        Download a Google Doc base on a Doc's id and its revision.
+        
+        Args:
+            fild_id: id of the Google Doc
+            revision_id: revision id of the Google Doc
+            format_type: format to download the Google Doc in. 
+            Visit https://developers.google.com/drive/api/v3/ref-export-formats to get a list file formats that Google can export to
+            
+        
+        """
+        url = 'https://docs.google.com/feeds/download/documents/export/Export?id=%s&revision=%s&exportFormat=%s' % (file_id, revision_id, format_type)
+        response = requests.get(url)
+        open(file_name + format_type, 'wb').write(response.content)
+            
+        print(url)
+    
+    def export_file(self, file_id):
+        request = self._service.files().export(fileId=file_id,
+            mimeType='    text/html')
+        
+        return request
             
