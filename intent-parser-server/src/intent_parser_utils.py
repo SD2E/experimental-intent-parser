@@ -6,6 +6,21 @@ import Levenshtein
 
 IPSMatch = _namedtuple('Match', 'a b size content_word_length')
 
+def get_element_type(element, element_type):
+    elements = []
+    if type(element) is dict:
+        for key in element:
+            if key == element_type:
+                elements.append(element[key])
+
+            elements += get_element_type(element[key], element_type)
+
+    elif type(element) is list:
+        for entry in element:
+            elements += get_element_type(entry, element_type)
+
+    return elements
+
 def get_reagent_with_no_uri(request_data):
         reagent_with_no_uri = set()
         if 'runs' in request_data:
