@@ -56,7 +56,8 @@ class CatalogAccessor(object):
             self.lab_ids = []
             for d in data['enum']:
                 self.lab_ids.append(d)
-                
+            self.lab_ids.sorted(self.lab_ids)  
+             
         return self.lab_ids
     
     def get_measurement_types(self):
