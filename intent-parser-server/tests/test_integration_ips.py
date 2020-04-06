@@ -99,7 +99,8 @@ class IntegrationIpsTest(unittest.TestCase):
                                                 item_map_cache=False,
                                                 bind_ip='localhost',
                                                 bind_port=8081)
-        self.intent_parser.serverRunLoop(background=True)
+        self.intent_parser.initialize_server()
+        self.intent_parser.start(background=True) 
         
         self.maxDiff = None
 
