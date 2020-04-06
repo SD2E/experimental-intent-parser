@@ -1,54 +1,129 @@
+from catalog_accessor import CatalogAccessor
 from datacatalog.formats.common import map_experiment_reference
-from google_accessor import GoogleAccessor
-from intent_parser_exceptions import ConnectionException
 from jsonschema import validate
 from jsonschema import ValidationError
+from lab_experiment import LabExperiment
 from lab_table import LabTable
 from measurement_table import MeasurementTable
 from parameter_table import ParameterTable
+from sbol_dictionary_accessor import SBOLDictionaryAccessor
+import constants
 import intent_parser_utils
+import logging
+import numpy as np
 import table_utils
-import traceback
 
 class IntentParser(object):
     '''
-    Processes information from a Google Doc to:
+    Processes information from a lab experiment to:
         - link information to/from a SynBioHub data repository
         - generate and validate a structure request
     '''
+    
+    # Used for inserting experiment result data
+    # Since the experiment result data is uploaded with the requesting document id
+    # and the test documents are copies of those, the ids won't match
+    # In order to test this, if we receive a document Id in the key of this map, we will instead query for the value
+    _test_doc_id_map = {'1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoT' : '10HqgtfVCtYhk3kxIvQcwljIUonSNlSiLBC8UFmlwm1s',
+                       '1RenmUdhsXMgk4OUWReI2oS6iF5R5rfWU5t7vJ0NZOHw': '1g0SjxU2Y5aOhUbM63r8lqV50vnwzFDpJg4eLXNllut4',
+                       '1_I4pxB26zOLb209Xlv8QDJuxiPWGDafrejRDKvZtEl8': '1K5IzBAIkXqJ7iPF4OZYJR7xgSts1PUtWWM2F0DKhct0',
+                       '1zf9l0K4rj7I08ZRpxV2ZY54RMMQc15Rlg7ULviJ7SBQ': '1uXqsmRLeVYkYJHqgdaecmN_sQZ2Tj4Ck1SZKcp55yEQ' }
+
+
     _request = {} 
     _validation_errors = []
     _validation_warnings = []
 
-    def __init__(self, document_id, spreadsheet_id, datacatalog_config):
+    logger = logging.getLogger('intent_parser')
+    
+    def __init__(self, document_id, spreadsheet_id, datacatalog_config, sbh_instance):
         self._document_id = document_id
-        self.google_accessor = GoogleAccessor.create()
-        self.google_accessor.set_spreadsheet_id(spreadsheet_id)
+        self.lab_experiment = LabExperiment(spreadsheet_id)
+        self.catalog_accessor = CatalogAccessor()
         self.datacatalog_config = datacatalog_config
-
+        self.sbh = sbh_instance
+        self.sbol_dictionary = SBOLDictionaryAccessor(spreadsheet_id, sbh_instance)
        
     def process(self):
-        self.internal_generate_request()
+        self._generate_request()
         self._validate_schema()
+    
+    def calculate_samples(self):
+        self.lab_experiment.load_from_google_doc(self._document_id)
+        doc_tables = self.lab_experiment.tables()
         
+        table_ids = []
+        sample_indices = []
+        samples_values = []
+        for tIdx in range(len(doc_tables)):
+            table = doc_tables[tIdx]
+
+            is_new_measurement_table = table_utils.detect_new_measurement_table(table)
+            if not is_new_measurement_table:
+                continue
+
+            rows = table['tableRows']
+            headerRow = rows[0]
+            samples_col = -1
+            for cell_idx in range(len(headerRow['tableCells'])):
+                cellTxt = intent_parser_utils.get_paragraph_text(headerRow['tableCells'][cell_idx]['content'][0]['paragraph']).strip()
+                if cellTxt == constants.COL_HEADER_SAMPLES:
+                    samples_col = cell_idx
+
+            samples = []
+            numCols = len(headerRow['tableCells'])
+
+            # Scrape data for each row
+            for row in rows[1:]:
+                comp_count = []
+                is_type_col = False
+                colIdx = 0
+                # Process reagents
+                while colIdx < numCols and not is_type_col:
+                    paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
+                    headerTxt =  intent_parser_utils.get_paragraph_text(paragraph_element).strip()
+                    if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE:
+                        is_type_col = True
+                    else:
+                        cellContent = row['tableCells'][colIdx]['content']
+                        cellTxt = ' '.join([intent_parser_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+                        comp_count.append(len(cellTxt.split(sep=',')))
+                    colIdx += 1
+
+                # Process the rest of the columns
+                while colIdx < numCols:
+                    paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
+                    headerTxt =  intent_parser_utils.get_paragraph_text(paragraph_element).strip()
+                    # Certain columns don't contain info about samples
+                    if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == constants.COL_HEADER_NOTES or headerTxt == constants.COL_HEADER_SAMPLES:
+                        colIdx += 1
+                        continue
+
+                    cellContent = row['tableCells'][colIdx]['content']
+                    cellTxt = ' '.join([intent_parser_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+
+                    if headerTxt == constants.COL_HEADER_REPLICATE:
+                        comp_count.append(int(cellTxt))
+                    else:
+                        comp_count.append(len(cellTxt.split(sep=',')))
+                    colIdx += 1
+                samples.append(int(np.prod(comp_count)))
+
+            table_ids.append(tIdx)
+            sample_indices.append(samples_col)
+            samples_values.append(samples)
+
+        samples = {}
+        samples['action'] = 'calculateSamples'
+        samples['tableIds'] = table_ids
+        samples['sampleIndices'] = sample_indices
+        samples['sampleValues'] = samples_values
+        return samples
+
+     
     def generate_report(self):
-        try:
-            doc = self.google_accessor.get_document(document_id=self._document_id)
-        except Exception as ex:
-            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
-            raise ConnectionException('404', 'Not Found',
-                                      'Failed to access document ' +
-                                      self._document_id)
-
-        text_runs = intent_parser_utils.get_element_type(doc, 'textRun')
-        text_runs = list(filter(lambda x: 'textStyle' in x,
-                                text_runs))
-        text_runs = list(filter(lambda x: 'link' in x['textStyle'],
-                                text_runs))
-        links_info = list(map(lambda x: (x['content'],
-                                         x['textStyle']['link']),
-                              text_runs))
-
+        self.lab_experiment.load_from_google_doc(self._document_id)
+        links_info = self.lab_experiment.links_info() 
         mapped_names = []
         term_map = {}
         for link_info in links_info:
@@ -63,7 +138,7 @@ class IntentParser(object):
                         continue
 
                 url_host = url.split('/')[2]
-                if url_host not in self.sbh_link_hosts:
+                if url_host not in self.sbh.get_sbh_link_host():
                     continue
 
                 term_map[term] = url
@@ -76,13 +151,20 @@ class IntentParser(object):
 
         report = {}
         report['challenge_problem_id'] = 'undefined'
-        report['experiment_reference_url'] = \
-            'https://docs.google.com/document/d/' + self._document_id
+        report['experiment_reference_url'] = 'https://docs.google.com/document/d/' + self._document_id
         report['labs'] = []
-
         report['mapped_names'] = mapped_names
         return report
-        
+    
+    def generate_displayId_from_selection(self, start_paragraph, start_offset, end_offset):
+        self.lab_experiment.load_from_google_doc(self._document_id)
+        paragraphs = self.lab_experiment.paragraphs()
+        paragraph_text = intent_parser_utils.get_paragraph_text(paragraphs[start_paragraph])
+        selection = paragraph_text[start_offset:end_offset + 1]
+        # Remove leading/trailing space
+        selection = selection.strip()
+        return selection, self.sbh.sanitize_name_to_display_id(selection)
+      
     def get_structured_request(self):
         return self._request
     
@@ -92,16 +174,81 @@ class IntentParser(object):
     def get_validation_warnings(self):
         return self._validation_warnings
     
-    def internal_generate_request(self):
+    def update_experimental_results(self):
+        self.lab_experiment.load_from_google_doc(self._document_id) 
+        
+        # For test documents, replace doc id with corresponding production doc
+        if self._document_id in self._test_doc_id_map:
+            source_doc_uri = 'https://docs.google.com/document/d/' + self._test_doc_id_map[self._document_id]
+        else:
+            source_doc_uri = 'https://docs.google.com/document/d/' + self._document_id
+
+        # Search SBH to get data
+        target_collection = '%s/user/%s/experiment_test/experiment_test_collection/1' % (self.sbh.get_sbh_url(), self.sbh.get_sbh_collection_user())
+        exp_collection = self.sbh.query_experiments(self.sbh, target_collection)
+        data = {}
+        for exp in exp_collection:
+            exp_uri = exp['uri']
+            timestamp = exp['timestamp']
+            title = exp['title']
+            request_doc = self.sbh.query_experiment_request(exp_uri)
+            if source_doc_uri == request_doc:
+                source_uri = self.sbh.query_experiment_source(exp_uri)  # Get the reference to the source document with lab data
+                data[exp_uri] = {'timestamp' : timestamp, 'agave' : source_uri[0], 'title' : title}
+
+        exp_data = []
+        exp_links = []
+        for exp in data:
+            exp_data.append((data[exp]['title'], ' updated on ', data[exp]['timestamp'], ', ', 'Agave link', '\n'))
+            exp_links.append((exp, '', '', '',  data[exp]['agave'], ''))
+
+        if exp_data == '':
+            exp_data = ['No currently run experiments.']
+
+        paragraphs = self.lab_experiment.paragraphs()
+
+        headerIdx = -1
+        contentIdx = -1
+        for pIdx in range(len(paragraphs)):
+            para_text = intent_parser_utils.get_paragraph_text(paragraphs[pIdx])
+            if para_text == "Experiment Results\n":
+                headerIdx = pIdx
+            elif headerIdx >= 0 and not para_text == '\n':
+                contentIdx = pIdx
+                break
+
+        if headerIdx >= 0 and contentIdx == -1:
+            self.logger.error('ERROR: Couldn\'t find a content paragraph index for experiment results!')
+
+        experimental_result = {}
+        experimental_result['action'] = 'updateExperimentResults'
+        experimental_result['headerIdx'] = headerIdx
+        experimental_result['contentIdx'] = contentIdx
+        experimental_result['expData'] = exp_data
+        experimental_result['expLinks'] = exp_links
+        return experimental_result
+   
+    def get_challenge_problem_id(self, text):
+        """
+        Find the closest matching measurement type to the given type, and return that as a string
+        """
+        # challenge problem ids have underscores, so replace spaces with underscores to make the inputs match better
+        text = text.replace(' ', '_')
+        best_match_type = None
+        best_match_size = 0
+        for cid in self.catalog_accessor.get_challenge_problem_ids():
+            matches = intent_parser_utils.find_common_substrings(text.lower(), cid.lower(), 1, 0)
+            for m in matches:
+                if m.size > best_match_size and m.size > int(0.25 * len(cid)):
+                    best_match_type = cid
+                    best_match_size = m.size
+        return best_match_type
+     
+    def _generate_request(self):
         """
         Generates a structured request for a given doc id
         """
-
-        try:
-            doc = self.google_accessor.get_document(document_id=self._document_id)
-        except Exception as ex:
-            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
-            raise ConnectionException('404', 'Not Found','Failed to access document ' + self._document_id)
+        self.lab_experiment.load_from_google_doc(self._document_id)
 
         output_doc = { "experiment_reference_url" : "https://docs.google.com/document/d/%s" % self._document_id }
         if self.datacatalog_config['mongodb']['authn']:
@@ -111,7 +258,7 @@ class IntentParser(object):
                 pass # We don't need to do anything, failure is handled later, but we don't want it to crash
 
         lab = 'Unknown'
-
+        title = self.lab_experiment.title()
         experiment_id = 'experiment.tacc.TBD'
 
         if 'challenge_problem' in output_doc and 'experiment_reference' in output_doc and 'experiment_reference_url' in output_doc:
@@ -120,15 +267,15 @@ class IntentParser(object):
             experiment_reference_url = output_doc['experiment_reference_url']
         else:
             self.logger.info('WARNING: Failed to map experiment reference for doc id %s!' % self._document_id)
-            titleToks = doc['title'].split(sep='-')
+            titleToks = title.split(sep='-')
             if len(titleToks) > 1:
-                experiment_reference = doc['title'].split(sep='-')[1].strip()
+                experiment_reference = title.split(sep='-')[1].strip()
             else:
-                experiment_reference = doc['title']
+                experiment_reference = title
             experiment_reference_url = 'https://docs.google.com/document/d/' + self._document_id
             # This will return a parent list, which should have one or more Ids of parent directories
             # We want to navigate those and see if they are a close match to a challenge problem ID
-            parent_list = self.google_accessor.get_document_parents(document_id=self._document_id)
+            parent_list = self.lab_experiment.parents() #TODO
             cp_id = 'Unknown'
             if not parent_list['kind'] == 'drive#parentList':
                 self.logger.info('ERROR: expected a drive#parent_list, received a %s' % parent_list['kind'])
@@ -136,7 +283,9 @@ class IntentParser(object):
                 for parent_ref in parent_list['items']:
                     if not parent_ref['kind'] == 'drive#parentReference':
                         continue
-                    parent_meta = self.google_accessor.get_document_metadata(document_id=parent_ref['id'])
+                    parent_experiment = LabExperiment()
+                    parent_experiment.load_metadata_from_google_doc(parent_ref['id'])
+                    parent_meta = parent_experiment.metadata()
                     new_cp_id = self.get_challenge_problem_id(parent_meta['title'])
                     if new_cp_id is not None:
                         cp_id = new_cp_id
@@ -144,7 +293,7 @@ class IntentParser(object):
         measurements = []
         parameter = []
 
-        doc_tables = intent_parser_utils.get_element_type(doc, 'table')
+        doc_tables = self.lab_experiment.tables() 
         measurement_table_new_idx = -1
         lab_table_idx = -1
         parameter_table_idx = -1
@@ -165,7 +314,11 @@ class IntentParser(object):
 
         if measurement_table_new_idx >= 0:
             table = doc_tables[measurement_table_new_idx]
-            meas_table = MeasurementTable(self.temp_units, self.time_units, self.fluid_units, self.measurement_types, self.file_types)
+            meas_table = MeasurementTable(self.catalog_accessor.get_temperature_units(), 
+                                          self.catalog_accessor.get_time_units(), 
+                                          self.catalog_accessor.get_fluid_units(), 
+                                          self.catalog_accessor.get_measurement_types(), 
+                                          self.catalog_accessor.get_file_types())
             measurements = meas_table.parse_table(table)
             self._validation_errors.extend(meas_table.get_validation_errors())
 
@@ -177,11 +330,11 @@ class IntentParser(object):
         
         if parameter_table_idx >=0:
             table = doc_tables[parameter_table_idx]
-            parameter_table = ParameterTable(self.strateos_mapping)
+            parameter_table = ParameterTable(self.sbol_dictionary.get_strateos_mappings())
             parameter = parameter_table.parse_table(table)
             self._validation_errors.extend(parameter_table.get_validation_errors())
             
-        self._request['name'] = doc['title']
+        self._request['name'] = title
         self._request['experiment_id'] = experiment_id
         self._request['challenge_problem'] = cp_id
         self._request['experiment_reference'] = experiment_reference

@@ -1,14 +1,17 @@
 from datacatalog.formats.common import map_experiment_reference
 from datetime import datetime
 from google_accessor import GoogleAccessor
-from intent_parser import IntentParser
 from intent_parser_exceptions import ConnectionException
+from intent_parser_sbh import IntentParserSBH
+from jsonschema import validate
+from jsonschema import ValidationError
 from lab_table import LabTable
 from measurement_table import MeasurementTable
 from multiprocessing import Pool
 from operator import itemgetter
 from parameter_table import ParameterTable
 from sbh_accessor import SBHAccessor
+from sbol_dictionary_accessor import SBOLDictionaryAccessor
 from socket_manager import SocketManager
 from spellchecker import SpellChecker
 import constants
@@ -16,7 +19,6 @@ import getopt
 import http_message;
 import inspect
 import intent_parser_utils
-import intent_parser_view 
 import json
 import logging.config
 import numpy as np
@@ -31,9 +33,6 @@ import threading
 import time
 import traceback
 import urllib.request
-import intent_parser
-import intent_parser_exceptions
-from docutils.nodes import document
 
 class IntentParserServer:
 
@@ -266,7 +265,8 @@ class IntentParserServer:
         self.item_map_lock = threading.Lock()
         self.item_map_lock.acquire()
         self.item_map = self.generate_item_map(use_cache=item_map_cache)
-        self.strateos_mapping = intent_parser_utils.get_strateos_mapping(self.fetch_spreadsheet_data())
+        sbol_dictionary = SBOLDictionaryAccessor(self.spreadsheet_id, self.sbh)
+        self.strateos_mapping = sbol_dictionary.get_strateos_mappings()
         self.item_map_lock.release()
         
         # Inverse map of typeTabs
@@ -379,22 +379,7 @@ class IntentParserServer:
             response.set_header('content-type', content_type)
             response.set_body(content.encode('utf-8'))
             response.send(sm)
-    
-    def handleGET(self, httpMessage, sm):
-        resource = httpMessage.get_path()
-        start = time.time()
-        if resource == "/status":
-            self.send_response(200, 'OK', 'Intent Parser Server is Up and Running\n', sm)
-        elif resource == '/document_report':
-            self.process_document_report(httpMessage, sm)
-        elif resource == '/document_request':
-            self.process_document_request(httpMessage, sm)
-        else:
-            self.logger.warning('Did not find ' + resource)
-            raise ConnectionException(404, 'Not Found', 'Resource Not Found')
-        end = time.time()
-        self.logger.info('Generated request in %0.2fms, %s, %s' %((end - start) * 1000, self.document_id, time.time()))
-     
+
     def handlePOST(self, httpMessage, sm):
         resource = httpMessage.get_resource()
 
@@ -421,7 +406,7 @@ class IntentParserServer:
         elif resource == '/validateStructuredRequest':
             self.process_validate_structured_request(httpMessage, sm)
         elif resource == '/generateStructuredRequest':
-            self.process_generate_structured_request(httpMessage, sm)
+            self.process_validate_and_generate_structured_request(httpMessage, sm)
         elif resource == '/createParameterTable':
             self.process_submit_form(httpMessage, sm)
         else:
@@ -484,7 +469,7 @@ class IntentParserServer:
             self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
             raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
 
-        doc_tables = intent_parser_utils.get_element_type(doc, 'table')
+        doc_tables = self.get_element_type(doc, 'table')
         table_ids = []
         sample_indices = []
         samples_values = []
@@ -500,7 +485,7 @@ class IntentParserServer:
             headerRow = rows[0]
             samples_col = -1
             for cell_idx in range(len(headerRow['tableCells'])):
-                cellTxt = table_utils.get_paragraph_text(headerRow['tableCells'][cell_idx]['content'][0]['paragraph']).strip()
+                cellTxt = intent_parser_utils.get_paragraph_text(headerRow['tableCells'][cell_idx]['content'][0]['paragraph']).strip()
                 if cellTxt == constants.COL_HEADER_SAMPLES:
                     samples_col = cell_idx
 
@@ -515,26 +500,26 @@ class IntentParserServer:
                 # Process reagents
                 while colIdx < numCols and not is_type_col:
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
-                    headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
+                    headerTxt =  intent_parser_utils.get_paragraph_text(paragraph_element).strip()
                     if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE:
                         is_type_col = True
                     else:
                         cellContent = row['tableCells'][colIdx]['content']
-                        cellTxt = ' '.join([table_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+                        cellTxt = ' '.join([intent_parser_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
                         comp_count.append(len(cellTxt.split(sep=',')))
                     colIdx += 1
 
                 # Process the rest of the columns
                 while colIdx < numCols:
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
-                    headerTxt =  table_utils.get_paragraph_text(paragraph_element).strip()
+                    headerTxt =  intent_parser_utils.get_paragraph_text(paragraph_element).strip()
                     # Certain columns don't contain info about samples
                     if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == constants.COL_HEADER_NOTES or headerTxt == constants.COL_HEADER_SAMPLES:
                         colIdx += 1
                         continue
 
                     cellContent = row['tableCells'][colIdx]['content']
-                    cellTxt = ' '.join([table_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
+                    cellTxt = ' '.join([intent_parser_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
 
                     if headerTxt == constants.COL_HEADER_REPLICATE:
                         comp_count.append(int(cellTxt))
@@ -566,82 +551,285 @@ class IntentParserServer:
         Generate a structured request from a given document, then run it against the validation.
         '''
         json_body = self.get_json_body(httpMessage)
-        validation_errors = []
-        validation_warnings = []
+        result = 'Passed!'
+        msg = ''
         if json_body is None:
-            validation_errors.append('Unable to get information from Google document.')
+            result = 'Failed!'
+            msg = 'Unable to get information from Google document.'
         else:
             document_id = json_body['documentId']
-            intent_parser = IntentParser(document_id, self.spreadsheet_id, self.datacatalog_config)
-            intent_parser.process()
-            validation_warnings.extend(intent_parser.get_validation_warnings())
-            validation_errors.extend(intent_parser.get_validation_errors())
+            result, msg = self._internal_validate_request(document_id)
         
-        if len(validation_errors) == 0:
-            dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings)
-        else:
-            dialog_action = intent_parser_view.invalid_request_model_dialog(validation_warnings, validation_errors)
+        text_area_rows = 33
+        height = 600
+        if result == 'Passed!':
+            height = 300
+            text_area_rows = 15
+        elif result == 'Failed!':
+            height = 600
             
+        msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, msg)
+        buttons = [('Ok', 'process_nop')]
+        dialog_action = self.simple_modal_dialog(msg, buttons, 'Structured request validation: %s' % result, 500, height)
         actionList = [dialog_action]
         actions = {'actions': actionList}
         self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
     
-    def process_generate_structured_request(self, httpMessage, sm):
+    def _internal_validate_request(self, document_id):
+        request, errors = self.internal_generate_request(document_id)
+        result = 'Passed!'
+        msg = 'Validation Passed!&#13;&#10;'
+            
+        try:
+            schema = { "$ref" : "https://schema.catalog.sd2e.org/schemas/structured_request.json" }
+            validate(request, schema)
+            
+            reagent_with_no_uri = intent_parser_utils.get_reagent_with_no_uri(request)
+            for reagent in reagent_with_no_uri:
+                msg += 'Warning: %s does not have a SynbioHub URI specified!&#13;&#10;' % reagent
+            
+            if len(errors) > 0:
+                msg = 'The provided structured request is faulty. Invalid information will be ignored.\n'
+                msg += '\n'.join(errors)
+                result = 'Failed!'  
+            else:      
+                result = 'Passed!'
+            
+        except ValidationError as err:
+            msg = 'Validation Failed!\n'
+            msg += 'Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;')
+            result = 'Failed!'
+    
+        return result, msg
+    
+    def internal_generate_request(self, document_id):
+        """
+        Generates a structured request for a given doc id
+        """
+
+        try:
+            doc = self.google_accessor.get_document(document_id=document_id)
+        except Exception as ex:
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
+
+        output_doc = { "experiment_reference_url" : "https://docs.google.com/document/d/%s" % document_id }
+        if self.datacatalog_config['mongodb']['authn']:
+            try:
+                map_experiment_reference(self.datacatalog_config, output_doc)
+            except:
+                pass # We don't need to do anything, failure is handled later, but we don't want it to crash
+
+        lab = 'Unknown'
+
+        experiment_id = 'experiment.tacc.TBD'
+
+        if 'challenge_problem' in output_doc and 'experiment_reference' in output_doc and 'experiment_reference_url' in output_doc:
+            cp_id = output_doc['challenge_problem']
+            experiment_reference = output_doc['experiment_reference']
+            experiment_reference_url = output_doc['experiment_reference_url']
+        else:
+            self.logger.info('WARNING: Failed to map experiment reference for doc id %s!' % document_id)
+            titleToks = doc['title'].split(sep='-')
+            if len(titleToks) > 1:
+                experiment_reference = doc['title'].split(sep='-')[1].strip()
+            else:
+                experiment_reference = doc['title']
+            experiment_reference_url = 'https://docs.google.com/document/d/' + document_id
+            # This will return a parent list, which should have one or more Ids of parent directories
+            # We want to navigate those and see if they are a close match to a challenge problem ID
+            parent_list = self.google_accessor.get_document_parents(document_id=document_id)
+            cp_id = 'Unknown'
+            if not parent_list['kind'] == 'drive#parentList':
+                self.logger.info('ERROR: expected a drive#parent_list, received a %s' % parent_list['kind'])
+            else:
+                for parent_ref in parent_list['items']:
+                    if not parent_ref['kind'] == 'drive#parentReference':
+                        continue
+                    parent_meta = self.google_accessor.get_document_metadata(document_id=parent_ref['id'])
+                    new_cp_id = self.get_challenge_problem_id(parent_meta['title'])
+                    if new_cp_id is not None:
+                        cp_id = new_cp_id
+
+        measurements = []
+        parameter = []
+        errors = []
+        doc_tables = self.get_element_type(doc, 'table')
+        measurement_table_new_idx = -1
+        lab_table_idx = -1
+        parameter_table_idx = -1
+        for tIdx in range(len(doc_tables)):
+            table = doc_tables[tIdx]
+            
+            is_new_measurement_table = table_utils.detect_new_measurement_table(table)
+            if is_new_measurement_table:
+                measurement_table_new_idx = tIdx
+
+            is_lab_table = table_utils.detect_lab_table(table)
+            if is_lab_table:
+                lab_table_idx = tIdx
+                
+            is_parameter_table = table_utils.detect_parameter_table(table)
+            if is_parameter_table:
+                parameter_table_idx = tIdx
+
+        if measurement_table_new_idx >= 0:
+            table = doc_tables[measurement_table_new_idx]
+            meas_table = MeasurementTable(self.temp_units, self.time_units, self.fluid_units, self.measurement_types, self.file_types)
+            measurements = meas_table.parse_table(table)
+            errors = errors + meas_table.get_validation_errors()
+
+        if lab_table_idx >= 0:
+            table = doc_tables[lab_table_idx]
+
+            lab_table = LabTable()
+            lab = lab_table.parse_table(table)
+        
+        if parameter_table_idx >=0:
+            table = doc_tables[parameter_table_idx]
+            parameter_table = ParameterTable(self.strateos_mapping)
+            parameter = parameter_table.parse_table(table)
+            errors = errors + parameter_table.get_validation_errors()
+            
+        request = {}
+        request['name'] = doc['title']
+        request['experiment_id'] = experiment_id
+        request['challenge_problem'] = cp_id
+        request['experiment_reference'] = experiment_reference
+        request['experiment_reference_url'] = experiment_reference_url
+        request['experiment_version'] = 1
+        request['lab'] = lab
+        request['runs'] = [{ 'measurements' : measurements}]
+            
+        if parameter:
+            request['parameters'] = [parameter] 
+
+        return request, errors
+    
+             
+    
+    def process_validate_and_generate_structured_request(self, httpMessage, sm):
         '''
         Validates then generates an HTML link to retrieve a structured request.
         '''
+        stuctured_request_link = ''
+        result = 'Passed!'
+        text_area_rows = 33
+        height = 600
         json_body = self.get_json_body(httpMessage)
         http_host = httpMessage.get_header('Host')
-        validation_errors = []
-        validation_warnings = []
         if json_body is None or http_host is None:
-            validation_errors.append('Unable to get information from Google document.')
+            result = 'Failed!'
+            msg = 'Unable to get information from Google document.'
         else:
             document_id = json_body['documentId']
-            intent_parser =  IntentParser(document_id, self.spreadsheet_id, self.datacatalog_config)
-            intent_parser.process()
-            validation_warnings.extend(intent_parser.get_validation_warnings())
-            validation_errors.extend(intent_parser.get_validation_errors())
+            result, msg = self._internal_validate_request(document_id)
+            stuctured_request_link += 'Download Structured Request '
+            stuctured_request_link += '<a href=http://' + http_host + '/document_request?' + document_id + ' target=_blank>here</a> \n\n'
+        
+        if result == 'Passed!':
+            height = 300
+            text_area_rows = 15
+        elif result == 'Failed!':
+            height = 600
        
-        if len(validation_errors) == 0:
-            dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings, intent_parser_view.get_download_link(http_host, document_id))
+        if stuctured_request_link:
+            msg = stuctured_request_link + "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, msg)
         else:
-            dialog_action = intent_parser_view.invalid_request_model_dialog(validation_warnings, validation_errors)
+            msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, msg)
+            
+        buttons = [('Ok', 'process_nop')]
+        dialog_action = self.simple_modal_dialog(msg, buttons, 'Structured request validation: %s' % result, 500, height)
         actionList = [dialog_action]
         actions = {'actions': actionList}
         self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
         
     
-    def process_document_request(self, httpMessage, sm):
+    def process_generate_request(self, httpMessage, sm):
         """
         Handles a request to generate a structured request json
         """
+        start = time.time()
+
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
-        
-        start = time.time()
-        intent_parser = IntentParser(document_id, self.spreadsheet_id, self.datacatalog_config)
-        intent_parser.process()
-        
-        if len(intent_parser.get_validation_errors()) > 0:
-            self.send_response(400, 'OK', json.dumps({'errors' : intent_parser.get_validation_errors()}), sm, 'application/json')
-        else:
-            self.send_response(200, 'OK', json.dumps(intent_parser.get_structured_request()), sm, 'application/json')
+        request, errors = self.internal_generate_request(document_id)
         
         end = time.time()
 
         self.logger.info('Generated request in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
 
-    def process_document_report(self, httpMessage, sm):
+        self.send_response(200, 'OK', json.dumps(request), sm, 'application/json')
+
+
+    def process_generate_report(self, httpMessage, sm):
         """
         Handles a request to generate a report
         """
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
+        #client_state = {}
 
         start = time.time()
-        ip = IntentParser(document_id, self.spreadsheet_id, self.datacatalog_config)
-        report = ip.generate_report()
+
+        try:
+            doc = self.google_accessor.get_document(
+                document_id=document_id
+                )
+        except Exception as ex:
+            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+            raise ConnectionException('404', 'Not Found',
+                                      'Failed to access document ' +
+                                      document_id)
+
+        text_runs = self.get_element_type(doc, 'textRun')
+        text_runs = list(filter(lambda x: 'textStyle' in x,
+                                text_runs))
+        text_runs = list(filter(lambda x: 'link' in x['textStyle'],
+                                text_runs))
+        links_info = list(map(lambda x: (x['content'],
+                                         x['textStyle']['link']),
+                              text_runs))
+
+        mapped_names = []
+        term_map = {}
+        for link_info in links_info:
+            try:
+                term = link_info[0].strip()
+                url = link_info[1]['url']
+                if len(term) == 0:
+                    continue
+
+                if term in term_map:
+                    if term_map[term] == url:
+                        continue
+
+                url_host = url.split('/')[2]
+                if url_host not in self.sbh_link_hosts:
+                    continue
+
+                term_map[term] = url
+                mapped_name = {}
+                mapped_name['label'] = term
+                mapped_name['sbh_url'] = url
+                mapped_names.append(mapped_name)
+            except:
+                continue
+
+        #client_state = {}
+        #client_state['doc'] = doc
+        #client_state['document_id'] = document_id
+        #client_state['user_id'] = userId
+        #self.analyze_document(client_state, doc, 0)
+
+        report = {}
+        report['challenge_problem_id'] = 'undefined'
+        report['experiment_reference_url'] = \
+            'https://docs.google.com/document/d/' + document_id
+        report['labs'] = []
+
+        report['mapped_names'] = mapped_names
+
         end = time.time()
 
         self.logger.info('Generated report in %0.2fms, %s, %s' %((end - start) * 1000, document_id, time.time()))
@@ -701,15 +889,17 @@ class IntentParserServer:
 
         # Search SBH to get data
         target_collection = self.sbh_url + '/user/%s/experiment_test/experiment_test_collection/1' % self.sbh_collection_user
-        exp_collection = intent_parser_utils.query_experiments(self.sbh, target_collection, self.sbh_spoofing_prefix, self.sbh_url)
+        intent_parser_sbh = IntentParserSBH()
+       
+        exp_collection = intent_parser_sbh.query_experiments(self.sbh, target_collection, self.sbh_spoofing_prefix, self.sbh_url)
         data = {}
         for exp in exp_collection:
             exp_uri = exp['uri']
             timestamp = exp['timestamp']
             title = exp['title']
-            request_doc = intent_parser_utils.query_experiment_request(self.sbh, exp_uri, self.sbh_spoofing_prefix, self.sbh_url)  # Get the reference to the Google request doc
+            request_doc = intent_parser_sbh.query_experiment_request(self.sbh, exp_uri, self.sbh_spoofing_prefix, self.sbh_url)  # Get the reference to the Google request doc
             if source_doc_uri == request_doc:
-                source_uri = intent_parser_utils.query_experiment_source(self.sbh, exp_uri, self.sbh_spoofing_prefix, self.sbh_url)  # Get the reference to the source document with lab data
+                source_uri = intent_parser_sbh.query_experiment_source(self.sbh, exp_uri, self.sbh_spoofing_prefix, self.sbh_url)  # Get the reference to the source document with lab data
                 data[exp_uri] = {'timestamp' : timestamp, 'agave' : source_uri[0], 'title' : title}
 
         #data = self.get_synbiohub_exp_data(document_id)
@@ -731,7 +921,7 @@ class IntentParserServer:
         headerIdx = -1
         contentIdx = -1
         for pIdx in range(len(paragraphs)):
-            para_text = table_utils.get_paragraph_text(paragraphs[pIdx])
+            para_text = intent_parser_utils.get_paragraph_text(paragraphs[pIdx])
             if para_text == "Experiment Results\n":
                 headerIdx = pIdx
             elif headerIdx >= 0 and not para_text == '\n':
@@ -803,7 +993,7 @@ class IntentParserServer:
                 args=(httpMessage,)  # without comma you'd get a... TypeError
             )
             analyze_thread.start()
-            dialogAction = intent_parser_view.progress_sidebar_dialog()
+            dialogAction = self.progress_sidebar_dialog()
             actions = {'actions': [dialogAction]}
             self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
 
@@ -889,7 +1079,7 @@ class IntentParserServer:
             link = new_link
         search_result['link'] = link
 
-        action = intent_parser_view.link_text(paragraph_index, offset,
+        action = self.link_text(paragraph_index, offset,
                                 end_offset, link)
 
         return [action]
@@ -901,7 +1091,7 @@ class IntentParserServer:
             search_results = client_state['search_results']
             search_result_index = client_state['search_result_index']
             if search_result_index >= len(search_results):
-                dialogAction = intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])
+                dialogAction = self.simple_sidebar_dialog('Finished Analyzing Document.', [])
                 return [dialogAction]
 
             client_state['search_result_index'] += 1
@@ -924,7 +1114,7 @@ class IntentParserServer:
             if link is not None and link == item_map[term]:
                 continue
 
-            highlightTextAction = intent_parser_view.highlight_text(paragraph_index, offset,
+            highlightTextAction = self.highlight_text(paragraph_index, offset,
                                                       end_offset)
             actions.append(highlightTextAction)
 
@@ -962,16 +1152,31 @@ class IntentParserServer:
             html = html.replace('${BUTTONS}', buttonHTML)
             html = html.replace('${BUTTONS_SCRIPT}', buttonScript)
 
-            dialogAction = intent_parser_view.sidebar_dialog(html)
+            dialogAction = self.sidebar_dialog(html)
 
             actions.append(dialogAction)
 
             return actions
 
     def get_paragraphs(self, element):
-        return intent_parser_utils.get_element_type(element, 'paragraph')
+        return self.get_element_type(element, 'paragraph')
 
+    def get_element_type(self, element, element_type):
+        elements = []
+        if type(element) is dict:
+            for key in element:
+                if key == element_type:
+                    elements.append(element[key])
 
+                elements += self.get_element_type(element[key],
+                                                  element_type)
+
+        elif type(element) is list:
+            for entry in element:
+                elements += self.get_element_type(entry,
+                                                  element_type)
+
+        return elements
 
     def get_challenge_problem_id(self, text):
         """
@@ -1209,6 +1414,147 @@ class IntentParserServer:
 
         return self.report_search_results(client_state)
 
+    def highlight_text(self, paragraph_index, offset, end_offset):
+        highlight_text = {}
+        highlight_text['action'] = 'highlightText'
+        highlight_text['paragraph_index'] = paragraph_index
+        highlight_text['offset'] = offset
+        highlight_text['end_offset'] = end_offset
+
+        return highlight_text
+
+    def link_text(self, paragraph_index, offset, end_offset, url):
+        link_text = {}
+        link_text['action'] = 'linkText'
+        link_text['paragraph_index'] = paragraph_index
+        link_text['offset'] = offset
+        link_text['end_offset'] = end_offset
+        link_text['url'] = url
+
+        return link_text
+
+    def progress_sidebar_dialog(self):
+        """
+        Generate the HTML to display analyze progress in a sidebar.
+        """
+        htmlMessage  = '''
+<script>
+    var interval = 1250; // ms
+    var expected = Date.now() + interval;
+    setTimeout(progressUpdate, 10);
+    function progressUpdate() {
+        var dt = Date.now() - expected; // the drift (positive for overshooting)
+        if (dt > interval) {
+            // something really bad happened. Maybe the browser (tab) was inactive?
+            // possibly special handling to avoid futile "catch up" run
+        }
+
+        google.script.run.withSuccessHandler(refreshProgress).getAnalyzeProgress();
+
+        expected += interval;
+        setTimeout(progressUpdate, Math.max(0, interval - dt)); // take into account drift
+    }
+
+    function refreshProgress(prog) {
+        var table = document.getElementById('progressTable')
+        table.innerHTML = '<i>Analyzing, ' + prog + '% complete</i>'
+    }
+
+    var table = document.getElementById('progressTable')
+    table.innerHTML = '<i>Analyzing, 0% complete</i>'
+</script>
+
+<center>
+  <table stype="width:100%" id="progressTable">
+  </table>
+</center>
+        '''
+
+        action = {}
+        action['action'] = 'showProgressbar'
+        action['html'] = htmlMessage
+
+        return action
+
+    def simple_sidebar_dialog(self, message, buttons):
+        htmlMessage  = '<script>\n\n'
+        htmlMessage += 'function onSuccess() { \n\
+                         google.script.host.close()\n\
+                      }\n\n'
+        for button in buttons:
+            if 'click_script' in button: # Special buttons, define own script
+                htmlMessage += button['click_script']
+            else: # Regular buttons, generate script automatically
+                htmlMessage += 'function ' + button['id'] + 'Click() {\n'
+                htmlMessage += '  google.script.run.withSuccessHandler'
+                htmlMessage += '(onSuccess).buttonClick(\''
+                htmlMessage += button['id']  + '\')\n'
+                htmlMessage += '}\n\n'
+        htmlMessage += '</script>\n\n'
+
+        htmlMessage += '<p>' + message + '<p>\n'
+        htmlMessage += '<center>'
+        for button in buttons:
+            if 'click_script' in button: # Special buttons, define own script
+                htmlMessage += '<input id=' + button['id'] + 'Button value="'
+                htmlMessage += button['value'] + '" type="button"'
+                if 'title' in button:
+                    htmlMessage += 'title="' + button['title'] + '"'
+                htmlMessage += ' onclick="' + button['id'] + 'Click()" />\n'
+            else:
+                htmlMessage += '<input id=' + button['id'] + 'Button value="'
+                htmlMessage += button['value'] + '" type="button"'
+                if 'title' in button:
+                    htmlMessage += 'title="' + button['title'] + '"'
+                htmlMessage += 'onclick="' + button['id'] + 'Click()" />\n'
+        htmlMessage += '</center>'
+
+        action = {}
+        action['action'] = 'showSidebar'
+        action['html'] = htmlMessage
+
+        return action
+
+    def simple_modal_dialog(self, message, buttons, title, width, height):
+        htmlMessage = '<script>\n\n'
+        htmlMessage += 'function onSuccess() { \n\
+                         google.script.host.close()\n\
+                      }\n\n'
+        for button in buttons:
+            htmlMessage += 'function ' + button[1] + 'Click() {\n'
+            htmlMessage += '  google.script.run.withSuccessHandler'
+            htmlMessage += '(onSuccess).buttonClick(\''
+            htmlMessage += button[1]  + '\')\n'
+            htmlMessage += '}\n\n'
+        htmlMessage += '</script>\n\n'
+
+        htmlMessage += '<p>' + message + '</p>\n'
+        htmlMessage += '<center>'
+        for button in buttons:
+            htmlMessage += '<input id=' + button[1] + 'Button value="'
+            htmlMessage += button[0] + '" type="button" onclick="'
+            htmlMessage += button[1] + 'Click()" />\n'
+        htmlMessage += '</center>'
+
+        return self.modal_dialog(htmlMessage, title, width, height)
+
+    def modal_dialog(self, html, title, width, height):
+        action = {}
+        action['action'] = 'showModalDialog'
+        action['html'] = html
+        action['title'] = title
+        action['width'] = width
+        action['height'] = height
+
+        return action
+
+    def sidebar_dialog(self, htmlMessage):
+        action = {}
+        action['action'] = 'showSidebar'
+        action['html'] = htmlMessage
+
+        return action
+
     def find_exact_text(self, text, starting_pos, paragraphs):
         """
         Search through the whole document, beginning at starting_pos and return the first exact match to text.
@@ -1271,8 +1617,19 @@ class IntentParserServer:
 
         return None
 
-    
-        
+    def handleGET(self, httpMessage, sm):
+        resource = httpMessage.get_path()
+
+        if resource == "/status":
+            self.send_response(200, 'OK', 'Intent Parser Server is Up and Running\n', sm)
+        elif resource == '/document_report':
+            self.process_generate_report(httpMessage, sm)
+        elif resource == '/document_request':
+            self.process_generate_request(httpMessage, sm)
+        else:
+            self.logger.warning('Did not find ' + resource)
+            raise ConnectionException(404, 'Not Found', 'Resource Not Found')
+
     def new_connection(self, document_id):
         self.client_state_lock.acquire()
         if document_id in self.client_state_map:
@@ -1507,6 +1864,16 @@ class IntentParserServer:
 
         return item_map
 
+    def generate_html_options(self, options):
+        options_html = ''
+        for item_type in options:
+            options_html += '          '
+            options_html += '<option>'
+            options_html += item_type
+            options_html += '</option>\n'
+
+        return options_html
+
     def generate_existing_link_html(self, title, target, two_col = False):
         if two_col:
             width = 175
@@ -1573,9 +1940,9 @@ class IntentParserServer:
                 local_file_types.insert(0,'FASTQ')
                 local_file_types.insert(0,'FCS')
 
-                lab_ids_html = intent_parser_view.generate_html_options(self.lab_ids)
-                measurement_types_html = intent_parser_view.generate_html_options(self.measurement_types)
-                file_types_html = intent_parser_view.generate_html_options(local_file_types)
+                lab_ids_html = self.generate_html_options(self.lab_ids)
+                measurement_types_html = self.generate_html_options(self.measurement_types)
+                file_types_html = self.generate_html_options(local_file_types)
 
                 measurement_types_html = measurement_types_html.replace('\n', ' ')
                 file_types_html = file_types_html.replace('\n', ' ')
@@ -1591,7 +1958,7 @@ class IntentParserServer:
 
             actionList = []
             if html is not None:
-                dialog_action = intent_parser_view.modal_dialog(html, 'Create Measurements Table', 600, 600)
+                dialog_action = self.modal_dialog(html, 'Create Measurements Table', 600, 600)
                 actionList.append(dialog_action)
 
             actions = {'actions': actionList}
@@ -1634,9 +2001,9 @@ class IntentParserServer:
                 item_type_list += self.item_types[sbol_type].keys()
 
             item_type_list = sorted(item_type_list)
-            item_types_html = intent_parser_view.generate_html_options(item_type_list)
+            item_types_html = self.generate_html_options(item_type_list)
 
-            lab_ids_html = intent_parser_view.generate_html_options(self.lab_ids_list)
+            lab_ids_html = self.generate_html_options(self.lab_ids_list)
 
             try:
                 doc = self.google_accessor.get_document(
@@ -1654,7 +2021,7 @@ class IntentParserServer:
             doc_content = body.get('content')
             paragraphs = self.get_paragraphs(doc_content)
 
-            paragraph_text = table_utils.get_paragraph_text(
+            paragraph_text = intent_parser_utils.get_paragraph_text(
                 paragraphs[start_paragraph])
 
 
@@ -1687,7 +2054,7 @@ class IntentParserServer:
             else:
                 html = html.replace('${SUBMIT_BUTTON}', '        <input type="button" value="Submit" id="submitButton" onclick="submitToSynBioHub()">')
 
-            dialog_action = intent_parser_view.modal_dialog(html, 'Add to SynBioHub',
+            dialog_action = self.modal_dialog(html, 'Add to SynBioHub',
                                               600, 600)
             return dialog_action
         except Exception as e:
@@ -1888,12 +2255,12 @@ class IntentParserServer:
                 client_state['spelling_results'] = spellCheckResults
                 client_state['spelling_index'] = 0
                 client_state['spelling_size'] = len(spellCheckResults)
-                actionList = intent_parser_view.report_spelling_results(client_state)
+                actionList = self.report_spelling_results(client_state)
                 actions = {'actions': actionList}
                 self.send_response(200, 'OK', json.dumps(actions), sm, 'application/json')
             else: # No spelling mistakes!
                 buttons = [('Ok', 'process_nop')]
-                dialog_action = intent_parser_view.simple_modal_dialog('Found no words not in spelling dictionary!', buttons, 'No misspellings!', 400, 450)
+                dialog_action = self.simple_modal_dialog('Found no words not in spelling dictionary!', buttons, 'No misspellings!', 400, 450)
                 actionList = [dialog_action]
                 actions = {'actions': actionList}
                 self.send_response(200, 'OK', json.dumps(actions), sm,
@@ -1905,7 +2272,63 @@ class IntentParserServer:
             if not client_state is None:
                 self.release_connection(client_state)
 
-    
+    def report_spelling_results(self, client_state):
+        """Generate actions for client, given the current spelling results index
+        """
+        spellCheckResults = client_state['spelling_results']
+        resultIdx = client_state['spelling_index']
+
+        actionList = []
+
+        start_par = spellCheckResults[resultIdx]['select_start']['paragraph_index']
+        start_cursor = spellCheckResults[resultIdx]['select_start']['cursor_index']
+        end_par = spellCheckResults[resultIdx]['select_end']['paragraph_index']
+        end_cursor = spellCheckResults[resultIdx]['select_end']['cursor_index']
+        if not start_par == end_par:
+            self.logger.error('Received a highlight request across paragraphs, which is currently unsupported!')
+        highlightTextAction = self.highlight_text(start_par, start_cursor, end_cursor)
+        actionList.append(highlightTextAction)
+
+        html  = ''
+        html += '<center>'
+        html += 'Term ' + spellCheckResults[resultIdx]['term'] + ' not found in dictionary, potential addition? ';
+        html += '</center>'
+
+        manualLinkScript = """
+
+    function EnterLinkClick() {
+        google.script.run.withSuccessHandler(enterLinkHandler).enterLinkPrompt('Manually enter a SynbioHub link for this term.', 'Enter URI:');
+    }
+
+    function enterLinkHandler(result) {
+        var shouldProcess = result[0];
+        var text = result[1];
+        if (shouldProcess) {
+            var data = {'buttonId' : 'spellcheck_link',
+                     'link' : text}
+            google.script.run.withSuccessHandler(onSuccess).buttonClick(data)
+        }
+    }
+
+        """
+
+        buttons = [{'value': 'Ignore', 'id': 'spellcheck_add_ignore', 'title' : 'Skip the current term.'},
+                   {'value': 'Ignore All', 'id': 'spellcheck_add_ignore_all', 'title' : 'Skip the current term and any other instances of it.'},
+                   {'value': 'Add to Spellchecker Dictionary', 'id': 'spellcheck_add_dictionary', 'title' : 'Add term to the spellchecking dictionary, so it won\'t be considered again.'},
+                   {'value': 'Add to SynBioHub', 'id': 'spellcheck_add_synbiohub', 'title' : 'Bring up dialog to add current term to SynbioHub.'},
+                   {'value': 'Manually Enter Link', 'id': 'EnterLink', 'click_script' : manualLinkScript, 'title' : 'Manually enter URL to link for this term.'},
+                   {'value': 'Include Previous Word', 'id': 'spellcheck_add_select_previous', 'title' : 'Move highlighting to include the word before the highlighted word(s).'},
+                   {'value': 'Include Next Word', 'id': 'spellcheck_add_select_next', 'title' : 'Move highlighting to include the word after the highlighted word(s).'},
+                   {'value': 'Remove First Word', 'id': 'spellcheck_add_drop_first', 'title' : 'Move highlighting to remove the word at the beggining of the highlighted words.'},
+                   {'value': 'Remove Last Word', 'id': 'spellcheck_add_drop_last', 'title' : 'Move highlighting to remove the word at the end of the highlighted words.'}]
+
+        # If this entry was previously linked, add a button to reuse that link
+        if 'prev_link' in spellCheckResults[resultIdx]:
+            buttons.insert(4, {'value' : 'Reuse previous link', 'id': 'spellcheck_reuse_link', 'title' : 'Reuse the previous link: %s' % spellCheckResults[resultIdx]['prev_link']})
+
+        dialogAction = self.simple_sidebar_dialog(html, buttons)
+        actionList.append(dialogAction)
+        return actionList
 
     def spellcheck_remove_term(self, client_state):
         """ Removes the current term from the result set, returning True if a term was removed else False.
@@ -1933,12 +2356,23 @@ class IntentParserServer:
         client_state['spelling_size'] = len(new_spelling_results)
         return True
 
+    def spellcheck_add_ignore(self, json_body, client_state):
+        """ Ignore button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        client_state['spelling_index'] += 1
+        if client_state['spelling_index'] >= client_state['spelling_size']:
+            # We are at the end, nothing else to do
+            return []
+        else:
+            return self.report_spelling_results(client_state)
+
     def spellcheck_add_ignore_all(self, json_body, client_state):
         """ Ignore All button action for additions by spelling
         """
         json_body # Remove unused warning
         if self.spellcheck_remove_term(client_state):
-            return intent_parser_view.report_spelling_results(client_state)
+            return self.report_spelling_results(client_state)
 
     def spellcheck_add_synbiohub(self, json_body, client_state):
         """ Add to SBH button action for additions by spelling
@@ -1964,7 +2398,7 @@ class IntentParserServer:
 
         # Show side bar with current entry, in case the dialog is canceled
         # If the form is successully submitted, the next term will get displayed at that time
-        for action in intent_parser_view.report_spelling_results(client_state):
+        for action in self.report_spelling_results(client_state):
             actionList.append(action)
 
         return actionList
@@ -1995,7 +2429,7 @@ class IntentParserServer:
             # We are at the end, nothing else to do
             return []
 
-        return intent_parser_view.report_spelling_results(client_state)
+        return self.report_spelling_results(client_state)
 
     def spellcheck_reuse_link(self, json_body, client_state):
         """
@@ -2015,10 +2449,10 @@ class IntentParserServer:
         start_cursor = spell_check_result['select_start']['cursor_index']
         end_cursor = spell_check_result['select_end']['cursor_index']
 
-        actions = [intent_parser_view.link_text(start_par, start_cursor, end_cursor, new_link)]
+        actions = [self.link_text(start_par, start_cursor, end_cursor, new_link)]
         client_state['spelling_index'] += 1
         if client_state['spelling_index'] < client_state['spelling_size']:
-            for action in intent_parser_view.report_spelling_results(client_state):
+            for action in self.report_spelling_results(client_state):
                 actions.append(action)
         return actions
 
@@ -2044,12 +2478,107 @@ class IntentParserServer:
             if result['term'] == spell_check_result['term']:
                 result['prev_link'] = new_link
 
-        actions = [intent_parser_view.link_text(start_par, start_cursor, end_cursor, new_link)]
+        actions = [self.link_text(start_par, start_cursor, end_cursor, new_link)]
         client_state['spelling_index'] += 1
         if client_state['spelling_index'] < client_state['spelling_size']:
-            for action in intent_parser_view.report_spelling_results(client_state):
+            for action in self.report_spelling_results(client_state):
                 actions.append(action)
         return actions
+
+    def spellcheck_add_select_previous(self, json_body, client_state):
+        """ Select previous word button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, True, True)
+
+    def spellcheck_add_select_next(self, json_body, client_state):
+        """ Select next word button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, False, True)
+
+    def spellcheck_add_drop_first(self, json_body, client_state):
+        """ Remove selection previous word button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, True, False)
+
+    def spellcheck_add_drop_last(self, json_body, client_state):
+        """ Remove selection next word button action for additions by spelling
+        """
+        json_body # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, False, False)
+
+    def spellcheck_select_word_from_text(self, client_state, isPrev, isSelect):
+        """ Given a client state with a selection from a spell check result,
+        select or remove the selection on the next or previous word, based upon parameters.
+        """
+        if isPrev:
+            select_key = 'select_start'
+        else:
+            select_key = 'select_end'
+
+        spell_index = client_state['spelling_index']
+        spell_check_result = client_state['spelling_results'][spell_index]
+
+        starting_pos = spell_check_result[select_key]['cursor_index']
+        para_index = spell_check_result[select_key]['paragraph_index']
+        doc = client_state['doc']
+        body = doc.get('body');
+        doc_content = body.get('content')
+        paragraphs = self.get_paragraphs(doc_content)
+        # work on the paragraph text directly
+        paragraph_text = intent_parser_utils.get_paragraph_text(paragraphs[para_index])
+        para_text_len = len(paragraph_text)
+
+        # Determine which directions to search in, based on selection or removal, prev/next
+        if isSelect:
+            if isPrev:
+                edge_check = lambda x : x > 0
+                increment = -1
+            else:
+                edge_check = lambda x : x < para_text_len
+                increment = 1
+            firstCheck = self.char_is_not_wordpart
+            secondCheck = lambda x : not self.char_is_not_wordpart(x)
+        else:
+            if isPrev:
+                edge_check = lambda x : x < para_text_len
+                increment = 1
+            else:
+                edge_check = lambda x : x > 0
+                increment = -1
+            secondCheck = self.char_is_not_wordpart
+            firstCheck = lambda x : not self.char_is_not_wordpart(x)
+
+        if starting_pos < 0:
+            self.logger.error('Error: got request to select previous, but the starting_pos was negative!')
+            return
+
+        if para_text_len < starting_pos:
+            self.logger.error('Error: got request to select previous, but the starting_pos was past the end!')
+            return
+
+        # Move past the end/start of the current word
+        currIdx = starting_pos + increment
+
+        # Skip over space/non-word parts to the next word
+        while edge_check(currIdx) and firstCheck(paragraph_text[currIdx]):
+            currIdx += increment
+        # Find the beginning/end of word
+        while edge_check(currIdx) and secondCheck(paragraph_text[currIdx]):
+            currIdx += increment
+
+        # If we don't hit the beginning, we need to cut off the last space
+        if currIdx > 0 and isPrev and isSelect:
+            currIdx += 1
+
+        if not isPrev and isSelect and paragraph_text[currIdx].isspace():
+            currIdx += -1
+
+        spell_check_result[select_key]['cursor_index'] = currIdx
+
+        return self.report_spelling_results(client_state)
 
     def simple_syn_bio_hub_search(self, term, offset=0, filter_uri=None):
         """
@@ -2215,7 +2744,7 @@ class IntentParserServer:
             item_display_id = data['displayId']
 
         except Exception as e:
-            return self.operation_failed('Form submission missing key: ' + str(e))
+            return self.operation_failed('Form sumission missing key: ' + str(e))
 
         # Make sure Common Name was specified
         if len(item_name) == 0:
@@ -2313,7 +2842,7 @@ class IntentParserServer:
             offset = data['selectionStartOffset']
             end_offset = data['selectionEndOffset']
 
-            action = intent_parser_view.link_text(paragraph_index, offset,
+            action = self.link_text(paragraph_index, offset,
                                     end_offset, document_url)
 
         except Exception as e:
@@ -2354,7 +2883,7 @@ class IntentParserServer:
 
                     client_state["spelling_index"] += 1
                     if client_state['spelling_index'] < client_state['spelling_size']:
-                        for action in intent_parser_view.report_spelling_results(client_state):
+                        for action in self.report_spelling_results(client_state):
                             result['actions'].append(action)
             elif action == 'submitLinkAll':
                 result = self.create_sbh_stub(data)
@@ -2368,7 +2897,7 @@ class IntentParserServer:
                         result['actions'].append(action)
                     if bool(data['isSpellcheck']):
                         if self.spellcheck_remove_term(client_state):
-                            reportActions = intent_parser_view.report_spelling_results(client_state)
+                            reportActions = self.report_spelling_results(client_state)
                             for action in reportActions:
                                 result['actions'].append(action)
             elif action == 'link':
@@ -2385,7 +2914,7 @@ class IntentParserServer:
                 if data['isSpellcheck'] == 'True':
                     client_state["spelling_index"] += 1
                     if client_state['spelling_index'] < client_state['spelling_size']:
-                        for action in intent_parser_view.report_spelling_results(client_state):
+                        for action in self.report_spelling_results(client_state):
                             result['actions'].append(action)
             elif action == 'linkAll':
                 actions = self.process_form_link_all(data)
@@ -2394,7 +2923,7 @@ class IntentParserServer:
                 }
                 if data['isSpellcheck'] == 'True':
                     if self.spellcheck_remove_term(client_state):
-                        reportActions = intent_parser_view.report_spelling_results(client_state)
+                        reportActions = self.report_spelling_results(client_state)
                         for action in reportActions:
                             result['actions'].append(action)
 

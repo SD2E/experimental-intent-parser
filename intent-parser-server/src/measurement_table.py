@@ -1,5 +1,6 @@
 from intent_parser_exceptions import TableException
 import constants
+import intent_parser_utils
 import logging
 import table_utils
 
@@ -34,8 +35,8 @@ class MeasurementTable:
         num_cols = len(row['tableCells'])
         for i in range(0, num_cols): 
             paragraph_element = header_row['tableCells'][i]['content'][0]['paragraph']
-            header = table_utils.get_paragraph_text(paragraph_element).strip()
-            cell_txt = ' '.join([table_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][i]['content']])
+            header = intent_parser_utils.get_paragraph_text(paragraph_element).strip()
+            cell_txt = ' '.join([intent_parser_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][i]['content']])
             if not cell_txt or header in self.IGNORE_COLUMNS:
                 continue
             elif header == constants.COL_HEADER_MEASUREMENT_TYPE:
@@ -99,7 +100,7 @@ class MeasurementTable:
     
     def _parse_reagent_media(self, paragraph_element, cell_txt):
         reagents_media = []
-        reagent_media_name = table_utils.get_paragraph_text(paragraph_element).strip()
+        reagent_media_name = intent_parser_utils.get_paragraph_text(paragraph_element).strip()
        
         # Retrieve SBH URI
         uri = 'NO PROGRAM DICTIONARY ENTRY'

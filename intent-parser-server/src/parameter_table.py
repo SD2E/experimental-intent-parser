@@ -1,5 +1,6 @@
 from intent_parser_exceptions import TableException, DictionaryMaintainerException
 import constants
+import intent_parser_utils
 import json
 import logging
 import table_utils
@@ -85,8 +86,8 @@ class ParameterTable(object):
         param_value = '' 
         for col_index in range(0, num_cols): 
             paragraph_element = header_row['tableCells'][col_index]['content'][0]['paragraph']
-            header = table_utils.get_paragraph_text(paragraph_element).strip()
-            cell_txt = ' '.join([table_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][col_index]['content']])
+            header = intent_parser_utils.get_paragraph_text(paragraph_element).strip()
+            cell_txt = ' '.join([intent_parser_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][col_index]['content']])
             
             if header == constants.COL_HEADER_PARAMETER:
                 param_field = self._get_parameter_field(cell_txt)
