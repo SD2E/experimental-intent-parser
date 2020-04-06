@@ -2,6 +2,7 @@ from intent_parser_exceptions import TableException
 import collections
 import constants
 import re
+import intent_parser_utils
 
 
 _Token = collections.namedtuple('Token', ['type', 'value'])
@@ -27,7 +28,7 @@ def detect_lab_table(table):
     numRows = len(rows)
     labRow = rows[0]
     numCols = len(labRow['tableCells'])
-    lab = get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph'])
+    lab = intent_parser_utils.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph'])
     return numRows == 1 and numCols == 1 and 'lab' in lab.lower()
 
 
@@ -43,7 +44,7 @@ def detect_new_measurement_table(table):
     rows = table['tableRows']
     headerRow = rows[0]
     for cell in headerRow['tableCells']:
-        cellTxt = get_paragraph_text(cell['content'][0]['paragraph']).strip()
+        cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
         found_replicates |= cellTxt == constants.COL_HEADER_REPLICATE 
         found_strain |= cellTxt == constants.COL_HEADER_STRAIN 
         found_measurement_type |= cellTxt == constants.COL_HEADER_MEASUREMENT_TYPE
@@ -57,27 +58,13 @@ def detect_parameter_table(table):
     rows = table['tableRows']
     headerRow = rows[0]
     for cell in headerRow['tableCells']:
-        cellTxt = get_paragraph_text(cell['content'][0]['paragraph']).strip()
+        cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
         if cellTxt == constants.COL_HEADER_PARAMETER:
             has_parameter_field = True
         elif cellTxt == constants.COL_HEADER_PARAMETER_VALUE:
             has_parameter_value = True
     return has_parameter_field and has_parameter_value
 
-def get_paragraph_text(paragraph):
-    elements = paragraph['elements']
-    paragraph_text = '';
-
-    for element_index in range( len(elements) ):
-        element = elements[ element_index ]
-
-        if 'textRun' not in element:
-            continue
-        text_run = element['textRun']
-        paragraph_text += text_run['content']
-
-    return paragraph_text
-    
 def is_number(cell):
     """
     Check if the cell only contains numbers.

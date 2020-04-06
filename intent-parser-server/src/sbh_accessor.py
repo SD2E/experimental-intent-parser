@@ -1,6 +1,7 @@
 import sbol
-import threading
 import tenacity
+import threading
+import traceback
 
 class SBHAccessor:
     def __init__(self, *, sbh_url):
