@@ -3,7 +3,6 @@ Contains functionalities for generating views related to intent parser
 """
 from catalog_accessor import CatalogAccessor
 from html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, MeasurementTableHtmlBuilder
-import intent_parser_utils
 import logging
 
 logger = logging.getLogger('intent_parser_server')
@@ -71,9 +70,6 @@ def generate_html_options(options):
     
 def get_download_link(host, document_id):
     return '<a href=http://' + host + '/document_request?' + document_id + ' target=_blank>here</a> \n\n'
-
-def get_paragraphs(element):
-    return intent_parser_utils.get_element_type(element, 'paragraph')
 
 def create_add_to_synbiohub_dialog(selection, 
                                    display_id, 
