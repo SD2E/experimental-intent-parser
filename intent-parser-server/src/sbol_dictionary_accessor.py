@@ -1,6 +1,7 @@
 
 from google_accessor import GoogleAccessor
 from intent_parser_exceptions import DictionaryMaintainerException
+import logging
 import os 
 import intent_parser_utils
 import time
@@ -11,6 +12,7 @@ class SBOLDictionaryAccessor(object):
     '''
     
     _curr_path = os.path.dirname(os.path.realpath(__file__))
+    logger = logging.getLogger('intent_parser_sbol_dictionary')
     ITEM_MAP_FILE = os.path.join(_curr_path, 'item-map.json')
 
     def __init__(self, spreadsheet_id, sbh):
