@@ -1,4 +1,6 @@
+from datetime import datetime
 from sbh_accessor import SBHAccessor
+import constants
 import intent_parser_view 
 import logging
 import re
@@ -11,30 +13,6 @@ class IntentParserSBH(object):
     '''
     
     logger = logging.getLogger('intent_parser_sbh')
-    
-    item_types = {
-            'component': {
-                'Bead'     : 'http://purl.obolibrary.org/obo/NCIT_C70671',
-                'CHEBI'    : 'http://identifiers.org/chebi/CHEBI:24431',
-                'DNA'      : 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
-                'Protein'  : 'http://www.biopax.org/release/biopax-level3.owl#Protein',
-                'RNA'      : 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
-            },
-            'module': {
-                'Strain'   : 'http://purl.obolibrary.org/obo/NCIT_C14419',
-                'Media'    : 'http://purl.obolibrary.org/obo/NCIT_C85504',
-                'Stain'    : 'http://purl.obolibrary.org/obo/NCIT_C841',
-                'Buffer'   : 'http://purl.obolibrary.org/obo/NCIT_C70815',
-                'Solution' : 'http://purl.obolibrary.org/obo/NCIT_C70830'
-            },
-            'collection': {
-                'Challenge Problem' : '',
-                'Collection' : ''
-            },
-            'external': {
-                'Attribute' : ''
-            }
-        }
 
     def __init__(self):
         pass
@@ -143,8 +121,8 @@ class IntentParserSBH(object):
 
         # Look up sbol type uri
         sbol_type = None
-        for sbol_type_key in self.item_types:
-            sbol_type_map = self.item_types[ sbol_type_key ]
+        for sbol_type_key in constants.ITEM_TYPES:
+            sbol_type_map = constants.ITEM_TYPES[ sbol_type_key ]
             if item_type in sbol_type_map:
                 sbol_type = sbol_type_key
                 break;
@@ -243,7 +221,43 @@ class IntentParserSBH(object):
     def get_sbh_url(self):
         return self.sbh_url
     
-    
+    def set_item_properties(self, entity, data):
+        item_type = data['itemType']
+        item_name = data['commonName']
+        item_definition_uri = data['definitionURI']
+        item_lab_ids = data['labId']
+
+        sbol.TextProperty(entity, 'http://purl.org/dc/terms/title', '0', '1',
+                          item_name)
+
+        time_stamp = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S-00')
+        sbol.TextProperty(entity, 'http://purl.org/dc/terms/created', '0', '1',
+                          time_stamp)
+        sbol.TextProperty(entity, 'http://purl.org/dc/terms/modified', '0', '1',
+                          time_stamp)
+
+        if item_type in constants.ITEM_TYPES['collection']:
+            return
+
+        if len(item_definition_uri) > 0:
+            if item_type == 'CHEBI':
+                if not item_definition_uri.startswith('http://identifiers.org/chebi/CHEBI'):
+                    item_definition_uri = 'http://identifiers.org/chebi/CHEBI:' + \
+                        item_definition_uri
+            else:
+                sbol.URIProperty(entity, 'http://www.w3.org/ns/prov#wasDerivedFrom',
+                                 '0', '1', item_definition_uri)
+
+        if len(item_lab_ids) > 0:
+            lab_id_tag = data['labIdSelect'].replace(' ', '_')
+            tp = None
+            for item_lab_id in item_lab_ids.split(','):
+                if tp is None:
+                    tp = sbol.TextProperty(entity, 'http://sd2e.org#' + lab_id_tag, '0', '1',
+                                           item_lab_id)
+                else:
+                    tp.add(item_lab_id)
+     
     def query_experiments(self, target_collection):
         '''
         Search the target collection and return references to all Experiment objects
