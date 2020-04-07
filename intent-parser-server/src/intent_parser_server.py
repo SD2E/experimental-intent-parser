@@ -33,67 +33,23 @@ spreadsheet_id = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program di
 
 class IntentParserServer:
 
-    
-    DICT_PATH = 'dictionaries'
-
-    LINK_PREF_PATH = 'link_pref'
-
-    lab_ids_list = sorted(['BioFAB UID',
-                            'Ginkgo UID',
-                            'Transcriptic UID',
-                            'LBNL UID',
-                            'EmeraldCloud UID',
-                            'CalTech UID',
-                            'PennState (Salis) UID'])
-
-    item_types = {
-            'component': {
-                'Bead'     : 'http://purl.obolibrary.org/obo/NCIT_C70671',
-                'CHEBI'    : 'http://identifiers.org/chebi/CHEBI:24431',
-                'DNA'      : 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
-                'Protein'  : 'http://www.biopax.org/release/biopax-level3.owl#Protein',
-                'RNA'      : 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
-            },
-            'module': {
-                'Strain'   : 'http://purl.obolibrary.org/obo/NCIT_C14419',
-                'Media'    : 'http://purl.obolibrary.org/obo/NCIT_C85504',
-                'Stain'    : 'http://purl.obolibrary.org/obo/NCIT_C841',
-                'Buffer'   : 'http://purl.obolibrary.org/obo/NCIT_C70815',
-                'Solution' : 'http://purl.obolibrary.org/obo/NCIT_C70830'
-            },
-            'collection': {
-                'Challenge Problem' : '',
-                'Collection' : ''
-            },
-            'external': {
-                'Attribute' : ''
-            }
-        }
-
     logger = logging.getLogger('intent_parser_server')
 
-    # Define the percentage of length of the search term that must
-    # be matched in order to have a valid partial match
-    partial_match_thresh = 0.75
-
-    # Terms below a certain size should be force to have an exact match
-    partial_match_min_size = 3
-
-    # How many results we allow
-    sparql_limit = 5
-
-    # Defines how many processes are in the pool, for parallelisocket_manager
-    multiprocessing_pool_size = 8
+    DICT_PATH = 'dictionaries'
+    LINK_PREF_PATH = 'link_pref'
 
     # Defines a period of time to wait to send analyze progress updates, in seconds
     ANALYZE_PROGRESS_PERIOD = 2.5
 
-    # Determine how long a lab UID string has to be in order to be added to the item map.
-    # Strings below this size are ignored.
-    uid_length_threshold = 3
+    # Defines how many processes are in the pool, for parallelisocket_manager
+    MULTIPROCESSING_POOL_SIZE = 8
 
-    # Some lab UIDs are short but still valid.  This defines an exceptions to the length threshold.
-    uid_length_exception = ['M9', 'LB']
+    # Terms below a certain size should be force to have an exact match
+    PARTIAL_MATCH_MIN_SIZE = 3
+
+    # Define the percentage of length of the search term that must
+    # be matched in order to have a valid partial match
+    PARTIAL_MATCH_THRESH = 0.75
 
     def __init__(self, 
                  bind_port, 
@@ -138,6 +94,10 @@ class IntentParserServer:
         self.analyze_processing_lock = {} # Used to indicate if the processing thread has finished, mapped to each doc_id
         self.client_state_map = {}
         self.client_state_lock = threading.Lock()
+        self.item_map_lock = threading.Lock()
+        self.item_map_lock.acquire()
+        self.item_map = self.sbol_dictionary.generate_item_map(use_cache=item_map_cache)
+        self.item_map_lock.release()
         self.initialized = False
 
     def initialize_server(self, init_sbh=True):
@@ -270,7 +230,7 @@ class IntentParserServer:
         """
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
-        ip = IntentParser(document_id, self.spreadsheet_id, self.datacatalog_config, self.sbh)
+        ip = IntentParser(document_id, self.datacatalog_config, self.sbh, self.sbol_dictionary)
         report = ip.generate_report() 
         self.send_response(HTTPStatus.OK, json.dumps(report), socket_manager, 'application/json')
 
@@ -281,7 +241,7 @@ class IntentParserServer:
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
         
-        intent_parser = IntentParser(document_id, self.spreadsheet_id, self.datacatalog_config, self.sbh)
+        intent_parser = IntentParser(document_id, self.datacatalog_config, self.sbh, self.sbol_dictionary)
         intent_parser.process()
         
         if len(intent_parser.get_validation_errors()) > 0:
@@ -392,7 +352,7 @@ class IntentParserServer:
         """
         json_body = intent_parser_utils.get_json_body(httpMessage)
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
-        intent_parser = IntentParser(document_id, self.spreadsheet_id, self.datacatalog_config, self.sbh)
+        intent_parser = IntentParser(document_id, self.datacatalog_config, self.sbh, self.sbol_dictionary)
         experimental_results = intent_parser.update_experimental_results()
         actions = {'actions': [experimental_results]}
         self.send_response(HTTPStatus.OK, json.dumps(actions), socket_manager, 'application/json')
@@ -403,7 +363,7 @@ class IntentParserServer:
         """
         json_body = intent_parser_utils.get_json_body(httpMessage)
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
-        intent_parser = IntentParser(document_id, self.spreadsheet_id, self.datacatalog_config)
+        intent_parser = IntentParser(document_id, self.datacatalog_config, self.sbh, self.sbol_dictionary)
         samples = intent_parser.calculate_samples()
         actions = {'actions': [samples]} 
         self.send_response(HTTPStatus.OK, json.dumps(actions), socket_manager, 'application/json')
@@ -425,7 +385,7 @@ class IntentParserServer:
             validation_errors.append('Unable to get information from Google document.')
         else:
             document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
-            intent_parser = IntentParser(document_id, self.spreadsheet_id, self.datacatalog_config, self.sbh)
+            intent_parser = IntentParser(document_id, self.datacatalog_config, self.sbh, self.sbol_dictionary)
             intent_parser.process()
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
@@ -451,7 +411,7 @@ class IntentParserServer:
             validation_errors.append('Unable to get information from Google document.')
         else:
             document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
-            intent_parser =  IntentParser(document_id, self.spreadsheet_id, self.datacatalog_config, self.sbh)
+            intent_parser = IntentParser(document_id, self.datacatalog_config, self.sbh, self.sbol_dictionary) 
             intent_parser.process()
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
@@ -657,14 +617,14 @@ class IntentParserServer:
         try:
 
             item_type_list = []
-            for sbol_type in self.item_types:
-                item_type_list += self.item_types[sbol_type].keys()
+            for sbol_type in constants.ITEM_TYPES:
+                item_type_list += constants.ITEM_TYPES[sbol_type].keys()
 
             item_type_list = sorted(item_type_list)
             item_types_html = intent_parser_view.generate_html_options(item_type_list)
-            lab_ids_html = intent_parser_view.generate_html_options(self.lab_ids_list)
+            lab_ids_html = intent_parser_view.generate_html_options(constants.LAB_IDS_LIST)
 
-            ip = IntentParser(document_id, self.spreadsheet_id, self.datacatalog_config, self.sbh)
+            ip = IntentParser(document_id, self.datacatalog_config, self.sbh, self.sbol_dictionary)
             selection, display_id = ip.generate_displayId_from_selection(start_paragraph, start_offset, end_offset)
             return intent_parser_view.create_add_to_synbiohub_dialog(selection, 
                                    display_id, 
@@ -1020,9 +980,9 @@ class IntentParserServer:
         else:
             link_prefs = {}
         for term in item_map.keys():
-            analyze_inputs.append([term, start_offset, paragraphs, self.partial_match_min_size, self.partial_match_thresh, item_map[term]])
+            analyze_inputs.append([term, start_offset, paragraphs, self.PARTIAL_MATCH_MIN_SIZE, self.PARTIAL_MATCH_THRESH, item_map[term]])
         search_results = []
-        with Pool(self.multiprocessing_pool_size) as p:
+        with Pool(self.MULTIPROCESSING_POOL_SIZE) as p:
             for __, result in enumerate(p.imap_unordered(intent_parser_utils.analyze_term, analyze_inputs), 1):
                 if len(result) > 0:
                     for r in result:
@@ -1132,7 +1092,7 @@ class IntentParserServer:
                 return
 
             try:
-                item_map = self.generate_item_map(use_cache=False)
+                item_map = self.sbol_dictionary.generate_item_map(use_cache=False)
             except Exception as ex:
                 self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
 
@@ -1185,7 +1145,7 @@ class IntentParserServer:
             bindings = query_results['results']['bindings']
             self.sparql_similar_count_cache[term] = bindings[0]['count']['value']
 
-        sparql_query = self.sparql_similar_query.replace('${TERM}', term).replace('${LIMIT}', str(self.sparql_limit)).replace('${OFFSET}', str(offset)).replace('${EXTRA_FILTER}', extra_filter)
+        sparql_query = self.sparql_similar_query.replace('${TERM}', term).replace('${LIMIT}', str(constants.SPARQL_LIMIT)).replace('${OFFSET}', str(offset)).replace('${EXTRA_FILTER}', extra_filter)
         query_results = self.sbh.sparqlQuery(sparql_query)
         bindings = query_results['results']['bindings']
         search_results = []
