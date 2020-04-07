@@ -1,5 +1,6 @@
 from difflib import Match
 from google_accessor import GoogleAccessor
+from intent_parser_server import IntentParserServer
 from ips_test_utils import compare_search_results
 from operator import itemgetter
 from unittest.mock import Mock, patch, DEFAULT
@@ -13,12 +14,6 @@ import time
 import unittest
 import urllib.request
 import warnings
-
-try:
-    from intent_parser_server import IntentParserServer
-except Exception as e:
-    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'../src'))
-    from intent_parser_server import IntentParserServer
 
 class IpsAnalyzeTest(unittest.TestCase):
 
@@ -40,10 +35,10 @@ class IpsAnalyzeTest(unittest.TestCase):
         """
 
         # Clear all link preferences
-        if os.path.exists(IntentParserServer.link_pref_path):
-            for file in os.listdir(IntentParserServer.link_pref_path):
-                os.remove(os.path.join(IntentParserServer.link_pref_path, file))
-            os.rmdir(IntentParserServer.link_pref_path)
+        if os.path.exists(IntentParserServer.LINK_PREF_PATH):
+            for file in os.listdir(IntentParserServer.LINK_PREF_PATH):
+                os.remove(os.path.join(IntentParserServer.LINK_PREF_PATH, file))
+            os.rmdir(IntentParserServer.LINK_PREF_PATH)
 
         self.doc_content = None
         with open(os.path.join(self.dataDir,self.spellcheckFile), 'r') as fin:
@@ -57,7 +52,28 @@ class IpsAnalyzeTest(unittest.TestCase):
         self.user_email = 'test@bbn.com'
         self.json_body = {'documentId' : self.doc_id, 'user' : self.user, 'userEmail' : self.user_email}
 
-        self.ips = IntentParserServer(init_server=False, init_sbh=False)
+        self.google_accessor = GoogleAccessor.create()
+        self.template_spreadsheet_id = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0'
+        self.spreadsheet_id = self.google_accessor.copy_file(file_id = self.template_spreadsheet_id,
+                                                     new_title='Intent Parser Server Test Sheet')
+        
+        self.sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
+       
+        curr_path = os.path.dirname(os.path.realpath(__file__)) 
+        with open(os.path.join(curr_path, 'sbh_creds.json'), 'r') as file:
+            creds = json.load(file)
+            self.sbh_username = creds['username']
+            self.sbh_password = creds['password']
+            
+        self.ips = IntentParserServer(bind_port=8081, 
+                 bind_ip='0.0.0.0',
+                 sbh_collection_uri=self.sbh_collection_uri,
+                 spreadsheet_id=self.spreadsheet_id,
+                 sbh_username=self.sbh_username, 
+                 sbh_password=self.sbh_password)
+        self.ips.initialize_server()
+        self.ips.start(background=True)
+        
         self.ips.analyze_processing_map_lock = Mock()
         self.ips.client_state_lock = Mock()
         self.ips.client_state_map = {}
@@ -314,17 +330,10 @@ class IpsAnalyzeTest(unittest.TestCase):
         # Search result is the same, because we are removing links that overlap other matches
         self.assertTrue(numResults == self.expected_search_size)
 
-        link_pref_file = os.path.join(self.ips.link_pref_path, 'test@bbn.com.json')
+        link_pref_file = os.path.join(self.ips.LINK_PREF_PATH, 'test@bbn.com.json')
         self.assertTrue(os.path.exists(link_pref_file))
 
     def test_analyze_link_all(self):
-        """
-        """
-        # Skip first term, engineered
-        #result = self.ips.process_analyze_no([], self.ips.client_state_map[self.doc_id])
-        #self.assertTrue(self.ips.client_state_map[self.doc_id]['search_result_index'] == 1)
-        #self.assertTrue(len(result) == 2)
-
         result = self.ips.process_link_all({'data' : {'buttonId' : 'test'}}, self.ips.client_state_map[self.doc_id])
         # We should have a link action for each of the 16 instances of proteomics in the results.
         # Plus a highlight text and showSidebar for the last remaining engineered result
@@ -335,9 +344,6 @@ class IpsAnalyzeTest(unittest.TestCase):
         Perform teardown.
         """
         self.ips.stop()
-
-
-if __name__ == '__main__':
-    print('Run unit tests')
-
-    unittest.main(argv=[sys.argv[0]])
+        
+if __name__ == "__main__":
+    unittest.main()
