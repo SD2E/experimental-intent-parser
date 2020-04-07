@@ -1,6 +1,7 @@
 
 from google_accessor import GoogleAccessor
 from intent_parser_exceptions import DictionaryMaintainerException
+import constants
 import logging
 import os 
 import intent_parser_utils
@@ -11,14 +12,23 @@ class SBOLDictionaryAccessor(object):
     Provide functionalities to read and write information to the SBOL Dictionary Maintainer Google Spreadsheet.
     '''
     
-    _curr_path = os.path.dirname(os.path.realpath(__file__))
     logger = logging.getLogger('intent_parser_sbol_dictionary')
-    ITEM_MAP_FILE = os.path.join(_curr_path, 'item-map.json')
+
+    # Some lab UIDs are short but still valid.  This defines an exceptions to the length threshold.
+    UID_LENGTH_EXCEPTION = ['M9', 'LB']
+    
+    # Determine how long a lab UID string has to be in order to be added to the item map.
+    # Strings below this size are ignored.
+    UID_LENGTH_THRESHOLD = 3
+    
 
     def __init__(self, spreadsheet_id, sbh):
         self.google_accessor = GoogleAccessor.create()
         self.google_accessor.set_spreadsheet_id(spreadsheet_id)
         self.sbh = sbh
+        
+        curr_path = os.path.dirname(os.path.realpath(__file__))
+        self.item_map_file = os.path.join(curr_path, 'item-map.json')
     
     def create_dictionary_entry(self, data, document_url, item_definition_uri):
         item_type = data['itemType']
@@ -88,7 +98,7 @@ class SBOLDictionaryAccessor(object):
         item_map = {}
         self.logger.info('Generating item map, %d' % time.time())
         if use_cache:
-            item_map = intent_parser_utils.load_json_file(self.ITEM_MAP_FILE)
+            item_map = intent_parser_utils.load_json_file(self.item_map_file)
             self.logger.info('Num items in item_map: %d' % len(item_map))
 
         lab_uid_src_map = {}
@@ -113,14 +123,14 @@ class SBOLDictionaryAccessor(object):
                 # Add common name to the item map
                 item_map[common_name] = uri
                 # There are also UIDs for each lab to add
-                for lab_uid in self.lab_ids_list:
+                for lab_uid in constants.LAB_IDS_LIST:
                     # Ignore if the spreadsheet doesn't contain this lab
                     if not lab_uid in row or row[lab_uid] == '':
                         continue
                     # UID can be a CSV list, parse each value
                     for uid_str in row[lab_uid].split(sep=','):
                         # Make sure the UID matches the min len threshold, or is in the exception list
-                        if len(uid_str) >= self.uid_length_threshold or uid_str in self.uid_length_exception:
+                        if len(uid_str) >= self.UID_LENGTH_THRESHOLD or uid_str in self.UID_LENGTH_EXCEPTION:
                             # If the UID isn't in the item map, add it with this URI
                             if uid_str not in item_map:
                                 item_map[uid_str] = uri
@@ -142,7 +152,7 @@ class SBOLDictionaryAccessor(object):
                             self.logger.debug('Filtered %s %s for length' % (lab_uid, uid_str))
 
         
-        intent_parser_utils.write_json_to_file(item_map, self.ITEM_MAP_FILE)
+        intent_parser_utils.write_json_to_file(item_map, self.item_map_file)
 
         self.logger.info('Num items in item_map: %d' % len(item_map))
 
