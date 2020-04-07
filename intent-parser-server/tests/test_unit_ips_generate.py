@@ -1,4 +1,5 @@
 from google_accessor import GoogleAccessor
+from intent_parser_server import IntentParserServer
 from ips_test_utils import compare_spell_results
 from ips_test_utils import get_currently_selected_text
 from unittest.mock import Mock, patch, DEFAULT
@@ -12,13 +13,6 @@ import time
 import unittest
 import urllib.request
 import warnings
-
-try:
-    from intent_parser_server import IntentParserServer
-except Exception as e:
-    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'../src'))
-    from intent_parser_server import IntentParserServer
-
 
 class IpsGenerateTest(unittest.TestCase):
 
@@ -80,10 +74,10 @@ class IpsGenerateTest(unittest.TestCase):
             self.fail('Failed to read in test document! Path: ' + os.path.join(self.dataDir,self.spellcheckFile))
 
         # Clear all dictionary information
-        if os.path.exists(IntentParserServer.dict_path):
-            for file in os.listdir(IntentParserServer.dict_path):
-                os.remove(os.path.join(IntentParserServer.dict_path, file))
-            os.rmdir(IntentParserServer.dict_path)
+        if os.path.exists(IntentParserServer.DICT_PATH):
+            for file in os.listdir(IntentParserServer.DICT_PATH):
+                os.remove(os.path.join(IntentParserServer.DICT_PATH, file))
+            os.rmdir(IntentParserServer.DICT_PATH)
 
         with open(os.path.join(self.dataDir,self.authn_file), 'r') as fin:
             self.authn = json.loads(fin.read())['authn']
@@ -93,7 +87,28 @@ class IpsGenerateTest(unittest.TestCase):
         self.user_email = 'test@bbn.com'
         self.json_body = {'documentId' : self.doc_id, 'user' : self.user, 'userEmail' : self.user_email}
 
-        self.ips = IntentParserServer(init_server=False, init_sbh=False, datacatalog_authn=self.authn)
+        self.google_accessor = GoogleAccessor.create()
+        self.template_spreadsheet_id = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0'
+        self.spreadsheet_id = self.google_accessor.copy_file(file_id = self.template_spreadsheet_id,
+                                                     new_title='Intent Parser Server Test Sheet')
+        
+        self.sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
+       
+        curr_path = os.path.dirname(os.path.realpath(__file__)) 
+        with open(os.path.join(curr_path, 'sbh_creds.json'), 'r') as file:
+            creds = json.load(file)
+            self.sbh_username = creds['username']
+            self.sbh_password = creds['password']
+            
+        self.ips = IntentParserServer(bind_port=8081, 
+                 bind_ip='0.0.0.0',
+                 sbh_collection_uri=self.sbh_collection_uri,
+                 spreadsheet_id=self.spreadsheet_id,
+                 sbh_username=self.sbh_username, 
+                 sbh_password=self.sbh_password)
+        self.ips.initialize_server()
+        self.ips.start(background=True)
+        
         self.ips.client_state_lock = Mock()
         self.ips.client_state_map = {}
         self.ips.google_accessor = Mock()
@@ -123,18 +138,18 @@ class IpsGenerateTest(unittest.TestCase):
         """
         Basic check, ensure that spellcheck runs and the results are as expected
         """
-        self.ips.process_generate_report(self.httpMessage, [])
-        gen_results = json.loads(self.ips.send_response.call_args[0][2])
+        self.ips.process_generate_structured_request(self.httpMessage, [])
+        gen_results = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(gen_results['mapped_names'] is not None)
 
     def test_generate_request_basic(self):
         """
         Basic check, ensure that spellcheck runs and the results are as expected
         """
-        self.ips.process_generate_request(self.httpMessage, [])
+        self.ips.process_generate_structured_request(self.httpMessage, [])
 
         # Basic sanity checks
-        gen_results = json.loads(self.ips.send_response.call_args[0][2])
+        gen_results = json.loads(self.ips.send_response.call_args[0][1])
 
         self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
         self.assertTrue(gen_results['challenge_problem'] == 'INTENT_PARSER_TEST')
@@ -143,19 +158,17 @@ class IpsGenerateTest(unittest.TestCase):
 
         # Test for when map_experiment_reference fails
         self.ips.datacatalog_config['mongodb']['authn'] = ''
-        self.ips.process_generate_request(self.httpMessage, [])
+        self.ips.process_generate_structured_request(self.httpMessage, [])
 
         # Basic sanity checks
-        gen_results = json.loads(self.ips.send_response.call_args[0][2])
+        gen_results = json.loads(self.ips.send_response.call_args[0][1])
 
         self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
         self.assertTrue(gen_results['challenge_problem'] == 'NOVEL_CHASSIS')
         self.assertEquals(len(gen_results['runs'][0]['measurements']), 0)
 
     def test_generate_request_specific(self):
-        """
-        """
-
+        
         with open(os.path.join(self.dataDir,self.first_table_file), 'r') as fin:
             first_table_gt = json.loads(fin.read())
 
@@ -165,9 +178,9 @@ class IpsGenerateTest(unittest.TestCase):
         # First test picks up second table
         self.ips.get_element_type =  Mock(return_value=self.table_data)
 
-        self.ips.process_generate_request(self.httpMessage, [])
+        self.ips.process_generate_structured_request(self.httpMessage, [])
 
-        gen_results = json.loads(self.ips.send_response.call_args[0][2])
+        gen_results = json.loads(self.ips.send_response.call_args[0][1])
 
         self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
         self.assertTrue(gen_results['challenge_problem'] == 'INTENT_PARSER_TEST')
@@ -177,16 +190,16 @@ class IpsGenerateTest(unittest.TestCase):
 
         self.ips.process_validate_structured_request(self.httpMessage, [])
 
-        validate_results = json.loads(self.ips.send_response.call_args[0][2])
+        validate_results = json.loads(self.ips.send_response.call_args[0][1])
 
         self.assertTrue('Validation Passed' in validate_results['actions'][0]['html'])
 
         # Second test picks up first table
         self.ips.get_element_type =  Mock(return_value=self.table_data[0:len(self.table_data) - 4])
 
-        self.ips.process_generate_request(self.httpMessage, [])
+        self.ips.process_generate_structured_request(self.httpMessage, [])
 
-        gen_results = json.loads(self.ips.send_response.call_args[0][2])
+        gen_results = json.loads(self.ips.send_response.call_args[0][1])
 
         self.assertTrue(gen_results['name'] == 'Nick Copy of CP Experimental Request - NovelChassisYeastStates_TimeSeries')
         self.assertTrue(gen_results['challenge_problem'] == 'INTENT_PARSER_TEST')
@@ -195,13 +208,11 @@ class IpsGenerateTest(unittest.TestCase):
 
         self.ips.process_validate_structured_request(self.httpMessage, [])
 
-        validate_results = json.loads(self.ips.send_response.call_args[0][2])
+        validate_results = json.loads(self.ips.send_response.call_args[0][1])
 
         self.assertTrue('Validation Passed' in validate_results['actions'][0]['html'])
         self.assertTrue('Warning: IPTG does not have a SynbioHub URI specified' in validate_results['actions'][0]['html'])
         self.assertTrue('Warning: Kanamycin Sulfate does not have a SynbioHub URI specified' in validate_results['actions'][0]['html'])
-
-  
 
     def tearDown(self):
         """
@@ -209,8 +220,5 @@ class IpsGenerateTest(unittest.TestCase):
         """
         self.ips.stop()
 
-
-if __name__ == '__main__':
-    print('Run unit tests')
-
-    unittest.main(argv=[sys.argv[0]])
+if __name__ == "__main__":
+    unittest.main()

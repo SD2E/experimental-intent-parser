@@ -10,12 +10,6 @@ import unittest
 import urllib.request
 import warnings
 
-try:
-    from intent_parser_server import IntentParserServer
-except Exception as e:
-    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'../src'))
-    from intent_parser_server import IntentParserServer
-
 class IntegrationSbhTest(unittest.TestCase):
 
     spellcheckFile = 'doc_1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA.json'
@@ -62,11 +56,16 @@ class IntegrationSbhTest(unittest.TestCase):
             self.fail('Failed to read in test document! Path: ' + os.path.join(self.dataDir,self.spellcheckFile))
 
         self.ips = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
-                                    sbh_spoofing_prefix='https://hub.sd2e.org',
                                     sbh_username=IntegrationSbhTest.sbh_username,
                                     sbh_password=IntegrationSbhTest.sbh_password,
-                                    spreadsheet_id=self.spreadsheet_id, init_server=False)
-
+                                    sbh_spoofing_prefix='https://hub.sd2e.org',
+                                    spreadsheet_id=self.spreadsheet_id, 
+                                    item_map_cache=False,
+                                    bind_ip='localhost',
+                                    bind_port=8081)
+        self.ips.initialize_server()
+        self.ips.start(background=True) 
+        
         self.ips.google_accessor = Mock()
         self.ips.google_accessor.get_document = Mock(return_value=self.doc_content)
         self.ips.send_response = Mock()
@@ -100,7 +99,7 @@ class IntegrationSbhTest(unittest.TestCase):
         results_count = self.ips.sparql_similar_count_cache[term]
         results_count = int(results_count)
 
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -114,7 +113,7 @@ class IntegrationSbhTest(unittest.TestCase):
         data['offset'] = results_count + 10
         self.ips.process_search_syn_bio_hub([],[])
         
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -128,7 +127,7 @@ class IntegrationSbhTest(unittest.TestCase):
         data['offset'] = results_count - self.ips.sparql_limit
         self.ips.process_search_syn_bio_hub([],[])
         
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -142,7 +141,7 @@ class IntegrationSbhTest(unittest.TestCase):
         data['offset'] = data['offset'] - self.ips.sparql_limit
         self.ips.process_search_syn_bio_hub([],[])
         
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -156,7 +155,7 @@ class IntegrationSbhTest(unittest.TestCase):
         data['offset'] = data['offset'] - self.ips.sparql_limit
         self.ips.process_search_syn_bio_hub([],[])
         
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -170,7 +169,7 @@ class IntegrationSbhTest(unittest.TestCase):
         data['offset'] = data['offset'] + self.ips.sparql_limit
         self.ips.process_search_syn_bio_hub([],[])
         
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -184,7 +183,7 @@ class IntegrationSbhTest(unittest.TestCase):
         data['offset'] = 0
         self.ips.process_search_syn_bio_hub([],[])
         
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -213,7 +212,7 @@ class IntegrationSbhTest(unittest.TestCase):
         results_count = self.ips.sparql_similar_count_cache[term]
         results_count = int(results_count)
 
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(results_count < IntentParserServer.sparql_limit)
         self.assertTrue(len(actions['results']['search_results']) == results_count)
 
@@ -222,3 +221,7 @@ class IntegrationSbhTest(unittest.TestCase):
         Perform teardown.
         """
         self.ips.stop()
+    
+        
+if __name__ == "__main__":
+    unittest.main()
