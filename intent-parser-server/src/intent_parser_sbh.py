@@ -103,6 +103,9 @@ class IntentParserSBH(object):
         if self.sbh is not None:
             self.sbh.login(sbh_username, sbh_password)
             self.logger.info('Logged into {}'.format(sbh_url))
+            
+    def stop(self):
+        self.sbh.stop()
     
     def create_sbh_stub(self, data):
         # Extract some fields from the form
