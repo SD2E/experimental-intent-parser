@@ -2,6 +2,7 @@ from http import HTTPStatus
 from intent_parser import IntentParser
 from intent_parser_exceptions import ConnectionException
 from intent_parser_sbh import IntentParserSBH
+from lab_experiment import LabExperiment
 from multiprocessing import Pool
 from operator import itemgetter
 from sbol_dictionary_accessor import SBOLDictionaryAccessor
@@ -23,6 +24,7 @@ import threading
 import time
 import traceback
 import intent_parser
+import lab_experiment
 
 spreadsheet_id = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program dict
 # spreadsheet_id = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
@@ -97,11 +99,11 @@ class IntentParserServer:
                  bind_port, 
                  bind_ip,
                  sbh_collection_uri,
-                 sbh_spoofing_prefix,
                  spreadsheet_id,
                  sbh_username, 
                  sbh_password,
-                 datacatalog_authn,
+                 sbh_spoofing_prefix=None,
+                 datacatalog_authn='',
                  item_map_cache=True,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org']):
@@ -113,6 +115,7 @@ class IntentParserServer:
         self.spreadsheet_id = spreadsheet_id
         self.sbh_username = sbh_username  
         self.sbh_password = sbh_password
+        self.sbh_link_hosts = sbh_link_hosts
         self.item_map_cache = item_map_cache
         
         fh = logging.FileHandler('intent_parser_server.log')
@@ -135,6 +138,7 @@ class IntentParserServer:
         self.analyze_processing_lock = {} # Used to indicate if the processing thread has finished, mapped to each doc_id
         self.client_state_map = {}
         self.client_state_lock = threading.Lock()
+        self.initialized = False
 
     def initialize_server(self, init_sbh=True):
         """
@@ -156,6 +160,7 @@ class IntentParserServer:
                  sbh_username=self.sbh_username, 
                  sbh_password=self.sbh_password,
                  sbh_link_hosts=self.sbh_link_hosts)
+        self.initialized = True
         
     def start(self, *, background=False):
         if not self.initialized:
@@ -255,7 +260,7 @@ class IntentParserServer:
             self.process_document_request(httpMessage, socket_manager)
         else:
             self.logger.warning('Did not find ' + resource)
-            raise ConnectionException(404, 'Not Found', 'Resource Not Found')
+            raise ConnectionException(HTTPStatus.NOT_FOUND, 'Resource Not Found')
         end = time.time()
         self.logger.info('Generated GET request in %0.2fms, %s, %s' %((end - start) * 1000, self.document_id, time.time()))
     
@@ -677,7 +682,8 @@ class IntentParserServer:
    
         
     def process_add_by_spelling(self, http_message, socket_manager):
-        """ Function that sets up the results for additions by spelling
+        """ 
+        Function that sets up the results for additions by spelling
         This will start from a given offset (generally 0) and searches the rest of the
         document, looking for words that are not in the dictionary.  Any words that
         don't match are then used as suggestions for additions to SynBioHub.
@@ -707,23 +713,10 @@ class IntentParserServer:
                     self.logger.info('Loaded dictionary for userId, path: %s' % dict_path)
                     self.spellCheckers[userId].word_frequency.load_dictionary(dict_path)
 
-            try:
-                doc = self.google_accessor.get_document(
-                    document_id=document_id
-                )
-            except Exception as ex:
-                self.logger.error(''.join(traceback.format_exception(etype=type(ex),
-                                                         value=ex,
-                                                         tb=ex.__traceback__)))
-                raise ConnectionException('404', 'Not Found',
-                                          'Failed to access document ' +
-                                          document_id)
-
+            lab_experiment = LabExperiment()
+            doc = lab_experiment.load_from_google_doc(self.document_id)
+            paragraphs = lab_experiment.paragraphs() 
             if 'data' in json_body:
-                body = doc.get('body');
-                doc_content = body.get('content')
-                paragraphs = intent_parser_view.get_paragraphs(doc_content)
-
                 data = json_body['data']
                 paragraph_index = data['paragraphIndex']
                 offset = data['offset']
@@ -738,10 +731,6 @@ class IntentParserServer:
             client_state = self.new_connection(document_id)
             client_state['doc'] = doc
             client_state['user_id'] = userId
-
-            body = doc.get('body');
-            doc_content = body.get('content')
-            paragraphs = intent_parser_view.get_paragraphs(doc_content)
 
             spellCheckResults = [] # Store results metadata
             missedTerms = [] # keep track of lists of misspelt words
@@ -914,7 +903,6 @@ class IntentParserServer:
                 measurement_row.append('')
             if has_temp:
                 measurement_row.append('')
-            #measurement_row.append('') # Samples col
             if has_notes:
                 measurement_row.append('')
             table_data.append(measurement_row)
@@ -928,24 +916,6 @@ class IntentParserServer:
         create_table['colSizes'] = col_sizes
 
         return [create_table]
-    
-    def process_create_parameter_table(self, data):
-        col_sizes = [2]
-        table_data = []
-        
-        header = [constants.COL_HEADER_PARAMETER, constants.COL_HEADER_PARAMETER_VALUE]
-        table_data.append(header)
-        
-        for parameter_field in self.strateos_mapping:
-            table_data.append([parameter_field, '']) 
-                
-        
-        create_table = {}
-        create_table['action'] = 'addTable'
-        create_table['cursorChildIndex'] = data['cursorChildIndex']
-        create_table['tableData'] = table_data
-        create_table['tableType'] = 'parameters'
-        create_table['colSizes'] = col_sizes
     
     def _get_client_state(self, httpMessage):
         json_body = intent_parser_utils.get_json_body(httpMessage)
@@ -982,13 +952,10 @@ class IntentParserServer:
         """
         json_body = intent_parser_utils.get_json_body(httpMessage)
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
-
-        try:
-            doc = self.google_accessor.get_document(document_id=document_id)
-        except Exception as ex:
-            self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
-            raise ConnectionException('404', 'Not Found', 'Failed to access document ' + document_id)
-
+        
+        lab_experiment = LabExperiment()
+        doc = lab_experiment.load_from_google_doc(document_id)
+         
         self.analyze_processing_lock[document_id] = threading.Lock()
         self.analyze_processing_lock[document_id].acquire()
 
@@ -1006,11 +973,8 @@ class IntentParserServer:
         client_state['doc'] = doc
         client_state['user_id'] = userId
 
+        paragraphs = lab_experiment.paragraphs() 
         if 'data' in json_body:
-            body = doc.get('body');
-            doc_content = body.get('content')
-            paragraphs = intent_parser_view.get_paragraphs(doc_content)
-
             data = json_body['data']
             paragraph_index = data['paragraphIndex']
             offset = data['offset']
@@ -1041,10 +1005,10 @@ class IntentParserServer:
         self.analyze_processing_map[client_state['document_id']] = 0
         self.analyze_processing_map_lock.release()
 
-        body = doc.get('body');
-        doc_content = body.get('content')
         doc_id = client_state['document_id']
-        paragraphs = intent_parser_view.get_paragraphs(doc_content)
+        lab_experiment = LabExperiment()
+        lab_experiment.load_from_google_doc(doc_id)
+        paragraphs = lab_experiment.paragraphs() 
 
         self.item_map_lock.acquire()
         item_map = self.item_map
@@ -1108,15 +1072,14 @@ class IntentParserServer:
         self.client_state_lock.acquire()
         if document_id not in self.client_state_map:
             self.client_state_lock.release()
-            raise ConnectionException(404, 'Bad Request',
+            raise ConnectionException(HTTPStatus.BAD_REQUEST,
                                       'Invalid session')
 
         client_state = self.client_state_map[document_id]
 
         if client_state['locked']:
             self.client_state_lock.release()
-            raise ConnectionException(503, 'Service Unavailable',
-                                      'This document is busy')
+            raise ConnectionException(HTTPStatus.SERVICE_UNAVAILABLE, 'This document is busy')
         client_state['locked'] = True
         self.client_state_lock.release()
 
@@ -1141,13 +1104,13 @@ class IntentParserServer:
     def stop(self):
         ''' Stop the intent parser server
         '''
-        if self.sbh is not None:
-            self.sbh.stop()
-
+        
+        self.initialized = False
         self.logger.info('Signaling shutdown...')
         self.shutdownThread = True
         self.event.set()
-
+        if self.sbh is not None:
+            self.sbh.stop()
         if self.socket is not None:
             self.logger.info('Closing server...')
             try:
