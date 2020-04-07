@@ -1,6 +1,7 @@
 
 from collections import namedtuple as _namedtuple
 from difflib import Match
+from http import HTTPStatus
 from intent_parser_exceptions import ConnectionException 
 import json
 import Levenshtein
@@ -92,7 +93,7 @@ def get_json_body(httpMessage):
     body = httpMessage.get_body()
     if body == None or len(body) == 0:
         errorMessage = 'No POST data\n'
-        raise ConnectionException(400, 'Bad Request', errorMessage)
+        raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
 
     bodyStr = body.decode('utf-8')
 
@@ -100,11 +101,11 @@ def get_json_body(httpMessage):
         return json.loads(bodyStr)
     except json.decoder.JSONDecodeError as e:
         errorMessage = 'Failed to decode JSON data: {}\n'.format(e);
-        raise ConnectionException(400, 'Bad Request', errorMessage)
+        raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
     
 def get_document_id_from_json_body(json_body):
     if 'documentId' not in json_body:
-        raise ConnectionException('400', 'Bad Request', 'Missing documentId')
+        raise ConnectionException(HTTPStatus.BAD_REQUEST, 'Missing documentId')
     return json_body['documentId']
 
 def get_element_type(element, element_type):
