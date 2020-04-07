@@ -49,10 +49,7 @@ class IntegrationIpsTest(unittest.TestCase):
                 IntegrationIpsTest.sbh_password = creds['password']
 
         self.google_accessor = GoogleAccessor.create()
-        #f = open('test-doc.json', 'r')
-        #doc_content = json.loads(f.read())
-        #f.close()
-
+      
         self.bind_ip = 'localhost'
         self.bind_port = 8081
         self.template_doc_id = '10HqgtfVCtYhk3kxIvQcwljIUonSNlSiLBC8UFmlwm1s'
