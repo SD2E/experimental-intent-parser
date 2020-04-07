@@ -6,7 +6,6 @@ from lab_experiment import LabExperiment
 from lab_table import LabTable
 from measurement_table import MeasurementTable
 from parameter_table import ParameterTable
-from sbol_dictionary_accessor import SBOLDictionaryAccessor
 import constants
 import intent_parser_utils
 import logging
@@ -36,13 +35,13 @@ class IntentParser(object):
 
     logger = logging.getLogger('intent_parser')
     
-    def __init__(self, document_id, spreadsheet_id, datacatalog_config, sbh_instance):
+    def __init__(self, document_id, datacatalog_config, sbh_instance, sbol_dictionary):
         self._document_id = document_id
         self.lab_experiment = LabExperiment()
         self.catalog_accessor = CatalogAccessor()
         self.datacatalog_config = datacatalog_config
         self.sbh = sbh_instance
-        self.sbol_dictionary = SBOLDictionaryAccessor(spreadsheet_id, sbh_instance)
+        self.sbol_dictionary = sbol_dictionary
        
     def process(self):
         self._generate_request()
