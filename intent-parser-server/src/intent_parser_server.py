@@ -264,6 +264,8 @@ class IntentParserServer:
             self.process_add_to_syn_bio_hub(httpMessage, socket_manager) 
         elif resource == '/addBySpelling':
             self.process_add_by_spelling(httpMessage, socket_manager)
+        elif resource == '/submitForm':
+            self.process_submit_form(httpMessage, socket_manager)
         elif resource == '/createTableTemplate':
             self.process_create_table_template(httpMessage, socket_manager)
         elif resource == '/validateStructuredRequest':
@@ -368,7 +370,115 @@ class IntentParserServer:
         actions = {'actions': [samples]} 
         self.send_response(HTTPStatus.OK, json.dumps(actions), socket_manager, 'application/json')
     
+    def process_submit_form(self, httpMessage, sm):
+        (json_body, client_state) = self.get_client_state(httpMessage)
+        try:
+            data = json_body['data']
+            action = data['extra']['action']
+
+            result = {}
+
+            if action == 'submit':
+                result = self.sbh.create_sbh_stub(data)
+                if result['results']['operationSucceeded'] and data['isSpellcheck'] == 'True':
+                    # store the link for any other matching results
+                    curr_term = client_state['spelling_results'][ client_state["spelling_index"]]['term']
+                    for r in client_state['spelling_results']:
+                        if r['term'] == curr_term:
+                            r['prev_link'] = result['actions'][0]['url']
+
+                    client_state["spelling_index"] += 1
+                    if client_state['spelling_index'] < client_state['spelling_size']:
+                        for action in intent_parser_view.report_spelling_results(client_state):
+                            result['actions'].append(action)
+            elif action == 'submitLinkAll':
+                result = self.sbh.create_sbh_stub(data)
+                if result['results']['operationSucceeded']:
+                    uri = result['actions'][0]['url']
+                    data['extra']['link'] = uri
+                    # Drop the link action, since we will add it again
+                    result['actions'] = []
+                    linkActions = self.process_form_link_all(data)
+                    for action in linkActions:
+                        result['actions'].append(action)
+                    if bool(data['isSpellcheck']):
+                        if self.spellcheck_remove_term(client_state):
+                            reportActions = intent_parser_view.report_spelling_results(client_state)
+                            for action in reportActions:
+                                result['actions'].append(action)
+            elif action == 'link':
+                search_result = \
+                    {'paragraph_index' : data['selectionStartParagraph'],
+                     'offset'          : int(data['selectionStartOffset']),
+                     'end_offset'      : int(data['selectionEndOffset']),
+                     'uri'             : data['extra']['link']
+                    }
+                actions = self.add_link(search_result)
+                result = {'actions': actions,
+                          'results': {'operationSucceeded': True}
+                }
+                if data['isSpellcheck'] == 'True':
+                    client_state["spelling_index"] += 1
+                    if client_state['spelling_index'] < client_state['spelling_size']:
+                        for action in intent_parser_view.report_spelling_results(client_state):
+                            result['actions'].append(action)
+            elif action == 'linkAll':
+                actions = self.process_form_link_all(data)
+                result = {'actions': actions,
+                          'results': {'operationSucceeded': True}
+                }
+                if data['isSpellcheck'] == 'True':
+                    if self.spellcheck_remove_term(client_state):
+                        reportActions = intent_parser_view.report_spelling_results(client_state)
+                        for action in reportActions:
+                            result['actions'].append(action)
+            elif action == 'createMeasurementTable':
+                actions = self.process_create_measurement_table(data)
+                result = {'actions': actions,
+                          'results': {'operationSucceeded': True}
+                }
+            else:
+                self.logger.error('Unsupported form action: {}'.format(action))
+
+            self.send_response(HTTPStatus.OK, json.dumps(result), sm,
+                               'application/json')
+        finally:
+            self.release_connection(client_state)
+            
+    def process_form_link_all(self, data):
+        document_id = data['documentId']
+        lab_experiment = LabExperiment(document_id)
+        lab_experiment.load_from_google_doc()
+        paragraphs = lab_experiment.paragraphs() 
+        selected_term = data['selectedTerm']
+        uri = data['extra']['link']
+
+        actions = []
+
+        pos = 0
+        while True:
+            result = intent_parser_utils.find_exact_text(selected_term, pos, paragraphs)
+
+            if result is None:
+                break
+
+            search_result = { 'paragraph_index' : result[0],
+                              'offset'          : result[1],
+                              'end_offset'      : result[1] + len(selected_term) - 1,
+                              'term'            : selected_term,
+                              'uri'             : uri,
+                              'link'            : result[3],
+                              'text'            : result[4]}
+            # Only link terms that don't already have links
+            if  search_result['link'] is None:
+                actions += self.add_link(search_result)
+
+            pos = result[2] + len(selected_term)
+
+        return actions
+    
     def process_message(self, httpMessage, socket_manager):
+        #TODO: remove?
         json_body = self.get_json_body(httpMessage)
         if 'message' in json_body:
             self.logger.info(json_body['message'])
