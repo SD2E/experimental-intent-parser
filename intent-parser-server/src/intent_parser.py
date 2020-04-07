@@ -38,7 +38,7 @@ class IntentParser(object):
     
     def __init__(self, document_id, spreadsheet_id, datacatalog_config, sbh_instance):
         self._document_id = document_id
-        self.lab_experiment = LabExperiment(spreadsheet_id)
+        self.lab_experiment = LabExperiment()
         self.catalog_accessor = CatalogAccessor()
         self.datacatalog_config = datacatalog_config
         self.sbh = sbh_instance
@@ -334,7 +334,7 @@ class IntentParser(object):
             parameter = parameter_table.parse_table(table)
             self._validation_errors.extend(parameter_table.get_validation_errors())
             
-        self._request['name'] = title
+        self._request['name'] = title[0]
         self._request['experiment_id'] = experiment_id
         self._request['challenge_problem'] = cp_id
         self._request['experiment_reference'] = experiment_reference
