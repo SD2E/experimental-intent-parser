@@ -17,6 +17,7 @@ class CatalogAccessor(object):
     def __init__(self):
         self.challenge_problem_ids = None
         self.file_types = None
+        self.fluid_units = None
         self.lab_ids = None
         self.measurement_types = None
         self.temperature_units = None
