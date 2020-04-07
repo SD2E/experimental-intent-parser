@@ -2,6 +2,41 @@
 List of constants used for intent parser server
 """
 
+LAB_IDS_LIST = sorted(['BioFAB UID',
+                            'Ginkgo UID',
+                            'Transcriptic UID',
+                            'LBNL UID',
+                            'EmeraldCloud UID',
+                            'CalTech UID',
+                            'PennState (Salis) UID'])
+
+ITEM_TYPES = {
+            'component': {
+                'Bead'     : 'http://purl.obolibrary.org/obo/NCIT_C70671',
+                'CHEBI'    : 'http://identifiers.org/chebi/CHEBI:24431',
+                'DNA'      : 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
+                'Protein'  : 'http://www.biopax.org/release/biopax-level3.owl#Protein',
+                'RNA'      : 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
+            },
+            'module': {
+                'Strain'   : 'http://purl.obolibrary.org/obo/NCIT_C14419',
+                'Media'    : 'http://purl.obolibrary.org/obo/NCIT_C85504',
+                'Stain'    : 'http://purl.obolibrary.org/obo/NCIT_C841',
+                'Buffer'   : 'http://purl.obolibrary.org/obo/NCIT_C70815',
+                'Solution' : 'http://purl.obolibrary.org/obo/NCIT_C70830'
+            },
+            'collection': {
+                'Challenge Problem' : '',
+                'Collection' : ''
+            },
+            'external': {
+                'Attribute' : ''
+            }
+        }
+
+# How many results we allow
+SPARQL_LIMIT = 5
+
 # String defines for headers in measurements table
 COL_HEADER_FILE_TYPE = 'file-type'
 COL_HEADER_MEASUREMENT_TYPE = 'measurement-type'
