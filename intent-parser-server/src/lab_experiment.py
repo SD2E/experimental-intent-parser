@@ -1,4 +1,5 @@
 from google_accessor import GoogleAccessor
+from http import HTTPStatus
 from intent_parser_exceptions import ConnectionException
 import intent_parser_utils
  
@@ -19,16 +20,17 @@ class LabExperiment(object):
             self._title = intent_parser_utils.get_element_type(doc, 'title')
             self._paragraphs = self._get_paragraph_from_doc(doc)
             self._links_info = self._get_links_from_doc(doc)
-            self._parents = self.google_accessor.get_document_parents(document_id=document_id)
+            self._parents = google_accessor.get_document_parents(document_id=document_id)
+            return doc
         except Exception:
-            raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
+            raise ConnectionException(HTTPStatus.NOT_FOUND,'Failed to access document ' + document_id)
 
     def load_metadata_from_google_doc(self, document_id):
         try:
             google_accessor = GoogleAccessor.create()
             self._metadata = google_accessor.get_document_metadata(document_id=document_id) 
         except Exception:
-            raise ConnectionException('404', 'Not Found','Failed to access document ' + document_id)
+            raise ConnectionException(HTTPStatus.NOT_FOUND,'Failed to access document ' + document_id)
         
     def title(self):
         return self._title
