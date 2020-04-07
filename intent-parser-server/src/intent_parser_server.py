@@ -253,13 +253,15 @@ class IntentParserServer:
         resource = httpMessage.get_resource()
         start = time.time() 
         if resource == '/analyzeDocument':
-            self.process_analyze_document(httpMessage, socket_manager) #TODO
+            self.process_analyze_document(httpMessage, socket_manager) 
         elif resource == '/updateExperimentalResults':
             self.process_update_exp_results(httpMessage, socket_manager)
         elif resource == '/calculateSamples':
             self.process_calculate_samples(httpMessage, socket_manager)
+        elif resource == '/buttonClick':
+            self.process_button_click(httpMessage, socket_manager)
         elif resource == '/message':
-            self.process_message(httpMessage, socket_manager)
+            self.process_message(httpMessage, socket_manager) #TODO: remove
         elif resource == '/addToSynBioHub':
             self.process_add_to_syn_bio_hub(httpMessage, socket_manager) 
         elif resource == '/addBySpelling':
@@ -477,6 +479,50 @@ class IntentParserServer:
 
         return actions
     
+    def get_client_state(self, httpMessage):
+        json_body = intent_parser_utils.get_json_body(httpMessage)
+                
+        if 'documentId' not in json_body:
+            raise ConnectionException(HTTPStatus.BAD_REQUEST,
+                                      'Missing documentId')
+        document_id = json_body['documentId']
+
+        try:
+            client_state = self.get_connection(document_id)
+        except:
+            client_state = None
+
+        return (json_body, client_state)
+    
+    def process_button_click(self, httpMessage, sm):
+        (json_body, client_state) = self.get_client_state(httpMessage)
+
+        if 'data' not in json_body:
+            errorMessage = 'Missing data'
+            raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
+        data = json_body['data']
+
+        if 'buttonId' not in data:
+            errorMessage = 'data missing buttonId'
+            raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
+        if type(data['buttonId']) is dict:
+            buttonDat = data['buttonId']
+            buttonId = buttonDat['buttonId']
+        else:
+            buttonId = data['buttonId']
+
+        method = getattr( self, buttonId )
+
+        try:
+            actionList = method(json_body, client_state)
+            actions = {'actions': actionList}
+            self.send_response(HTTPStatus.OK, json.dumps(actions), sm,
+                               'application/json')
+        except Exception as e:
+            raise e
+        finally:
+            self.release_connection(client_state)
+            
     def process_message(self, httpMessage, socket_manager):
         #TODO: remove?
         json_body = self.get_json_body(httpMessage)
@@ -1186,7 +1232,7 @@ class IntentParserServer:
             try:
                 self.socket.shutdown(socket.SHUT_RDWR)
                 self.socket.close()
-            except OSError as ex:
+            except OSError:
                 return
             for key in self.curr_running_threads:
                 client_thread = self.curr_running_threads[key]
