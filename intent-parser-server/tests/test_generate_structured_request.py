@@ -16,7 +16,6 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         curr_path = os.path.dirname(os.path.realpath(__file__))
         self.data_dir = os.path.join(curr_path, '../tests/data')
        
-        # If we don't have the necessary credentials, try reading them in from json
         with open(os.path.join(curr_path, 'sbh_creds.json'), 'r') as file:
             creds = json.load(file)
             self.sbh_username = creds['username']
@@ -44,7 +43,8 @@ class GenerateStruturedRequestTest(unittest.TestCase):
                                                 bind_ip='localhost',
                                                 bind_port=8081,
                                                 datacatalog_authn=self.authn)
-
+        self.intent_parser.initialize_server()
+        self.intent_parser.start(background=True) 
         self.maxDiff = None # Set flag for testing to diff between large strings 
    
     def test_document_requests(self):
@@ -60,7 +60,7 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         doc_id_list = ['13tJ1JdCxL9bA9x3oNxGPm-LymW91-OT7SRW6fHyEBCo', 
                         '1A8-57gZue9h0ryDfASF7fH2maBPhOZ1e_AJCtIAez58', # 1WOa8crKEpJX0ZFJv4NtMjVaI-35__sdEMc5aPxb1al4
                         '1180pM7EEEboemf_wdAdw6RnwD0-dk9o4OJpvSdmhaIY', # 1uv_X7CSD5cONEjW7yq4ecI89XQxPQuG5lnmaqshj47o 
-                        '1YlmQGx-i8IhLpWAp6lEiuRHNuGHzfNkgVfk1UhsPW1c', # 1XFC1onvvrhggNHiAci-iu2msXZQg3_SyiGdKnKUwrpM
+#                         '1YlmQGx-i8IhLpWAp6lEiuRHNuGHzfNkgVfk1UhsPW1c', # 1XFC1onvvrhggNHiAci-iu2msXZQg3_SyiGdKnKUwrpM
                         '1ANYsKgAkY1InQmaIPMJ91-GOgBJpBveWcngFCl6fPdY', # 1v5UHLS4qvVovMK8GP9MgoboiPGsg_YzgyE9H4E5DTHg 
                         '1sM6wz4s7K5DpPupz8Jn5RFW1ETkP91_zLpBCJPP7HC8', # 15aMX9WdN1gyvjG30sXQZYPdTSTGbxoIRJbqtOvoKyQ0
                         '1xzl0dgRLuSLDvAcsNzZwvZL3ILAzq03Xbj9oAlLe9lo', # 1N0i5RPY-xEsM_MIjqeWZI6cjb9rj3B7L1PGR-Q-ufe0 Note: contain list of strings 
@@ -82,9 +82,10 @@ class GenerateStruturedRequestTest(unittest.TestCase):
             payload_bytes = json.dumps(payload).encode()
             
             self.intent_parser.send_response = Mock()
-            self.intent_parser.process_generate_request(httpMessage, [])
+            self.intent_parser.process_document_request(httpMessage, [])
 
-            actual_data = json.loads(self.intent_parser.send_response.call_args[0][2])
+            result = self.intent_parser.send_response.call_args[0][1]
+            actual_data = json.loads(result)
             with open(os.path.join(self.data_dir, doc_id + '_expected.json'), 'r') as file:
                 expected_data = json.load(file)
                 self.assertEqual(expected_data, actual_data)
