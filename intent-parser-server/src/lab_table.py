@@ -1,5 +1,5 @@
 import logging
-import table_utils
+import intent_parser_utils
 
 class LabTable(object):
     '''
@@ -20,5 +20,5 @@ class LabTable(object):
             self._logger.info('WARNING: Lab table size differs from expectation! Expecting 1 row and 1 col, found %d rows and %d cols' % (numRows, numCols))
         
         # The lab text is expected to be in row 0, col 0 and have the form: Lab: <X>
-        lab = table_utils.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph']).strip().split(sep=':')[1].strip()
+        lab = intent_parser_utils.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph']).strip().split(sep=':')[1].strip()
         return lab
