@@ -1,6 +1,7 @@
 from google_accessor import GoogleAccessor
 from intent_parser_server import IntentParserServer
 from unittest.mock import Mock
+import intent_parser_utils
 import unittest
 import json 
 import os 
@@ -30,10 +31,9 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         self.spreadsheet_id = self.google_accessor.copy_file(file_id = self.template_spreadsheet_id,
                                                      new_title='Intent Parser Server Test Sheet')
 
-        self.doc = self.google_accessor.set_spreadsheet_id(self.spreadsheet_id)
+        self.google_accessor.set_spreadsheet_id(self.spreadsheet_id)
 
-        sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/' + \
-            'intent_parser/intent_parser_collection/1'
+        sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
 
         self.intent_parser = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
                                                 sbh_username=self.sbh_username,
@@ -46,8 +46,26 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         self.intent_parser.initialize_server()
         self.intent_parser.start(background=True) 
         self.maxDiff = None # Set flag for testing to diff between large strings 
-   
-    def test_document_requests(self):
+    
+    def test_document_requests_using_local_table(self):
+        doc_id = '1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA'
+        httpMessage = Mock()
+        httpMessage.get_resource = Mock(return_value='/document_report?' + doc_id)
+        payload = {'documentId':  doc_id, 'user' : 'test@bbn.com', 'userEmail' : 'test@bbn.com'}
+        payload_bytes = json.dumps(payload).encode()
+        
+        self.intent_parser.send_response = Mock()
+        self.intent_parser.process_document_request(httpMessage, [])
+
+        result = self.intent_parser.send_response.call_args[0][1]
+        actual_data = json.loads(result)
+        local_file_path = os.path.join(self.data_dir, 'ginkgo_request.json')
+        first_table_gt = intent_parser_utils.load_json_file(local_file_path)
+            
+        self.assertEquals(actual_data, first_table_gt) 
+
+                
+    def test_document_requests_using_golden_files(self):
         '''
         Compare a list of Google documents with its corresponding golden file.
         Golden files used for testing these Google documents should be updated when new feature are supported for intent parser.   
@@ -95,7 +113,7 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         print('\nstart teardown')
         if self.intent_parser is not None:
             self.intent_parser.stop()
-        if self.doc is not None:
+        if self.spreadsheet_id is not None:
             self.google_accessor.delete_file(file_id=self.spreadsheet_id)
         print('done')
         
