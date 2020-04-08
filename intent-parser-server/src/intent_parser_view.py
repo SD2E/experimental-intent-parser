@@ -105,12 +105,12 @@ def create_add_to_synbiohub_dialog(selection,
     dialog_action = modal_dialog(html, 'Add to SynBioHub', 600, 600)
     return dialog_action
     
-def invalid_request_model_dialog(warnings, errors):
+def invalid_request_model_dialog(messages):
     text_area_rows = 33
     height = 600
     title = 'Structured request validation: Failed!'
-    buttons = [('Ok', 'process_nop')] 
-    validation_message = '\n'.join(warnings.extend(errors))
+    buttons = [('Ok', 'process_nop')]
+    validation_message = '\n'.join(messages)
     msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, validation_message)
     return simple_modal_dialog(msg, buttons, title, 500, height)
 
