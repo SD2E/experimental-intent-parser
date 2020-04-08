@@ -10,7 +10,7 @@ import unittest
 import urllib.request
 import warnings
 
-
+@unittest.skip("Skip due to item map already exist")
 class IntegrationIpsTest(unittest.TestCase):
 
     data_dir = 'data'
