@@ -29,9 +29,7 @@ class IntentParser(object):
                        '1zf9l0K4rj7I08ZRpxV2ZY54RMMQc15Rlg7ULviJ7SBQ': '1uXqsmRLeVYkYJHqgdaecmN_sQZ2Tj4Ck1SZKcp55yEQ' }
 
 
-    _request = {} 
-    _validation_errors = []
-    _validation_warnings = []
+    
 
     logger = logging.getLogger('intent_parser')
     
@@ -42,6 +40,10 @@ class IntentParser(object):
         self.datacatalog_config = datacatalog_config
         self.sbh = sbh_instance
         self.sbol_dictionary = sbol_dictionary
+        
+        self.request = {} 
+        self.validation_errors = []
+        self.validation_warnings = []
        
     def process(self):
         self._generate_request()
@@ -165,13 +167,13 @@ class IntentParser(object):
         return selection, self.sbh.sanitize_name_to_display_id(selection)
       
     def get_structured_request(self):
-        return self._request
+        return self.request
     
     def get_validation_errors(self):
-        return self._validation_errors
+        return self.validation_errors
     
     def get_validation_warnings(self):
-        return self._validation_warnings
+        return self.validation_warnings
     
     def update_experimental_results(self):
         self.lab_experiment.load_from_google_doc(self._document_id) 
@@ -319,7 +321,7 @@ class IntentParser(object):
                                           self.catalog_accessor.get_measurement_types(), 
                                           self.catalog_accessor.get_file_types())
             measurements = meas_table.parse_table(table)
-            self._validation_errors.extend(meas_table.get_validation_errors())
+            self.validation_errors.extend(meas_table.get_validation_errors())
 
         if lab_table_idx >= 0:
             table = doc_tables[lab_table_idx]
@@ -331,30 +333,30 @@ class IntentParser(object):
             table = doc_tables[parameter_table_idx]
             parameter_table = ParameterTable(self.sbol_dictionary.get_strateos_mappings())
             parameter = parameter_table.parse_table(table)
-            self._validation_errors.extend(parameter_table.get_validation_errors())
+            self.validation_errors.extend(parameter_table.get_validation_errors())
             
-        self._request['name'] = title[0]
-        self._request['experiment_id'] = experiment_id
-        self._request['challenge_problem'] = cp_id
-        self._request['experiment_reference'] = experiment_reference
-        self._request['experiment_reference_url'] = experiment_reference_url
-        self._request['experiment_version'] = 1
-        self._request['lab'] = lab
-        self._request['runs'] = [{ 'measurements' : measurements}]
+        self.request['name'] = title[0]
+        self.request['experiment_id'] = experiment_id
+        self.request['challenge_problem'] = cp_id
+        self.request['experiment_reference'] = experiment_reference
+        self.request['experiment_reference_url'] = experiment_reference_url
+        self.request['experiment_version'] = 1
+        self.request['lab'] = lab
+        self.request['runs'] = [{ 'measurements' : measurements}]
             
         if parameter:
-            self._request['parameters'] = [parameter] 
+            self.request['parameters'] = [parameter] 
     
     def _validate_schema(self):
-        if self._request:
+        if self.request:
             try:
                 schema = { '$ref' : 'https://schema.catalog.sd2e.org/schemas/structured_request.json' }
-                validate(self._request, schema)
+                validate(self.request, schema)
                 
-                reagent_with_no_uri = intent_parser_utils.get_reagent_with_no_uri(self._request)
+                reagent_with_no_uri = intent_parser_utils.get_reagent_with_no_uri(self.request)
                 for reagent in reagent_with_no_uri:
-                    self._validation_warnings.append('%s does not have a SynbioHub URI specified!&#13;&#10;' % reagent) 
+                    self.validation_warnings.append('%s does not have a SynbioHub URI specified!&#13;&#10;' % reagent) 
             except ValidationError as err:
-                self._validation_errors.append('Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;'))
+                self.validation_errors.append('Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;'))
 
     
