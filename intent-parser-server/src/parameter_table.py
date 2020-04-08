@@ -51,12 +51,12 @@ class ParameterTable(object):
                         parameter_data[param_field_id] =  param_value_list[i]
             except ValueError as value_err:
                 message = str(value_err)
-                self._logger.info('WARNING ' + message)
                 self._validation_errors.append(message)       
             except TableException as table_err:
                 message = ' '.join(['In Parameter Table: ', table_err.get_expression(), table_err.get_message()])
-                self._logger.info('WARNING ' + message)
-                self._validation_errors.append(message) 
+                self._validation_errors.append(message)
+            except DictionaryMaintainerException as dictionary_err:
+                self._validation_errors.append(dictionary_err.get_expression() + ' ' + dictionary_err.get_message()) 
         return parameter_data
     
     def _parse_parameter_field_value(self, parameter_field, parameter_value):
