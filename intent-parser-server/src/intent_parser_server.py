@@ -222,7 +222,7 @@ class IntentParserServer:
             self.logger.warning('Did not find ' + resource)
             raise ConnectionException(HTTPStatus.NOT_FOUND, 'Resource Not Found')
         end = time.time()
-        self.logger.info('Generated GET request in %0.2fms, %s, %s' %((end - start) * 1000, self.document_id, time.time()))
+        self.logger.info('Generated GET request in %0.2fms, %s' %((end - start) * 1000, time.time()))
     
     def process_document_report(self, httpMessage, socket_manager):
         """
@@ -236,7 +236,7 @@ class IntentParserServer:
 
     def process_document_request(self, httpMessage, socket_manager):
         """
-        Handles a request to generate a structured request json
+        Handles a request to generate a structured request 
         """
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
@@ -266,6 +266,8 @@ class IntentParserServer:
             self.process_add_to_syn_bio_hub(httpMessage, socket_manager) 
         elif resource == '/addBySpelling':
             self.process_add_by_spelling(httpMessage, socket_manager)
+        elif resource == '/searchSynBioHub':
+            self.process_search_syn_bio_hub(httpMessage, socket_manager)
         elif resource == '/submitForm':
             self.process_submit_form(httpMessage, socket_manager)
         elif resource == '/createTableTemplate':
@@ -277,7 +279,7 @@ class IntentParserServer:
         else:
             self.send_response(HTTPStatus.NOT_FOUND, 'Resource Not Found\n', socket_manager)
         end = time.time()
-        self.logger.info('Generated POST request in %0.2fms, %s, %s' %((end - start) * 1000, self.document_id, time.time()))
+        self.logger.info('Generated POST request in %0.2fms, %s' %((end - start) * 1000, time.time()))
 
     def process_analyze_document(self, httpMessage, socket_manager):
         """
@@ -523,6 +525,11 @@ class IntentParserServer:
         finally:
             self.release_connection(client_state)
             
+    def process_nop(self, httpMessage, sm):
+        httpMessage # Fix unused warning
+        sm # Fix unused warning
+        return []
+            
     def process_message(self, httpMessage, socket_manager):
         #TODO: remove?
         json_body = self.get_json_body(httpMessage)
@@ -575,7 +582,10 @@ class IntentParserServer:
         if len(validation_errors) == 0:
             dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings, intent_parser_view.get_download_link(http_host, document_id))
         else:
-            dialog_action = intent_parser_view.invalid_request_model_dialog(validation_warnings, validation_errors)
+            all_messages = []
+            all_messages.extend(validation_warnings)
+            all_messages.extend(validation_errors)
+            dialog_action = intent_parser_view.invalid_request_model_dialog(all_messages)
         actionList = [dialog_action]
         actions = {'actions': actionList}
         self.send_response(HTTPStatus.OK, json.dumps(actions), socket_manager, 'application/json')
@@ -723,6 +733,56 @@ class IntentParserServer:
 
         return self.report_search_results(client_state)
     
+    def process_search_syn_bio_hub(self, httpMessage, sm):
+        json_body = intent_parser_utils.get_json_body(httpMessage)
+        data = json_body['data']
+
+        try:
+            offset = 0
+            if 'offset' in data:
+                offset = int(data['offset'])
+            # Bounds check offset value
+            if offset < 0:
+                offset = 0
+            if data['term'] in self.sparql_similar_count_cache:
+                # Ensure offset isn't past the end of the results
+                if offset > int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit:
+                    offset = max(0, int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit)
+            else:
+                # Don't allow a non-zero offset if we haven't cached the size of the query
+                if offset > 0:
+                    offset = 0
+
+            if 'analyze' in data:
+                analyze = True
+                filter_uri = data['selected_uri']
+            else:
+                analyze = False
+                filter_uri = None
+
+            search_results, results_count = self.simple_syn_bio_hub_search(data['term'], offset, filter_uri)
+
+            table_html = ''
+            for search_result in search_results:
+                title = search_result['title']
+                target = search_result['target']
+                table_html += intent_parser_view.generate_existing_link_html(title, target, analyze)
+            table_html += self.generate_results_pagination_html(offset, int(results_count))
+
+            response = {'results':
+                        {'operationSucceeded': True,
+                         'search_results': search_results,
+                         'table_html': table_html
+                        }}
+
+
+        except Exception as err:
+            self.logger.error(str(err))
+            response = self.operation_failed('Failed to search SynBioHub')
+
+        self.send_response(HTTPStatus.OK, json.dumps(response), sm,
+                           'application/json')
+        
     def process_create_table_template(self,  httpMessage, socket_manager):
         """
         """
@@ -830,7 +890,7 @@ class IntentParserServer:
                     self.spellCheckers[userId].word_frequency.load_dictionary(dict_path)
 
             lab_experiment = LabExperiment()
-            doc = lab_experiment.load_from_google_doc(self.document_id)
+            doc = lab_experiment.load_from_google_doc(document_id)
             paragraphs = lab_experiment.paragraphs() 
             if 'data' in json_body:
                 data = json_body['data']
