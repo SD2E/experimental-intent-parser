@@ -3,6 +3,7 @@ from parameter_table import ParameterTable
 import unittest
 
 
+
 class ParameterTableTest(unittest.TestCase):
 
     @classmethod
@@ -300,6 +301,6 @@ class ParameterTableTest(unittest.TestCase):
                            'plate_reader_info.gain.2' : 0.3}
         self.assertEquals(3, len(param_result))
         self.assertDictEqual(expected_result, param_result)
-
+ 
 if __name__ == "__main__":
     unittest.main()
