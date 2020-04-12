@@ -95,6 +95,9 @@ class SBOLDictionaryAccessor(object):
         return tab_data
     
     def generate_item_map(self, *, use_cache=True):
+        """
+        Use the SBOL Dictionary to generate a dictionary of common names referring to its SBH URI and store it into a local item-map.json file
+        """
         item_map = {}
         self.logger.info('Generating item map, %d' % time.time())
         if use_cache:
