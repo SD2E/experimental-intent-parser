@@ -8,6 +8,7 @@ from operator import itemgetter
 from sbol_dictionary_accessor import SBOLDictionaryAccessor
 from socket_manager import SocketManager
 from spellchecker import SpellChecker
+from strateos_accessor import StrateosAccessor
 import argparse
 import constants
 import http_message;
@@ -86,6 +87,7 @@ class IntentParserServer:
         self.client_thread_lock = threading.Lock() 
         self.sparql_similar_count_cache = {}
         self.datacatalog_config = { "mongodb" : { "database" : "catalog_staging", "authn" : datacatalog_authn } }
+        self.strateos_accessor = StrateosAccessor() #TODO: login account
         self.spellCheckers = {}
         # Dictionary per-user that stores analyze associations to ignore
         self.analyze_never_link = {}
@@ -441,9 +443,14 @@ class IntentParserServer:
                 result = {'actions': actions,
                           'results': {'operationSucceeded': True}
                 }
+            elif action == 'createParameterTable':
+                actions = self.process_create_parameter_table(data)
+                result = {'actions': actions,
+                          'results': {'operationSucceeded': True}
+                }
             else:
                 self.logger.error('Unsupported form action: {}'.format(action))
-
+            self.logger.info('Action: %s' % result)
             self.send_response(HTTPStatus.OK, json.dumps(result), sm,
                                'application/json')
         finally:
@@ -796,6 +803,10 @@ class IntentParserServer:
             if table_type == 'measurements':
                 dialog_action = intent_parser_view.create_measurement_table_template(cursor_child_index)
                 actionList.append(dialog_action)
+            elif table_type == 'parameters':
+                protocol_options = list(constants.PROTOCOL_NAMES.values())
+                dialog_action = intent_parser_view.create_parameter_table_template(cursor_child_index, protocol_options)
+                actionList.append(dialog_action)
             else :
                 self.logger.warning('WARNING: unsupported table type: %s' % table_type)
 
@@ -1091,6 +1102,59 @@ class IntentParserServer:
         create_table['tableLab'] = [[lab]]
         create_table['colSizes'] = col_sizes
 
+        return [create_table]
+    
+    def process_create_parameter_table(self, data):
+        selected_protocol = data['protocol']
+        table_data = []
+        col_sizes = []
+        
+        header = []
+        header.append(constants.COL_HEADER_PARAMETER)
+        header.append(constants.COL_HEADER_PARAMETER_VALUE)
+        table_data.append(header)
+        
+        col_sizes.append(len(constants.COL_HEADER_PARAMETER) + 1)
+        col_sizes.append(len(constants.COL_HEADER_PARAMETER_VALUE) + 1)
+        
+        protocol_default_value = None
+        protocol = [key for key, value in constants.PROTOCOL_NAMES.items() if value == selected_protocol]
+        
+        if protocol[0] == constants.GROWTH_CURVE_PROTOCOL:
+            protocol_default_value = self.strateos_accessor.get_protocol(constants.GROWTH_CURVE_PROTOCOL)
+        elif protocol[0] == constants.OBSTACLE_COURSE_PROTOCOL:
+            protocol_default_value = self.strateos_accessor.get_protocol(constants.OBSTACLE_COURSE_PROTOCOL)
+        elif protocol[0] == constants.TIME_SERIES_HTP_PROTOCOL:
+            protocol_default_value = self.strateos_accessor.get_protocol(constants.TIME_SERIES_HTP_PROTOCOL)
+        else:
+            print('unable to find protocol for %s' % protocol[0])
+            
+        strateos_dictionary_mapping = self.sbol_dictionary.get_strateos_mappings()
+        for protocol_key,protocol_value in protocol_default_value.items():
+            parameter_row = []
+            for common_name, strateos_id in strateos_dictionary_mapping.items():
+                if protocol_key == strateos_id:
+                    parameter_row.append(common_name)
+                    parameter_row.append(protocol_value)
+                    col_sizes.append(len(common_name) + 1)
+                    col_sizes.append(len(str(protocol_value)) + 1)
+                    break
+            if not parameter_row:
+                print('Unable to include %s to the Parameter table because there is no parameter name in the SBOL Dictionary for this Strateos UID' % protocol_key)
+                continue
+#                 raise Exception('Unable to include %s to the Parameter table because there is no parameter name in the SBOL Dictionary for this Strateos UID' % protocol_key)
+            else:
+                print('length of row is %d' % len(parameter_row))
+                table_data.append(parameter_row)
+                
+        print('Generating %d rows for parameters' % len(table_data))       
+        create_table = {}
+        create_table['action'] = 'addTable'
+        create_table['cursorChildIndex'] = data['cursorChildIndex']
+        create_table['tableData'] = table_data
+        create_table['tableType'] = 'parameters'
+        create_table['tableProtocol'] = [["Protocol: %s" % selected_protocol]]
+        create_table['colSizes'] = col_sizes
         return [create_table]
     
     def _get_client_state(self, httpMessage):
