@@ -34,6 +34,7 @@ class ParameterTable(object):
     def __init__(self, parameter_fields={}):
         self._parameter_fields = parameter_fields
         self._validation_errors = []
+        
     
     def parse_table(self, table):
         parameter_data = {}
