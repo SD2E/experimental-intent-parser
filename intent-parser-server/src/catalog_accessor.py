@@ -57,7 +57,7 @@ class CatalogAccessor(object):
             self.lab_ids = []
             for d in data['enum']:
                 self.lab_ids.append(d)
-            self.lab_ids.sorted(self.lab_ids)  
+            self.lab_ids.sort()
              
         return self.lab_ids
     
