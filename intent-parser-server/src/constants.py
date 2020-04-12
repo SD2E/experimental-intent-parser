@@ -37,6 +37,14 @@ ITEM_TYPES = {
 # How many results we allow
 SPARQL_LIMIT = 5
 
+GROWTH_CURVE_PROTOCOL = 'GrowthCurve'
+TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
+OBSTACLE_COURSE_PROTOCOL = 'ObstacleCourse'
+
+PROTOCOL_NAMES = {GROWTH_CURVE_PROTOCOL: 'Growth Curves', 
+                  TIME_SERIES_HTP_PROTOCOL: 'Time Series', 
+                  OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course'}
+
 # String defines for headers in measurements table
 COL_HEADER_FILE_TYPE = 'file-type'
 COL_HEADER_MEASUREMENT_TYPE = 'measurement-type'
