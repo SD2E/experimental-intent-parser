@@ -276,7 +276,7 @@ class IntentParser(object):
             experiment_reference_url = 'https://docs.google.com/document/d/' + self._document_id
             # This will return a parent list, which should have one or more Ids of parent directories
             # We want to navigate those and see if they are a close match to a challenge problem ID
-            parent_list = self.lab_experiment.parents() #TODO
+            parent_list = self.lab_experiment.parents()
             cp_id = 'Unknown'
             if not parent_list['kind'] == 'drive#parentList':
                 self.logger.info('ERROR: expected a drive#parent_list, received a %s' % parent_list['kind'])
