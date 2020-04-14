@@ -1,9 +1,9 @@
-from __future__ import print_function
 import pickle
 import os.path
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+import requests
 import time
 
 # If modifying these scopes, delete the file token.pickle.
@@ -18,7 +18,6 @@ REQUESTS_PER_SEC = 0.5
 
 class GoogleAccessor:
 
-    # Constructor
     def __init__(self, *, spreadsheet_id: str, credentials):
         self._sheet_service = build('sheets', 'v4',
                                     credentials=credentials)
@@ -100,10 +99,9 @@ class GoogleAccessor:
 
     def create_new_spreadsheet(self, name: str):
         """Creates a new spreadsheet and return the spreadsheet id
-          Arguements:
-
+        
+        Args:
             name - Name of the new spreadsheet
-
         """
         spreadsheet = {
             'properties': {
@@ -125,18 +123,32 @@ class GoogleAccessor:
         files = self._drive_service.files()
         request = files.delete(fileId=file_id)
         return self._execute_request(request)
-
+    
+    @staticmethod
+    def download_file_with_revision(file_name, file_id, revision_id, format_type):
+        """
+        Download a Google Doc base on a Doc's id and its revision.
+        
+        Args:
+            fild_id: Google Doc ID
+            revision_id: Google Doc revision ID
+            format_type: format to download the Google Doc in. 
+            Visit https://developers.google.com/drive/api/v3/ref-export-formats to get a list file formats that Google can export to
+        """
+        url = 'https://docs.google.com/feeds/download/documents/export/Export?id=%s&revision=%s&exportFormat=%s' % (file_id, revision_id, format_type)
+        response = requests.get(url)
+#         open(file_name + format_type, 'wb').write(response.content)
+        return response.content
+    
     def copy_file(self, file_id: str, new_title: str):
-        """Copyies an existing file
-          Arguements:
-
+        """Copy an existing file.
+        
+        Args:
             file_id   - the file to delete
             new_title - title of new copy
 
-          Returns:
-
+        Returns:
             document id of new file
-
         """
         files = self._drive_service.files()
         request = files.copy(fileId=file_id,
@@ -145,7 +157,7 @@ class GoogleAccessor:
 
     def create_dictionary_sheets(self):
         """ Creates the standard tabs on the current spreadsheet.
-            The tabs are not popluated with any data
+            The tabs are not populated with any data
         """
         add_sheet_requests = list(map(lambda x: self.add_sheet_request(x),
                                     list(self.type_tabs.keys())))
@@ -168,8 +180,7 @@ class GoogleAccessor:
     def add_sheet_request(self, sheet_title: str):
         """ Creates a Google request to add a tab to the current spreadsheet
 
-          Arguments:
-
+        Args:
             sheet_title: name of the new tab
         """
 
