@@ -2,10 +2,7 @@ from git import Repo, remote
 from google_accessor import GoogleAccessor
 from intent_parser_server import IntentParserServer
 from unittest.mock import Mock
-from os import listdir
-from os.path import isfile, join
-import intent_parser_utils as ip_util
-import ip_addon_script 
+import intent_parser_utils
 import unittest
 import json 
 import os 
@@ -34,9 +31,15 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         self.spreadsheet_id = self.google_accessor.copy_file(file_id = self.template_spreadsheet_id,
                                                      new_title='Intent Parser Server Test Sheet')
 
+<<<<<<< HEAD
         self.doc = self.google_accessor.set_spreadsheet_id(self.spreadsheet_id)
         sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/' + \
             'intent_parser/intent_parser_collection/1'
+=======
+        self.google_accessor.set_spreadsheet_id(self.spreadsheet_id)
+
+        sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
+>>>>>>> refs/heads/183-validate-on-generation
 
         self.intent_parser = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
                                                 sbh_username=self.sbh_username,
@@ -46,6 +49,7 @@ class GenerateStruturedRequestTest(unittest.TestCase):
                                                 bind_ip='localhost',
                                                 bind_port=8081,
                                                 datacatalog_authn=self.authn)
+<<<<<<< HEAD
 
         # checkout cp-request repo 
         self.repo_path = os.path.join(curr_path, '../tests/data/cp-request') 
@@ -72,10 +76,37 @@ class GenerateStruturedRequestTest(unittest.TestCase):
                     doc_id = ip_util.get_google_doc_id(doc_url)
                     self.golden_file_map[doc_id] = data
 
+=======
+        self.intent_parser.initialize_server()
+        self.intent_parser.start(background=True) 
+>>>>>>> refs/heads/183-validate-on-generation
         self.maxDiff = None # Set flag for testing to diff between large strings 
+<<<<<<< HEAD
    
     @unittest.skip("deprecating test case")
     def test_document_requests(self):
+=======
+    
+    def test_document_requests_using_local_table(self):
+        doc_id = '1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA'
+        httpMessage = Mock()
+        httpMessage.get_resource = Mock(return_value='/document_report?' + doc_id)
+        payload = {'documentId':  doc_id, 'user' : 'test@bbn.com', 'userEmail' : 'test@bbn.com'}
+        payload_bytes = json.dumps(payload).encode()
+        
+        self.intent_parser.send_response = Mock()
+        self.intent_parser.process_document_request(httpMessage, [])
+
+        result = self.intent_parser.send_response.call_args[0][1]
+        actual_data = json.loads(result)
+        local_file_path = os.path.join(self.data_dir, 'ginkgo_request.json')
+        first_table_gt = intent_parser_utils.load_json_file(local_file_path)
+            
+        self.assertEquals(actual_data, first_table_gt) 
+
+                
+    def test_document_requests_using_golden_files(self):
+>>>>>>> refs/heads/183-validate-on-generation
         '''
         Compare a list of Google documents with its corresponding golden file.
         Golden files used for testing these Google documents should be updated when new feature are supported for intent parser.   
@@ -88,7 +119,7 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         doc_id_list = ['13tJ1JdCxL9bA9x3oNxGPm-LymW91-OT7SRW6fHyEBCo', 
                         '1A8-57gZue9h0ryDfASF7fH2maBPhOZ1e_AJCtIAez58', # 1WOa8crKEpJX0ZFJv4NtMjVaI-35__sdEMc5aPxb1al4
                         '1180pM7EEEboemf_wdAdw6RnwD0-dk9o4OJpvSdmhaIY', # 1uv_X7CSD5cONEjW7yq4ecI89XQxPQuG5lnmaqshj47o 
-                        '1YlmQGx-i8IhLpWAp6lEiuRHNuGHzfNkgVfk1UhsPW1c', # 1XFC1onvvrhggNHiAci-iu2msXZQg3_SyiGdKnKUwrpM
+#                         '1YlmQGx-i8IhLpWAp6lEiuRHNuGHzfNkgVfk1UhsPW1c', # 1XFC1onvvrhggNHiAci-iu2msXZQg3_SyiGdKnKUwrpM
                         '1ANYsKgAkY1InQmaIPMJ91-GOgBJpBveWcngFCl6fPdY', # 1v5UHLS4qvVovMK8GP9MgoboiPGsg_YzgyE9H4E5DTHg 
                         '1sM6wz4s7K5DpPupz8Jn5RFW1ETkP91_zLpBCJPP7HC8', # 15aMX9WdN1gyvjG30sXQZYPdTSTGbxoIRJbqtOvoKyQ0
                         '1xzl0dgRLuSLDvAcsNzZwvZL3ILAzq03Xbj9oAlLe9lo', # 1N0i5RPY-xEsM_MIjqeWZI6cjb9rj3B7L1PGR-Q-ufe0 Note: contain list of strings 
@@ -110,9 +141,10 @@ class GenerateStruturedRequestTest(unittest.TestCase):
             payload_bytes = json.dumps(payload).encode()
             
             self.intent_parser.send_response = Mock()
-            self.intent_parser.process_generate_request(httpMessage, [])
+            self.intent_parser.process_document_request(httpMessage, [])
 
-            actual_data = json.loads(self.intent_parser.send_response.call_args[0][2])
+            result = self.intent_parser.send_response.call_args[0][1]
+            actual_data = json.loads(result)
             with open(os.path.join(self.data_dir, doc_id + '_expected.json'), 'r') as file:
                 expected_data = json.load(file)
                 self.assertEqual(expected_data, actual_data)
@@ -151,7 +183,7 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         print('\nstart teardown')
         if self.intent_parser is not None:
             self.intent_parser.stop()
-        if self.doc is not None:
+        if self.spreadsheet_id is not None:
             self.google_accessor.delete_file(file_id=self.spreadsheet_id)
         print('done')
         

@@ -384,9 +384,6 @@ class GoogleAccessor:
         return self._drive_service.revisions().list(fileId=document_id).execute()
 
     def get_document_metadata(self, *, document_id):
-        """
-        Returns the list of revisions for the given document_id
-        """
         return self._drive_service.files().get(fileId=document_id).execute()
 
     def get_document_parents(self, *, document_id):

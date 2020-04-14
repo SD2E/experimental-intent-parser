@@ -7,3 +7,4 @@ python-Levenshtein
 datacatalog
 jsonschema
 tenacity
+transcriptic
