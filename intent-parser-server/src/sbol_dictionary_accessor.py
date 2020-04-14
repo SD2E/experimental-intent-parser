@@ -1,4 +1,3 @@
-
 from google_accessor import GoogleAccessor
 from intent_parser_exceptions import DictionaryMaintainerException
 import constants
