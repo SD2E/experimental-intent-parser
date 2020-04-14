@@ -2,7 +2,6 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 import io 
 import requests
-from flask.globals import request
 
 class GoogleDriveAccessor(object):
     """
@@ -127,8 +126,8 @@ class GoogleDriveAccessor(object):
         Download a Google Doc base on a Doc's id and its revision.
         
         Args:
-            fild_id: id of the Google Doc
-            revision_id: revision id of the Google Doc
+            fild_id: Google Doc ID
+            revision_id: Google Doc revision ID
             format_type: format to download the Google Doc in. 
             Visit https://developers.google.com/drive/api/v3/ref-export-formats to get a list file formats that Google can export to
             
@@ -137,12 +136,10 @@ class GoogleDriveAccessor(object):
         url = 'https://docs.google.com/feeds/download/documents/export/Export?id=%s&revision=%s&exportFormat=%s' % (file_id, revision_id, format_type)
         response = requests.get(url)
         open(file_name + format_type, 'wb').write(response.content)
-            
-        print(url)
     
     def export_file(self, file_id):
         request = self._service.files().export(fileId=file_id,
-            mimeType='    text/html')
+            mimeType='text/html')
         
         return request
             

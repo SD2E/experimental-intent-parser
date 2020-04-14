@@ -5,7 +5,6 @@ from http import HTTPStatus
 from intent_parser_exceptions import ConnectionException 
 import json
 import Levenshtein
-import re
 
 IPSMatch = _namedtuple('Match', 'a b size content_word_length')
 
