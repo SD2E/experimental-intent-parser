@@ -3,3 +3,4 @@ token.pickle
 sbh_creds.json
 *.pyc
 data/authn.json
+/credentials.json
