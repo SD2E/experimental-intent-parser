@@ -35,8 +35,8 @@ class MeasurementTable:
         num_cols = len(row['tableCells'])
         for i in range(0, num_cols): 
             paragraph_element = header_row['tableCells'][i]['content'][0]['paragraph']
-            header = table_utils.get_paragraph_text(paragraph_element).strip()
-            cell_txt = ' '.join([table_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][i]['content']])
+            header = intent_parser_utils.get_paragraph_text(paragraph_element).strip()
+            cell_txt = ' '.join([intent_parser_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][i]['content']])
             if not cell_txt or header in self.IGNORE_COLUMNS:
                 continue
             elif header == constants.COL_HEADER_MEASUREMENT_TYPE:
@@ -54,7 +54,7 @@ class MeasurementTable:
                         raise TableException(cell_txt, 'is not a numerical value')
                     measurement['replicates'] = int(cell_txt)
                 except TableException as err:
-                    message =  ' '.join(['Under replicate: ', err.get_expression(), err.get_message(), 'for', cell_txt]) 
+                    message =  ' '.join(['Under replicate: ', err.get_expression(), err.get_message()]) 
                     self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
             elif header == constants.COL_HEADER_STRAIN:
@@ -65,14 +65,14 @@ class MeasurementTable:
                 try:
                     measurement['temperatures'] = self._parse_and_append_value_unit(cell_txt, 'temperature', self._temperature_units)
                 except TableException as err:
-                    message = ' '.join(['Under temperature: ', err.get_expression(), err.get_message(), 'for', cell_txt]) 
+                    message = ' '.join(['Under temperature: ', err.get_expression(), err.get_message()]) 
                     self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
             elif header == constants.COL_HEADER_TIMEPOINT:
                 try:
                     measurement['timepoints'] = self._parse_and_append_value_unit(cell_txt, 'timepoints', self._timepoint_units) 
                 except TableException as err:
-                    message = ' '.join(['Under timepoint: ', err.get_expression(), err.get_message(), 'for', cell_txt]) 
+                    message = ' '.join(['Under timepoint: ', err.get_expression(), err.get_message()]) 
                     self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
             else:
@@ -83,7 +83,7 @@ class MeasurementTable:
                     content.append(reagents)
                 except TableException as err:
                     message = ' '.join(['Under', header, ':', err.get_expression(), err.get_message()]) 
-                    self._logger.info('Warning ' + message)
+                    self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
             
         if content:
@@ -100,7 +100,7 @@ class MeasurementTable:
     
     def _parse_reagent_media(self, paragraph_element, cell_txt):
         reagents_media = []
-        reagent_media_name = table_utils.get_paragraph_text(paragraph_element).strip()
+        reagent_media_name = intent_parser_utils.get_paragraph_text(paragraph_element).strip()
        
         # Retrieve SBH URI
         uri = 'NO PROGRAM DICTIONARY ENTRY'
@@ -127,7 +127,7 @@ class MeasurementTable:
                         numerical_dict = {'name' : label_uri_dict, 'value' : value, 'unit' : unit}
                     reagents_media.append(numerical_dict)
             except TableException as err:
-                message = ' '.join([err.get_expression(), err.get_message(), 'for', cell_txt]) 
+                message = ' '.join([err.get_expression(), err.get_message()]) 
                 self._logger.info('Warning ' + message)
                 self._validation_errors.append(message)
         elif table_utils.is_number(cell_txt):

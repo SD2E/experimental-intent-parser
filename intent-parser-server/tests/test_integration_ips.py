@@ -1,4 +1,5 @@
 from google_accessor import GoogleAccessor
+from intent_parser_server import IntentParserServer
 from unittest.mock import Mock
 import getopt
 import json
@@ -9,12 +10,7 @@ import unittest
 import urllib.request
 import warnings
 
-try:
-    from intent_parser_server import IntentParserServer
-except Exception as e:
-    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'../src'))
-    from intent_parser_server import IntentParserServer
-
+@unittest.skip("Skip due to item map already exist")
 class IntegrationIpsTest(unittest.TestCase):
 
     data_dir = 'data'
@@ -49,10 +45,7 @@ class IntegrationIpsTest(unittest.TestCase):
                 IntegrationIpsTest.sbh_password = creds['password']
 
         self.google_accessor = GoogleAccessor.create()
-        #f = open('test-doc.json', 'r')
-        #doc_content = json.loads(f.read())
-        #f.close()
-
+      
         self.bind_ip = 'localhost'
         self.bind_port = 8081
         self.template_doc_id = '10HqgtfVCtYhk3kxIvQcwljIUonSNlSiLBC8UFmlwm1s'
@@ -99,7 +92,8 @@ class IntegrationIpsTest(unittest.TestCase):
                                                 item_map_cache=False,
                                                 bind_ip='localhost',
                                                 bind_port=8081)
-        self.intent_parser.serverRunLoop(background=True)
+        self.intent_parser.initialize_server()
+        self.intent_parser.start(background=True) 
         
         self.maxDiff = None
 
@@ -200,46 +194,5 @@ class IntegrationIpsTest(unittest.TestCase):
         time.sleep(60)
         print('done')
 
-def usage():
-    print('')
-    print('test_intent_parser_server.py: [options]')
-    print('')
-    print('    -h --help            - show this message')
-    print('    -p --pasword         - SynBioHub password')
-    print('    -u --username        - SynBioHub username')
-    print('')
-
-if __name__ == '__main__':
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "u:p:h",
-                                   ["username=",
-                                    "password="])
-    except getopt.GetoptError as err:
-        print(str(err))
-        usage()
-        sys.exit(2);
-
-    for opt,arg in opts:
-        if opt in ('-u', '--username'):
-            IntegrationIpsTest.sbh_username = arg
-
-        elif opt in ('-p', '--password'):
-            IntegrationIpsTest.sbh_password = arg
-
-        elif opt in ('-h', '--help'):
-            usage()
-            sys.exit(0)
-
-    if not hasattr(IntentParserServer, 'sbh_username'):
-        print('ERROR: Missing required parameter -u/--username!')
-        usage()
-        sys.exit(0)
-
-    if not hasattr(IntentParserServer, 'sbh_password'):
-        print('ERROR: Missing required parameter -p/--password!')
-        usage()
-        sys.exit(0)
-
-    print('Run unit tests')
-
-    unittest.main(argv=[sys.argv[0]])
+if __name__ == "__main__":
+    unittest.main()

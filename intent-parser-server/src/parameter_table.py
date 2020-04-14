@@ -1,5 +1,6 @@
 from intent_parser_exceptions import TableException, DictionaryMaintainerException
 import constants
+import intent_parser_utils
 import json
 import logging
 import table_utils
@@ -33,6 +34,7 @@ class ParameterTable(object):
     def __init__(self, parameter_fields={}):
         self._parameter_fields = parameter_fields
         self._validation_errors = []
+        
     
     def parse_table(self, table):
         parameter_data = {}
@@ -50,12 +52,12 @@ class ParameterTable(object):
                         parameter_data[param_field_id] =  param_value_list[i]
             except ValueError as value_err:
                 message = str(value_err)
-                self._logger.info('WARNING ' + message)
                 self._validation_errors.append(message)       
             except TableException as table_err:
                 message = ' '.join(['In Parameter Table: ', table_err.get_expression(), table_err.get_message()])
-                self._logger.info('WARNING ' + message)
-                self._validation_errors.append(message) 
+                self._validation_errors.append(message)
+            except DictionaryMaintainerException as dictionary_err:
+                self._validation_errors.append(dictionary_err.get_expression() + ' ' + dictionary_err.get_message()) 
         return parameter_data
     
     def _parse_parameter_field_value(self, parameter_field, parameter_value):
@@ -85,8 +87,8 @@ class ParameterTable(object):
         param_value = '' 
         for col_index in range(0, num_cols): 
             paragraph_element = header_row['tableCells'][col_index]['content'][0]['paragraph']
-            header = table_utils.get_paragraph_text(paragraph_element).strip()
-            cell_txt = ' '.join([table_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][col_index]['content']])
+            header = intent_parser_utils.get_paragraph_text(paragraph_element).strip()
+            cell_txt = ' '.join([intent_parser_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][col_index]['content']])
             
             if header == constants.COL_HEADER_PARAMETER:
                 param_field = self._get_parameter_field(cell_txt)

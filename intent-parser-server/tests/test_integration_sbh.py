@@ -1,7 +1,9 @@
 from google_accessor import GoogleAccessor
 from intent_parser_server import IntentParserServer
 from unittest.mock import Mock, patch, DEFAULT
+import constants
 import getopt
+import intent_parser_utils
 import json
 import os
 import sys
@@ -10,12 +12,7 @@ import unittest
 import urllib.request
 import warnings
 
-try:
-    from intent_parser_server import IntentParserServer
-except Exception as e:
-    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'../src'))
-    from intent_parser_server import IntentParserServer
-
+@unittest.skip("Skip due to item map already exist")
 class IntegrationSbhTest(unittest.TestCase):
 
     spellcheckFile = 'doc_1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA.json'
@@ -30,30 +27,22 @@ class IntegrationSbhTest(unittest.TestCase):
         """
         Configure an instance of IntentParserServer for spellcheck testing.
         """
-        # If we don't have the necessary credentials, try reading them in from json
-        if not hasattr(IntentParserServer, 'sbh_username') or not hasattr(IntentParserServer, 'sbh_password'):
-            with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sbh_creds.json'), 'r') as fin:
-                creds = json.load(fin)
-                IntegrationSbhTest.sbh_username = creds['username']
-                IntegrationSbhTest.sbh_password = creds['password']
+   
+        creds = intent_parser_utils.load_json_file(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sbh_creds.json'))
+        sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
 
-        self.google_accessor = GoogleAccessor.create()
-
-        rev_results = self.google_accessor.get_document_revisions(document_id=self.template_spreadsheet_id)
-        if not 'drive#revisionList' == rev_results['kind'] or len(rev_results['items']) < 1 :
-            print('ERROR: Failed to retrieve revisions for spreadsheet template!')
-            raise Exception
-        last_rev = rev_results['items'][0]['modifiedDate']
-        if not last_rev == self.template_sheet_last_rev:
-            print('ERROR: template spreadsheet has been modified! Expected last revision: %s, received %s!' % (self.template_sheet_last_rev, last_rev))
-            raise Exception
-
-        self.spreadsheet_id = self.google_accessor.copy_file(file_id=self.template_spreadsheet_id,
-                                                     new_title='Intent Parser Server Test Sheet')
-
-        sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/' + \
-            'intent_parser/intent_parser_collection/1'
-
+        sbh = IntentParserSBH(sbh_collection_uri=sbh_collection_uri,
+                 sbh_spoofing_prefix='https://hub.sd2e.org',
+                 spreadsheet_id=constants.UNIT_TEST_SPREADSHEET_ID,
+                 sbh_username=creds['username'], 
+                 sbh_password=creds['password'])
+        
+        sbol_dictionary = SBOLDictionaryAccessor(constants.UNIT_TEST_SPREADSHEET_ID, sbh) 
+        strateos_accessor = StrateosAccessor()
+        intent_parser_server = IntentParserServer(sbh, sbol_dictionary, strateos_accessor,
+                                       bind_ip='localhost',
+                                       bind_port=8081)
+         
         self.doc_content = None
         with open(os.path.join(self.dataDir,self.spellcheckFile), 'r') as fin:
             self.doc_content = json.loads(fin.read())
@@ -61,12 +50,9 @@ class IntegrationSbhTest(unittest.TestCase):
         if self.doc_content is None:
             self.fail('Failed to read in test document! Path: ' + os.path.join(self.dataDir,self.spellcheckFile))
 
-        self.ips = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
-                                    sbh_spoofing_prefix='https://hub.sd2e.org',
-                                    sbh_username=IntegrationSbhTest.sbh_username,
-                                    sbh_password=IntegrationSbhTest.sbh_password,
-                                    spreadsheet_id=self.spreadsheet_id, init_server=False)
-
+        self.ips.initialize_server()
+        self.ips.start(background=True) 
+        
         self.ips.google_accessor = Mock()
         self.ips.google_accessor.get_document = Mock(return_value=self.doc_content)
         self.ips.send_response = Mock()
@@ -100,7 +86,7 @@ class IntegrationSbhTest(unittest.TestCase):
         results_count = self.ips.sparql_similar_count_cache[term]
         results_count = int(results_count)
 
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -114,7 +100,7 @@ class IntegrationSbhTest(unittest.TestCase):
         data['offset'] = results_count + 10
         self.ips.process_search_syn_bio_hub([],[])
         
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -128,7 +114,7 @@ class IntegrationSbhTest(unittest.TestCase):
         data['offset'] = results_count - self.ips.sparql_limit
         self.ips.process_search_syn_bio_hub([],[])
         
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -142,7 +128,7 @@ class IntegrationSbhTest(unittest.TestCase):
         data['offset'] = data['offset'] - self.ips.sparql_limit
         self.ips.process_search_syn_bio_hub([],[])
         
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -156,7 +142,7 @@ class IntegrationSbhTest(unittest.TestCase):
         data['offset'] = data['offset'] - self.ips.sparql_limit
         self.ips.process_search_syn_bio_hub([],[])
         
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -170,7 +156,7 @@ class IntegrationSbhTest(unittest.TestCase):
         data['offset'] = data['offset'] + self.ips.sparql_limit
         self.ips.process_search_syn_bio_hub([],[])
         
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -184,7 +170,7 @@ class IntegrationSbhTest(unittest.TestCase):
         data['offset'] = 0
         self.ips.process_search_syn_bio_hub([],[])
         
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(len(self.ips.send_response.call_args) == 2)
         self.assertTrue(len(self.ips.send_response.call_args[0]) == 5)
         self.assertTrue(len(actions['results']['search_results']) == expected_results)
@@ -213,7 +199,7 @@ class IntegrationSbhTest(unittest.TestCase):
         results_count = self.ips.sparql_similar_count_cache[term]
         results_count = int(results_count)
 
-        actions = json.loads(self.ips.send_response.call_args[0][2])
+        actions = json.loads(self.ips.send_response.call_args[0][1])
         self.assertTrue(results_count < IntentParserServer.sparql_limit)
         self.assertTrue(len(actions['results']['search_results']) == results_count)
 
@@ -222,3 +208,7 @@ class IntegrationSbhTest(unittest.TestCase):
         Perform teardown.
         """
         self.ips.stop()
+    
+        
+if __name__ == "__main__":
+    unittest.main()

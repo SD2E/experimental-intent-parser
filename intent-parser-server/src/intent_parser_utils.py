@@ -1,18 +1,128 @@
 
 from collections import namedtuple as _namedtuple
 from difflib import Match
-from intent_parser_exceptions import DictionaryMaintainerException
+from http import HTTPStatus
+from intent_parser_exceptions import ConnectionException 
+import json
 import Levenshtein
 import re
 
 IPSMatch = _namedtuple('Match', 'a b size content_word_length')
 
-def get_google_doc_id(doc_url):
-    url_pattern = 'https://docs.google.com/document/d/(?P<id>[^//]+)'
-    matched_pattern = re.match(url_pattern, doc_url)
-    doc_id = matched_pattern.group('id')
-    return doc_id
-        
+def load_json_file(file_path):
+    with open(file_path, 'r') as file:
+        json_data = json.load(file)
+        return json_data
+
+def load_html_file(file_path):
+    with open(file_path, 'r') as file:
+        f = file.read()
+        return f
+
+def write_json_to_file(data, file_path):
+    with open(file_path, 'w') as outfile:
+        json.dump(data, outfile)
+
+def char_is_not_wordpart(ch):
+    """ Determines if a character is part of a word or not
+    This is used when parsing the text to tokenize words.
+    """
+    return ch is not '\'' and not ch.isalnum()
+
+def should_ignore_token(word):
+    """ Determines if a token/word should be ignored
+    For example, if a token contains no alphabet characters, we should ignore it.
+    """
+
+    contains_alpha = False
+    # This was way too slow
+    #term_exists_in_sbh = len(self.simple_syn_bio_hub_search(word)) > 0
+    term_exists_in_sbh = False
+    for ch in word:
+        contains_alpha |= ch.isalpha()
+
+    return not contains_alpha  or term_exists_in_sbh
+
+def strip_leading_trailing_punctuation(word):
+    """ Remove any leading of trailing punctuation (non-alphanumeric characters
+    """
+    start_index = 0
+    end_index = len(word)
+    while start_index < len(word) and not word[start_index].isalnum():
+        start_index +=1
+    while end_index > 0 and not word[end_index - 1].isalnum():
+        end_index -= 1
+
+    # If the word was only non-alphanumeric, we could get into a strange case
+    if (end_index <= start_index):
+        return ''
+    else:
+        return word[start_index:end_index]
+
+def get_paragraph_text(paragraph):
+    elements = paragraph['elements']
+    paragraph_text = '';
+
+    for element_index in range( len(elements) ):
+        element = elements[ element_index ]
+
+        if 'textRun' not in element:
+            continue
+        text_run = element['textRun']
+        paragraph_text += text_run['content']
+
+    return paragraph_text
+
+def cull_overlapping(search_results):
+    """
+    Find any results that overlap and take the one with the largest term.
+    """
+    new_results = []
+    ignore_idx = set()
+    for idx in range(0, len(search_results)):
+        overlaps, max_idx, overlap_idx = find_overlaps(idx, search_results)
+        if len(overlaps) > 1:
+            if max_idx not in ignore_idx:
+                new_results.append(search_results[max_idx])
+            ignore_idx = ignore_idx.union(overlap_idx)
+        else:
+            if idx not in ignore_idx:
+                new_results.append(search_results[idx])
+    return new_results
+    
+def get_json_body(httpMessage):
+    body = httpMessage.get_body()
+    if body == None or len(body) == 0:
+        errorMessage = 'No POST data\n'
+        raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
+
+    bodyStr = body.decode('utf-8')
+
+    try:
+        return json.loads(bodyStr)
+    except json.decoder.JSONDecodeError as e:
+        errorMessage = 'Failed to decode JSON data: {}\n'.format(e);
+        raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
+    
+def get_document_id_from_json_body(json_body):
+    if 'documentId' not in json_body:
+        raise ConnectionException(HTTPStatus.BAD_REQUEST, 'Missing documentId')
+    return json_body['documentId']
+
+def get_element_type(element, element_type):
+    elements = []
+    if type(element) is dict:
+        for key in element:
+            if key == element_type:
+                elements.append(element[key])
+
+            elements += get_element_type(element[key], element_type)
+
+    elif type(element) is list:
+        for entry in element:
+            elements += get_element_type(entry, element_type)
+
+    return elements
 
 def get_reagent_with_no_uri(request_data):
         reagent_with_no_uri = set()
@@ -31,27 +141,6 @@ def get_reagent_with_no_uri(request_data):
                                 
         return reagent_with_no_uri
 
-def get_strateos_mapping(sheet_data):
-    attribute_tab = None
-    for tab in sheet_data:
-        if tab == 'Attribute':
-            attribute_tab = sheet_data[tab]
-            break 
-    
-    if attribute_tab is None:
-        raise DictionaryMaintainerException('Attribute column', 'cannot be found in spreadsheet.')
-    
-    result = {}
-    for row in attribute_tab:
-        if not 'Common Name' in row and not 'Transcriptic UID' in row:
-            continue
-        common_name = row['Common Name']
-        strateos_id = row ['Transcriptic UID']
-        if strateos_id:
-            result[common_name] =  strateos_id
-   
-    return result
-    
 def analyze_term(entry):
     term = entry[0]
     start_offset = entry[1]
@@ -71,6 +160,68 @@ def analyze_term(entry):
                           'link'            : result[3],
                           'text'            : result[4]})
     return search_results
+
+def find_exact_text(text, starting_pos, paragraphs):
+    """
+    Search through the whole document, beginning at starting_pos and return the first exact match to text.
+    """
+    elements = []
+
+    for paragraph_index in range( len(paragraphs )):
+        paragraph = paragraphs[ paragraph_index ]
+        elements = paragraph['elements']
+
+        for element_index in range( len(elements) ):
+            element = elements[ element_index ]
+
+            if 'textRun' not in element:
+                continue
+            text_run = element['textRun']
+
+            end_index = element['endIndex']
+            if end_index < starting_pos:
+                continue
+
+            start_index = element['startIndex']
+            if start_index < starting_pos:
+                find_start = starting_pos - start_index
+            else:
+                find_start = 0
+
+            content = text_run['content']
+            offset = content.lower().find(text.lower(), find_start)
+
+            # Check for whitespace before found text
+            if offset > 0 and content[offset-1].isalpha():
+                continue
+
+            # Check for whitespace after found text
+            next_offset = offset + len(text)
+            if next_offset < len(content) and content[next_offset].isalpha():
+                continue
+
+            if offset < 0:
+                continue
+
+            content_text = content[offset:(offset+len(text))]
+
+            first_index = elements[0]['startIndex']
+            offset += start_index - first_index
+
+            link = None
+
+            if 'textStyle' in text_run:
+                text_style = text_run['textStyle']
+                if 'link' in text_style:
+                    link = text_style['link']
+                    if 'url' in link:
+                        link = link['url']
+
+            pos = first_index + offset
+            return (paragraph_index, offset, pos, link,
+                    content_text)
+
+    return None
 
 def find_text(text, abs_start_offset, paragraphs, partial_match_min_size, partial_match_thresh):
     """
@@ -235,110 +386,4 @@ def find_overlaps(start_idx, search_results, ignore_idx = set()):
 
         return overlaps, best_overlap_idx, overlap_idx
 
-def query_experiments(synbiohub, target_collection, sbh_spoofing_prefix, sbh_url):
-    '''
-    Search the target collection and return references to all Experiment objects
 
-    Parameters
-    ----------
-    synbiohub : SynBioHubQuery
-        An instance of a SynBioHubQuery SPARQL wrapper from synbiohub_adapter
-    target_collection : str
-        A URI for a target collection
-    '''
-
-    # Correct the target collection URI in case the user specifies the wrong synbiohub namespace
-    # (a common mistake that can be hard to debug)
-    if sbh_spoofing_prefix is not None:
-        target_collection = target_collection.replace(sbh_url, sbh_spoofing_prefix)
-
-    query = """
-    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX sbol: <http://sbols.org/v2#>
-    PREFIX sd2: <http://sd2e.org#>
-    PREFIX prov: <http://www.w3.org/ns/prov#>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
-    SELECT DISTINCT ?entity ?timestamp ?title WHERE {
-            <%s> sbol:member ?entity .
-            ?entity rdf:type sbol:Experiment .
-            ?entity dcterms:created ?timestamp .
-            ?entity dcterms:title ?title
-    }
-    """ %(target_collection)
-    response = synbiohub.sparqlQuery(query)
-
-    experiments = []
-    for m in response['results']['bindings']:
-        uri = m['entity']['value']
-        timestamp = m['timestamp']['value']
-        title = m['title']['value']
-        if sbh_spoofing_prefix is not None: # We need to re-spoof the URL
-            uri = uri.replace(sbh_spoofing_prefix, sbh_url)
-        experiments.append({'uri': uri, 'timestamp': timestamp, 'title' : title})
-    #experiments = [ {'uri' : m['entity']['value'], 'timestamp' : m['timestamp']['value'] }  for m in response['results']['bindings']]
-    return experiments
-
-def query_experiment_source(synbiohub, experiment_uri, sbh_spoofing_prefix, sbh_url):
-    '''
-    Return a reference to a samples.json file on Agave file system that generated the Experiment
-
-    Parameters
-    ----------
-    synbiohub : SynBioHubQuery
-        An instance of a SynBioHubQuery SPARQL wrapper from synbiohub_adapter
-    experiment_uri : str
-        A URI for an Experiment object
-    '''
-
-    # Correct the experiment_uri in case the user specifies the wrong synbiohub namespace
-    # (a common mistake that can be hard to debug)
-    if sbh_spoofing_prefix is not None:
-        experiment_uri = experiment_uri.replace(sbh_url, sbh_spoofing_prefix)
-
-    query = """
-    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX sbol: <http://sbols.org/v2#>
-    PREFIX sd2: <http://sd2e.org#>
-    PREFIX prov: <http://www.w3.org/ns/prov#>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
-    SELECT DISTINCT ?source WHERE {
-            <%s> prov:wasDerivedFrom ?source .
-    }
-    """ %(experiment_uri)
-    response = synbiohub.sparqlQuery(query)
-    source = [ m['source']['value'] for m in response['results']['bindings']]
-    return source
-
-def query_experiment_request(synbiohub, experiment_uri, sbh_spoofing_prefix, sbh_url):
-    '''
-    Return a URL to the experiment request form on Google Docs that initiated the Experiment
-
-    Parameters
-    ----------
-    synbiohub : SynBioHubQuery
-        An instance of a SynBioHubQuery SPARQL wrapper from synbiohub_adapter
-    experiment_uri : str
-        A URI for an Experiment object
-    '''
-
-    # Correct the experiment_uri in case the user specifies the wrong synbiohub namespace
-    # (a common mistake that can be hard to debug)
-    if sbh_spoofing_prefix is not None:
-        experiment_uri = experiment_uri.replace(sbh_url, sbh_spoofing_prefix)
-
-    query = """
-    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX sbol: <http://sbols.org/v2#>
-    PREFIX sd2: <http://sd2e.org#>
-    PREFIX prov: <http://www.w3.org/ns/prov#>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
-    SELECT DISTINCT ?request_url WHERE {
-            <%s> sd2:experimentReferenceURL ?request_url .
-    }
-    """ %(experiment_uri)
-    response = synbiohub.sparqlQuery(query)
-    request_url = [ m['request_url']['value'] for m in response['results']['bindings']]
-    if request_url:
-        return request_url[0]
-    else:
-        return "NOT FOUND"

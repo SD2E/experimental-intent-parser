@@ -2,6 +2,49 @@
 List of constants used for intent parser server
 """
 
+LAB_IDS_LIST = sorted(['BioFAB UID',
+                            'Ginkgo UID',
+                            'Transcriptic UID',
+                            'LBNL UID',
+                            'EmeraldCloud UID',
+                            'CalTech UID',
+                            'PennState (Salis) UID'])
+
+ITEM_TYPES = {
+            'component': {
+                'Bead'     : 'http://purl.obolibrary.org/obo/NCIT_C70671',
+                'CHEBI'    : 'http://identifiers.org/chebi/CHEBI:24431',
+                'DNA'      : 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
+                'Protein'  : 'http://www.biopax.org/release/biopax-level3.owl#Protein',
+                'RNA'      : 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
+            },
+            'module': {
+                'Strain'   : 'http://purl.obolibrary.org/obo/NCIT_C14419',
+                'Media'    : 'http://purl.obolibrary.org/obo/NCIT_C85504',
+                'Stain'    : 'http://purl.obolibrary.org/obo/NCIT_C841',
+                'Buffer'   : 'http://purl.obolibrary.org/obo/NCIT_C70815',
+                'Solution' : 'http://purl.obolibrary.org/obo/NCIT_C70830'
+            },
+            'collection': {
+                'Challenge Problem' : '',
+                'Collection' : ''
+            },
+            'external': {
+                'Attribute' : ''
+            }
+        }
+
+# How many results we allow
+SPARQL_LIMIT = 5
+
+GROWTH_CURVE_PROTOCOL = 'GrowthCurve'
+TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
+OBSTACLE_COURSE_PROTOCOL = 'ObstacleCourse'
+
+PROTOCOL_NAMES = {GROWTH_CURVE_PROTOCOL: 'Growth Curves', 
+                  TIME_SERIES_HTP_PROTOCOL: 'Time Series', 
+                  OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course'}
+
 # String defines for headers in measurements table
 COL_HEADER_FILE_TYPE = 'file-type'
 COL_HEADER_MEASUREMENT_TYPE = 'measurement-type'
@@ -32,3 +75,6 @@ PARAMETER_RUN_INFO_SAVE_FOR_RNASEQ = 'run_info.save_for_rnaseq'
 PARAMETER_RUN_INFO_SKIP_FIRST_FLOW = 'run_info.skip_first_flow'
 PARAMETER_VALIDATE_SAMPLES = 'validate_samples'
 
+SD2_SPREADSHEET_ID = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program dict
+TEST_SPREADSHEET_ID = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
+UNIT_TEST_SPREADSHEET_ID = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0' #sd2 unit test dictionary 
