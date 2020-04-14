@@ -1,23 +1,30 @@
-from git import Repo, remote
 from google_accessor import GoogleAccessor
 from intent_parser_server import IntentParserServer
+from os import listdir
+from os.path import isfile
 from unittest.mock import Mock
+import git
 import intent_parser_utils
 import unittest
 import json 
-import os 
 import time
 
-class GenerateStruturedRequestTest(unittest.TestCase):
+class GoldenFileTest(unittest.TestCase):
     """
-    Class to test RESTful API calls to generate a structural request from intent parser.
+    Test a selection of Google docs by generating a structured request for each document and comparing the result to its expected result. 
     """
     
     @classmethod
     def setUpClass(self):
         curr_path = os.path.dirname(os.path.realpath(__file__))
-        self.data_dir = os.path.join(curr_path, '../tests/data')
-       
+        self.data_dir = os.path.join(curr_path, 'data')
+        
+        cp_request_dir = os.path.join(curr_path, 'data', 'cp-request')
+        git_accessor = git.cmd.Git(cp_request_dir)
+        git_accessor.pull()
+        self.structured_request_dir = os.path.join(cp_request_dir, 'input', 'structured_requests')
+        print(self.structured_request_dir)
+        
         with open(os.path.join(curr_path, 'sbh_creds.json'), 'r') as file:
             creds = json.load(file)
             self.sbh_username = creds['username']
@@ -31,15 +38,10 @@ class GenerateStruturedRequestTest(unittest.TestCase):
         self.spreadsheet_id = self.google_accessor.copy_file(file_id = self.template_spreadsheet_id,
                                                      new_title='Intent Parser Server Test Sheet')
 
-<<<<<<< HEAD
-        self.doc = self.google_accessor.set_spreadsheet_id(self.spreadsheet_id)
-        sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/' + \
-            'intent_parser/intent_parser_collection/1'
-=======
+
         self.google_accessor.set_spreadsheet_id(self.spreadsheet_id)
 
         sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
->>>>>>> refs/heads/183-validate-on-generation
 
         self.intent_parser = IntentParserServer(sbh_collection_uri=sbh_collection_uri,
                                                 sbh_username=self.sbh_username,
@@ -49,64 +51,13 @@ class GenerateStruturedRequestTest(unittest.TestCase):
                                                 bind_ip='localhost',
                                                 bind_port=8081,
                                                 datacatalog_authn=self.authn)
-<<<<<<< HEAD
 
-        # checkout cp-request repo 
-        self.repo_path = os.path.join(curr_path, '../tests/data/cp-request') 
-        repo = Repo(self.repo_path)
-        if not repo.bare:
-            print('Repo at {} successfully loaded.'.format(self.repo_path))
-            
-            # pull from cp-request repo. 
-            remote_branches = repo.remotes.origin
-            pulled_result = remote_branches.pull()
-            print(pulled_result)
-        else:
-            print('Repo did not load successfully. Load local data')
-        
-        # load golden files
-        golden_file_dir = '/'.join([self.repo_path, 'input/structured_requests'])
-        self.golden_file_map = {}
-        for file in listdir(golden_file_dir):
-            file_path = join(golden_file_dir, file)
-            if isfile(file_path):
-                with open(file_path, 'r') as f:
-                    data = json.load(f)
-                    doc_url = data['experiment_reference_url']
-                    doc_id = ip_util.get_google_doc_id(doc_url)
-                    self.golden_file_map[doc_id] = data
-
-=======
         self.intent_parser.initialize_server()
         self.intent_parser.start(background=True) 
->>>>>>> refs/heads/183-validate-on-generation
         self.maxDiff = None # Set flag for testing to diff between large strings 
-<<<<<<< HEAD
-   
-    @unittest.skip("deprecating test case")
-    def test_document_requests(self):
-=======
-    
-    def test_document_requests_using_local_table(self):
-        doc_id = '1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA'
-        httpMessage = Mock()
-        httpMessage.get_resource = Mock(return_value='/document_report?' + doc_id)
-        payload = {'documentId':  doc_id, 'user' : 'test@bbn.com', 'userEmail' : 'test@bbn.com'}
-        payload_bytes = json.dumps(payload).encode()
-        
-        self.intent_parser.send_response = Mock()
-        self.intent_parser.process_document_request(httpMessage, [])
-
-        result = self.intent_parser.send_response.call_args[0][1]
-        actual_data = json.loads(result)
-        local_file_path = os.path.join(self.data_dir, 'ginkgo_request.json')
-        first_table_gt = intent_parser_utils.load_json_file(local_file_path)
-            
-        self.assertEquals(actual_data, first_table_gt) 
 
                 
     def test_document_requests_using_golden_files(self):
->>>>>>> refs/heads/183-validate-on-generation
         '''
         Compare a list of Google documents with its corresponding golden file.
         Golden files used for testing these Google documents should be updated when new feature are supported for intent parser.   
@@ -150,34 +101,33 @@ class GenerateStruturedRequestTest(unittest.TestCase):
                 self.assertEqual(expected_data, actual_data)
    
     def test_golden_files(self):
-        """Diff results from ip and cp-request golden files"""
-        trashed_files = ['1IklGPJ13VpG9a_XL0SdbUoYKlt4lQxFdpLVjGUnbcYw'] #unable to locate file from google api
-        invalid_files = ['1EuAsTsUdgyVZ45FctdQi0DdPX1dLUxQZpHAvA45h7wE',
-                         '1eMxFcAWA24fXrRAeKp9WeOvy8Woil7FriO3xf3p7mac'] #broken validation
-        failed_files = ['1RenmUdhsXMgk4OUWReI2oS6iF5R5rfWU5t7vJ0NZOHw']
-        for doc_id in self.golden_file_map:
-            print(doc_id)
-            if doc_id in trashed_files or doc_id in invalid_files or doc_id in failed_files:
+        """
+        The selected documents come from SD2 cp-request repository. 
+        The document id and the revision id are recorded in cp-request/inpt/structured_request directory.
+        Each document are retrieved from  GoogleAccessor by using these document id and its revision id.
+        The document is then pass into intent parser to generate a structured request. 
+        The structured request is compared with the structured_request result for equivalency.
+        """
+        for file in listdir(self.structured_request_dir):
+            file_path = os.path.join(self.structured_request_dir, file)
+            if not isfile(file_path):
                 continue
-            httpMessage = Mock()
-            httpMessage.get_resource = Mock(return_value='/document_report?' + doc_id)
-            payload = {'documentId':  doc_id, 'user' : 'test@bbn.com', 'userEmail' : 'test@bbn.com'}
-            payload_bytes = json.dumps(payload).encode()
-            self.intent_parser.send_response = Mock()
-            self.intent_parser.process_generate_request(httpMessage, [])
-           
-            # compare result with golden file 
-            actual_data = json.loads(self.intent_parser.send_response.call_args[0][2])
-            expected_data = self.golden_file_map[doc_id]
-
-            with open(doc_id + '_actual.json', 'w') as f:
-                json.dump(actual_data, f) 
-            self.assertDictEqual(actual_data, expected_data)
-        
-        print('%d files not the same' % len(failed_files))
-        for id in failed_files:
-            print(id)
-                
+            golden_structured_request = intent_parser_utils.load_json_file(file_path)
+            doc_url = golden_structured_request['experiment_reference_url']
+            doc_id = ''
+            if 'doc_revision_id' not in golden_structured_request:
+                continue
+            doc_revision_id = golden_structured_request['doc_revision_id']
+            
+            output_file_path = os.path.join(self.data_dir, 'doc_%s' % file)
+            html_doc = self.google_accessor.download_file_with_revision(output_file_path, doc_id, doc_revision_id, 'text/html')
+            
+            http_message = HttpMessage()
+            http_message.process_header('Host:%s' % http_host)
+            http_message.set_body(json.dumps(structured_request).encode('utf-8'))
+            response = self.intent_parser.process_generate_structured_request(http_message)
+            
+            
     @classmethod
     def tearDownClass(self):
         print('\nstart teardown')
