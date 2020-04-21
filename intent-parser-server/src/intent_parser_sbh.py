@@ -1,6 +1,6 @@
 from datetime import datetime
 from sbh_accessor import SBHAccessor
-import constants
+import intent_parser_constants
 import intent_parser_view 
 import logging
 import re
@@ -127,8 +127,8 @@ class IntentParserSBH(object):
 
         # Look up sbol type uri
         sbol_type = None
-        for sbol_type_key in constants.ITEM_TYPES:
-            sbol_type_map = constants.ITEM_TYPES[ sbol_type_key ]
+        for sbol_type_key in intent_parser_constants.ITEM_TYPES:
+            sbol_type_map = intent_parser_constants.ITEM_TYPES[ sbol_type_key ]
             if item_type in sbol_type_map:
                 sbol_type = sbol_type_key
                 break;
@@ -242,7 +242,7 @@ class IntentParserSBH(object):
         sbol.TextProperty(entity, 'http://purl.org/dc/terms/modified', '0', '1',
                           time_stamp)
 
-        if item_type in constants.ITEM_TYPES['collection']:
+        if item_type in intent_parser_constants.ITEM_TYPES['collection']:
             return
 
         if len(item_definition_uri) > 0:

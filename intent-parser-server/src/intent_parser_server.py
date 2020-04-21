@@ -2,7 +2,6 @@ from http import HTTPStatus
 from intent_parser_exceptions import ConnectionException
 from intent_parser_factory import IntentParserFactory
 from intent_parser_sbh import IntentParserSBH
-from lab_experiment import LabExperiment
 from multiprocessing import Pool
 from operator import itemgetter
 from sbol_dictionary_accessor import SBOLDictionaryAccessor
@@ -10,7 +9,7 @@ from socket_manager import SocketManager
 from spellchecker import SpellChecker
 from strateos_accessor import StrateosAccessor
 import argparse
-import constants
+import intent_parser_constants
 import http_message
 import inspect
 import intent_parser_utils
@@ -24,10 +23,8 @@ import sys
 import threading
 import time
 import traceback
-import intent_parser
 import lab_experiment
-import strateos_accessor
-import intent_parser_factory
+
 
 class IntentParserServer:
 
@@ -215,8 +212,8 @@ class IntentParserServer:
         """
         resource = httpMessage.get_resource()
         document_id = resource.split('?')[1]
-        ip = self.intent_parser_factory.create_intent_parser(document_id)
-        report = ip.generate_report() 
+        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+        report = intent_parser.generate_report() 
         return self._create_http_response(HTTPStatus.OK, json.dumps(report), 'application/json')
 
     def process_document_request(self, httpMessage):
@@ -441,7 +438,7 @@ class IntentParserServer:
             
     def process_form_link_all(self, data):
         document_id = data['documentId']
-        lab_experiment = LabExperiment(document_id)
+        lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
         lab_experiment.load_from_google_doc()
         paragraphs = lab_experiment.paragraphs() 
         selected_term = data['selectedTerm']
@@ -770,7 +767,7 @@ class IntentParserServer:
                 dialog_action = intent_parser_view.create_measurement_table_template(cursor_child_index)
                 actionList.append(dialog_action)
             elif table_type == 'parameters':
-                protocol_options = list(constants.PROTOCOL_NAMES.values())
+                protocol_options = list(intent_parser_constants.PROTOCOL_NAMES.values())
                 dialog_action = intent_parser_view.create_parameter_table_template(cursor_child_index, protocol_options)
                 actionList.append(dialog_action)
             else :
@@ -809,12 +806,12 @@ class IntentParserServer:
         try:
 
             item_type_list = []
-            for sbol_type in constants.ITEM_TYPES:
-                item_type_list += constants.ITEM_TYPES[sbol_type].keys()
+            for sbol_type in intent_parser_constants.ITEM_TYPES:
+                item_type_list += intent_parser_constants.ITEM_TYPES[sbol_type].keys()
 
             item_type_list = sorted(item_type_list)
             item_types_html = intent_parser_view.generate_html_options(item_type_list)
-            lab_ids_html = intent_parser_view.generate_html_options(constants.LAB_IDS_LIST)
+            lab_ids_html = intent_parser_view.generate_html_options(intent_parser_constants.LAB_IDS_LIST)
 
             ip = self.intent_parser_factory.create_intent_parser(document_id)
             selection, display_id = ip.generate_displayId_from_selection(start_paragraph, start_offset, end_offset)
@@ -865,7 +862,7 @@ class IntentParserServer:
                     self.logger.info('Loaded dictionary for userId, path: %s' % dict_path)
                     self.spellCheckers[userId].word_frequency.load_dictionary(dict_path)
 
-            lab_experiment = LabExperiment()
+            lab_experiment = self.intent_parser_factory.create_lab_experiment() 
             doc = lab_experiment.load_from_google_doc(document_id)
             paragraphs = lab_experiment.paragraphs() 
             if 'data' in json_body:
@@ -1016,28 +1013,28 @@ class IntentParserServer:
             header.append('')
             col_sizes.append(4)
 
-        header.append(constants.COL_HEADER_MEASUREMENT_TYPE)
-        header.append(constants.COL_HEADER_FILE_TYPE)
-        header.append(constants.COL_HEADER_REPLICATE)
-        header.append(constants.COL_HEADER_STRAIN)
+        header.append(intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE)
+        header.append(intent_parser_constants.COL_HEADER_FILE_TYPE)
+        header.append(intent_parser_constants.COL_HEADER_REPLICATE)
+        header.append(intent_parser_constants.COL_HEADER_STRAIN)
 
-        col_sizes.append(len(constants.COL_HEADER_MEASUREMENT_TYPE) + 1)
-        col_sizes.append(len(constants.COL_HEADER_FILE_TYPE) + 1)
-        col_sizes.append(len(constants.COL_HEADER_REPLICATE) + 1)
-        col_sizes.append(len(constants.COL_HEADER_STRAIN) + 1)
+        col_sizes.append(len(intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE) + 1)
+        col_sizes.append(len(intent_parser_constants.COL_HEADER_FILE_TYPE) + 1)
+        col_sizes.append(len(intent_parser_constants.COL_HEADER_REPLICATE) + 1)
+        col_sizes.append(len(intent_parser_constants.COL_HEADER_STRAIN) + 1)
         if has_ods:
-            header.append(constants.COL_HEADER_ODS)
-            col_sizes.append(len(constants.COL_HEADER_ODS) + 1)
+            header.append(intent_parser_constants.COL_HEADER_ODS)
+            col_sizes.append(len(intent_parser_constants.COL_HEADER_ODS) + 1)
         if has_time:
-            header.append(constants.COL_HEADER_TIMEPOINT)
-            col_sizes.append(len(constants.COL_HEADER_TIMEPOINT) + 1)
+            header.append(intent_parser_constants.COL_HEADER_TIMEPOINT)
+            col_sizes.append(len(intent_parser_constants.COL_HEADER_TIMEPOINT) + 1)
         if has_temp:
-            header.append(constants.COL_HEADER_TEMPERATURE)
-            col_sizes.append(len(constants.COL_HEADER_TEMPERATURE) + 1)
+            header.append(intent_parser_constants.COL_HEADER_TEMPERATURE)
+            col_sizes.append(len(intent_parser_constants.COL_HEADER_TEMPERATURE) + 1)
 
         if has_notes:
-            header.append(constants.COL_HEADER_NOTES)
-            col_sizes.append(len(constants.COL_HEADER_NOTES) + 1)
+            header.append(intent_parser_constants.COL_HEADER_NOTES)
+            col_sizes.append(len(intent_parser_constants.COL_HEADER_NOTES) + 1)
 
         table_data.append(header)
 
@@ -1075,16 +1072,16 @@ class IntentParserServer:
         col_sizes = []
         
         header = []
-        header.append(constants.COL_HEADER_PARAMETER)
-        header.append(constants.COL_HEADER_PARAMETER_VALUE)
+        header.append(intent_parser_constants.COL_HEADER_PARAMETER)
+        header.append(intent_parser_constants.COL_HEADER_PARAMETER_VALUE)
         table_data.append(header)
         
-        col_sizes.append(len(constants.COL_HEADER_PARAMETER) + 1)
-        col_sizes.append(len(constants.COL_HEADER_PARAMETER_VALUE) + 1)
+        col_sizes.append(len(intent_parser_constants.COL_HEADER_PARAMETER) + 1)
+        col_sizes.append(len(intent_parser_constants.COL_HEADER_PARAMETER_VALUE) + 1)
         
-        protocol = [key for key, value in constants.PROTOCOL_NAMES.items() if value == selected_protocol]
+        protocol = [key for key, value in intent_parser_constants.PROTOCOL_NAMES.items() if value == selected_protocol]
         
-        if protocol[0] not in constants.PROTOCOL_NAMES.keys():
+        if protocol[0] not in intent_parser_constants.PROTOCOL_NAMES.keys():
             raise ConnectionException(HTTPStatus.BAD_REQUEST, 'Invalid protocol specified.')
         
         protocol_default_value = self.strateos_accessor.get_protocol(protocol[0])
@@ -1156,7 +1153,7 @@ class IntentParserServer:
         json_body = intent_parser_utils.get_json_body(httpMessage)
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
         
-        lab_experiment = LabExperiment()
+        lab_experiment = self.intent_parser_factory.create_lab_experiment()
         doc = lab_experiment.load_from_google_doc(document_id)
          
         self.analyze_processing_lock[document_id] = threading.Lock()
@@ -1209,7 +1206,7 @@ class IntentParserServer:
         self.analyze_processing_map_lock.release()
 
         doc_id = client_state['document_id']
-        lab_experiment = LabExperiment()
+        lab_experiment = self.intent_parser_factory.create_lab_experiment()
         lab_experiment.load_from_google_doc(doc_id)
         paragraphs = lab_experiment.paragraphs() 
 
@@ -1387,7 +1384,7 @@ class IntentParserServer:
             bindings = query_results['results']['bindings']
             self.sparql_similar_count_cache[term] = bindings[0]['count']['value']
 
-        sparql_query = self.sparql_similar_query.replace('${TERM}', term).replace('${LIMIT}', str(constants.SPARQL_LIMIT)).replace('${OFFSET}', str(offset)).replace('${EXTRA_FILTER}', extra_filter)
+        sparql_query = self.sparql_similar_query.replace('${TERM}', term).replace('${LIMIT}', str(intent_parser_constants.SPARQL_LIMIT)).replace('${OFFSET}', str(offset)).replace('${EXTRA_FILTER}', extra_filter)
         query_results = self.sbh.sparqlQuery(sparql_query)
         bindings = query_results['results']['bindings']
         search_results = []
@@ -1453,10 +1450,10 @@ def main():
     parser.add_argument('-b', '--bind-host', nargs='?', default='0.0.0.0',
                             required=False, help='IP address to bind to.')
     
-    parser.add_argument('-c', '--collection', nargs='?', default='https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1',
+    parser.add_argument('-c', '--collection', nargs='?', default=intent_parser_constants.SBH_HUB_STAGING_URL,
                             required=False, help='Collection url.')
     
-    parser.add_argument('-i', '--spreadsheet-id', nargs='?', default='1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g',
+    parser.add_argument('-i', '--spreadsheet-id', nargs='?', default=intent_parser_constants.SD2_SPREADSHEET_ID,
                             required=False, help='Dictionary spreadsheet id.')
     
     parser.add_argument('-l', '--bind-port', nargs='?', type=int, default=8081, 
@@ -1479,10 +1476,10 @@ def main():
     try:
         sbh = IntentParserSBH(sbh_collection_uri=input_args.collection,
                  sbh_spoofing_prefix=input_args.spoofing_prefix,
-                 spreadsheet_id=constants.SD2_SPREADSHEET_ID,
+                 spreadsheet_id=intent_parser_constants.SD2_SPREADSHEET_ID,
                  sbh_username=input_args.username, 
                  sbh_password=input_args.password)
-        sbol_dictionary = SBOLDictionaryAccessor(constants.SD2_SPREADSHEET_ID, sbh) 
+        sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, sbh) 
         datacatalog_config = { "mongodb" : { "database" : "catalog_staging", "authn" : input_args.authn } }
         strateos_accessor = StrateosAccessor()
         intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
