@@ -134,7 +134,10 @@ class MeasurementTable:
             raise TableException(cell_txt, 'is missing a unit')
         else:
             for name in table_utils.extract_name_value(cell_txt):
-                named_dict = {'name' : label_uri_dict, 'value' : name}
+                if timepoint_dict::
+                    named_dict = {'name' : label_uri_dict, 'value' : name, 'timepoint' : timepoint_dict}
+                else:
+                    named_dict = {'name' : label_uri_dict, 'value' : name}
                 reagents_media.append(named_dict)
         
         return reagents_media
