@@ -8,3 +8,5 @@ datacatalog
 jsonschema
 tenacity
 transcriptic
+python-docx
+requests_oauthlib
