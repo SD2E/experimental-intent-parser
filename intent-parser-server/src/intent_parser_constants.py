@@ -38,8 +38,8 @@ ITEM_TYPES = {
 SPARQL_LIMIT = 5
 
 GROWTH_CURVE_PROTOCOL = 'GrowthCurve'
-TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
 OBSTACLE_COURSE_PROTOCOL = 'ObstacleCourse'
+TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
 
 PROTOCOL_NAMES = {GROWTH_CURVE_PROTOCOL: 'Growth Curves', 
                   TIME_SERIES_HTP_PROTOCOL: 'Time Series', 
@@ -78,3 +78,6 @@ PARAMETER_VALIDATE_SAMPLES = 'validate_samples'
 SD2_SPREADSHEET_ID = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program dict
 TEST_SPREADSHEET_ID = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
 UNIT_TEST_SPREADSHEET_ID = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0' #sd2 unit test dictionary 
+
+SBH_HUB_STAGING_URL = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
+
