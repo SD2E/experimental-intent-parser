@@ -1,6 +1,6 @@
 from google_accessor import GoogleAccessor
 from intent_parser_exceptions import DictionaryMaintainerException
-import constants
+import intent_parser_constants
 import logging
 import os 
 import intent_parser_utils
@@ -125,7 +125,7 @@ class SBOLDictionaryAccessor(object):
                 # Add common name to the item map
                 item_map[common_name] = uri
                 # There are also UIDs for each lab to add
-                for lab_uid in constants.LAB_IDS_LIST:
+                for lab_uid in intent_parser_constants.LAB_IDS_LIST:
                     # Ignore if the spreadsheet doesn't contain this lab
                     if not lab_uid in row or row[lab_uid] == '':
                         continue

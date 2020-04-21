@@ -1,5 +1,5 @@
 from intent_parser_exceptions import TableException
-import constants
+import intent_parser_constants
 import intent_parser_utils
 import logging
 import table_utils
@@ -9,8 +9,8 @@ class MeasurementTable:
     '''
     Class handles measurement from Experimental Request tables in Google Docs.
     '''    
-    _logger = logging.getLogger('intent_parser_server')
-    IGNORE_COLUMNS = [constants.COL_HEADER_SAMPLES, constants.COL_HEADER_NOTES]
+    _logger = logging.getLogger('intent_parser')
+    IGNORE_COLUMNS = [intent_parser_constants.COL_HEADER_SAMPLES, intent_parser_constants.COL_HEADER_NOTES]
   
     def __init__(self, temperature_units={}, timepoint_units={}, fluid_units={}, measurement_types={}, file_type={}):
         self._temperature_units = temperature_units
@@ -39,16 +39,16 @@ class MeasurementTable:
             cell_txt = ' '.join([intent_parser_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][i]['content']])
             if not cell_txt or header in self.IGNORE_COLUMNS:
                 continue
-            elif header == constants.COL_HEADER_MEASUREMENT_TYPE:
+            elif header == intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE:
                 try:  
                     measurement['measurement_type'] = self._get_measurement_type(cell_txt.strip())
                 except TableException as err:
                     message = ' '.join(['Under measurement_type: ', err.get_expression(), err.get_message()]) 
                     self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
-            elif header == constants.COL_HEADER_FILE_TYPE:
+            elif header == intent_parser_constants.COL_HEADER_FILE_TYPE:
                 measurement['file_type'] = [value for value in table_utils.extract_name_value(cell_txt)] 
-            elif header == constants.COL_HEADER_REPLICATE:
+            elif header == intent_parser_constants.COL_HEADER_REPLICATE:
                 try:
                     if not table_utils.is_number(cell_txt):
                         raise TableException(cell_txt, 'is not a numerical value')
@@ -57,18 +57,18 @@ class MeasurementTable:
                     message =  ' '.join(['Under replicate: ', err.get_expression(), err.get_message()]) 
                     self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
-            elif header == constants.COL_HEADER_STRAIN:
+            elif header == intent_parser_constants.COL_HEADER_STRAIN:
                 measurement['strains'] = [value for value in table_utils.extract_name_value(cell_txt)]
-            elif header == constants.COL_HEADER_ODS:
+            elif header == intent_parser_constants.COL_HEADER_ODS:
                 measurement['ods'] = [float(value) for value in table_utils.extract_number_value(cell_txt)]
-            elif header == constants.COL_HEADER_TEMPERATURE:
+            elif header == intent_parser_constants.COL_HEADER_TEMPERATURE:
                 try:
                     measurement['temperatures'] = self._parse_and_append_value_unit(cell_txt, 'temperature', self._temperature_units)
                 except TableException as err:
                     message = ' '.join(['Under temperature: ', err.get_expression(), err.get_message()]) 
                     self._logger.info('WARNING ' + message)
                     self._validation_errors.append(message)
-            elif header == constants.COL_HEADER_TIMEPOINT:
+            elif header == intent_parser_constants.COL_HEADER_TIMEPOINT:
                 try:
                     measurement['timepoints'] = self._parse_and_append_value_unit(cell_txt, 'timepoints', self._timepoint_units) 
                 except TableException as err:
