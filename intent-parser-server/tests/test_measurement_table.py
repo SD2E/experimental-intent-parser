@@ -375,7 +375,27 @@ class MeasurementTableTest(unittest.TestCase):
                     'timepoint' : {'value' : 18.0, 'unit' : 'hour'}}
         self.assertEquals(1, len(meas_result[0]['contents'][0]))
         self.assertEquals(exp_res1, meas_result[0]['contents'][0][0])
-       
+
+    def test_table_text_with_reagent_and_timepoint(self):
+        reagent_uri = 'https://hub.sd2e.org/user/sd2e/design/IPTG/1'
+
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'IPTG @ 40 hours', 'textStyle': {'link': {'url': reagent_uri}}
+                        }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'NA\n'}}]}}]}]}]
+        }
+
+        meas_table = MeasurementTable(timepoint_units={'hour'}, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
+        meas_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(meas_result))
+
+        exp_res1 = {'name' : {'label' : 'IPTG', 'sbh_uri' : reagent_uri}, 'value' : 'NA',
+                    'timepoint' : {'value' : 40.0, 'unit' : 'hour'}}
+        self.assertEquals(1, len(meas_result[0]['contents'][0]))
+        self.assertEquals(exp_res1, meas_result[0]['contents'][0][0])
+
     def test_table_with_media(self):
         media_uri = 'https://hub.sd2e.org/user/sd2e/design/Media/1'
         input_table ={'tableRows': [
