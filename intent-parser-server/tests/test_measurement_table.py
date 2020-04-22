@@ -6,7 +6,7 @@ import unittest
 
 class MeasurementTableTest(unittest.TestCase):
     '''
-       Class to test measurement table
+       Test parsing information from a measurement table
     '''
                 
     def test_table_with_measurement_type(self):

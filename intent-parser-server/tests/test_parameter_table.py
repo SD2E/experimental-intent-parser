@@ -5,7 +5,10 @@ import unittest
 
 
 class ParameterTableTest(unittest.TestCase):
-
+    """
+    Test parsing contents from a parameter table
+    """
+    
     @classmethod
     def setUpClass(self):
         self.parameter_fields = {

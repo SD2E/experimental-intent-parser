@@ -14,7 +14,7 @@ import unittest
 import urllib.request
 import warnings
 
-@unittest.skip("Skip due to Mock has no length")
+@unittest.skip("Skip for refactoring")
 class IpsGenerateTest(unittest.TestCase):
 
     authn_file = 'authn.json'
