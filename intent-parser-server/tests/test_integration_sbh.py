@@ -1,16 +1,13 @@
-from google_accessor import GoogleAccessor
+from intent_parser_sbh import IntentParserSBH
 from intent_parser_server import IntentParserServer
-from unittest.mock import Mock, patch, DEFAULT
-import constants
-import getopt
+from sbol_dictionary_accessor import SBOLDictionaryAccessor
+from strateos_accessor import StrateosAccessor
+from unittest.mock import Mock
+import intent_parser_constants
 import intent_parser_utils
 import json
 import os
-import sys
-import time
 import unittest
-import urllib.request
-import warnings
 
 @unittest.skip("Skip for refactoring")
 class IntegrationSbhTest(unittest.TestCase):
@@ -33,11 +30,11 @@ class IntegrationSbhTest(unittest.TestCase):
 
         sbh = IntentParserSBH(sbh_collection_uri=sbh_collection_uri,
                  sbh_spoofing_prefix='https://hub.sd2e.org',
-                 spreadsheet_id=constants.UNIT_TEST_SPREADSHEET_ID,
+                 spreadsheet_id=intent_parser_constants.UNIT_TEST_SPREADSHEET_ID,
                  sbh_username=creds['username'], 
                  sbh_password=creds['password'])
         
-        sbol_dictionary = SBOLDictionaryAccessor(constants.UNIT_TEST_SPREADSHEET_ID, sbh) 
+        sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.UNIT_TEST_SPREADSHEET_ID, sbh)
         strateos_accessor = StrateosAccessor()
         intent_parser_server = IntentParserServer(sbh, sbol_dictionary, strateos_accessor,
                                        bind_ip='localhost',

@@ -1,13 +1,9 @@
 from http import HTTPStatus
 from http_message import HttpMessage
-from intent_parser_factory import IntentParserFactory 
 from intent_parser_server import IntentParserServer
 from unittest.mock import Mock, patch
-import intent_parser_sbh
 import intent_parser_view
 import json
-import sbol_dictionary_accessor
-import strateos_accessor
 import unittest
 
 class IntentParserServerTest(unittest.TestCase):

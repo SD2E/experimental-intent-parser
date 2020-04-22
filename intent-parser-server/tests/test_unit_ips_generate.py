@@ -1,18 +1,9 @@
 from google_accessor import GoogleAccessor
 from intent_parser_server import IntentParserServer
-from ips_test_utils import compare_spell_results
-from ips_test_utils import get_currently_selected_text
-from unittest.mock import Mock, patch, DEFAULT
-import getopt
+from unittest.mock import Mock
 import json
 import os
-import pickle
-import pymongo
-import sys
-import time
 import unittest
-import urllib.request
-import warnings
 
 @unittest.skip("Skip for refactoring")
 class IpsGenerateTest(unittest.TestCase):
