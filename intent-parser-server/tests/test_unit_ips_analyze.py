@@ -1,21 +1,15 @@
-from difflib import Match
 from google_accessor import GoogleAccessor
 from intent_parser_server import IntentParserServer
 from ips_test_utils import compare_search_results
 from operator import itemgetter
 from unittest.mock import Mock, patch, DEFAULT
-import getopt
-import intent_parser_utils
 import json
 import os
 import pickle
-import sys
 import time
 import unittest
-import urllib.request
-import warnings
 
-@unittest.skip("Skip due to get_body() does not exist")
+@unittest.skip("Skip for refactoring")
 class IpsAnalyzeTest(unittest.TestCase):
 
     spellcheckFile = 'doc_1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA.json'

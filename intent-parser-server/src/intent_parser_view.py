@@ -2,10 +2,20 @@
 Contains functionalities for generating views related to intent parser
 """
 from catalog_accessor import CatalogAccessor
-from html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, MeasurementTableHtmlBuilder
+from html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, MeasurementTableHtmlBuilder, ParameterTableHtmlBuilder
 import logging
 
 logger = logging.getLogger('intent_parser_server')
+
+def create_parameter_table_template(cursor_child_index, protocol_options):
+    html_protocols = generate_html_options(protocol_options)
+    builder = ParameterTableHtmlBuilder()
+    builder.cursor_child_index_html(cursor_child_index)
+    builder.protocol_options_html(html_protocols)
+    html_parameter = builder.build() 
+    
+    dialog_action = modal_dialog(html_parameter, 'Create Parameter Table', 600, 600)
+    return dialog_action
 
 def create_measurement_table_template(cursor_child_index):
     catalog_accessor = CatalogAccessor()
@@ -23,10 +33,12 @@ def create_measurement_table_template(cursor_child_index):
     measurement_types_html = measurement_types_html.replace('\n', ' ')
     file_types_html = file_types_html.replace('\n', ' ')
     
-    html = MeasurementTableHtmlBuilder().cursor_child_index_html(cursor_child_index) \
-                                        .lab_ids_html(lab_ids_html) \
-                                        .measurement_types_html(measurement_types_html) \
-                                        .file_types_html(file_types_html).build()
+    builder = MeasurementTableHtmlBuilder()
+    builder.cursor_child_index_html(cursor_child_index) 
+    builder.lab_ids_html(lab_ids_html) 
+    builder.measurement_types_html(measurement_types_html) 
+    builder.file_types_html(file_types_html)
+    html = builder.build()
    
 
     dialog_action = modal_dialog(html, 'Create Measurements Table', 600, 600)

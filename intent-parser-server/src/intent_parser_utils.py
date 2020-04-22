@@ -1,19 +1,26 @@
-
 from collections import namedtuple as _namedtuple
 from difflib import Match
 from http import HTTPStatus
 from intent_parser_exceptions import ConnectionException 
 import json
 import Levenshtein
+import re 
 
 IPSMatch = _namedtuple('Match', 'a b size content_word_length')
 
+def get_google_doc_id(doc_url):
+    url_pattern = 'https://docs.google.com/document/d/(?P<id>[^//]+)'
+    matched_pattern = re.match(url_pattern, doc_url)
+    doc_id = matched_pattern.group('id')
+    return doc_id
+        
+        
 def load_json_file(file_path):
     with open(file_path, 'r') as file:
         json_data = json.load(file)
         return json_data
 
-def load_html_file(file_path):
+def load_file(file_path):
     with open(file_path, 'r') as file:
         f = file.read()
         return f

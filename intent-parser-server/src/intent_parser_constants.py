@@ -34,8 +34,18 @@ ITEM_TYPES = {
             }
         }
 
-# How many results we allow
 SPARQL_LIMIT = 5
+
+GOOGLE_DOC_MIMETYPE = 'application/vnd.google-apps.document'
+WORD_DOC_MIMETYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+GROWTH_CURVE_PROTOCOL = 'GrowthCurve'
+OBSTACLE_COURSE_PROTOCOL = 'ObstacleCourse'
+TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
+
+PROTOCOL_NAMES = {GROWTH_CURVE_PROTOCOL: 'Growth Curves', 
+                  TIME_SERIES_HTP_PROTOCOL: 'Time Series', 
+                  OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course'}
 
 # String defines for headers in measurements table
 COL_HEADER_FILE_TYPE = 'file-type'
@@ -66,4 +76,10 @@ PARAMETER_RUN_INFO_READ_EACH_INDUCTION = 'run_info.read_each_induction'
 PARAMETER_RUN_INFO_SAVE_FOR_RNASEQ = 'run_info.save_for_rnaseq'
 PARAMETER_RUN_INFO_SKIP_FIRST_FLOW = 'run_info.skip_first_flow'
 PARAMETER_VALIDATE_SAMPLES = 'validate_samples'
+
+SD2_SPREADSHEET_ID = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program dict
+TEST_SPREADSHEET_ID = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
+UNIT_TEST_SPREADSHEET_ID = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0' #sd2 unit test dictionary 
+
+SBH_HUB_STAGING_URL = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
 

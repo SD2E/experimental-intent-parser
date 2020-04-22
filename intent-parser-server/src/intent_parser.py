@@ -6,7 +6,7 @@ from lab_experiment import LabExperiment
 from lab_table import LabTable
 from measurement_table import MeasurementTable
 from parameter_table import ParameterTable
-import constants
+import intent_parser_constants
 import intent_parser_utils
 import logging
 import numpy as np
@@ -28,14 +28,10 @@ class IntentParser(object):
                        '1_I4pxB26zOLb209Xlv8QDJuxiPWGDafrejRDKvZtEl8': '1K5IzBAIkXqJ7iPF4OZYJR7xgSts1PUtWWM2F0DKhct0',
                        '1zf9l0K4rj7I08ZRpxV2ZY54RMMQc15Rlg7ULviJ7SBQ': '1uXqsmRLeVYkYJHqgdaecmN_sQZ2Tj4Ck1SZKcp55yEQ' }
 
-
-    
-
     logger = logging.getLogger('intent_parser')
     
-    def __init__(self, document_id, datacatalog_config, sbh_instance, sbol_dictionary):
-        self._document_id = document_id
-        self.lab_experiment = LabExperiment()
+    def __init__(self, lab_experiment, datacatalog_config, sbh_instance, sbol_dictionary):
+        self.lab_experiment = lab_experiment 
         self.catalog_accessor = CatalogAccessor()
         self.datacatalog_config = datacatalog_config
         self.sbh = sbh_instance
@@ -50,7 +46,7 @@ class IntentParser(object):
         self._validate_schema()
     
     def calculate_samples(self):
-        self.lab_experiment.load_from_google_doc(self._document_id)
+        
         doc_tables = self.lab_experiment.tables()
         
         table_ids = []
@@ -68,7 +64,7 @@ class IntentParser(object):
             samples_col = -1
             for cell_idx in range(len(headerRow['tableCells'])):
                 cellTxt = intent_parser_utils.get_paragraph_text(headerRow['tableCells'][cell_idx]['content'][0]['paragraph']).strip()
-                if cellTxt == constants.COL_HEADER_SAMPLES:
+                if cellTxt == intent_parser_constants.COL_HEADER_SAMPLES:
                     samples_col = cell_idx
 
             samples = []
@@ -83,7 +79,7 @@ class IntentParser(object):
                 while colIdx < numCols and not is_type_col:
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
                     headerTxt =  intent_parser_utils.get_paragraph_text(paragraph_element).strip()
-                    if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE:
+                    if headerTxt == intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE:
                         is_type_col = True
                     else:
                         cellContent = row['tableCells'][colIdx]['content']
@@ -96,14 +92,14 @@ class IntentParser(object):
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
                     headerTxt =  intent_parser_utils.get_paragraph_text(paragraph_element).strip()
                     # Certain columns don't contain info about samples
-                    if headerTxt == constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == constants.COL_HEADER_NOTES or headerTxt == constants.COL_HEADER_SAMPLES:
+                    if headerTxt == intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == intent_parser_constants.COL_HEADER_NOTES or headerTxt == intent_parser_constants.COL_HEADER_SAMPLES:
                         colIdx += 1
                         continue
 
                     cellContent = row['tableCells'][colIdx]['content']
                     cellTxt = ' '.join([intent_parser_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
 
-                    if headerTxt == constants.COL_HEADER_REPLICATE:
+                    if headerTxt == intent_parser_constants.COL_HEADER_REPLICATE:
                         comp_count.append(int(cellTxt))
                     else:
                         comp_count.append(len(cellTxt.split(sep=',')))
@@ -123,7 +119,6 @@ class IntentParser(object):
 
      
     def generate_report(self):
-        self.lab_experiment.load_from_google_doc(self._document_id)
         links_info = self.lab_experiment.links_info() 
         mapped_names = []
         term_map = {}
@@ -152,13 +147,12 @@ class IntentParser(object):
 
         report = {}
         report['challenge_problem_id'] = 'undefined'
-        report['experiment_reference_url'] = 'https://docs.google.com/document/d/' + self._document_id
+        report['experiment_reference_url'] = 'https://docs.google.com/document/d/' + self.lab_experiment.document_id()
         report['labs'] = []
         report['mapped_names'] = mapped_names
         return report
     
     def generate_displayId_from_selection(self, start_paragraph, start_offset, end_offset):
-        self.lab_experiment.load_from_google_doc(self._document_id)
         paragraphs = self.lab_experiment.paragraphs()
         paragraph_text = intent_parser_utils.get_paragraph_text(paragraphs[start_paragraph])
         selection = paragraph_text[start_offset:end_offset + 1]
@@ -176,13 +170,11 @@ class IntentParser(object):
         return self.validation_warnings
     
     def update_experimental_results(self):
-        self.lab_experiment.load_from_google_doc(self._document_id) 
-        
         # For test documents, replace doc id with corresponding production doc
-        if self._document_id in self._test_doc_id_map:
-            source_doc_uri = 'https://docs.google.com/document/d/' + self._test_doc_id_map[self._document_id]
+        if self.lab_experiment.document_id() in self._test_doc_id_map:
+            source_doc_uri = 'https://docs.google.com/document/d/' + self._test_doc_id_map[self.lab_experiment.document_id()]
         else:
-            source_doc_uri = 'https://docs.google.com/document/d/' + self._document_id
+            source_doc_uri = 'https://docs.google.com/document/d/' + self.lab_experiment.document_id()
 
         # Search SBH to get data
         target_collection = '%s/user/%s/experiment_test/experiment_test_collection/1' % (self.sbh.get_sbh_url(), self.sbh.get_sbh_collection_user())
@@ -249,9 +241,7 @@ class IntentParser(object):
         """
         Generates a structured request for a given doc id
         """
-        self.lab_experiment.load_from_google_doc(self._document_id)
-
-        output_doc = { "experiment_reference_url" : "https://docs.google.com/document/d/%s" % self._document_id }
+        output_doc = { "experiment_reference_url" : "https://docs.google.com/document/d/%s" % self.lab_experiment.document_id() }
         if self.datacatalog_config['mongodb']['authn']:
             try:
                 map_experiment_reference(self.datacatalog_config, output_doc)
@@ -259,7 +249,7 @@ class IntentParser(object):
                 pass # We don't need to do anything, failure is handled later, but we don't want it to crash
 
         lab = 'Unknown'
-        title = self.lab_experiment.title()
+        title = self.lab_experiment.title()[0]
         experiment_id = 'experiment.tacc.TBD'
 
         if 'challenge_problem' in output_doc and 'experiment_reference' in output_doc and 'experiment_reference_url' in output_doc:
@@ -267,16 +257,16 @@ class IntentParser(object):
             experiment_reference = output_doc['experiment_reference']
             experiment_reference_url = output_doc['experiment_reference_url']
         else:
-            self.logger.info('WARNING: Failed to map experiment reference for doc id %s!' % self._document_id)
+            self.logger.info('WARNING: Failed to map experiment reference for doc id %s!' % self.lab_experiment.document_id())
             titleToks = title.split(sep='-')
             if len(titleToks) > 1:
                 experiment_reference = title.split(sep='-')[1].strip()
             else:
                 experiment_reference = title
-            experiment_reference_url = 'https://docs.google.com/document/d/' + self._document_id
+            experiment_reference_url = 'https://docs.google.com/document/d/' + self.lab_experiment.document_id()
             # This will return a parent list, which should have one or more Ids of parent directories
             # We want to navigate those and see if they are a close match to a challenge problem ID
-            parent_list = self.lab_experiment.parents() #TODO
+            parent_list = self.lab_experiment.parents()
             cp_id = 'Unknown'
             if not parent_list['kind'] == 'drive#parentList':
                 self.logger.info('ERROR: expected a drive#parent_list, received a %s' % parent_list['kind'])
@@ -284,9 +274,8 @@ class IntentParser(object):
                 for parent_ref in parent_list['items']:
                     if not parent_ref['kind'] == 'drive#parentReference':
                         continue
-                    parent_experiment = LabExperiment()
-                    parent_experiment.load_metadata_from_google_doc(parent_ref['id'])
-                    parent_meta = parent_experiment.metadata()
+                    parent_experiment = LabExperiment(parent_ref['id'])
+                    parent_meta = parent_experiment.load_metadata_from_google_doc()
                     new_cp_id = self.get_challenge_problem_id(parent_meta['title'])
                     if new_cp_id is not None:
                         cp_id = new_cp_id
@@ -335,7 +324,7 @@ class IntentParser(object):
             parameter = parameter_table.parse_table(table)
             self.validation_errors.extend(parameter_table.get_validation_errors())
             
-        self.request['name'] = title[0]
+        self.request['name'] = title
         self.request['experiment_id'] = experiment_id
         self.request['challenge_problem'] = cp_id
         self.request['experiment_reference'] = experiment_reference
@@ -343,7 +332,7 @@ class IntentParser(object):
         self.request['experiment_version'] = 1
         self.request['lab'] = lab
         self.request['runs'] = [{ 'measurements' : measurements}]
-            
+        self.request['doc_revision_id'] =  self.lab_experiment.head_revision()   
         if parameter:
             self.request['parameters'] = [parameter] 
     

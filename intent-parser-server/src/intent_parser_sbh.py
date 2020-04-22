@@ -1,6 +1,6 @@
 from datetime import datetime
 from sbh_accessor import SBHAccessor
-import constants
+import intent_parser_constants
 import intent_parser_view 
 import logging
 import re
@@ -14,10 +14,7 @@ class IntentParserSBH(object):
     
     logger = logging.getLogger('intent_parser_sbh')
 
-    def __init__(self):
-        pass
-    
-    def initialize_sbh(self, *,
+    def __init__(self, 
                  sbh_collection_uri,
                  spreadsheet_id,
                  sbh_spoofing_prefix=None,
@@ -25,24 +22,33 @@ class IntentParserSBH(object):
                  item_map_cache=True,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org']):
+        self.sbh_collection_uri = sbh_collection_uri
+        self.sbh_spoofing_prefix = sbh_spoofing_prefix
+        self.spreadsheet_id = spreadsheet_id
+        self.item_map_cache = item_map_cache
+        self.sbh_username = sbh_username
+        self.sbh_password = sbh_password
+        self.sbh_link_hosts = sbh_link_hosts
+        
+    def initialize_sbh(self):
         """
         Initialize the connection to SynbioHub.
         """
 
-        if sbh_collection_uri[:8] == 'https://':
+        if self.sbh_collection_uri[:8] == 'https://':
             sbh_url_protocol = 'https://'
-            sbh_collection_path = sbh_collection_uri[8:]
+            sbh_collection_path = self.sbh_collection_uri[8:]
 
-        elif sbh_collection_uri[:7] == 'http://':
+        elif self.sbh_collection_uri[:7] == 'http://':
             sbh_url_protocol = 'http://'
-            sbh_collection_path = sbh_collection_uri[7:]
+            sbh_collection_path = self.sbh_collection_uri[7:]
 
         else:
-            raise Exception('Invalid collection url: ' + sbh_collection_uri)
+            raise Exception('Invalid collection url: ' + self.sbh_collection_uri)
 
         sbh_collection_path_parts = sbh_collection_path.split('/')
         if len(sbh_collection_path_parts) != 6:
-            raise Exception('Invalid collection url: ' + sbh_collection_uri)
+            raise Exception('Invalid collection url: ' + self.sbh_collection_uri)
 
         sbh_collection = sbh_collection_path_parts[3]
         sbh_collection_user = sbh_collection_path_parts[2]
@@ -50,18 +56,18 @@ class IntentParserSBH(object):
         sbh_url = sbh_url_protocol + sbh_collection_path_parts[0]
 
         if sbh_collection_path_parts[4] != (sbh_collection + '_collection'):
-            raise Exception('Invalid collection url: ' + sbh_collection_uri)
+            raise Exception('Invalid collection url: ' + self.sbh_collection_uri)
 
         self.sbh = SBHAccessor(sbh_url=sbh_url)
         self.sbh_collection = sbh_collection
         self.sbh_collection_user = sbh_collection_user
-        self.sbh_spoofing_prefix = sbh_spoofing_prefix
+        self.sbh_spoofing_prefix = self.sbh_spoofing_prefix
         self.sbh_url = sbh_url
-        self.sbh_link_hosts = sbh_link_hosts
+        self.sbh_link_hosts = self.sbh_link_hosts
 
-        if sbh_spoofing_prefix is not None:
-            self.sbh.spoof(sbh_spoofing_prefix)
-            self.sbh_collection_uri = sbh_spoofing_prefix \
+        if self.sbh_spoofing_prefix is not None:
+            self.sbh.spoof(self.sbh_spoofing_prefix)
+            self.sbh_collection_uri = self.sbh_spoofing_prefix \
                 + '/user/' + sbh_collection_user \
                 + '/' + sbh_collection + '/' \
                 + sbh_collection + '_collection/' \
@@ -79,7 +85,7 @@ class IntentParserSBH(object):
             + '/' + sbh_collection + '/'
 
         if self.sbh is not None:
-            self.sbh.login(sbh_username, sbh_password)
+            self.sbh.login(self.sbh_username, self.sbh_password)
             self.logger.info('Logged into {}'.format(sbh_url))
             
     def stop(self):
@@ -121,8 +127,8 @@ class IntentParserSBH(object):
 
         # Look up sbol type uri
         sbol_type = None
-        for sbol_type_key in constants.ITEM_TYPES:
-            sbol_type_map = constants.ITEM_TYPES[ sbol_type_key ]
+        for sbol_type_key in intent_parser_constants.ITEM_TYPES:
+            sbol_type_map = intent_parser_constants.ITEM_TYPES[ sbol_type_key ]
             if item_type in sbol_type_map:
                 sbol_type = sbol_type_key
                 break;
@@ -236,7 +242,7 @@ class IntentParserSBH(object):
         sbol.TextProperty(entity, 'http://purl.org/dc/terms/modified', '0', '1',
                           time_stamp)
 
-        if item_type in constants.ITEM_TYPES['collection']:
+        if item_type in intent_parser_constants.ITEM_TYPES['collection']:
             return
 
         if len(item_definition_uri) > 0:

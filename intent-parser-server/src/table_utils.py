@@ -1,9 +1,8 @@
 from intent_parser_exceptions import TableException 
 import collections
-import constants
-import re
+import intent_parser_constants
 import intent_parser_utils
-
+import re
 
 _Token = collections.namedtuple('Token', ['type', 'value'])
 _fluid_units = {'fold' : 'X',
@@ -45,10 +44,10 @@ def detect_new_measurement_table(table):
     headerRow = rows[0]
     for cell in headerRow['tableCells']:
         cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
-        found_replicates |= cellTxt == constants.COL_HEADER_REPLICATE 
-        found_strain |= cellTxt == constants.COL_HEADER_STRAIN 
-        found_measurement_type |= cellTxt == constants.COL_HEADER_MEASUREMENT_TYPE
-        found_file_type |= cellTxt == constants.COL_HEADER_FILE_TYPE 
+        found_replicates |= cellTxt == intent_parser_constants.COL_HEADER_REPLICATE 
+        found_strain |= cellTxt == intent_parser_constants.COL_HEADER_STRAIN 
+        found_measurement_type |= cellTxt == intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE
+        found_file_type |= cellTxt == intent_parser_constants.COL_HEADER_FILE_TYPE 
 
     return found_replicates and found_strain and found_measurement_type and found_file_type
 
@@ -59,9 +58,9 @@ def detect_parameter_table(table):
     headerRow = rows[0]
     for cell in headerRow['tableCells']:
         cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
-        if cellTxt == constants.COL_HEADER_PARAMETER:
+        if cellTxt == intent_parser_constants.COL_HEADER_PARAMETER:
             has_parameter_field = True
-        elif cellTxt == constants.COL_HEADER_PARAMETER_VALUE:
+        elif cellTxt == intent_parser_constants.COL_HEADER_PARAMETER_VALUE:
             has_parameter_value = True
     return has_parameter_field and has_parameter_value
 
@@ -151,7 +150,7 @@ def transform_strateos_string(cell):
         cell: Content of a cell
     
     Return:
-    Array containing the result of the identified pattern for a cell.
+        Array containing the result of the identified pattern for a cell.
     """
     
     tokens = _tokenize(cell, keep_space=False) 
