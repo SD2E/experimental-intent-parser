@@ -1,4 +1,3 @@
-from docx import Document
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.opc.constants import NAMESPACE 
 import logging
@@ -37,12 +36,9 @@ class MicrosoftWordParser(object):
         Get document paragraphs
         """
         list_of_paragraphs = self.document.paragraphs
-        index = 1
         result = []
         for paragraph in list_of_paragraphs:
             text = paragraph.text
-            print('%d : %s' %(index, text))
-            index = index + 1  
             result.append(text)    
         return [paragraph.text for paragraph in list_of_paragraphs]
     
@@ -92,7 +88,6 @@ class MicrosoftWordParser(object):
                         
     def get_run_text(self, paragraph_run):
         run_texts = []
-        
         for run in paragraph_run.iterchildren(tag=self.PARAGRAPH_RUN_TAG_NAME):
             for run_text in run.iterchildren(tag=self.RUN_TEXT):
                 run_texts.append(run_text.text)
