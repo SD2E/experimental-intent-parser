@@ -12,7 +12,7 @@ import unittest
 
 class IntentParserServerTest(unittest.TestCase):
     """
-    Use dummy data to test response for process methods in IntentParserServer 
+    Test IntentParserServer response for different requests made to the server. 
     """
 
     @patch('intent_parser_factory.IntentParserFactory')

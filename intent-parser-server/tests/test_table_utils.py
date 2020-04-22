@@ -3,7 +3,9 @@ import table_utils as tu
 import unittest
 
 class TableUtilsTest(unittest.TestCase):
-    """Unit test for table_utils class"""
+    """
+    Test table utility methods
+    """
 
     def test_cell_with_propagated_unit(self):
         cell_str = '1 X, 2 X, 3 X'
