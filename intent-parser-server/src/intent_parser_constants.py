@@ -34,8 +34,10 @@ ITEM_TYPES = {
             }
         }
 
-# How many results we allow
 SPARQL_LIMIT = 5
+
+GOOGLE_DOC_MIMETYPE = 'application/vnd.google-apps.document'
+WORD_DOC_MIMETYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
 GROWTH_CURVE_PROTOCOL = 'GrowthCurve'
 OBSTACLE_COURSE_PROTOCOL = 'ObstacleCourse'
