@@ -9,9 +9,9 @@ from socket_manager import SocketManager
 from spellchecker import SpellChecker
 from strateos_accessor import StrateosAccessor
 import argparse
-import intent_parser_constants
 import http_message
 import inspect
+import intent_parser_constants
 import intent_parser_utils
 import intent_parser_view 
 import json
@@ -23,8 +23,6 @@ import sys
 import threading
 import time
 import traceback
-import lab_experiment
-
 
 class IntentParserServer:
 
