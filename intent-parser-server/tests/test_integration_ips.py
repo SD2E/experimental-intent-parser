@@ -1,16 +1,13 @@
 from google_accessor import GoogleAccessor
 from intent_parser_server import IntentParserServer
-from unittest.mock import Mock
-import getopt
 import json
 import os
-import sys
 import time
 import unittest
 import urllib.request
 import warnings
 
-@unittest.skip("Skip due to item map already exist")
+@unittest.skip("Skip for refactoring")
 class IntegrationIpsTest(unittest.TestCase):
 
     data_dir = 'data'

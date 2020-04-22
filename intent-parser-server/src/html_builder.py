@@ -1,9 +1,11 @@
+import intent_parser_utils
 import os
 
 class AddHtmlBuilder(): 
     def __init__(self):
         _curr_path = os.path.dirname(os.path.realpath(__file__))
-        self.html = os.path.join(_curr_path, 'add.html')
+        html_file = intent_parser_utils.load_file(os.path.join(_curr_path, 'add.html'))
+        self.html = html_file 
         
     def common_name(self, common_name):
         self.html = self.html.replace('${COMMONNAME}', common_name)
@@ -47,7 +49,8 @@ class AddHtmlBuilder():
 class AnalyzeHtmlBuilder():
     def __init__(self):
         _curr_path = os.path.dirname(os.path.realpath(__file__))
-        self.html = os.path.join(_curr_path, 'analyze_sidebar.html')
+        html_file = intent_parser_utils.load_file(os.path.join(_curr_path, 'analyze_sidebar.html'))
+        self.html = html_file 
     def selected_term(self, selected_term):
         self.html = self.html.replace('${SELECTEDTERM}', selected_term)
     def selected_uri(self, selected_uri):
@@ -68,7 +71,8 @@ class AnalyzeHtmlBuilder():
 class MeasurementTableHtmlBuilder():
     def __init__(self):
         _curr_path = os.path.dirname(os.path.realpath(__file__))
-        self.html = os.path.join(_curr_path, 'create_measurements_table.html')
+        html_file = intent_parser_utils.load_file(os.path.join(_curr_path, 'create_measurements_table.html'))
+        self.html = html_file 
     def cursor_child_index_html(self, cursor_child_index):
         self.html = self.html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
     def lab_ids_html(self, lab_ids_html):
@@ -79,5 +83,18 @@ class MeasurementTableHtmlBuilder():
         self.html = self.html.replace('${FILETYPEOPTIONS}', file_types_html)
     def build(self):
         return self.html
+    
+class ParameterTableHtmlBuilder():
+    def __init__(self):
+        _curr_path = os.path.dirname(os.path.realpath(__file__))
+        html_file = intent_parser_utils.load_file(os.path.join(_curr_path, 'create_parameter_table.html'))
+        self.html = html_file
+    def cursor_child_index_html(self, cursor_child_index):
+        self.html = self.html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
+    def protocol_options_html(self, html_protocols):
+        self.html = self.html.replace('${PROTOCOLOPTIONS}', html_protocols)
+    def build(self):
+        return self.html
+    
     
     

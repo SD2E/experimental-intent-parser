@@ -1,9 +1,10 @@
-from __future__ import print_function
-import pickle
-import os.path
+from apiclient.http import MediaIoBaseUpload
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+from google.auth.transport.requests import AuthorizedSession, Request
+from io import BytesIO
+import pickle
+import os.path
 import time
 
 # If modifying these scopes, delete the file token.pickle.
@@ -18,7 +19,6 @@ REQUESTS_PER_SEC = 0.5
 
 class GoogleAccessor:
 
-    # Constructor
     def __init__(self, *, spreadsheet_id: str, credentials):
         self._sheet_service = build('sheets', 'v4',
                                     credentials=credentials)
@@ -26,6 +26,8 @@ class GoogleAccessor:
                                     credentials=credentials)
         self._docs_service = build('docs', 'v1',
                                    credentials=credentials)
+        
+        self._authed_session = AuthorizedSession(credentials)
         self._spreadsheet_id = spreadsheet_id
         self._tab_headers = dict()
         self._inverse_tab_headers = dict()
@@ -65,8 +67,7 @@ class GoogleAccessor:
 
     @staticmethod
     def create(*, spreadsheet_id=None, console=False):
-        """
-        Ensures that the user is logged in and returns a `GoogleAccessor`.
+        """Ensures that the user is logged in and returns a `GoogleAccessor`.
 
         Credentials are initially read from the `credentials.json` file, and
         are subsequently stored in the file `token.pickle` that stores the
@@ -75,7 +76,6 @@ class GoogleAccessor:
         flow completes for the first time.
         """
         creds = None
-        #
         if os.path.exists('token.pickle'):
             with open('token.pickle', 'rb') as token:
                 creds = pickle.load(token)
@@ -94,49 +94,111 @@ class GoogleAccessor:
             with open('token.pickle', 'wb') as token:
                 pickle.dump(creds, token)
 
-        return GoogleAccessor(
-            spreadsheet_id=spreadsheet_id, credentials=creds
-        )
+        return GoogleAccessor(spreadsheet_id=spreadsheet_id, credentials=creds)
 
-    def create_new_spreadsheet(self, name: str):
-        """Creates a new spreadsheet and return the spreadsheet id
-          Arguements:
-
+    def create_new_spreadsheet(self, name, folder_id=None):
+        """Creates a new spreadsheet. 
+        
+        Args:
             name - Name of the new spreadsheet
-
+        
+        Returns:
+            A string to represent the id of the created spreadsheet.
+            An empty string is returned if no spreadsheet was created.
         """
-        spreadsheet = {
+        spreadsheet_metadata = {
             'properties': {
                 'title': name
                 }
             }
+            
         spreadsheets = self._sheet_service.spreadsheets()
-        create_sheets_request = spreadsheets.create(body=spreadsheet,
-                                                    fields='spreadsheetId')
-        return self._execute_request(create_sheets_request)
+        create_sheets_request = spreadsheets.create(body=spreadsheet_metadata,
+                                                    fields='spreadsheetId').execute()
+        
+        if 'spreadsheetId' not in create_sheets_request:
+            return ''
+        sheet_id = create_sheets_request['spreadsheetId']
+        if folder_id:
+            res = self._drive_service.files().update(fileId=sheet_id, 
+                                                     addParents=folder_id, 
+                                                     removeParents='root').execute()
+            print(res)
+            
+        return sheet_id
     
     def delete_file(self, file_id: str):
         """Delete an existing file
-          Arguements:
-
+          
+        Args:
             file_id - the file to delete
-
+        Returns:
+            A boolean value. True if the file has been deleted successfully and False, otherwise.
         """
-        files = self._drive_service.files()
-        request = files.delete(fileId=file_id)
-        return self._execute_request(request)
-
+        response = self._drive_service.files().delete(fileId=file_id).execute()
+        return not response
+   
+    def upload_revision(self, document_name, document, folder_id, original_format, title='Untitled', target_format='*/*'):
+        """Upload file to a Google Drive folder.
+        
+        Args:
+            document_name: Name of the document
+            document: content of the document to upload.
+            folder_id: id of the Google Drive folder
+            original_format: file format of the document content
+            title: document title
+            target_format: file format that that the uploaded file will transform into.
+            
+        Returns:
+            A string to represent the uploaded file's id.
+        """
+        file_metadata = {
+            'name': document_name,
+            'title': title,
+            'parents': [folder_id],
+            'mimeType': target_format
+        }
+        fh = BytesIO(document)
+        media = MediaIoBaseUpload(fh, mimetype=original_format, resumable=True) 
+        file = self._drive_service.files().insert(body=file_metadata,
+                                    media_body=media,
+                                    convert=True,
+                                    fields='id').execute()
+        print ('File ID: ' + file.get('id'))
+        return file.get('id')
+    
+    
+    def get_file_with_revision(self, file_id, revision_id, mime_type):
+        """Download a Google Doc base on a Doc's id and its revision.
+        
+        Args:
+            fild_id: Google Doc ID
+            revision_id: Google Doc revision ID
+            mime_type: format to download the Google Doc in. 
+            Visit https://developers.google.com/drive/api/v3/ref-export-formats to get a list of file formats that Google can export to
+        
+        Returns:
+            An HTML response of the requested Google Doc revision.
+        """
+        revisions = self.get_document_revisions(document_id=file_id)
+        filter_by_revision =[revision for revision in revisions['items'] if revision['id'] == revision_id]
+        
+        if len(filter_by_revision) < 1:
+            raise ValueError('Revision not found.')
+        
+        url = filter_by_revision[0]['exportLinks'][mime_type]
+        response = self._authed_session.request('GET', url)
+        return response
+    
     def copy_file(self, file_id: str, new_title: str):
-        """Copyies an existing file
-          Arguements:
-
+        """Copy an existing file.
+        
+        Args:
             file_id   - the file to delete
             new_title - title of new copy
 
-          Returns:
-
+        Returns:
             document id of new file
-
         """
         files = self._drive_service.files()
         request = files.copy(fileId=file_id,
@@ -145,7 +207,7 @@ class GoogleAccessor:
 
     def create_dictionary_sheets(self):
         """ Creates the standard tabs on the current spreadsheet.
-            The tabs are not popluated with any data
+            The tabs are not populated with any data
         """
         add_sheet_requests = list(map(lambda x: self.add_sheet_request(x),
                                     list(self.type_tabs.keys())))
@@ -168,8 +230,7 @@ class GoogleAccessor:
     def add_sheet_request(self, sheet_title: str):
         """ Creates a Google request to add a tab to the current spreadsheet
 
-          Arguments:
-
+        Args:
             sheet_title: name of the new tab
         """
 
@@ -383,6 +444,14 @@ class GoogleAccessor:
         """
         return self._drive_service.revisions().list(fileId=document_id).execute()
 
+    def get_head_revision(self, document_id):
+        revisions = self.get_document_revisions(document_id=document_id)
+        revision_ids = [int(revision['id']) for revision in revisions['items']]
+        if len(revision_ids) < 1:
+            raise ValueError('Revision not found.')
+        
+        return str(max(revision_ids))
+    
     def get_document_metadata(self, *, document_id):
         return self._drive_service.files().get(fileId=document_id).execute()
 

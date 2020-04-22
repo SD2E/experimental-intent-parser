@@ -1,7 +1,6 @@
-
 from google_accessor import GoogleAccessor
 from intent_parser_exceptions import DictionaryMaintainerException
-import constants
+import intent_parser_constants
 import logging
 import os 
 import intent_parser_utils
@@ -95,6 +94,9 @@ class SBOLDictionaryAccessor(object):
         return tab_data
     
     def generate_item_map(self, *, use_cache=True):
+        """
+        Use the SBOL Dictionary to generate a dictionary of common names referring to its SBH URI and store it into a local item-map.json file
+        """
         item_map = {}
         self.logger.info('Generating item map, %d' % time.time())
         if use_cache:
@@ -123,7 +125,7 @@ class SBOLDictionaryAccessor(object):
                 # Add common name to the item map
                 item_map[common_name] = uri
                 # There are also UIDs for each lab to add
-                for lab_uid in constants.LAB_IDS_LIST:
+                for lab_uid in intent_parser_constants.LAB_IDS_LIST:
                     # Ignore if the spreadsheet doesn't contain this lab
                     if not lab_uid in row or row[lab_uid] == '':
                         continue

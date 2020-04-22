@@ -6,7 +6,7 @@ class LabTable(object):
     Class for parsing Lab table
     '''
     
-    _logger = logging.getLogger('intent_parser_server')
+    _logger = logging.getLogger('intent_parser')
 
     def __init__(self):
         pass
