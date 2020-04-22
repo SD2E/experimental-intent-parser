@@ -111,11 +111,6 @@ class GoogleAccessor:
                 'title': name
                 }
             }
-        
-        if folder_id:
-            spreadsheet_metadata['add_parents'] = folder_id
-            spreadsheet_metadata['removeParents'] = 'root'
-            spreadsheet_metadata['fields'] = 'id,parents'
             
         spreadsheets = self._sheet_service.spreadsheets()
         create_sheets_request = spreadsheets.create(body=spreadsheet_metadata,
@@ -123,7 +118,14 @@ class GoogleAccessor:
         
         if 'spreadsheetId' not in create_sheets_request:
             return ''
-        return create_sheets_request['spreadsheetId']
+        sheet_id = create_sheets_request['spreadsheetId']
+        if folder_id:
+            res = self._drive_service.files().update(fileId=sheet_id, 
+                                                     addParents=folder_id, 
+                                                     removeParents='root').execute()
+            print(res)
+            
+        return sheet_id
     
     def delete_file(self, file_id: str):
         """Delete an existing file
