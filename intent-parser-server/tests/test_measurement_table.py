@@ -1,7 +1,4 @@
 from measurement_table import MeasurementTable
-import json
-import os
-import table_utils
 import unittest
 
 class MeasurementTableTest(unittest.TestCase):

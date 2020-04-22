@@ -1,20 +1,14 @@
 from datetime import datetime
 from google_accessor import GoogleAccessor
-from intent_parser import IntentParser
 from intent_parser_factory import IntentParserFactory
-from os import listdir
-from os.path import isfile
 from sbol_dictionary_accessor import SBOLDictionaryAccessor
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 import intent_parser_constants
 import git
 import intent_parser_utils
 import os
 import json 
-import time
 import unittest
-import intent_parser
-import operator
 
 class GoldenFileTest(unittest.TestCase):
     """

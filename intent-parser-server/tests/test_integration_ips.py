@@ -1,10 +1,7 @@
 from google_accessor import GoogleAccessor
 from intent_parser_server import IntentParserServer
-from unittest.mock import Mock
-import getopt
 import json
 import os
-import sys
 import time
 import unittest
 import urllib.request
