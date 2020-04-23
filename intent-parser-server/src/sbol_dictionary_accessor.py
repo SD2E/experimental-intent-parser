@@ -183,7 +183,7 @@ class SBOLDictionaryAccessor(object):
                 break 
         
         if target_tab is None:
-            raise DictionaryMaintainerException(tab_name + ' tab', 'cannot be found in spreadsheet.')
+            raise DictionaryMaintainerException('Unable to locate %s tab in spreadsheet.' % tab_name)
         
         return target_tab
         

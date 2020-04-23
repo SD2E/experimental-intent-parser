@@ -1,5 +1,6 @@
 from catalog_accessor import CatalogAccessor
 from datacatalog.formats.common import map_experiment_reference
+from intent_parser_exceptions import DictionaryMaintainerException
 from jsonschema import validate
 from jsonschema import ValidationError
 from lab_experiment import LabExperiment
@@ -311,6 +312,7 @@ class IntentParser(object):
                                           self.catalog_accessor.get_file_types())
             measurements = meas_table.parse_table(table)
             self.validation_errors.extend(meas_table.get_validation_errors())
+            self.validation_warnings.extend(meas_table.get_validation_warnings())
 
         if lab_table_idx >= 0:
             table = doc_tables[lab_table_idx]
@@ -320,9 +322,12 @@ class IntentParser(object):
         
         if parameter_table_idx >=0:
             table = doc_tables[parameter_table_idx]
-            parameter_table = ParameterTable(self.sbol_dictionary.get_strateos_mappings())
-            parameter = parameter_table.parse_table(table)
-            self.validation_errors.extend(parameter_table.get_validation_errors())
+            try:
+                parameter_table = ParameterTable(self.sbol_dictionary.get_strateos_mappings())
+                parameter = parameter_table.parse_table(table)
+                self.validation_errors.extend(parameter_table.get_validation_errors())
+            except DictionaryMaintainerException as err:
+                self.validation_errors.extend(err.get_message())
             
         self.request['name'] = title
         self.request['experiment_id'] = experiment_id
@@ -332,7 +337,7 @@ class IntentParser(object):
         self.request['experiment_version'] = 1
         self.request['lab'] = lab
         self.request['runs'] = [{ 'measurements' : measurements}]
-        self.request['doc_revision_id'] =  self.lab_experiment.head_revision()   
+        self.request['doc_revision_id'] = self.lab_experiment.head_revision()
         if parameter:
             self.request['parameters'] = [parameter] 
     
@@ -341,11 +346,6 @@ class IntentParser(object):
             try:
                 schema = { '$ref' : 'https://schema.catalog.sd2e.org/schemas/structured_request.json' }
                 validate(self.request, schema)
-                
-                reagent_with_no_uri = intent_parser_utils.get_reagent_with_no_uri(self.request)
-                for reagent in reagent_with_no_uri:
-                    self.validation_warnings.append('%s does not have a SynbioHub URI specified!&#13;&#10;' % reagent) 
             except ValidationError as err:
-                self.validation_errors.append('Schema Validation Error: {0}\n'.format(err).replace('\n', '&#13;&#10;'))
+                self.validation_errors.append(format(err).replace('\n', '&#13;&#10;'))
 
-    

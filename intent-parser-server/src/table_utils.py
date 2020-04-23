@@ -178,7 +178,7 @@ def transform_cell(cell, units, cell_type=None):
     """
     tokens = _tokenize(cell) 
     if not _is_valued_cells(tokens):
-        raise TableException(cell, 'does not contain a unit') 
+        raise TableException('%s does not contain a unit' % cell)
     else:
         index = 0
         tokens = [token for token in tokens if _get_token_type(token) not in ['SEPARATOR', 'SKIP']]
@@ -283,16 +283,18 @@ def _determine_unit(tokens, units, abbrev_units):
         
     Returns:
         An identified unit corresponding to tokens. 
-        unspecified is returned if no unit were identified. 
+        unspecified is returned if no unit were identified.
+    Raises:
+        TableException for invalid units
     """
     if _get_token_type(tokens[-1]) != 'NAME':
-        raise TableException(_get_token_value(tokens[-1]), 'does not contain a unit')
+        raise TableException('%s does not contain a unit' % _get_token_value(tokens[-1]))
     unit = _get_token_value(tokens[-1]).lower()
     if unit in abbrev_units:
         unit = abbrev_units[unit].lower()
     
     if unit not in units:
-        raise TableException(unit, 'is an invalid unit')
+        raise TableException('%s is an invalid unit' % unit)
     return units[unit]
 
 def _canonicalize_units(units):
