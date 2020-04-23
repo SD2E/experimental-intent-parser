@@ -93,6 +93,9 @@ class IntentParserServer:
         self.item_map_lock.acquire()
         self.item_map = self.sbol_dictionary.generate_item_map()
         self.item_map_lock.release()
+
+        self.housekeeping_thread = threading.Thread(target=self.housekeeping)
+        self.housekeeping_thread.start()
         
         if init_sbh:
             self.sbh.initialize_sbh()
