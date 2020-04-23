@@ -1,4 +1,5 @@
 from transcriptic import Connection
+import threading
 
 class StrateosAccessor(object):
     '''
@@ -7,29 +8,36 @@ class StrateosAccessor(object):
 
     def __init__(self):
         self.strateos_api = Connection.from_file("~/.transcriptic")
-        
+
+        self.protocol_lock = threading.Lock()
+        self.protocols = {}
+
+    def _fetch_protocols(self):
+        protocol_list = self.strateos_api.get_protocols()
+
+        self.protocol_lock.acquire()
+        for protocol in protocol_list:
+            self.protocols['name'] = protocol
+        self.protocol_lock.release()
+
     def get_protocol(self, protocol):
         """
-        Return a dictionary of protocol default values for a given protocol.
+        Get default parameter values for a given protocol.
         
         Args:
             protocol: name of protocol
             
         Return: 
-            A dictionary. The key represent the protocol input. 
-                The value represents the input's default value.
+            A dictionary. The key represent a parameter.
+                The value represents a parameter's default value.
         
         Raises:
-            An Exception to indicate if the given protocol does not exist when calling the Strateos API.
+            An Exception to indicate if a given protocol does not exist when calling the Strateos API.
         """
-        protocol_list = self.strateos_api.get_protocols()
-        matched_protocols = [p for p in protocol_list if p['name'] == protocol]
-        
-        protocol = matched_protocols[0]['inputs']
-        if protocol is None:
+        if protocol not in self.protocols:
             raise Exception('Unable to get %s from Strateos' % protocol)
-        
-        return self._get_protocol_default_values(protocol)
+        selected_protocol = self.protocols[protocol]['inputs']
+        return self._get_protocol_default_values(selected_protocol)
     
     def _get_protocol_default_values(self, protocol):
         result = {}
