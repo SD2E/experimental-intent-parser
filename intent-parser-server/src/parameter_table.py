@@ -71,7 +71,7 @@ class ParameterTable(object):
             elif parameter_value == 'true':
                 return parameter_field, [True]
             else:
-                raise TableException('%s should be a boolean value' % parameter_value)
+                raise TableException('Parameter table has invalid %s value: %s should be a boolean value' % (parameter_field, parameter_value))
         elif parameter_field in self.FIELD_WITH_LIST_OF_STRING:
             # Return the original form for parameters that contain a list of string 
             return parameter_field, [parameter_value] 

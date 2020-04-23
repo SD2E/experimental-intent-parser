@@ -321,8 +321,8 @@ class IntentParser(object):
             lab = lab_table.parse_table(table)
         
         if parameter_table_idx >=0:
-            table = doc_tables[parameter_table_idx]
             try:
+                table = doc_tables[parameter_table_idx]
                 parameter_table = ParameterTable(self.sbol_dictionary.get_strateos_mappings())
                 parameter = parameter_table.parse_table(table)
                 self.validation_errors.extend(parameter_table.get_validation_errors())

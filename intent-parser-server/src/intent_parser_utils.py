@@ -130,23 +130,6 @@ def get_element_type(element, element_type):
 
     return elements
 
-def get_reagent_with_no_uri(request_data):
-        reagent_with_no_uri = set()
-        if 'runs' in request_data:
-            for run in request_data['runs']:
-                if 'measurements' not in run:
-                    continue;
-                for measurement in run['measurements']:
-                    if 'contents' not in measurement:
-                        continue
-                    for reagent_entry in measurement['contents']:
-                        for reagent in reagent_entry:
-                            name_dict = reagent['name']
-                            if name_dict['sbh_uri'] == 'NO PROGRAM DICTIONARY ENTRY':
-                                reagent_with_no_uri.add(name_dict['label'])
-                                
-        return reagent_with_no_uri
-
 def analyze_term(entry):
     term = entry[0]
     start_offset = entry[1]
