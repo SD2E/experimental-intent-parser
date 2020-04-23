@@ -6,10 +6,10 @@ import logging
 import table_utils
 
 class ParameterTable(object):
-    '''
-    Class handles parameter tables 
-    '''
-    
+    """
+    Process information from Intent Parser's Parameter Table
+    """
+
     _logger = logging.getLogger('intent_parser')
     
     FIELD_WITH_BOOLEAN_VALUE = [intent_parser_constants.PARAMETER_MEASUREMENT_INFO_36_HR_READ, 
@@ -49,15 +49,15 @@ class ParameterTable(object):
                 else:
                     for i in range(len(param_value_list)):
                         param_field_id = param_field + '.' + str(i)
-                        parameter_data[param_field_id] =  param_value_list[i]
+                        parameter_data[param_field_id] = param_value_list[i]
             except ValueError as value_err:
                 message = str(value_err)
                 self._validation_errors.append(message)       
             except TableException as table_err:
-                message = ' '.join(['In Parameter Table: ', table_err.get_expression(), table_err.get_message()])
+                message = table_err.get_message()
                 self._validation_errors.append(message)
             except DictionaryMaintainerException as dictionary_err:
-                self._validation_errors.append(dictionary_err.get_expression() + ' ' + dictionary_err.get_message()) 
+                self._validation_errors.append(dictionary_err.get_message())
         return parameter_data
     
     def _parse_parameter_field_value(self, parameter_field, parameter_value):
@@ -71,7 +71,7 @@ class ParameterTable(object):
             elif parameter_value == 'true':
                 return parameter_field, [True]
             else:
-                raise TableException(parameter_value, 'should be a boolean value')
+                raise TableException('%s should be a boolean value' % parameter_value)
         elif parameter_field in self.FIELD_WITH_LIST_OF_STRING:
             # Return the original form for parameters that contain a list of string 
             return parameter_field, [parameter_value] 
@@ -94,11 +94,9 @@ class ParameterTable(object):
                 param_field = self._get_parameter_field(cell_txt)
             elif header == intent_parser_constants.COL_HEADER_PARAMETER_VALUE:
                 param_value = cell_txt
-            else:
-                raise TableException(cell_txt, 'was not recognized as a cell value under ' + intent_parser_constants.COL_HEADER_PARAMETER + ' or ' + intent_parser_constants.COL_HEADER_PARAMETER_VALUE)
-        
+
         if not param_field:
-            raise TableException('Parameter field', 'should not be empty') 
+            raise TableException('Parameter field should not be empty')
         
         if not param_value:
             return param_field, []
@@ -107,11 +105,10 @@ class ParameterTable(object):
             
     def _get_parameter_field(self, cell_txt):
         if not self._parameter_fields:
-            raise DictionaryMaintainerException('Strateos mapping', 'is empty')
-        if not cell_txt in self._parameter_fields:
-            raise TableException(cell_txt, 'does not map to a Strateos UID')
+            raise DictionaryMaintainerException('There are no parameters that could map to a Strateos protocol')
+        if cell_txt not in self._parameter_fields:
+            raise TableException('%s does not map to a Strateos UID' % cell_txt)
         return self._parameter_fields[cell_txt]
-    
+
     def get_validation_errors(self):
-        return self._validation_errors      
-        
+        return self._validation_errors

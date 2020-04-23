@@ -6,9 +6,9 @@ import table_utils
 
 
 class MeasurementTable:
-    '''
-    Class handles measurement from Experimental Request tables in Google Docs.
-    '''    
+    """
+    Process information from Intent Parser's Measurement Table
+    """
     _logger = logging.getLogger('intent_parser')
     IGNORE_COLUMNS = [intent_parser_constants.COL_HEADER_SAMPLES, intent_parser_constants.COL_HEADER_NOTES]
   
@@ -19,6 +19,7 @@ class MeasurementTable:
         self._measurement_types = measurement_types
         self._file_type = file_type
         self._validation_errors = []
+        self._validation_warnings = []
         
     def parse_table(self, table):
         measurements = []
@@ -43,19 +44,17 @@ class MeasurementTable:
                 try:  
                     measurement['measurement_type'] = self._get_measurement_type(cell_txt.strip())
                 except TableException as err:
-                    message = ' '.join(['Under measurement_type: ', err.get_expression(), err.get_message()]) 
-                    self._logger.info('WARNING ' + message)
+                    message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE, err.get_message())
                     self._validation_errors.append(message)
             elif header == intent_parser_constants.COL_HEADER_FILE_TYPE:
                 measurement['file_type'] = [value for value in table_utils.extract_name_value(cell_txt)] 
             elif header == intent_parser_constants.COL_HEADER_REPLICATE:
                 try:
                     if not table_utils.is_number(cell_txt):
-                        raise TableException(cell_txt, 'is not a numerical value')
+                        raise TableException('%s must be a numerical value' % cell_txt)
                     measurement['replicates'] = int(cell_txt)
                 except TableException as err:
-                    message =  ' '.join(['Under replicate: ', err.get_expression(), err.get_message()]) 
-                    self._logger.info('WARNING ' + message)
+                    message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_REPLICATE, err.get_message())
                     self._validation_errors.append(message)
             elif header == intent_parser_constants.COL_HEADER_STRAIN:
                 measurement['strains'] = [value for value in table_utils.extract_name_value(cell_txt)]
@@ -65,25 +64,22 @@ class MeasurementTable:
                 try:
                     measurement['temperatures'] = self._parse_and_append_value_unit(cell_txt, 'temperature', self._temperature_units)
                 except TableException as err:
-                    message = ' '.join(['Under temperature: ', err.get_expression(), err.get_message()]) 
-                    self._logger.info('WARNING ' + message)
+                    message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_TEMPERATURE, err.get_message())
                     self._validation_errors.append(message)
             elif header == intent_parser_constants.COL_HEADER_TIMEPOINT:
                 try:
                     measurement['timepoints'] = self._parse_and_append_value_unit(cell_txt, 'timepoints', self._timepoint_units) 
                 except TableException as err:
-                    message = ' '.join(['Under timepoint: ', err.get_expression(), err.get_message()]) 
-                    self._logger.info('WARNING ' + message)
+                    message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_TIMEPOINT, err.get_message())
                     self._validation_errors.append(message)
             else:
                 try:
                     reagents = self._parse_reagent_media(paragraph_element, cell_txt)
                     if not reagents:
-                        raise TableException(header, 'cannot parse as a reagent/media')
+                        raise TableException('%s is not identified as a reagent/media' % header)
                     content.append(reagents)
                 except TableException as err:
-                    message = ' '.join(['Under', header, ':', err.get_expression(), err.get_message()]) 
-                    self._logger.info('WARNING ' + message)
+                    message = 'Measurement table has invalid %s value: %s' % (header, err.get_message())
                     self._validation_errors.append(message)
             
         if content:
@@ -96,8 +92,7 @@ class MeasurementTable:
             temp_dict = {'value' : float(value), 'unit' : unit}
             result.append(temp_dict)
         return result 
-        
-    
+
     def _parse_reagent_media(self, paragraph_element, cell_txt):
         reagents_media = []
         reagent_media_name = intent_parser_utils.get_paragraph_text(paragraph_element).strip()
@@ -106,6 +101,8 @@ class MeasurementTable:
         uri = 'NO PROGRAM DICTIONARY ENTRY'
         if len(paragraph_element['elements']) > 0 and 'link' in paragraph_element['elements'][0]['textRun']['textStyle']:
             uri = paragraph_element['elements'][0]['textRun']['textStyle']['link']['url']
+        else:
+            self._validation_warnings.append('WARNING: %s does not have a SynbioHub URI specified!' % reagent_media_name)
              
         # Check header if it contains time sequence
         timepoint_str = reagent_media_name.split('@')
@@ -127,30 +124,29 @@ class MeasurementTable:
                         numerical_dict = {'name' : label_uri_dict, 'value' : value, 'unit' : unit}
                     reagents_media.append(numerical_dict)
             except TableException as err:
-                message = ' '.join([err.get_expression(), err.get_message()]) 
-                self._logger.info('Warning ' + message)
+                message = err.get_message()
                 self._validation_errors.append(message)
         elif table_utils.is_number(cell_txt):
-            raise TableException(cell_txt, 'is missing a unit')
+            raise TableException('%s is missing a unit' % cell_txt)
         else:
             for name in table_utils.extract_name_value(cell_txt):
                 named_dict = {'name' : label_uri_dict, 'value' : name}
                 reagents_media.append(named_dict)
         
         return reagents_media
-    
-    
+
     def _get_measurement_type(self, text):
         result = None 
         for mtype in self._measurement_types:
             if mtype == text:
                 result = mtype
                 break
-        
         if result is None:
-            raise TableException(text, 'does not match one of the following measurement types: \n' + '\n'.join((map(str, self._measurement_types))))
-        return result 
+            raise TableException('%s does not match one of the following measurement types: \n %s' % (text, ' ,'.join((map(str, self._measurement_types)))))
+        return result
     
     def get_validation_errors(self):
         return self._validation_errors
-    
+
+    def get_validation_warnings(self):
+        return self._validation_warnings
