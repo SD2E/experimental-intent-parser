@@ -8,7 +8,7 @@ pyspellchecker
 python-docx
 python-Levenshtein
 python-magic
-tenacity
 requests_oauthlib
+tenacity
 transcriptic
 
