@@ -17,8 +17,9 @@ class IntentParserSBH(object):
     def __init__(self, 
                  sbh_collection_uri,
                  spreadsheet_id,
+                 sbh_username, 
+                 sbh_password,
                  sbh_spoofing_prefix=None,
-                 sbh_username=None, sbh_password=None,
                  item_map_cache=True,
                  sbh_link_hosts=['hub-staging.sd2e.org',
                                  'hub.sd2e.org']):
@@ -29,7 +30,7 @@ class IntentParserSBH(object):
         self.sbh_username = sbh_username
         self.sbh_password = sbh_password
         self.sbh_link_hosts = sbh_link_hosts
-        
+    
     def initialize_sbh(self):
         """
         Initialize the connection to SynbioHub.
