@@ -13,9 +13,8 @@ Note that Google's REST API has quotas that limits how many create and update me
 If a quota limit is reached, then the script will store each document that needs to process to a queue and move onto the next Google Doc to process.
 """
 
-from app_script_api import AppScriptAPI
-from document_api import DocumentAPI
-from drive_api import DriveAPI
+from google_app_script_accessor import GoogleAppScriptAccessor
+from google_drive_accessor import GoogleDriveAccessor
 from googleapiclient import errors
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -27,11 +26,12 @@ import script_util as util
 import time
 
 # If modifying these scopes, delete the file token.pickle.
-SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
+SCOPES = ['https://www.googleapis.com/auth/drive.metadata',
           'https://www.googleapis.com/auth/script.projects',
           'https://www.googleapis.com/auth/script.deployments',
           'https://www.googleapis.com/auth/documents',
-          'https://www.googleapis.com/auth/drive.readonly']
+          'https://www.googleapis.com/auth/drive']
+#           'https://www.googleapis.com/auth/drive.readonly']
 
 USER_ACCOUNT = {
             "domain": 'gmail.com',
@@ -99,11 +99,11 @@ def setup_logging(
 
 def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'):
     creds = authenticate_credentials()
-    drive_api = DriveAPI(creds)
-    app_script_api = AppScriptAPI(creds) 
+    drive_access = GoogleDriveAccessor(creds)
+    app_script_access = GoogleAppScriptAccessor(creds) 
     
     local_docs = util.load_json_file(ADDON_FILE)
-    remote_docs = drive_api.recursive_list_doc(drive_id)
+    remote_docs = drive_access.recursive_list_doc(drive_id)
     while len(remote_docs) > 0 :
         doc = remote_docs.pop(0)
         r_id = doc['id']
@@ -115,12 +115,12 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                     logger.info('Updating script project metadata for doc: %s' % r_id)
                     script_id = metadata['scriptId']
                     
-                    remote_metadata = app_script_api.get_project_metadata(script_id)
-                    app_script_api.update_project_metadata(script_id, remote_metadata)
+                    remote_metadata = app_script_access.get_project_metadata(script_id)
+                    app_script_access.update_project_metadata(script_id, remote_metadata)
                     
-                    new_version = app_script_api.get_head_version(script_id) + 1
+                    new_version = app_script_access.get_head_version(script_id) + 1
                     publish_message = current_release + ' Release'
-                    app_script_api.create_version(script_id, new_version, publish_message)
+                    app_script_access.create_version(script_id, new_version, publish_message)
                     
                     local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
                     util.write_to_json(local_docs, ADDON_FILE)
@@ -132,11 +132,11 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
             try:
                 logger.info('Creating add-on for doc: %s' % r_id)
                 script_proj_title='IPProject Release'
-                response = app_script_api.create_project(script_proj_title, r_id)
+                response = app_script_access.create_project(script_proj_title, r_id)
                 script_id = response['scriptId']
                 
-                remote_metadata = app_script_api.get_project_metadata(script_id)
-                app_script_api.set_project_metadata(script_id, remote_metadata, USER_ACCOUNT)
+                remote_metadata = app_script_access.get_project_metadata(script_id)
+                app_script_access.set_project_metadata(script_id, remote_metadata, USER_ACCOUNT)
                 
                 local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
                 util.write_to_json(local_docs, ADDON_FILE)

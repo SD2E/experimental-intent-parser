@@ -1,4 +1,5 @@
 from google_accessor import GoogleAccessor
+from intent_parser_server import IntentParserServer
 from intent_parser_utils import IPSMatch
 from unittest.mock import Mock, patch, DEFAULT
 import getopt
@@ -12,19 +13,7 @@ import unittest
 import urllib.request
 import warnings
 
-try:
-    from intent_parser_server import IntentParserServer
-except Exception as e:
-    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'../src'))
-    from intent_parser_server import IntentParserServer
-
 class IpsUtilsTest(unittest.TestCase):
-
-    spellcheckFile = 'doc_1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA.json'
-
-    items_json = 'item-map-sd2dict.json'
-
-    dataDir = 'data'
 
     def setUp(self):
         """
@@ -445,7 +434,7 @@ class IpsUtilsTest(unittest.TestCase):
         ############
         content = 'm9 + glucose + caa:\n'
         term = 'm9'
-        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), IntentParserServer.partial_match_min_size, IntentParserServer.partial_match_thresh)
+        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), IntentParserServer.PARTIAL_MATCH_MIN_SIZE, IntentParserServer.PARTIAL_MATCH_THRESH)
         self.assertTrue(len(matches) == 1)
         self.assertTrue(matches[0].size == 2)
         self.assertTrue(matches[0].content_word_length == 2)
@@ -453,7 +442,7 @@ class IpsUtilsTest(unittest.TestCase):
         ############
         content = '}, plate_{proteomics} \n'
         term = 'proteomics' 
-        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), IntentParserServer.partial_match_min_size, IntentParserServer.partial_match_thresh)
+        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), IntentParserServer.PARTIAL_MATCH_MIN_SIZE, IntentParserServer.PARTIAL_MATCH_THRESH)
         self.assertTrue(len(matches) == 1)
         self.assertTrue(matches[0].size == 10)
         self.assertTrue(matches[0].content_word_length == 10)
@@ -461,7 +450,7 @@ class IpsUtilsTest(unittest.TestCase):
         ############
         content = 'Dna roteomics arabinose proteom arabinose\n'
         term = 'L-arabinose'
-        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), IntentParserServer.partial_match_min_size, IntentParserServer.partial_match_thresh)
+        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), IntentParserServer.PARTIAL_MATCH_MIN_SIZE, IntentParserServer.PARTIAL_MATCH_THRESH)
 
         gt_match = [IPSMatch(a=14, b=2, size=9, content_word_length=9), IPSMatch(a=32, b=2, size=9, content_word_length=9)]
         self.assertTrue(len(matches) == 2)
@@ -470,7 +459,7 @@ class IpsUtilsTest(unittest.TestCase):
         ############
         content = 'Dna roteomics arabinose proteom arabinose\n'
         term = 'proteomics'
-        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), IntentParserServer.partial_match_min_size, IntentParserServer.partial_match_thresh)
+        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), IntentParserServer.PARTIAL_MATCH_MIN_SIZE, IntentParserServer.PARTIAL_MATCH_THRESH)
 
         gt_match = [IPSMatch(a=4, b=1, size=9, content_word_length=9), IPSMatch(a=24, b=0, size=7, content_word_length=7)]
         self.assertTrue(len(matches) == 2)
@@ -479,7 +468,7 @@ class IpsUtilsTest(unittest.TestCase):
         ############
         content = 'Dna roteomics arabinose proteom arabinose\n'
         term = 'proteo'
-        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), IntentParserServer.partial_match_min_size, IntentParserServer.partial_match_thresh)
+        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), IntentParserServer.PARTIAL_MATCH_MIN_SIZE, IntentParserServer.PARTIAL_MATCH_THRESH)
 
         gt_match = [IPSMatch(a=4, b=1, size=5, content_word_length=9), IPSMatch(a=24, b=0, size=6, content_word_length=7)]
         self.assertTrue(len(matches) == 2)
@@ -488,7 +477,7 @@ class IpsUtilsTest(unittest.TestCase):
         ############
         content = 'arabinose\n'
         term = 'L-arabinose'
-        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), IntentParserServer.partial_match_min_size, IntentParserServer.partial_match_thresh)
+        matches = intent_parser_utils.find_common_substrings(content.lower(), term.lower(), IntentParserServer.PARTIAL_MATCH_MIN_SIZE, IntentParserServer.PARTIAL_MATCH_THRESH)
 
         gt_match = [IPSMatch(a=0, b=2, size=9, content_word_length=9)]
         self.assertTrue(len(matches) == 1)
@@ -500,9 +489,6 @@ class IpsUtilsTest(unittest.TestCase):
         """
         pass
         
+if __name__ == "__main__":
+    unittest.main()
 
-
-if __name__ == '__main__':
-    print('Run unit tests')
-
-    unittest.main(argv=[sys.argv[0]])
