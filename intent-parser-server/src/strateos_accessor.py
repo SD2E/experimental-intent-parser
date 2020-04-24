@@ -35,7 +35,7 @@ class StrateosAccessor(object):
 
         self.protocol_lock.acquire()
         for protocol in protocol_list:
-            self.protocols['name'] = protocol
+            self.protocols[protocol['name']] = protocol
         self.protocol_lock.release()
 
     def get_protocol(self, protocol):

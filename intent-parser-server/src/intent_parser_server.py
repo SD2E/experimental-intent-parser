@@ -94,7 +94,7 @@ class IntentParserServer:
         self.item_map = self.sbol_dictionary.generate_item_map()
         self.item_map_lock.release()
         
-        self.strateos_accessor.synchronize_protocols()
+#         self.strateos_accessor.synchronize_protocols()
 
         self.housekeeping_thread = threading.Thread(target=self.housekeeping)
         self.housekeeping_thread.start()
@@ -436,6 +436,9 @@ class IntentParserServer:
                 self.logger.error('Unsupported form action: {}'.format(action))
             self.logger.info('Action: %s' % result)
             return self._create_http_response(HTTPStatus.OK, json.dumps(result), 'application/json')
+        except Exception as err:
+            self.logger.info('Action: %s resulted in exception %s' % (result, err))
+            return self._create_http_response(HTTPStatus.INTERNAL_SERVER_ERROR, json.dumps(result), 'application/json')
         finally:
             self.release_connection(client_state)
             
