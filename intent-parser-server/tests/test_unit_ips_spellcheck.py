@@ -1,23 +1,14 @@
 from google_accessor import GoogleAccessor
+from intent_parser_server import IntentParserServer
 from ips_test_utils import compare_spell_results
 from ips_test_utils import get_currently_selected_text
-from unittest.mock import Mock, patch, DEFAULT
-import getopt
+from unittest.mock import Mock
 import json
 import os
 import pickle
-import sys
-import time
 import unittest
-import urllib.request
-import warnings
 
-try:
-    from intent_parser_server import IntentParserServer
-except Exception as e:
-    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'../src'))
-    from intent_parser_server import IntentParserServer
-
+@unittest.skip("Skip for refactoring")
 class IpsSpellcheckTest(unittest.TestCase):
 
     spellcheckFile = 'doc_1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA.json'
@@ -40,17 +31,38 @@ class IpsSpellcheckTest(unittest.TestCase):
             self.fail('Failed to read in test document! Path: ' + os.path.join(self.dataDir,self.spellcheckFile))
 
         # Clear all dictionary information
-        if os.path.exists(IntentParserServer.dict_path):
-            for file in os.listdir(IntentParserServer.dict_path):
-                os.remove(os.path.join(IntentParserServer.dict_path, file))
-            os.rmdir(IntentParserServer.dict_path)
+        if os.path.exists(IntentParserServer.DICT_PATH):
+            for file in os.listdir(IntentParserServer.DICT_PATH):
+                os.remove(os.path.join(IntentParserServer.DICT_PATH, file))
+            os.rmdir(IntentParserServer.DICT_PATH)
 
         self.doc_id = '1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA'
         self.user = 'bbnTest'
         self.user_email = 'test@bbn.com'
         self.json_body = {'documentId' : self.doc_id, 'user' : self.user, 'userEmail' : self.user_email}
 
-        self.ips = IntentParserServer(init_server=False, init_sbh=False)
+        self.google_accessor = GoogleAccessor.create()
+        self.template_spreadsheet_id = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0'
+        self.spreadsheet_id = self.google_accessor.copy_file(file_id = self.template_spreadsheet_id,
+                                                     new_title='Intent Parser Server Test Sheet')
+        
+        self.sbh_collection_uri = 'https://hub-staging.sd2e.org/user/sd2e/intent_parser/intent_parser_collection/1'
+       
+        curr_path = os.path.dirname(os.path.realpath(__file__)) 
+        with open(os.path.join(curr_path, 'sbh_creds.json'), 'r') as file:
+            creds = json.load(file)
+            self.sbh_username = creds['username']
+            self.sbh_password = creds['password']
+            
+        self.ips = IntentParserServer(bind_port=8081, 
+                 bind_ip='0.0.0.0',
+                 sbh_collection_uri=self.sbh_collection_uri,
+                 spreadsheet_id=self.spreadsheet_id,
+                 sbh_username=self.sbh_username, 
+                 sbh_password=self.sbh_password)
+        self.ips.initialize_server()
+        self.ips.start(background=True)
+        
         self.ips.client_state_lock = Mock()
         self.ips.client_state_map = {}
         self.ips.google_accessor = Mock()
@@ -107,7 +119,7 @@ class IpsSpellcheckTest(unittest.TestCase):
         self.assertTrue(compare_spell_results(spelling_gt_no_prot, self.ips.client_state_map[self.doc_id]['spelling_results']))
 
         # Check that a spelling dictionary was saved, to store the users preferences
-        dict_path = os.path.join(self.ips.dict_path, self.user_email + '.json')
+        dict_path = os.path.join(self.ips.DICT_PATH, self.user_email + '.json')
         self.assertTrue(os.path.exists(dict_path))
 
     def test_spellcheck_add_ignore(self):
@@ -550,7 +562,5 @@ class IpsSpellcheckTest(unittest.TestCase):
         self.ips.stop()
 
 
-if __name__ == '__main__':
-    print('Run unit tests')
-
-    unittest.main(argv=[sys.argv[0]])
+if __name__ == "__main__":
+    unittest.main()

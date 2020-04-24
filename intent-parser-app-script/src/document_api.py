@@ -1,8 +1,4 @@
 from googleapiclient.discovery import build
-from google.auth.transport.requests import Request
-import script_util as util
-import datetime
-import json
 
 class DocumentAPI:
 
