@@ -1,17 +1,35 @@
 from transcriptic import Connection
+import sched
+import time 
 import threading
 
 class StrateosAccessor(object):
-    '''
+    """
     Retrieve protocols from Strateos
-    '''
+    """
 
-    def __init__(self):
-        self.strateos_api = Connection.from_file("~/.transcriptic")
+    def __init__(self, credential_path=None):
+        if credential_path:
+            self.strateos_api = Connection.from_file(credential_path)
+        else:
+            self.strateos_api = Connection.from_default_config()
 
         self.protocol_lock = threading.Lock()
         self.protocols = {}
+        self._fetch_protocols()
+        self._scheduled_task = sched.scheduler(time.time, time.sleep)
 
+    def synchronize_protocols(self):
+        while True:
+            self._scheduled_task.enter(600, 1, self._fetch_protocols)
+            self._scheduled_task.run()
+    
+    def stop_synchronizing_protocols(self):
+        for task in self._scheduled_task.scheduler.queue():
+            self._scheduled_task.cancel(task)
+            
+        return self._scheduled_task.empty()
+    
     def _fetch_protocols(self):
         protocol_list = self.strateos_api.get_protocols()
 
