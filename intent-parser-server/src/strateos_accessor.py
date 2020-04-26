@@ -1,3 +1,4 @@
+from datetime import timedelta
 from transcriptic import Connection
 import logging
 import time 
@@ -7,8 +8,8 @@ class StrateosAccessor(object):
     """
     Retrieve protocols from Strateos
     """
-    SYNC_PERIOD_SECS = 60*10
-    logger = logging.getLogger('intent_parser_sbh')
+    SYNC_PERIOD = timedelta(minutes=10)
+    logger = logging.getLogger('intent_parser_strateos_accessor')
     
     def __init__(self, credential_path=None):
         if credential_path:
@@ -29,7 +30,7 @@ class StrateosAccessor(object):
     
     def _periodically_fetch_protocols(self):
         while True:
-            time.sleep(self.SYNC_PERIOD_SECS)
+            time.sleep(self.SYNC_PERIOD.total_seconds())
             self._fetch_protocols() 
 
     def _fetch_protocols(self):
