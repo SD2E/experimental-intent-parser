@@ -3,7 +3,6 @@ from google_accessor import GoogleAccessor
 from http import HTTPStatus
 from intent_parser_exceptions import ConnectionException
 from io import StringIO
-from microsoft_word_parser import MicrosoftWordParser
 import intent_parser_utils
 
 class LabExperiment(object):
@@ -16,21 +15,6 @@ class LabExperiment(object):
     def __init__(self, document_id):
         self._document_id = document_id
     
-    def load_from_local_docx_file(self, filepath):
-        try:
-            with open(filepath, 'rb') as f:
-                source_stream = StringIO(f.read())
-                document = Document(source_stream)
-                document_parser = MicrosoftWordParser(document)
-                self._head_revision = document_parser.revision()
-                self._links_info = document_parser.link_info() 
-                self._paragraphs = document_parser.paragraphs()
-                self._tables = document_parser.tables()
-                self._title = document_parser.title()
-                return document
-        finally:
-            source_stream.close()
-            
     def load_from_google_doc(self):
         try:
             google_accessor = GoogleAccessor.create()
