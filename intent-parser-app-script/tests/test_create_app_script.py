@@ -1,4 +1,4 @@
-from app_script_api import AppScriptAPI
+from google_app_script_accessor import GoogleAppScriptAccessor 
 import ip_addon_script
 import os
 import script_util
@@ -11,7 +11,7 @@ class CreateAppScriptTest(unittest.TestCase):
 
     def setUp(self):
         creds = ip_addon_script.authenticate_credentials()
-        self.app_api = AppScriptAPI(creds)
+        self.app_api = GoogleAppScriptAccessor(creds)
         response = self.app_api.create_project('UnitTest_ScriptProj', '1DQedT0t8k4zF26kA1sjcFPDbPXv6nQLlJxgarM-60ew')
         self.script_id = response['scriptId']
         

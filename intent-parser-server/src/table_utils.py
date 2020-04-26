@@ -1,8 +1,8 @@
 from intent_parser_exceptions import TableException 
 import collections
-import constants
+import intent_parser_constants
+import intent_parser_utils
 import re
-
 
 _Token = collections.namedtuple('Token', ['type', 'value'])
 _fluid_units = {'fold' : 'X',
@@ -27,7 +27,7 @@ def detect_lab_table(table):
     numRows = len(rows)
     labRow = rows[0]
     numCols = len(labRow['tableCells'])
-    lab = get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph'])
+    lab = intent_parser_utils.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph'])
     return numRows == 1 and numCols == 1 and 'lab' in lab.lower()
 
 
@@ -43,11 +43,11 @@ def detect_new_measurement_table(table):
     rows = table['tableRows']
     headerRow = rows[0]
     for cell in headerRow['tableCells']:
-        cellTxt = get_paragraph_text(cell['content'][0]['paragraph']).strip()
-        found_replicates |= cellTxt == constants.COL_HEADER_REPLICATE 
-        found_strain |= cellTxt == constants.COL_HEADER_STRAIN 
-        found_measurement_type |= cellTxt == constants.COL_HEADER_MEASUREMENT_TYPE
-        found_file_type |= cellTxt == constants.COL_HEADER_FILE_TYPE 
+        cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
+        found_replicates |= cellTxt == intent_parser_constants.COL_HEADER_REPLICATE 
+        found_strain |= cellTxt == intent_parser_constants.COL_HEADER_STRAIN 
+        found_measurement_type |= cellTxt == intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE
+        found_file_type |= cellTxt == intent_parser_constants.COL_HEADER_FILE_TYPE 
 
     return found_replicates and found_strain and found_measurement_type and found_file_type
 
@@ -57,27 +57,13 @@ def detect_parameter_table(table):
     rows = table['tableRows']
     headerRow = rows[0]
     for cell in headerRow['tableCells']:
-        cellTxt = get_paragraph_text(cell['content'][0]['paragraph']).strip()
-        if cellTxt == constants.COL_HEADER_PARAMETER:
+        cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
+        if cellTxt == intent_parser_constants.COL_HEADER_PARAMETER:
             has_parameter_field = True
-        elif cellTxt == constants.COL_HEADER_PARAMETER_VALUE:
+        elif cellTxt == intent_parser_constants.COL_HEADER_PARAMETER_VALUE:
             has_parameter_value = True
     return has_parameter_field and has_parameter_value
 
-def get_paragraph_text(paragraph):
-    elements = paragraph['elements']
-    paragraph_text = '';
-
-    for element_index in range( len(elements) ):
-        element = elements[ element_index ]
-
-        if 'textRun' not in element:
-            continue
-        text_run = element['textRun']
-        paragraph_text += text_run['content']
-
-    return paragraph_text
-    
 def is_number(cell):
     """
     Check if the cell only contains numbers.
@@ -164,7 +150,7 @@ def transform_strateos_string(cell):
         cell: Content of a cell
     
     Return:
-    Array containing the result of the identified pattern for a cell.
+        Array containing the result of the identified pattern for a cell.
     """
     
     tokens = _tokenize(cell, keep_space=False) 
@@ -192,7 +178,7 @@ def transform_cell(cell, units, cell_type=None):
     """
     tokens = _tokenize(cell) 
     if not _is_valued_cells(tokens):
-        raise TableException(cell, 'does not contain a unit') 
+        raise TableException('%s does not contain a unit' % cell)
     else:
         index = 0
         tokens = [token for token in tokens if _get_token_type(token) not in ['SEPARATOR', 'SKIP']]
@@ -297,16 +283,18 @@ def _determine_unit(tokens, units, abbrev_units):
         
     Returns:
         An identified unit corresponding to tokens. 
-        unspecified is returned if no unit were identified. 
+        unspecified is returned if no unit were identified.
+    Raises:
+        TableException for invalid units
     """
     if _get_token_type(tokens[-1]) != 'NAME':
-        raise TableException(_get_token_value(tokens[-1]), 'does not contain a unit')
+        raise TableException('%s does not contain a unit' % _get_token_value(tokens[-1]))
     unit = _get_token_value(tokens[-1]).lower()
     if unit in abbrev_units:
         unit = abbrev_units[unit].lower()
     
     if unit not in units:
-        raise TableException(unit, 'is an invalid unit')
+        raise TableException('%s is an invalid unit' % unit)
     return units[unit]
 
 def _canonicalize_units(units):
