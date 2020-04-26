@@ -30,6 +30,7 @@ class IntentParserSBH(object):
         self.sbh_username = sbh_username
         self.sbh_password = sbh_password
         self.sbh_link_hosts = sbh_link_hosts
+        self.sbh = None
     
     def initialize_sbh(self):
         """
@@ -39,11 +40,9 @@ class IntentParserSBH(object):
         if self.sbh_collection_uri[:8] == 'https://':
             sbh_url_protocol = 'https://'
             sbh_collection_path = self.sbh_collection_uri[8:]
-
         elif self.sbh_collection_uri[:7] == 'http://':
             sbh_url_protocol = 'http://'
             sbh_collection_path = self.sbh_collection_uri[7:]
-
         else:
             raise Exception('Invalid collection url: ' + self.sbh_collection_uri)
 
@@ -90,7 +89,8 @@ class IntentParserSBH(object):
             self.logger.info('Logged into {}'.format(sbh_url))
             
     def stop(self):
-        self.sbh.stop()
+        if self.sbh is not None:
+            self.sbh.stop()
     
     def create_sbh_stub(self, data):
         # Extract some fields from the form
