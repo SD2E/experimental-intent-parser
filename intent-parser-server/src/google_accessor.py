@@ -101,7 +101,9 @@ class GoogleAccessor:
         
         Args:
             name - Name of the new spreadsheet
-        
+            folder_id: id of a Google Drive folder to create a new spreadsheet in. 
+                       The new spreadsheet will be created in the user's Drive folder if no folder id is given.
+                       
         Returns:
             A string to represent the id of the created spreadsheet.
             An empty string is returned if no spreadsheet was created.

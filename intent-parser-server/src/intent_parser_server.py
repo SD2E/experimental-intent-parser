@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from intent_parser_exceptions import ConnectionException
+from intent_parser_exceptions import ConnectionException, DictionaryMaintainerException
 from intent_parser_factory import IntentParserFactory
 from intent_parser_sbh import IntentParserSBH
 from multiprocessing import Pool
@@ -93,6 +93,11 @@ class IntentParserServer:
         self.item_map_lock.acquire()
         self.item_map = self.sbol_dictionary.generate_item_map()
         self.item_map_lock.release()
+        
+        self.strateos_accessor.start_synchronize_protocols()
+
+        self.housekeeping_thread = threading.Thread(target=self.housekeeping)
+        self.housekeeping_thread.start()
         
         if init_sbh:
             self.sbh.initialize_sbh()
@@ -431,6 +436,9 @@ class IntentParserServer:
                 self.logger.error('Unsupported form action: {}'.format(action))
             self.logger.info('Action: %s' % result)
             return self._create_http_response(HTTPStatus.OK, json.dumps(result), 'application/json')
+        except (Exception, DictionaryMaintainerException) as err:
+            self.logger.info('Action: %s resulted in exception %s' % (action, err))
+            return self._create_http_response(HTTPStatus.INTERNAL_SERVER_ERROR, json.dumps(result), 'application/json')
         finally:
             self.release_connection(client_state)
             
@@ -1095,8 +1103,7 @@ class IntentParserServer:
                     col_sizes.append(len(str(protocol_value)) + 1)
                     break
             if not parameter_row:
-                continue
-#                 raise Exception('Unable to include %s to the Parameter table because there is no parameter name in the SBOL Dictionary for this Strateos UID' % protocol_key)
+                raise Exception('Unable to include %s to the Parameter table because there is no parameter name in the SBOL Dictionary for this Strateos UID' % protocol_key)
             else:
                 table_data.append(parameter_row)
                     
@@ -1299,15 +1306,19 @@ class IntentParserServer:
         self.client_state_lock.release()
 
     def stop(self):
-        ''' Stop the intent parser server
-        '''
-        
+        """
+        Stop all jobs running on intent parser server
+        """
         self.initialized = False
         self.logger.info('Signaling shutdown...')
         self.shutdownThread = True
         self.event.set()
         if self.sbh is not None:
             self.sbh.stop()
+            self.logger.info('Stopped SynBioHub') 
+        if self.strateos_accessor is not None:
+            self.strateos_accessor.stop_synchronizing_protocols()
+            self.logger.info('Stopped caching Strateos protocols.')
         if self.socket is not None:
             self.logger.info('Closing server...')
             try:
@@ -1462,6 +1473,9 @@ def main():
     
     parser.add_argument('-s', '--spoofing-prefix', nargs='?', 
                             required=False, help='SBH spoofing prefix.')
+
+    parser.add_argument('-t', '--transcriptic', nargs='?', 
+                            required=False, help='Path to transcriptic configuration file.')
     
     parser.add_argument('-u', '--username', nargs='?', 
                             required=True, help='SynBioHub username.')
@@ -1473,13 +1487,13 @@ def main():
     
     try:
         sbh = IntentParserSBH(sbh_collection_uri=input_args.collection,
-                 sbh_spoofing_prefix=input_args.spoofing_prefix,
                  spreadsheet_id=intent_parser_constants.SD2_SPREADSHEET_ID,
                  sbh_username=input_args.username, 
-                 sbh_password=input_args.password)
+                 sbh_password=input_args.password,
+                 sbh_spoofing_prefix=input_args.spoofing_prefix)
         sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, sbh) 
         datacatalog_config = { "mongodb" : { "database" : "catalog_staging", "authn" : input_args.authn } }
-        strateos_accessor = StrateosAccessor()
+        strateos_accessor = StrateosAccessor(input_args.transcriptic)
         intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
         intent_parser_server = IntentParserServer(sbh, sbol_dictionary, strateos_accessor, intent_parser_factory,
                                        bind_ip=input_args.bind_host,
