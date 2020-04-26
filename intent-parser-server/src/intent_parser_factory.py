@@ -2,9 +2,9 @@ from intent_parser import IntentParser
 from lab_experiment import LabExperiment
 
 class IntentParserFactory(object):
-    '''
+    """
     Creator for Intent Parser
-    '''
+    """
 
     def __init__(self, datacatalog_config, sbh, sbol_dictionary):
         self.datacatalog_config = datacatalog_config 
