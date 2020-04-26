@@ -1,5 +1,5 @@
 from transcriptic import Connection
-import sched
+import logging
 import time 
 import threading
 
@@ -7,7 +7,9 @@ class StrateosAccessor(object):
     """
     Retrieve protocols from Strateos
     """
-
+    SYNC_PERIOD_SECS = 60*10
+    logger = logging.getLogger('intent_parser_sbh')
+    
     def __init__(self, credential_path=None):
         if credential_path:
             self.strateos_api = Connection.from_file(credential_path)
@@ -16,28 +18,29 @@ class StrateosAccessor(object):
 
         self.protocol_lock = threading.Lock()
         self.protocols = {}
+        self._protocol_thread = threading.Thread(target=self._periodically_fetch_protocols)
+        
+    def start_synchronize_protocols(self):
         self._fetch_protocols()
-        self._scheduled_task = sched.scheduler(time.time, time.sleep)
-
-    def synchronize_protocols(self):
-        while True:
-            self._scheduled_task.enter(600, 1, self._fetch_protocols)
-            self._scheduled_task.run()
-    
+        self._protocol_thread.start()
+             
     def stop_synchronizing_protocols(self):
-        for task in self._scheduled_task.scheduler.queue():
-            self._scheduled_task.cancel(task)
-            
-        return self._scheduled_task.empty()
+        self._protocol_thread.join() 
     
+    def _periodically_fetch_protocols(self):
+        while True:
+            time.sleep(self.SYNC_PERIOD_SECS)
+            self._fetch_protocols() 
+
     def _fetch_protocols(self):
+        self.logger.info('Fetching strateos')
         protocol_list = self.strateos_api.get_protocols()
 
         self.protocol_lock.acquire()
         for protocol in protocol_list:
             self.protocols[protocol['name']] = protocol
         self.protocol_lock.release()
-
+        
     def get_protocol(self, protocol):
         """
         Get default parameter values for a given protocol.
@@ -52,9 +55,12 @@ class StrateosAccessor(object):
         Raises:
             An Exception to indicate if a given protocol does not exist when calling the Strateos API.
         """
+        
+        self.protocol_lock.acquire()
         if protocol not in self.protocols:
             raise Exception('Unable to get %s from Strateos' % protocol)
         selected_protocol = self.protocols[protocol]['inputs']
+        self.protocol_lock.release()
         return self._get_protocol_default_values(selected_protocol)
     
     def _get_protocol_default_values(self, protocol):

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from intent_parser_exceptions import ConnectionException
+from intent_parser_exceptions import ConnectionException, DictionaryMaintainerException
 from intent_parser_factory import IntentParserFactory
 from intent_parser_sbh import IntentParserSBH
 from multiprocessing import Pool
@@ -94,7 +94,7 @@ class IntentParserServer:
         self.item_map = self.sbol_dictionary.generate_item_map()
         self.item_map_lock.release()
         
-#         self.strateos_accessor.synchronize_protocols()
+        self.strateos_accessor.start_synchronize_protocols()
 
         self.housekeeping_thread = threading.Thread(target=self.housekeeping)
         self.housekeeping_thread.start()
@@ -436,8 +436,8 @@ class IntentParserServer:
                 self.logger.error('Unsupported form action: {}'.format(action))
             self.logger.info('Action: %s' % result)
             return self._create_http_response(HTTPStatus.OK, json.dumps(result), 'application/json')
-        except Exception as err:
-            self.logger.info('Action: %s resulted in exception %s' % (result, err))
+        except (Exception, DictionaryMaintainerException) as err:
+            self.logger.info('Action: %s resulted in exception %s' % (action, err))
             return self._create_http_response(HTTPStatus.INTERNAL_SERVER_ERROR, json.dumps(result), 'application/json')
         finally:
             self.release_connection(client_state)
