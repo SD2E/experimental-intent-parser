@@ -1,8 +1,6 @@
-from docx import Document
 from google_accessor import GoogleAccessor
 from http import HTTPStatus
 from intent_parser_exceptions import ConnectionException
-from io import StringIO
 import intent_parser_utils
 
 class LabExperiment(object):
