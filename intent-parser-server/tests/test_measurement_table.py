@@ -2,9 +2,9 @@ from measurement_table import MeasurementTable
 import unittest
 
 class MeasurementTableTest(unittest.TestCase):
-    '''
-       Test parsing information from a measurement table
-    '''
+    """
+    Test parsing information from a measurement table
+    """
                 
     def test_table_with_measurement_type(self):
         input_table = {'tableRows': [

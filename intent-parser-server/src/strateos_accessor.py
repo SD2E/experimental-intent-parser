@@ -1,35 +1,68 @@
+from datetime import timedelta
 from transcriptic import Connection
+import logging
+import time 
+import threading
 
 class StrateosAccessor(object):
-    '''
+    """
     Retrieve protocols from Strateos
-    '''
+    """
+    SYNC_PERIOD = timedelta(minutes=10)
+    logger = logging.getLogger('intent_parser_strateos_accessor')
+    
+    def __init__(self, credential_path=None):
+        if credential_path:
+            self.strateos_api = Connection.from_file(credential_path)
+        else:
+            self.strateos_api = Connection.from_default_config()
 
-    def __init__(self):
-        self.strateos_api = Connection.from_file("~/.transcriptic")
+        self.protocol_lock = threading.Lock()
+        self.protocols = {}
+        self._protocol_thread = threading.Thread(target=self._periodically_fetch_protocols)
+        
+    def start_synchronize_protocols(self):
+        self._fetch_protocols()
+        self._protocol_thread.start()
+             
+    def stop_synchronizing_protocols(self):
+        self._protocol_thread.join() 
+    
+    def _periodically_fetch_protocols(self):
+        while True:
+            time.sleep(self.SYNC_PERIOD.total_seconds())
+            self._fetch_protocols() 
+
+    def _fetch_protocols(self):
+        self.logger.info('Fetching strateos')
+        protocol_list = self.strateos_api.get_protocols()
+
+        self.protocol_lock.acquire()
+        for protocol in protocol_list:
+            self.protocols[protocol['name']] = protocol
+        self.protocol_lock.release()
         
     def get_protocol(self, protocol):
         """
-        Return a dictionary of protocol default values for a given protocol.
+        Get default parameter values for a given protocol.
         
         Args:
             protocol: name of protocol
             
         Return: 
-            A dictionary. The key represent the protocol input. 
-                The value represents the input's default value.
+            A dictionary. The key represent a parameter.
+                The value represents a parameter's default value.
         
         Raises:
-            An Exception to indicate if the given protocol does not exist when calling the Strateos API.
+            An Exception to indicate if a given protocol does not exist when calling the Strateos API.
         """
-        protocol_list = self.strateos_api.get_protocols()
-        matched_protocols = [p for p in protocol_list if p['name'] == protocol]
         
-        protocol = matched_protocols[0]['inputs']
-        if protocol is None:
+        self.protocol_lock.acquire()
+        if protocol not in self.protocols:
             raise Exception('Unable to get %s from Strateos' % protocol)
-        
-        return self._get_protocol_default_values(protocol)
+        selected_protocol = self.protocols[protocol]['inputs']
+        self.protocol_lock.release()
+        return self._get_protocol_default_values(selected_protocol)
     
     def _get_protocol_default_values(self, protocol):
         result = {}
