@@ -125,8 +125,6 @@ class GoogleAccessor:
             res = self._drive_service.files().update(fileId=sheet_id, 
                                                      addParents=folder_id, 
                                                      removeParents='root').execute()
-            print(res)
-            
         return sheet_id
     
     def delete_file(self, file_id: str):
