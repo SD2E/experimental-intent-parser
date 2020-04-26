@@ -3,20 +3,19 @@ class Error(Exception):
     pass
 
 class ConnectionException(Exception):
-    def __init__(self, code, message, content=""):
-        super(ConnectionException, self).__init__(message);
-        self.code = code
-        self.message = message
+    def __init__(self, http_status, content=""):
+        self.http_status = http_status
+        self.code = http_status.value
+        self.message = http_status.name
         self.content = content
- 
+
 class TableException(Error):
     '''
-    Class for catch exceptions related to parsing a table. 
+    Report errors when parsing tables from running Intent Parser's p
     '''
        
-    def __init__(self, expression, message):
-        self.expression = expression
-        self.message = message    
+    def __init__(self, message):
+        self.message = message
     
     def get_message(self):
         ''' 
@@ -24,25 +23,13 @@ class TableException(Error):
         '''
         return self.message
 
-    def get_expression(self):
-        ''' 
-        The expression causing the error. 
-        '''
-        return self.expression
-    
 class DictionaryMaintainerException(Error):
-    '''
-    Class to detect SBOL Dictionary Maintainer exceptions
-    '''
+    """
+    Report errors related to getting information from SBOL Dictionary Maintainer
+    """
     
-    def __init__(self, expression, message):
-        self._expression = expression
-        self._message = message 
+    def __init__(self, message):
+        self.message = message
         
     def get_message(self):
-        return self._message
-    
-    def get_expression(self):
-        return self._expression
-    
-    
+        return self.message

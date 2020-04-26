@@ -3,7 +3,7 @@ import datetime
 import os
 import script_util as util
 
-class AppScriptAPI:
+class GoogleAppScriptAccessor:
     '''
     A list of APIs to access a Google Add-on Script Project.
     Refer to https://developers.google.com/apps-script/api/reference/rest to get information on how this class is set up.
