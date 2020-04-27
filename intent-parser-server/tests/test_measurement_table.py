@@ -56,7 +56,19 @@ class MeasurementTableTest(unittest.TestCase):
         meas_table = MeasurementTable()
         meas_result = meas_table.parse_table(input_table)
         self.assertEquals(1, len(meas_result))
-        self.assertEquals(meas_result[0]['replicates'], 3)  
+        self.assertEquals(meas_result[0]['replicates'], 3) 
+        
+    def test_table_with_3_replicates(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'replicate\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': '1,2,3\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable()
+        meas_result = meas_table.parse_table(input_table)
+        self.assertEquals(0, len(meas_result))
     
     def test_table_with_1_strain(self):
         input_table = {'tableRows': [

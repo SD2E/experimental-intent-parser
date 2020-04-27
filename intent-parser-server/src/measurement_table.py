@@ -52,7 +52,10 @@ class MeasurementTable:
                 try:
                     if not table_utils.is_number(cell_txt):
                         raise TableException('%s must be a numerical value' % cell_txt)
-                    measurement['replicates'] = int(cell_txt)
+                    list_of_replicates = table_utils.extract_number_value(cell_txt)
+                    if len(list_of_replicates) != 1:
+                        raise TableException('%s must not have more than one number provided as a replicate.' % cell_txt)
+                    measurement['replicates'] = int(list_of_replicates[0])
                 except TableException as err:
                     message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_REPLICATE, err.get_message())
                     self._validation_errors.append(message)
