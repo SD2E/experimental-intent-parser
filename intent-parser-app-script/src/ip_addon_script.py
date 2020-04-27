@@ -31,7 +31,6 @@ SCOPES = ['https://www.googleapis.com/auth/drive.metadata',
           'https://www.googleapis.com/auth/script.deployments',
           'https://www.googleapis.com/auth/documents',
           'https://www.googleapis.com/auth/drive']
-#           'https://www.googleapis.com/auth/drive.readonly']
 
 USER_ACCOUNT = {
             "domain": 'gmail.com',
@@ -146,7 +145,7 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                 time.sleep(60)  
 
 def main():
-    current_release = '2.4'
+    current_release = '2.5'
     setup_logging()
     logger.info('Running IP addon script for release %s' % current_release)
     try:
