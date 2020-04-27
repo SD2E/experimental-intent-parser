@@ -5,8 +5,6 @@ class Error(Exception):
 class ConnectionException(Exception):
     def __init__(self, http_status, content=""):
         self.http_status = http_status
-        self.code = http_status.value
-        self.message = http_status.name
         self.content = content
 
 class TableException(Error):
