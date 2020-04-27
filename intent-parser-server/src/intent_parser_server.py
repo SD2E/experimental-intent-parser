@@ -166,21 +166,19 @@ class IntentParserServer:
                     elif method == 'GET':
                         self.handle_GET(httpMessage, socket_manager)
                     else:
-                        raise ConnectionException(HTTPStatus.NOT_IMPLEMENTED, 'Unrecognized request method\n')
                         response = self._create_http_response(HTTPStatus.NOT_IMPLEMENTED, 'Unrecognized request method\n')
                         response.send(socket_manager)
-
                 except ConnectionException as ex:
-                    response = self._create_http_response(ex.http_code, ex.content)
+                    response = self._create_http_response(ex.http_status, ex.content)
                     response.send(socket_manager)
-
                 except Exception as ex:
                     self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
                     response = self._create_http_response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Internal Server Error\n')
                     response.send(socket_manager)
 
         except Exception as e:
-            self.logger.info('Exception: {}'.format(e))
+#             self.logger.info('Exception: {}'.format(e))
+            self.logger.info(''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__)))
 
         client_socket.close()
         client_socket.shutdown(socket.SHUT_RDWR)
@@ -207,7 +205,7 @@ class IntentParserServer:
         end = time.time()
         
         response.send(socket_manager)
-        self.logger.info('Generated GET request in %0.2fms, %s' %((end - start) * 1000, time.time()))
+        self.logger.info('Generated GET request for %s in %0.2fms' %(resource, (end - start) * 1000))
         
     def process_document_report(self, httpMessage):
         """
