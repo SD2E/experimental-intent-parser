@@ -25,7 +25,7 @@ class LabExperiment(object):
             self._title = intent_parser_utils.get_element_type(document, 'title')
             return document
         except Exception:
-            raise ConnectionException(HTTPStatus.NOT_FOUND,'Failed to access document ' + self._document_id)
+            raise ConnectionException(HTTPStatus.NOT_FOUND, 'Failed to access document ' + self._document_id)
 
     def load_metadata_from_google_doc(self):
         try:
