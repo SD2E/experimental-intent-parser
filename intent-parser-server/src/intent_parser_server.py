@@ -53,7 +53,7 @@ class IntentParserServer:
                  bind_ip):
         self.sbh = sbh
         self.sbol_dictionary = sbol_dictionary
-        self.strateos_accessor = strateos_accessor #TODO: add to config file login account
+        self.strateos_accessor = strateos_accessor 
         self.intent_parser_factory = intent_parser_factory
         
         self.bind_port = bind_port
@@ -243,7 +243,7 @@ class IntentParserServer:
         elif resource == '/buttonClick':
             response = self.process_button_click(httpMessage)
         elif resource == '/message':
-            response = self.process_message(httpMessage) #TODO: remove
+            response = self.process_message(httpMessage) 
         elif resource == '/addToSynBioHub':
             response = self.process_add_to_syn_bio_hub(httpMessage) 
         elif resource == '/addBySpelling':
@@ -506,7 +506,6 @@ class IntentParserServer:
         return []
             
     def process_message(self, httpMessage):
-        #TODO: remove?
         json_body = self.get_json_body(httpMessage)
         if 'message' in json_body:
             self.logger.info(json_body['message'])
