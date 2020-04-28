@@ -177,7 +177,6 @@ class IntentParserServer:
                     response.send(socket_manager)
 
         except Exception as e:
-#             self.logger.info('Exception: {}'.format(e))
             self.logger.info(''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__)))
 
         client_socket.close()
@@ -1101,7 +1100,8 @@ class IntentParserServer:
                     col_sizes.append(len(str(protocol_value)) + 1)
                     break
             if not parameter_row:
-                raise Exception('Unable to include %s to the Parameter table because there is no parameter name in the SBOL Dictionary for this Strateos UID' % protocol_key)
+                self.logger.warning('Unable to include %s to the Parameter table because there is no parameter name in the SBOL Dictionary for this Strateos UID' % protocol_key)
+                continue
             else:
                 table_data.append(parameter_row)
                     
