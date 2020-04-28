@@ -19,7 +19,7 @@ def get_function_names_from_js_file(file_name):
     function_dict = {}
     values = []
     
-    function_pattern = re.compile(r'function (?P<name>[a-zA-Z0-9\_]+)')
+    function_pattern = re.compile(r'function[ ]+(?P<name>[^ (]+)[^)]*[)]')
     with open(file_name + '.js', 'r') as f:
         if f.mode != 'r':
             raise Exception('Unable to load file')
