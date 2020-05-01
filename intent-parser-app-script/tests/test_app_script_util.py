@@ -1,5 +1,3 @@
-from google_app_script_accessor import GoogleAppScriptAccessor 
-import ip_addon_script
 import os
 import script_util
 import unittest
