@@ -1,0 +1,65 @@
+listening on 0.0.0.0:8081
+Start Listener
+listening on 0.0.0.0:8081
+Start Listener
+listening on 0.0.0.0:8081
+listening on 0.0.0.0:8081
+listening on 0.0.0.0:8081
+Start Listener
+Connection
+Generated POST request in 0.52ms, 1587762220.855989
+Connection
+Traceback (most recent call last):
+  File "/Users/tnguyen/Documents/sd2_workspace/intent-parser-env/experimental-intent-parser/intent-parser-server/src/intent_parser_server.py", line 165, in handle_client_connection
+    self.handle_POST(httpMessage, socket_manager)
+  File "/Users/tnguyen/Documents/sd2_workspace/intent-parser-env/experimental-intent-parser/intent-parser-server/src/intent_parser_server.py", line 257, in handle_POST
+    response = self.process_submit_form(httpMessage)
+  File "/Users/tnguyen/Documents/sd2_workspace/intent-parser-env/experimental-intent-parser/intent-parser-server/src/intent_parser_server.py", line 431, in process_submit_form
+    actions = self.process_create_parameter_table(data)
+  File "/Users/tnguyen/Documents/sd2_workspace/intent-parser-env/experimental-intent-parser/intent-parser-server/src/intent_parser_server.py", line 1090, in process_create_parameter_table
+    protocol_default_value = self.strateos_accessor.get_protocol(protocol[0])
+  File "/Users/tnguyen/Documents/sd2_workspace/intent-parser-env/experimental-intent-parser/intent-parser-server/src/strateos_accessor.py", line 56, in get_protocol
+    raise Exception('Unable to get %s from Strateos' % protocol)
+Exception: Unable to get TimeSeriesHTP from Strateos
+
+listening on 0.0.0.0:8081
+Start Listener
+Connection
+Generated POST request in 0.90ms, 1587763042.6609879
+Connection
+Action: {} resulted in exception Unable to get ObstacleCourse from Strateos
+Generated POST request in 0.30ms, 1587763048.470598
+listening on 0.0.0.0:8081
+Start Listener
+Connection
+Generated POST request in 0.88ms, 1587763222.039076
+Connection
+listening on 0.0.0.0:8081
+Start Listener
+Connection
+Generated POST request in 1.27ms, 1587763681.713911
+Connection
+Action: {'actions': [{'action': 'addTable', 'cursorChildIndex': '14', 'tableData': [['Parameter', 'Value'], ['Sampling time', '6:hour'], ['Base media', 'sc_media'], ['Kill switch', 'false'], ['Inducer information', '1'], ['Plate reader configuration', ''], ['Flow cytometer configuration', ''], ['Perform 36 hour read', 'False']], 'tableType': 'parameters', 'tableProtocol': [['Protocol: Obstacle Course']], 'colSizes': [10, 6, 14, 7, 11, 9, 12, 6, 20, 2, 27, 1, 29, 1, 21, 6]}], 'results': {'operationSucceeded': True}}
+Generated POST request in 126658.34ms, 1587763815.840758
+Connection
+Generated POST request in 0.81ms, 1587764139.628936
+Connection
+Action: {'actions': [{'action': 'addTable', 'cursorChildIndex': '16', 'tableData': [['Parameter', 'Value'], ['Media well ids', ''], ['Inoculation volume', '10:microliter'], ['Inoculation media volume', '700:microliter'], ['Inoculation media', 'Modified M9 Media'], ['Inoculation increment time 1', '16:hour'], ['Recovery sample volume', '10:microliter'], ['Recovery media volume', '1000:microliter'], ['Recovery media', 'Modified M9 Media'], ['Recovery incubation time', '6.00:hour'], ['Plate reader fluorescence excitation frequency', '588:nanometer'], ['Plate reader fluorescence emission frequency', '620:nanometer'], ['Plate reader gain', '0.274'], ['Save for RNASeq', 'False'], ['Skip first flow', 'True'], ['Only endpoint flow', 'True'], ['Read each recovery', 'True'], ['Read each induction', 'True']], 'tableType': 'parameters', 'tableProtocol': [['Protocol: Time Series']], 'colSizes': [10, 6, 15, 1, 19, 14, 25, 15, 18, 18, 29, 8, 23, 14, 22, 16, 15, 18, 25, 10, 47, 14, 45, 14, 18, 6, 16, 6, 16, 5, 19, 5, 19, 5, 20, 5]}], 'results': {'operationSucceeded': True}}
+Generated POST request in 20184.46ms, 1587764165.557319
+Connection
+Generated POST request in 0.69ms, 1587764290.2347012
+Action: {'actions': [{'action': 'addTable', 'cursorChildIndex': '18', 'tableData': [['Parameter', 'Value'], ['Inoculation volume', '5:microliter'], ['Inoculation media volume', '500:microliter'], ['Inoculation media', 'yapd'], ['Inoculation increment time 1', '16:hour'], ['Incubation temperature', 'warm_30'], ['Recovery sample volume', '2:microliter'], ['Recovery media volume', '700:microliter'], ['Recovery media', 'yapd'], ['Plate reader fluorescence excitation frequency', '588:nanometer'], ['Plate reader fluorescence emission frequency', '620:nanometer']], 'tableType': 'parameters', 'tableProtocol': [['Protocol: Growth Curves']], 'colSizes': [10, 6, 19, 13, 25, 15, 18, 5, 29, 8, 23, 8, 23, 13, 22, 15, 15, 5, 47, 14, 45, 14]}], 'results': {'operationSucceeded': True}}
+Generated POST request in 18643.51ms, 1587764314.13186
+listening on 0.0.0.0:8081
+Signaling shutdown...
+listening on 0.0.0.0:8081
+Signaling shutdown...
+listening on 0.0.0.0:8081
+listening on 0.0.0.0:8081
+Start Listener
+listening on 0.0.0.0:8081
+Start Listener
+listening on 0.0.0.0:8081
+Start Listener
+listening on 0.0.0.0:8081
+Start Listener
