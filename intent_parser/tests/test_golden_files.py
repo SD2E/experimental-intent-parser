@@ -26,10 +26,10 @@ class GoldenFileTest(unittest.TestCase):
         self.data_dir = os.path.join(curr_path, 'data')
         self.mock_data_dir = os.path.join(self.data_dir, 'mock_data')
         
-        cp_request_dir = os.path.join(curr_path, 'data', 'cp-request')
+#         cp_request_dir = os.path.join(curr_path, 'data', 'cp-request')
 #         git_accessor = git.cmd.Git(cp_request_dir)
 #         git_accessor.pull()
-        self.structured_request_dir = os.path.join(cp_request_dir, 'input', 'structured_requests')
+#         self.structured_request_dir = os.path.join(cp_request_dir, 'input', 'structured_requests')
         
         with open(os.path.join(self.data_dir, 'authn.json'), 'r') as file:
             self.authn = json.load(file)['authn']
@@ -56,130 +56,130 @@ class GoldenFileTest(unittest.TestCase):
         file_path = os.path.join(self.mock_data_dir, file)
         self._compare_structured_requests(file_path) 
     
-    def test_CEN_PK_Inducible_CRISPR_4_Day_Obstacle_Course(self):  
-        file = 'CEN-PK-Inducible-CRISPR-4-Day-Obstacle-Course.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-    
-    def test_CP_Experimental_Request_NovelChassis_OR_circuit_GrowthCurve(self):  
-        file = 'CP Experimental Request - NovelChassis_OR_circuit_GrowthCurve.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path) 
-        
-    def test_ER_NovelChassis_mCherryControlStrains_GBW_Cycle0_24hour(self):  
-        file = 'ER-NovelChassis-mCherryControlStrains-GBW-Cycle0-24hour.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path) 
-        
-    def test_ER_NovelChassis_mCherryControlStrains_GBW_Cycle0_8hour(self):  
-        file = 'ER-NovelChassis-mCherryControlStrains-GBW-Cycle0-8hour.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path) 
-        
-    def test_NovelChassis_Ginkgo_Strain_Inducer_Characterization(self):  
-        file = 'NovelChassis_Ginkgo_Strain_GrowthCurve.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)   
-        
-    def test_CP_Plan_Requirements_UCSB_B_subtilis_PositiveFeedbackAmplifier_24hour(self):  
-        file = 'Plan-Requirements-UCSB-B-subtilis-PositiveFeedbackAmplifier-24hour.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)  
-        
-    def test_CP_Plan_Requirements_UCSB_B_subtilis_PositiveFeedbackAmplifier_8hour_resubmission(self):  
-        file = 'Plan-Requirements-UCSB-B-subtilis-PositiveFeedbackAmplifier-8hour-resubmission.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-        
-    def test_YeastSTATES_CRISPR_Growth_Curves_Request_422936(self):  
-        file = 'YeastSTATES CRISPR Growth Curves Request (422936).json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-        
-    def test_YeastSTATES_CRISPR_Growth_Curves_with_Plate_Reader_Optimization_Request(self):  
-        file = 'YeastSTATES CRISPR Growth Curves with Plate Reader Optimization Request.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-        
-    def test_YeastSTATES_Beta_Estradiol_OR_Gate_Plant_TF_Growth_Curves_Request_30C(self):  
-        file = 'YeastSTATES-Beta-Estradiol-OR-Gate-Plant-TF-Growth-Curves-30C.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-        
-    def test_YeastSTATES_Beta_Estradiol_OR_Gate_Plant_TF_Growth_Curves(self):  
-        file = 'YeastSTATES-Beta-Estradiol-OR-Gate-Plant-TF-Growth-Curves.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-        
-    def test_YeastSTATES_CRISPR_Growth_Curves_35C(self):  
-        file = 'YeastSTATES-CRISPR-Growth-Curves-35C.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-    
-    def test_YeastSTATES_CRISPR_Long_Duration_Time_Series_20191208(self):  
-        file = 'YeastSTATES-CRISPR-Long-Duration-Time-Series-20191208.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-    
-    def test_YeastSTATES_CRISPR_Short_Duration_Time_Series_20191208(self):  
-        file = 'YeastSTATES-CRISPR-Short-Duration-Time-Series-20191208.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-    
-    def test_YeastSTATES_CRISPR_Short_Duration_Time_Series_35C(self):  
-        file = 'YeastSTATES-CRISPR-Short-Duration-Time-Series-35C.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-        
-    def test_YeastSTATES_Doxycycline_OR_Gate_Plant_TF_Growth_Curves_30C(self):  
-        file = 'YeastSTATES-Doxycycline-OR-Gate-Plant-TF-Growth-Curves-30C.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-        
-    def test_YeastSTATES_Doxycycline_OR_Gate_Plant_TF_Growth_Curves(self):  
-        file = 'YeastSTATES-Doxycycline-OR-Gate-Plant-TF-Growth-Curves.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-        
-    def test_YeastSTATES_OR_Gate_CRISPR_Growth_Curves_30C(self):  
-        file = 'YeastSTATES-OR-Gate-CRISPR-Growth-Curves-30C.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-        
-    def test_YeastSTATES_OR_Gate_CRISPR_Growth_Curves(self):  
-        file = 'YeastSTATES-OR-Gate-CRISPR-Growth-Curves.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-        
-    def test_YeastSTATES_OR_Gate_CRISPR_Obstacle_Course(self):  
-        file = 'YeastSTATES-OR-Gate-CRISPR-Obstacle-Course.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-        
-    def test_YeastSTATES_OR_Gate_Plant_TF_Obstacle_Course(self):  
-        file = 'YeastSTATES-OR-Gate-Plant-TF-Obstacle-Course.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-        
-    def test_y4d_crispr_growth_curves(self):  
-        file = 'y4d_crispr_growth_curves.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-    
-    def test_Microbe_LiveDeadClassification(self):  
-        file = 'Microbe-LiveDeadClassification.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-    
-    def test_NovelChassis_OR_Circuit_Cycle1_ObstacleCourse(self):  
-        file = 'NovelChassis-OR-Circuit-Cycle1-ObstacleCourse.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
-        
-    def test_YeastSTATES_CRISPR_Short_Duration_Time_Series_20191213(self):  
-        file = 'YeastSTATES-CRISPR-Short-Duration-Time-Series-20191213.json'
-        file_path = os.path.join(self.structured_request_dir, file)
-        self._compare_structured_requests(file_path)
+#     def test_CEN_PK_Inducible_CRISPR_4_Day_Obstacle_Course(self):  
+#         file = 'CEN-PK-Inducible-CRISPR-4-Day-Obstacle-Course.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#     
+#     def test_CP_Experimental_Request_NovelChassis_OR_circuit_GrowthCurve(self):  
+#         file = 'CP Experimental Request - NovelChassis_OR_circuit_GrowthCurve.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path) 
+#         
+#     def test_ER_NovelChassis_mCherryControlStrains_GBW_Cycle0_24hour(self):  
+#         file = 'ER-NovelChassis-mCherryControlStrains-GBW-Cycle0-24hour.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path) 
+#         
+#     def test_ER_NovelChassis_mCherryControlStrains_GBW_Cycle0_8hour(self):  
+#         file = 'ER-NovelChassis-mCherryControlStrains-GBW-Cycle0-8hour.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path) 
+#         
+#     def test_NovelChassis_Ginkgo_Strain_Inducer_Characterization(self):  
+#         file = 'NovelChassis_Ginkgo_Strain_GrowthCurve.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)   
+#         
+#     def test_CP_Plan_Requirements_UCSB_B_subtilis_PositiveFeedbackAmplifier_24hour(self):  
+#         file = 'Plan-Requirements-UCSB-B-subtilis-PositiveFeedbackAmplifier-24hour.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)  
+#         
+#     def test_CP_Plan_Requirements_UCSB_B_subtilis_PositiveFeedbackAmplifier_8hour_resubmission(self):  
+#         file = 'Plan-Requirements-UCSB-B-subtilis-PositiveFeedbackAmplifier-8hour-resubmission.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#         
+#     def test_YeastSTATES_CRISPR_Growth_Curves_Request_422936(self):  
+#         file = 'YeastSTATES CRISPR Growth Curves Request (422936).json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#         
+#     def test_YeastSTATES_CRISPR_Growth_Curves_with_Plate_Reader_Optimization_Request(self):  
+#         file = 'YeastSTATES CRISPR Growth Curves with Plate Reader Optimization Request.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#         
+#     def test_YeastSTATES_Beta_Estradiol_OR_Gate_Plant_TF_Growth_Curves_Request_30C(self):  
+#         file = 'YeastSTATES-Beta-Estradiol-OR-Gate-Plant-TF-Growth-Curves-30C.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#         
+#     def test_YeastSTATES_Beta_Estradiol_OR_Gate_Plant_TF_Growth_Curves(self):  
+#         file = 'YeastSTATES-Beta-Estradiol-OR-Gate-Plant-TF-Growth-Curves.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#         
+#     def test_YeastSTATES_CRISPR_Growth_Curves_35C(self):  
+#         file = 'YeastSTATES-CRISPR-Growth-Curves-35C.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#     
+#     def test_YeastSTATES_CRISPR_Long_Duration_Time_Series_20191208(self):  
+#         file = 'YeastSTATES-CRISPR-Long-Duration-Time-Series-20191208.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#     
+#     def test_YeastSTATES_CRISPR_Short_Duration_Time_Series_20191208(self):  
+#         file = 'YeastSTATES-CRISPR-Short-Duration-Time-Series-20191208.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#     
+#     def test_YeastSTATES_CRISPR_Short_Duration_Time_Series_35C(self):  
+#         file = 'YeastSTATES-CRISPR-Short-Duration-Time-Series-35C.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#         
+#     def test_YeastSTATES_Doxycycline_OR_Gate_Plant_TF_Growth_Curves_30C(self):  
+#         file = 'YeastSTATES-Doxycycline-OR-Gate-Plant-TF-Growth-Curves-30C.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#         
+#     def test_YeastSTATES_Doxycycline_OR_Gate_Plant_TF_Growth_Curves(self):  
+#         file = 'YeastSTATES-Doxycycline-OR-Gate-Plant-TF-Growth-Curves.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#         
+#     def test_YeastSTATES_OR_Gate_CRISPR_Growth_Curves_30C(self):  
+#         file = 'YeastSTATES-OR-Gate-CRISPR-Growth-Curves-30C.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#         
+#     def test_YeastSTATES_OR_Gate_CRISPR_Growth_Curves(self):  
+#         file = 'YeastSTATES-OR-Gate-CRISPR-Growth-Curves.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#         
+#     def test_YeastSTATES_OR_Gate_CRISPR_Obstacle_Course(self):  
+#         file = 'YeastSTATES-OR-Gate-CRISPR-Obstacle-Course.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#         
+#     def test_YeastSTATES_OR_Gate_Plant_TF_Obstacle_Course(self):  
+#         file = 'YeastSTATES-OR-Gate-Plant-TF-Obstacle-Course.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#         
+#     def test_y4d_crispr_growth_curves(self):  
+#         file = 'y4d_crispr_growth_curves.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#     
+#     def test_Microbe_LiveDeadClassification(self):  
+#         file = 'Microbe-LiveDeadClassification.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#     
+#     def test_NovelChassis_OR_Circuit_Cycle1_ObstacleCourse(self):  
+#         file = 'NovelChassis-OR-Circuit-Cycle1-ObstacleCourse.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
+#         
+#     def test_YeastSTATES_CRISPR_Short_Duration_Time_Series_20191213(self):  
+#         file = 'YeastSTATES-CRISPR-Short-Duration-Time-Series-20191213.json'
+#         file_path = os.path.join(self.structured_request_dir, file)
+#         self._compare_structured_requests(file_path)
             
     def _compare_structured_requests(self, document):
         golden_structured_request = intent_parser_utils.load_json_file(document)
