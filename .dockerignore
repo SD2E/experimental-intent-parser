@@ -1,0 +1,8 @@
+*__pycache__/
+*.DS_STORE
+.git
+.gitignore
+*Dockerfile
+*.pytest_cache/
+intent-parser-app-script/
+google-docs-api/
