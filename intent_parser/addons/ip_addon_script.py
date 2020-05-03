@@ -13,17 +13,18 @@ Note that Google's REST API has quotas that limits how many create and update me
 If a quota limit is reached, then the script will store each document that needs to process to a queue and move onto the next Google Doc to process.
 """
 
-from google_app_script_accessor import GoogleAppScriptAccessor
-from google_drive_accessor import GoogleDriveAccessor
 from googleapiclient import errors
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from intent_parser.accessor.google_app_script_accessor import GoogleAppScriptAccessor
+from intent_parser.accessor.google_drive_accessor import GoogleDriveAccessor
+from intent_parser.addons import script_util as util
 import json
 import logging 
 import os.path
 import pickle
-import script_util as util
 import time
+import traceback
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata',
@@ -123,7 +124,7 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                     
                     local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
                     util.write_to_json(local_docs, ADDON_FILE)
-            except errors.HttpError as error:
+            except errors.HttpError:
                 logger.info('Reached update quota limit!')
                 remote_docs.append(doc)
                 time.sleep(60) 
@@ -139,7 +140,7 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                 
                 local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
                 util.write_to_json(local_docs, ADDON_FILE)
-            except errors.HttpError as error:
+            except errors.HttpError:
                 logger.info('Reached create quota limit!')
                 remote_docs.append(doc)
                 time.sleep(60)  
@@ -153,8 +154,9 @@ def main():
             perform_automatic_run(current_release)
             logger.info('Run completed! Scheduling next run.')  
             time.sleep(300)
-    except (KeyboardInterrupt, SystemExit) as err:
-        logger.info('Script stopped!')  
+    except (KeyboardInterrupt, SystemExit) as ex:
+        logger.info('Script stopped!') 
+        logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))) 
         
         
 if __name__ == '__main__':

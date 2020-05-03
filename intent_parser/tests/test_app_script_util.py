@@ -1,5 +1,5 @@
+import intent_parser.utils.script_addon_utils as script_util
 import os
-# import script_util
 import unittest
 
 class AppScriptUtilTest(unittest.TestCase):
@@ -14,10 +14,10 @@ class AppScriptUtilTest(unittest.TestCase):
     def tearDown(self):
         pass
 
-#     def test_get_function_name_from_js_file(self):
-#         file_name = os.path.join(self.src_dir, 'Code')
-#         function_names = script_util.get_function_names_from_js_file(file_name)
-#         self.assertEquals(len(function_names['values']), 36)
+    def test_get_function_name_from_js_file(self):
+        local_code_path = os.path.join('data', 'Test.js')
+        function_names = script_util.get_function_names_from_js_file(local_code_path)
+        self.assertEquals(len(function_names['values']), 36)
         
    
 
