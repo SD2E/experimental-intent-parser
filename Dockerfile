@@ -7,7 +7,6 @@ WORKDIR ${PYTHONPATH}
 COPY . $PYTHONPATH
  
 RUN pip3 install --no-cache-dir -r $PYTHONPATH/intent_parser/requirements.txt
-#RUN pip3 install -e $PYTHONPATH 
 RUN mkdir -p $PYTHONPATH/logs
 RUN mv $PYTHONPATH/intent_parser/docker_logging.json logging.json
 RUN cp $PYTHONPATH/intent_parser/.transcriptic ~/.transcriptic
