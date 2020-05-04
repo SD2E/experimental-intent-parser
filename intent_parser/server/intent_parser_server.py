@@ -994,6 +994,7 @@ class IntentParserServer:
 
         lab = "Lab: %s" % data['lab']
         num_reagents = int(data['numReagents'])
+        has_batch = data['batch']
         has_temp = data['temperature']
         has_time = data['timepoint']
         has_ods  = data['ods']
@@ -1006,6 +1007,8 @@ class IntentParserServer:
         if has_time:
             num_cols += 1
         if has_temp:
+            num_cols += 1
+        if has_batch:
             num_cols += 1
 
         col_sizes = []
@@ -1033,7 +1036,9 @@ class IntentParserServer:
         if has_temp:
             header.append(intent_parser_constants.COL_HEADER_TEMPERATURE)
             col_sizes.append(len(intent_parser_constants.COL_HEADER_TEMPERATURE) + 1)
-
+        if has_batch:
+            header.append(intent_parser_constants.COL_HEADER_BATCH)
+            col_sizes.append(len(intent_parser_constants.COL_HEADER_BATCH) + 1)
         if has_notes:
             header.append(intent_parser_constants.COL_HEADER_NOTES)
             col_sizes.append(len(intent_parser_constants.COL_HEADER_NOTES) + 1)
