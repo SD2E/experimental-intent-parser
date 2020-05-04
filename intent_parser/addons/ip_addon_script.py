@@ -12,13 +12,12 @@ If no scriptId exist for a Google Doc, then a new script is created and recorded
 Note that Google's REST API has quotas that limits how many create and update methods a user can call per timeframe. 
 If a quota limit is reached, then the script will store each document that needs to process to a queue and move onto the next Google Doc to process.
 """
-
 from googleapiclient import errors
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from intent_parser.accessor.google_app_script_accessor import GoogleAppScriptAccessor
 from intent_parser.accessor.google_drive_accessor import GoogleDriveAccessor
-from intent_parser.addons import script_util as util
+import intent_parser.utils.intent_parser_utils as util
 import json
 import logging 
 import os.path
@@ -38,7 +37,10 @@ USER_ACCOUNT = {
             "email": 'bbn.intentparser@gmail.com',
             "name": 'bbn intentparser'}
 
-ADDON_FILE = 'addon_file'
+CURR_PATH = os.path.dirname(os.path.realpath(__file__))
+ADDON_FILE = os.path.join(CURR_PATH, 'addon_file.json')
+INTENT_PARSER_ADDON_CODE_FILE = os.path.join(CURR_PATH, 'Code.js')
+INTENT_PARSER_MANIFEST_FILE = os.path.join(CURR_PATH, 'appsscript.json')
 
 logger = logging.getLogger('ip_addon_script')
 
@@ -116,14 +118,14 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                     script_id = metadata['scriptId']
                     
                     remote_metadata = app_script_access.get_project_metadata(script_id)
-                    app_script_access.update_project_metadata(script_id, remote_metadata)
+                    app_script_access.update_project_metadata(script_id, remote_metadata, INTENT_PARSER_ADDON_CODE_FILE, INTENT_PARSER_MANIFEST_FILE)
                     
                     new_version = app_script_access.get_head_version(script_id) + 1
                     publish_message = current_release + ' Release'
                     app_script_access.create_version(script_id, new_version, publish_message)
                     
                     local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
-                    util.write_to_json(local_docs, ADDON_FILE)
+                    util.write_json_to_file(local_docs, ADDON_FILE)
             except errors.HttpError:
                 logger.info('Reached update quota limit!')
                 remote_docs.append(doc)
@@ -136,10 +138,10 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                 script_id = response['scriptId']
                 
                 remote_metadata = app_script_access.get_project_metadata(script_id)
-                app_script_access.set_project_metadata(script_id, remote_metadata, USER_ACCOUNT)
+                app_script_access.set_project_metadata(script_id, remote_metadata, USER_ACCOUNT, INTENT_PARSER_ADDON_CODE_FILE, INTENT_PARSER_MANIFEST_FILE, 'Code')
                 
                 local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
-                util.write_to_json(local_docs, ADDON_FILE)
+                util.write_json_to_file(local_docs, ADDON_FILE)
             except errors.HttpError:
                 logger.info('Reached create quota limit!')
                 remote_docs.append(doc)
