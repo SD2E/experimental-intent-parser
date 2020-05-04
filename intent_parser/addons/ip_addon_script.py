@@ -39,8 +39,10 @@ USER_ACCOUNT = {
 
 CURR_PATH = os.path.dirname(os.path.realpath(__file__))
 ADDON_FILE = os.path.join(CURR_PATH, 'addon_file.json')
+CREDENTIALS_FILE = os.path.join(CURR_PATH, 'credentials.json')
 INTENT_PARSER_ADDON_CODE_FILE = os.path.join(CURR_PATH, 'Code.js')
 INTENT_PARSER_MANIFEST_FILE = os.path.join(CURR_PATH, 'appsscript.json')
+TOKEN_PICKLE_FILE = os.path.join(CURR_PATH, 'token.pickle')
 
 logger = logging.getLogger('ip_addon_script')
 
@@ -52,21 +54,19 @@ def authenticate_credentials():
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
+    if os.path.exists(TOKEN_PICKLE_FILE):
+        with open(TOKEN_PICKLE_FILE, 'rb') as token:
             creds = pickle.load(token)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            curr_path = os.path.dirname(os.path.realpath(__file__))
-            credential_path = os.path.join(curr_path, 'credentials.json')
             flow = InstalledAppFlow.from_client_secrets_file(
-                credential_path, SCOPES)
+                CREDENTIALS_FILE, SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
+        with open(TOKEN_PICKLE_FILE, 'wb') as token:
             pickle.dump(creds, token)
     return creds    
 
