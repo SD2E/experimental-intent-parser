@@ -48,6 +48,7 @@ PROTOCOL_NAMES = {GROWTH_CURVE_PROTOCOL: 'Growth Curves',
                   OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course'}
 
 # String defines for headers in measurements table
+COL_HEADER_BATCH = 'batch'
 COL_HEADER_FILE_TYPE = 'file-type'
 COL_HEADER_MEASUREMENT_TYPE = 'measurement-type'
 COL_HEADER_NOTES = 'notes'
@@ -60,7 +61,6 @@ COL_HEADER_TIMEPOINT = 'timepoint'
 
 COL_HEADER_PARAMETER = 'Parameter'
 COL_HEADER_PARAMETER_VALUE = 'Value'
-COL_HEADER_BATCH = 'Batch'
 
 PARAMETER_EXP_INFO_MEDIA_WELL_STRINGS = 'exp_info.media_well_strings'
 PARAMETER_INDUCTION_INFO_REAGENTS_INDUCER = 'induction_info.induction_reagents.inducer'

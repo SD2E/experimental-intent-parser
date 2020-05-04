@@ -3,6 +3,7 @@ import intent_parser.constants.intent_parser_constants as intent_parser_constant
 import intent_parser.table.table_utils as table_utils
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import logging
+from intent_parser.constants import intent_parser_constants
 
 class MeasurementTable:
     """
@@ -73,6 +74,14 @@ class MeasurementTable:
                     measurement['timepoints'] = self._parse_and_append_value_unit(cell_txt, 'timepoints', self._timepoint_units) 
                 except TableException as err:
                     message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_TIMEPOINT, err.get_message())
+                    self._validation_errors.append(message)
+            elif header == intent_parser_constants.COL_HEADER_BATCH:
+                try:
+                    if table_utils.is_name(cell_txt):
+                        raise TableException('%s must contain a list of integer values.' % cell_txt)
+                    measurement['batch'] = [int(value) for value in table_utils.extract_number_value(cell_txt)] 
+                except TableException as err:
+                    message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_BATCH, err.get_message())
                     self._validation_errors.append(message)
             else:
                 try:
