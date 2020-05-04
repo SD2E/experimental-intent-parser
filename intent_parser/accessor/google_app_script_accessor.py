@@ -2,7 +2,6 @@ from googleapiclient.discovery import build
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.script_addon_utils as script_addon_utils
 import datetime
-import os
 
 class GoogleAppScriptAccessor:
     """ 
@@ -103,7 +102,7 @@ class GoogleAppScriptAccessor:
         
         return None
     
-    def update_project_metadata(self, script_id, remote_content):
+    def update_project_metadata(self, script_id, remote_content, local_code_path, local_manifest_path):
         """
         Update a script project's remote metadata with local metadata. 
         
@@ -117,11 +116,10 @@ class GoogleAppScriptAccessor:
         file_list = remote_content['files']
       
         code_index = self._get_code_file_index(file_list)
-        local_code_path = os.path.join('intent_parser', 'addons', 'Code.js')
+        
         file_list[code_index]['source'] = str(intent_parser_utils.load_file(local_code_path)).strip()
         
         manifest_index = self._get_manifest_file_index(file_list)
-        local_manifest_path = os.path.join('intent_parser', 'addons', 'appsscript.json')
         file_list[manifest_index] = intent_parser_utils.load_json_file(local_manifest_path)
         request = {'files' : file_list}
         
@@ -130,7 +128,7 @@ class GoogleAppScriptAccessor:
             scriptId=script_id).execute()
         return content_obj
    
-    def set_project_metadata(self, script_id, project_metadata, user_obj):
+    def set_project_metadata(self, script_id, project_metadata, user_obj, local_code_path, local_manifest_path, code_file_name):
         """
         Set project's remote metadata with local metadata. 
         This includes updating manifest file and adding to project metadata a SERVER_JS file for the server code.
@@ -144,11 +142,8 @@ class GoogleAppScriptAccessor:
         
         file_list = project_metadata['files']
         manifest_index = self._get_manifest_file_index(file_list)
-        local_manifest_path = os.path.join('intent_parser', 'addons', 'appsscript.json')
         file_list[manifest_index] = intent_parser_utils.load_json_file(local_manifest_path)
         
-        code_file_name = 'Code'
-        local_code_path = os.path.join('intent_parser', 'addons', code_file_name + '.js')
         source = str(intent_parser_utils.load_file(local_code_path)).strip()
         code_functions = script_addon_utils.get_function_names_from_js_file(local_code_path) 
         
