@@ -21,6 +21,7 @@ class ParameterTable(object):
                                 intent_parser_constants.PARAMETER_VALIDATE_SAMPLES]
     
     FIELD_WITH_FLOAT_VALUE = [intent_parser_constants.PARAMETER_PLATE_READER_INFO_GAIN]
+    FIELD_WITH_INTEGER_VALUE = [intent_parser_constants.COL_HEADER_BATCH]
     
     FIELD_WITH_NESTED_STRUCTURE = [intent_parser_constants.PARAMETER_INDUCTION_INFO_REAGENTS_INDUCER, 
                                    intent_parser_constants.PARAMETER_MEASUREMENT_INFO_FLOW_INFO,
@@ -78,7 +79,9 @@ class ParameterTable(object):
         elif parameter_field in self.FIELD_WITH_NESTED_STRUCTURE:
             json_parameter_value = json.loads(parameter_value)
             return parameter_field, [json_parameter_value] 
-        
+        elif parameter_field in self.FIELD_WITH_FLOAT_VALUE: 
+            values = table_utils.extract_number_value(parameter_value)
+            return 'batch', [int(float_val) for float_val in values]
         return parameter_field, table_utils.transform_strateos_string(parameter_value)
     
     def _parse_row(self, header_row, row):
@@ -89,12 +92,12 @@ class ParameterTable(object):
             paragraph_element = header_row['tableCells'][col_index]['content'][0]['paragraph']
             header = intent_parser_utils.get_paragraph_text(paragraph_element).strip()
             cell_txt = ' '.join([intent_parser_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][col_index]['content']])
-            
             if header == intent_parser_constants.COL_HEADER_PARAMETER:
                 param_field = self._get_parameter_field(cell_txt)
             elif header == intent_parser_constants.COL_HEADER_PARAMETER_VALUE:
                 param_value = cell_txt
-
+            elif header == intent_parser_constants.COL_HEADER_BATCH:
+                param_value = cell_txt
         if not param_field:
             raise TableException('Parameter field should not be empty')
         
