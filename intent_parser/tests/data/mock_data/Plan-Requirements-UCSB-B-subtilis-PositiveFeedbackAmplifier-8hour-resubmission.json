@@ -1,0 +1,200 @@
+{
+    "name": "CP_Plan_Requirements_UCSB_B_subtilis_PositiveFeedbackAmplifier_8hour_resubmission",
+    "experiment_id": "experiment.transcriptic.2020-01-27-Plan-Requirements-UCSB-B-subtilis-PositiveFeedbackAmplifier-8hour-resubmission",
+    "challenge_problem": "NOVEL_CHASSIS",
+    "experiment_reference": "Plan-Requirements-UCSB-B-subtilis-PositiveFeedbackAmplifier-8hour-resubmission",
+    "experiment_reference_url": "https://docs.google.com/document/d/1dnhxJ6xGHQb_hnkhpAMehksAv5OMBjl0XxFBB8J9-_o",
+    "experiment_version": 1,
+    "lab": "Transcriptic",
+    "runs": [
+        {
+            "measurements": [
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 8,
+                    "strains": [
+                        "B_subtilis_comKS_mCherry_1x",
+                        "B_subtilis_comKS_mCherry_5x",
+                        "B_subtilis_comKS_mCherry_4x",
+                        "B. subtilis 168 PmtlA-comKS",
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 Media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "FLOW",
+                    "file_type": [
+                        "FCS"
+                    ],
+                    "replicates": 8,
+                    "strains": [
+                        "B_subtilis_comKS_mCherry_1x",
+                        "B_subtilis_comKS_mCherry_5x",
+                        "B_subtilis_comKS_mCherry_4x",
+                        "B. subtilis 168 PmtlA-comKS",
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 Media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "CONDITION_SPACE",
+                    "file_type": [
+                        "CSV",
+                        "FCS"
+                    ],
+                    "replicates": 8,
+                    "strains": [
+                        "B_subtilis_comKS_mCherry_1x",
+                        "B_subtilis_comKS_mCherry_5x",
+                        "B_subtilis_comKS_mCherry_4x",
+                        "B. subtilis 168 PmtlA-comKS",
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 Media"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        }
+    ],
+    "doc_revision_id": "7"
+}
