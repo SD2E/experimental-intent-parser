@@ -2,6 +2,7 @@ from intent_parser.accessor.catalog_accessor import CatalogAccessor
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
 from intent_parser.lab_experiment import LabExperiment
 from intent_parser.table.lab_table import LabTable
+from intent_parser.table.controls_table import ControlsTable 
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.parameter_table import ParameterTable
 from datacatalog.formats.common import map_experiment_reference
@@ -29,7 +30,7 @@ class IntentParser(object):
                        '1_I4pxB26zOLb209Xlv8QDJuxiPWGDafrejRDKvZtEl8': '1K5IzBAIkXqJ7iPF4OZYJR7xgSts1PUtWWM2F0DKhct0',
                        '1zf9l0K4rj7I08ZRpxV2ZY54RMMQc15Rlg7ULviJ7SBQ': '1uXqsmRLeVYkYJHqgdaecmN_sQZ2Tj4Ck1SZKcp55yEQ' }
 
-    logger = logging.getLogger('src')
+    logger = logging.getLogger('intent_parser')
     
     def __init__(self, lab_experiment, datacatalog_config, sbh_instance, sbol_dictionary):
         self.lab_experiment = lab_experiment 
@@ -283,10 +284,11 @@ class IntentParser(object):
 
         measurements = []
         parameter = []
-
+        
         doc_tables = self.lab_experiment.tables() 
-        measurement_table_new_idx = -1
+        controls_table_idx = -1
         lab_table_idx = -1
+        measurement_table_new_idx = -1
         parameter_table_idx = -1
         for tIdx in range(len(doc_tables)):
             table = doc_tables[tIdx]
@@ -302,6 +304,10 @@ class IntentParser(object):
             is_parameter_table = table_utils.detect_parameter_table(table)
             if is_parameter_table:
                 parameter_table_idx = tIdx
+            
+            is_control_table = table_utils.detect_controls_table(table)
+            if is_control_table:
+                controls_table_idx = tIdx
 
         if measurement_table_new_idx >= 0:
             table = doc_tables[measurement_table_new_idx]
@@ -316,7 +322,6 @@ class IntentParser(object):
 
         if lab_table_idx >= 0:
             table = doc_tables[lab_table_idx]
-
             lab_table = LabTable()
             lab = lab_table.parse_table(table)
         
@@ -328,6 +333,13 @@ class IntentParser(object):
                 self.validation_errors.extend(parameter_table.get_validation_errors())
             except DictionaryMaintainerException as err:
                 self.validation_errors.extend(err.get_message())
+                
+        if controls_table_idx >=0:
+            table = doc_tables[controls_table_idx]
+            controls_table = ControlsTable(self.catalog_accessor.get_control_type()) 
+            controls_data = controls_table.parse_table(table)
+            self.validation_errors.extend(controls_data.get_validation_errors())
+            self.validation_warnings.extend(controls_data.get_validation_warnings())
             
         self.request['name'] = title
         self.request['experiment_id'] = experiment_id
