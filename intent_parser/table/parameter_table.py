@@ -10,7 +10,7 @@ class ParameterTable(object):
     Process information from Intent Parser's Parameter Table
     """
 
-    _logger = logging.getLogger('src')
+    _logger = logging.getLogger('intent_parser')
     
     FIELD_WITH_BOOLEAN_VALUE = [intent_parser_constants.PARAMETER_MEASUREMENT_INFO_36_HR_READ, 
                                 intent_parser_constants.PARAMETER_RUN_INFO_READ_EACH_RECOVER,
@@ -35,7 +35,6 @@ class ParameterTable(object):
         self._parameter_fields = parameter_fields
         self._validation_errors = []
         
-    
     def parse_table(self, table):
         parameter_data = {}
         rows = table['tableRows']
