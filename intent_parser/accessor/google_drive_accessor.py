@@ -51,34 +51,6 @@ class GoogleDriveAccessor(object):
         folder_dict = results.get('files', [])
         return folder_dict
 
-    def get_recursive_folders(self, folder_id):
-        """
-        Get current folder and all subfolder ids found in a Google Drive folder.
-        
-        Args:
-            folder_id: A Google Drive folder id
-        Returns a list of Google Drive folder ids
-        """
-        return self._recursive_folders(folder_id, [])
-        
-    def _recursive_folders(self, folder_id, folder_list):
-        results = self._service.files().list(
-            q="'%s' in parents and mimeType='application/vnd.google-apps.folder'" % (folder_id,),
-            spaces='drive',
-            pageSize=1000,
-            fields='nextPageToken, files(id, name)').execute()
-        
-        folder_dict = results.get('files', [])
-        if not folder_dict :
-            folder_list.append(folder_id)
-            return folder_list
-        
-        for folder in folder_dict:
-            f_id = folder['id']
-            res = self._recursive_folders(f_id, folder_list)
-            folder_list.extend(res)
-        return folder_list
-    
     def get_all_docs(self, folder_id):
         """
         Retrieve all Google Docs within a parent Drive folder.
