@@ -8,9 +8,9 @@ import sbol2 as sbol
 import traceback
 
 class IntentParserSBH(object):
-    '''
+    """
     An accessor to a SynBioHub instance for Intent Parser
-    '''
+    """
     
     logger = logging.getLogger('intent_parser_sbh')
 
@@ -180,7 +180,7 @@ class IntentParserSBH(object):
                 document.addModuleDefinition(module)
 
             elif sbol_type == 'external':
-                top_level = sbol.TopLevel('http://http://sd2e.org/types/#attribute', display_id)
+                top_level = sbol.TopLevel('http://sd2e.org/types/#attribute', display_id)
                 self.set_item_properties(top_level, data)
 
                 document.addTopLevel(top_level)
@@ -266,7 +266,7 @@ class IntentParserSBH(object):
                     tp.add(item_lab_id)
      
     def query_experiments(self, target_collection):
-        '''
+        """
         Search the target collection and return references to all Experiment objects
     
         Parameters
@@ -275,7 +275,7 @@ class IntentParserSBH(object):
             An instance of a SynBioHubQuery SPARQL wrapper from synbiohub_adapter
         target_collection : str
             A URI for a target collection
-        '''
+        """
     
         # Correct the target collection URI in case the user specifies the wrong synbiohub namespace
         # (a common mistake that can be hard to debug)
@@ -311,7 +311,7 @@ class IntentParserSBH(object):
         return experiments
     
     def query_experiment_request(self, experiment_uri):
-        '''
+        """
         Return a URL to the experiment request form on Google Docs that initiated the Experiment
 
         Parameters
@@ -320,7 +320,7 @@ class IntentParserSBH(object):
             An instance of a SynBioHubQuery SPARQL wrapper from synbiohub_adapter
         experiment_uri : str
             A URI for an Experiment object
-        '''
+        """
 
         # Correct the experiment_uri in case the user specifies the wrong synbiohub namespace
         # (a common mistake that can be hard to debug)
@@ -346,7 +346,7 @@ class IntentParserSBH(object):
             return "NOT FOUND"
 
     def query_experiment_source(self, experiment_uri):
-        '''
+        """
         Return a reference to a samples.json file on Agave file system that generated the Experiment
 
         Parameters
@@ -355,7 +355,7 @@ class IntentParserSBH(object):
             An instance of a SynBioHubQuery SPARQL wrapper from synbiohub_adapter
         experiment_uri : str
             A URI for an Experiment object
-        '''
+        """
 
         # Correct the experiment_uri in case the user specifies the wrong synbiohub namespace
         # (a common mistake that can be hard to debug)
