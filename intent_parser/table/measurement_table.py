@@ -3,7 +3,6 @@ import intent_parser.constants.intent_parser_constants as intent_parser_constant
 import intent_parser.table.table_utils as table_utils
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import logging
-from intent_parser.constants import intent_parser_constants
 
 class MeasurementTable:
     """
