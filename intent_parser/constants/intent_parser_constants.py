@@ -47,6 +47,12 @@ PROTOCOL_NAMES = {GROWTH_CURVE_PROTOCOL: 'Growth Curves',
                   TIME_SERIES_HTP_PROTOCOL: 'Time Series', 
                   OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course'}
 
+COL_HEADER_CHANNEL = 'Channel'
+COL_HEADER_CONTENT = 'Contents'
+COL_HEADER_CONTROL_TYPE = 'Control Type'
+COL_HEADER_CONTROL_STRAINS = 'Strains'
+COL_HEADER_CONTROL_TIMEPOINT= 'Timepoints'
+
 # String defines for headers in measurements table
 COL_HEADER_FILE_TYPE = 'file-type'
 COL_HEADER_MEASUREMENT_TYPE = 'measurement-type'

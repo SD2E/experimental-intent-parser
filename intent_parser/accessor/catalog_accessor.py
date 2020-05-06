@@ -6,6 +6,7 @@ class CatalogAccessor(object):
     An accessor to get information from sd2e's catalog.
     """
     _CHALLENGE_PROBLEM_URL = 'https://schema.catalog.sd2e.org/schemas/challenge_problem_id.json'
+    _CONTROL_TYPE_URL = 'https://schema.catalog.sd2e.org/schemas/control_type.json'
     _FILE_TYPES_URL = 'https://schema.catalog.sd2e.org/schemas/filetype_label.json'
     _FLUID_UNITS_URL = 'https://schema.catalog.sd2e.org/schemas/fluid_unit.json'
     _MEASUREMENT_TYPES_URL = 'https://schema.catalog.sd2e.org/schemas/measurement_type.json'
@@ -16,6 +17,7 @@ class CatalogAccessor(object):
     
     def __init__(self):
         self.challenge_problem_ids = None
+        self.control_type = None
         self.file_types = None
         self.fluid_units = None
         self.lab_ids = None
@@ -30,8 +32,15 @@ class CatalogAccessor(object):
             self.challenge_problem_ids = []
             for d in data['enum']:
                 self.challenge_problem_ids.append(d)
-                
         return self.challenge_problem_ids
+    
+    def get_control_type(self):
+        if self.control_type is None:
+            data = self._fetch_from_catalog(self._CONTROL_TYPE_URL)
+            self.control_types = []
+            for d in data['enum']:
+                self.control_types.append(d)
+        return self.control_types
     
     def get_file_types(self):
         if self.file_types is None:
@@ -39,7 +48,6 @@ class CatalogAccessor(object):
             self.file_types = []
             for d in data['enum']:
                 self.file_types.append(d)
-                
         return self.file_types 
     
     def get_fluid_units(self):
@@ -48,7 +56,6 @@ class CatalogAccessor(object):
             self.fluid_units = []
             for d in data['enum']:
                 self.fluid_units.append(d)
-                
         return self.fluid_units
     
     def get_lab_ids(self):
@@ -58,7 +65,6 @@ class CatalogAccessor(object):
             for d in data['enum']:
                 self.lab_ids.append(d)
             self.lab_ids.sort()
-             
         return self.lab_ids
     
     def get_measurement_types(self):
@@ -67,7 +73,6 @@ class CatalogAccessor(object):
             self.measurement_types = []
             for d in data['enum']:
                 self.measurement_types.append(d)
-                
         return self.measurement_types
     
     def get_temperature_units(self):
@@ -76,7 +81,6 @@ class CatalogAccessor(object):
             self.temperature_units = []
             for d in data['enum']:
                 self.temperature_units.append(d)
-                
         return self.temperature_units
         
     
@@ -86,7 +90,6 @@ class CatalogAccessor(object):
             self.time_units = []
             for d in data['enum']:
                 self.time_units.append(d)
-                
         return self.time_units
     
     def get_volume_units(self):
@@ -95,7 +98,6 @@ class CatalogAccessor(object):
             self.volume_units = []
             for d in data['enum']:
                 self.volume_units.append(d)
-                
         return self.volume_units
      
     def _fetch_from_catalog(self, url):
