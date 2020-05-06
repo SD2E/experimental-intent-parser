@@ -1,0 +1,926 @@
+{
+    "name": "Microbe LiveDeadClassification",
+    "experiment_id": "experiment.transcriptic.2020-02-20-Microbe-LiveDeadClassification",
+    "challenge_problem": "NOVEL_CHASSIS",
+    "experiment_reference": "Microbe-LiveDeadClassification",
+    "experiment_reference_url": "https://docs.google.com/document/d/1Lwbrnys3FyoikqyYYWAElyvk7zOeZ4VX_o6IjZ0jfHg",
+    "experiment_version": 1,
+    "lab": "Transcriptic",
+    "runs": [
+        {
+            "measurements": [
+                {
+                    "measurement_type": "FLOW",
+                    "file_type": [
+                        "FCS"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "Modified M9 Media"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "5",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "10",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "15",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "35",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "40",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Sytox",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                },
+                                "value": "0",
+                                "unit": "nM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Sytox",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                },
+                                "value": "5",
+                                "unit": "nM"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "Modified M9 Media"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "5",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "10",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "15",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "35",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "40",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Sytox",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                },
+                                "value": "0",
+                                "unit": "nM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Sytox",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                },
+                                "value": "5",
+                                "unit": "nM"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "FLOW",
+                    "file_type": [
+                        "FCS"
+                    ],
+                    "replicates": 2,
+                    "strains": [
+                        "MediaControl"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "Modified M9 Media"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "M9 Glucose CAA (a.k.a. M9 Glucose Stock)"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Sytox",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                },
+                                "value": "0",
+                                "unit": "nM"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 2,
+                    "strains": [
+                        "MediaControl"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "Modified M9 Media"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "M9 Glucose CAA (a.k.a. M9 Glucose Stock)"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Sytox",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                },
+                                "value": "0",
+                                "unit": "nM"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "FLOW",
+                    "file_type": [
+                        "FCS"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "MG1655_WT"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "M9 Glucose CAA (a.k.a. M9 Glucose Stock)"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "5",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "10",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "15",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "35",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "40",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Sytox",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                },
+                                "value": "0",
+                                "unit": "nM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Sytox",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                },
+                                "value": "5",
+                                "unit": "nM"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "MG1655_WT"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "M9 Glucose CAA (a.k.a. M9 Glucose Stock)"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "5",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "10",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "15",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "35",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "40",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Sytox",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                },
+                                "value": "0",
+                                "unit": "nM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Sytox",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                },
+                                "value": "5",
+                                "unit": "nM"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "CONDITION_SPACE",
+                    "file_type": [
+                        "CSV",
+                        "FCS"
+                    ],
+                    "replicates": 20,
+                    "strains": [
+                        "Bacillus subtilis 168 Marburg",
+                        "MG1655_WT",
+                        "MediaControl"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 28.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 0.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 100.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "Modified M9 Media"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "M9 Glucose CAA (a.k.a. M9 Glucose Stock)"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            },
+                            {
+                                "name": {
+                                    "label": "Ethanol",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                },
+                                "value": "100",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Sytox",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                },
+                                "value": "0",
+                                "unit": "nM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Sytox",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                },
+                                "value": "5",
+                                "unit": "nM"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        }
+    ],
+    "doc_revision_id": "734",
+    "parameters": [
+        {
+            "exp_info.overnight_volumes.culture_volume": "200:microliter",
+            "exp_info.overnight_volumes.media_volume": "800:microliter",
+            "exp_info.growth_volumes.culture_volume": "200:microliter",
+            "exp_info.growth_volumes.media_volume": "800:microliter",
+            "plate_reader_info.fluor_ex": "638:nanometer",
+            "plate_reader_info.fluor_em": "670:nanometer",
+            "plate_reader_info.gain": 0.16
+        }
+    ]
+}
