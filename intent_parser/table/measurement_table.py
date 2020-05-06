@@ -4,11 +4,11 @@ import intent_parser.table.table_utils as table_utils
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import logging
 
-class MeasurementTable:
+class MeasurementTable(object):
     """
     Process information from Intent Parser's Measurement Table
     """
-    _logger = logging.getLogger('src')
+    _logger = logging.getLogger('intent_parser')
     IGNORE_COLUMNS = [intent_parser_constants.COL_HEADER_SAMPLES, intent_parser_constants.COL_HEADER_NOTES]
   
     def __init__(self, temperature_units={}, timepoint_units={}, fluid_units={}, measurement_types={}, file_type={}):
@@ -64,13 +64,13 @@ class MeasurementTable:
                 measurement['ods'] = [float(value) for value in table_utils.extract_number_value(cell_txt)]
             elif header == intent_parser_constants.COL_HEADER_TEMPERATURE:
                 try:
-                    measurement['temperatures'] = self._parse_and_append_value_unit(cell_txt, 'temperature', self._temperature_units)
+                    measurement['temperatures'] = table_utils.parse_and_append_value_unit(cell_txt, 'temperature', self._temperature_units)
                 except TableException as err:
                     message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_TEMPERATURE, err.get_message())
                     self._validation_errors.append(message)
             elif header == intent_parser_constants.COL_HEADER_TIMEPOINT:
                 try:
-                    measurement['timepoints'] = self._parse_and_append_value_unit(cell_txt, 'timepoints', self._timepoint_units) 
+                    measurement['timepoints'] = table_utils.parse_and_append_value_unit(cell_txt, 'timepoints', self._timepoint_units) 
                 except TableException as err:
                     message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_TIMEPOINT, err.get_message())
                     self._validation_errors.append(message)
@@ -88,13 +88,6 @@ class MeasurementTable:
             measurement['contents'] = content
         return measurement 
     
-    def _parse_and_append_value_unit(self, cell_txt, cell_type, unit_list):
-        result = []
-        for value,unit in table_utils.transform_cell(cell_txt, unit_list, cell_type=cell_type):
-            temp_dict = {'value' : float(value), 'unit' : unit}
-            result.append(temp_dict)
-        return result 
-
     def _parse_reagent_media(self, paragraph_element, cell_txt):
         reagents_media = []
         reagent_media_name = intent_parser_utils.get_paragraph_text(paragraph_element).strip()
