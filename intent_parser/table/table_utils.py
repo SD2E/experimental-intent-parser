@@ -64,6 +64,29 @@ def detect_parameter_table(table):
             has_parameter_value = True
     return has_parameter_field and has_parameter_value
 
+def detect_controls_table(table):
+    has_channel = False
+    has_control_type = False 
+    has_strains = False 
+    has_contents = False
+    has_timepoints = False
+    
+    rows = table['tableRows']
+    headerRow = rows[0]
+    for cell in headerRow['tableCells']:
+        cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
+        if cellTxt == intent_parser_constants.COL_HEADER_CHANNEL:
+            has_channel = True
+        elif cellTxt == intent_parser_constants.COL_HEADER_CONTROL_TYPE:
+            has_control_type = True
+        elif cellTxt == intent_parser_constants.COL_HEADER_CONTROL_STRAINS:
+            has_strains = True
+        elif cellTxt == intent_parser_constants.COL_HEADER_CONTENT:
+            has_contents = True
+        elif cellTxt == intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT:
+            has_timepoints = True
+    return has_channel and has_control_type and has_strains and has_contents and has_timepoints
+    
 def is_number(cell):
     """
     Check if the cell only contains numbers.
@@ -139,6 +162,25 @@ def extract_name_value(cell):
         result.append(''.join(cell_str))
     
     return result
+
+def parse_and_append_value_unit(cell_txt, cell_type, unit_list):
+    """
+    Parses a string to determine numerical values and units. 
+    
+    Args:
+        cell_txt: a string that can contain a list of value followed by a unit by using commas as a separator. 
+        cell_type: the type of units that this cell_txt is describing. (ex: fluid, temperature, or timepoints)
+        unit_list: a list of strings that the function will use for referring to units.
+    
+    Returns:
+        A list of dictionaries. The dictionary key represents a numerical value. 
+        The dictionary value represents a unit corresponding to the value. 
+    """
+    result = []
+    for value,unit in transform_cell(cell_txt, unit_list, cell_type=cell_type):
+        temp_dict = {'value' : float(value), 'unit' : unit}
+        result.append(temp_dict)
+    return result 
 
 def transform_strateos_string(cell):
     """
