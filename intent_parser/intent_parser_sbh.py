@@ -4,7 +4,7 @@ import intent_parser.utils.intent_parser_view as intent_parser_view
 from datetime import datetime
 import logging
 import re
-import sbol
+import sbol2 as sbol
 import traceback
 
 class IntentParserSBH(object):
