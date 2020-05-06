@@ -105,10 +105,10 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
     app_script_access = GoogleAppScriptAccessor(creds) 
     
     local_docs = util.load_json_file(ADDON_FILE)
-    remote_docs = drive_access.recursive_list_doc(drive_id)
+    remote_docs = drive_access.get_all_docs(drive_id)
     while len(remote_docs) > 0 :
         doc = remote_docs.pop(0)
-        r_id = doc['id']
+        r_id = doc
         logger.info('Processing doc: ' + r_id)
         if r_id in local_docs:
             try:
