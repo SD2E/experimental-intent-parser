@@ -163,6 +163,30 @@ def extract_name_value(cell):
     
     return result
 
+def parse_and_append_named_value_unit(cell_txt, cell_type, unit_list):
+    tokens = _tokenize(cell_txt) 
+    index = 0
+    tokens = [token for token in tokens if _get_token_type(token) not in ['SEPARATOR', 'SKIP']]
+    abbrev_units = _abbreviated_unit_dict[cell_type] if cell_type is not None else {}
+    unit = _determine_unit(tokens, _canonicalize_units(unit_list), abbrev_units)
+    
+    if len(tokens) % 3 > 0:
+        raise ValueError('Cannot parse named value unit for cell %s.' % cell_txt)
+    
+    while index < len(tokens):
+        if _get_token_type(tokens[index]) != 'NAME':
+            raise ValueError('No name specified. Invalid named value unit cell.')
+        if _get_token_type(tokens[index+1]) != 'NUMBER':
+            raise ValueError('No value specified. Invalid named value unit cell.')
+        if _get_token_type(tokens[index+2]) != 'NAME':
+            raise ValueError('No unit specified. Invalid named value unit cell.')
+        
+        name = _get_token_value(tokens[index]) 
+        value = _get_token_value(tokens[index+1]) 
+        unit = _get_token_value(tokens[index+2]) 
+        
+        yield name, value, unit
+
 def parse_and_append_value_unit(cell_txt, cell_type, unit_list):
     """
     Parses a string to determine numerical values and units. 
