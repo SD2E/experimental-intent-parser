@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <script>
+    function onSuccess() {
+        google.script.host.close();
+    }
+    function handleCancel() {
+        google.script.host.close();
+    }
+    function handleSubmit() {
+        var table = document.getElementById('controlTypesTable');
+
+        if (table.rows.length < 1) {
+            var msgsTable = document.getElementById('messagesTable')
+            msgsTable.style.visibility = ''
+            msgsTable.innerHTML = '<i><font color=red> Must have defined at least 1 measurement to submit!</font></i>'
+            return;
+        }
+
+        var currMeasurements = new Array();
+        var currFileTypes = new Array();
+        for (var i = 0; i < table.rows.length; i++) {
+            var row = table.rows[i];
+            var measureCell = row.cells[0];
+            var fileCell = row.cells[1];
+            currMeasurements.push(measureCell.childNodes[1].value)
+            currFileTypes.push(fileCell.childNodes[1].value)
+        }
+        var extra = {"action": "createControlsTable"};
+        var theForm = this.createControlsTableForm;
+        var formInfo = {'cursorChildIndex' : theForm.cursorChildIndex.value,
+                        'formName' : theForm.formName.value,
+                        'controlType' : currControl,
+                        'numReagents' : theForm.num_reagents.value,
+                        'calibrations' : theForm.calibrations.checked,
+                        'timepoint' : theForm.timepoint.checked};
+  
+        formInfo.extra = extra;
+        google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);
+    }
+    function numMeasurementsUpdate() {
+        var theForm = this.createMeasurementTableForm;
+        var numNewMeasurements = theForm.num_rows.value;
+
+        var table = document.getElementById('measurementTypesTable');
+
+        // Delete extra rows
+        while (table.rows.length > numNewMeasurements) {
+            table.deleteRow(table.rows.length - 1);
+        }
+
+        // Insert necessary rows
+        while (table.rows.length < numNewMeasurements) {
+            var row = table.insertRow(table.rows.length);
+            var measureCell = row.insertCell(0);
+            var fileCell = row.insertCell(1);
+            measureCell.align = "center"
+            fileCell.align = "center"
+            measureCell.innerHTML = "Measurement type <select>" + this.measurement_options + " </select>";
+            fileCell.innerHTML = "File type <select style=\"width:250px\">" + this.filetype_options + " </select>";
+        }
+
+        if (table.rows.length > 0) {
+            var msgsTable = document.getElementById('messagesTable')
+            msgsTable.style.visibility = 'hidden'
+            msgsTable.innerHTML = ''
+            return;
+        }
+
+        this.currNumMeasurements = numNewMeasurements;
+    }
+
+    this.currNumMeasurements = 0
+
+    this.measurement_options = "${MEASUREMENTOPTIONS}"
+
+    this.filetype_options = "${FILETYPEOPTIONS}"
+
+  </script>
+  <center>
+    <form name="createControlsTableForm" action="/add">
+      <input type="hidden" name="cursorChildIndex" value="${CURSOR_CHILD_INDEX}">
+      <input type="hidden" name="formName" value="createMeasurementTable">
+      <table stype="width:600px">
+        <tr>
+          <th align="right">Number of reagents: </th>
+          <td>
+            <input type="text" name="num_reagents" value="0" title="Define number of columns to define reagent configuration.  Reagent names should be added to column headers and linked to SynbioHub.  Configuration can be specified as a comma separated list.">
+          </td>
+        </tr>
+        <tr>
+          <th align="right">Temperature: </th>
+          <td>
+            <input type="checkbox" name="temperature" title="Check to add a column for temperature configuration.  Comma separated lists are accepted.">
+          </td>
+        </tr>
+        <tr>
+          <th align="right">Timepoint: </th>
+          <td>
+            <input type="checkbox" name="timepoint" title="Check to add a column for time configuration.  Comma separated lists are accepted.">
+          </td>
+        </tr>
+        <tr>
+        <tr>
+          <th align="right">Number of rows/measurements: </th>
+          <td>
+            <input type="number" min="1" max="15" step="1" value="0" name="num_rows" oninput="numMeasurementsUpdate()">
+          </td>
+        </tr>
+        <tr stle="width:200px">
+          <td colspan="2">
+            <table stype="width:100%" id="measurementTypesTable">
+            </table>
+          </td>
+        </tr>
+
+      </table>
+      <br>
+      <table stype="width:100%" id="messagesTable">
+      </table>
+      <input type="button" value="Submit" id="submitButton" title="Submit form and generate a measurement table template." onclick="handleSubmit()">
+      <input type="button" value="Cancel" id="cancelButton" onclick="handleCancel()">
+    </form>
+  </center>
+</body>
+</html>
