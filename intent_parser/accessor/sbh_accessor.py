@@ -1,4 +1,4 @@
-import sbol
+import sbol2 as sbol
 import tenacity
 import threading
 import traceback
