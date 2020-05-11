@@ -144,5 +144,6 @@
             ]
         }
     ],
-    "doc_revision_id": "19"
+    "doc_revision_id": "19",
+    "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/Plan-Requirements-UCSB-B-subtilis-PositiveFeedbackAmplifier-24hour.json"
 }

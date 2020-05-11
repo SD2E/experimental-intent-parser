@@ -1432,5 +1432,6 @@
             "plate_reader_info.fluor_em": "530:nanometer",
             "plate_reader_info.gain": 0.16
         }
-    ]
+    ],
+    "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/YeastSTATES-OR-Gate-CRISPR-Obstacle-Course.json"
 }
