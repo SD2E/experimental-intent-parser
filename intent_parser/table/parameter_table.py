@@ -73,7 +73,6 @@ class ParameterTable(object):
             else:
                 raise TableException('Parameter table has invalid %s value: %s should be a boolean value' % (parameter_field, parameter_value))
         elif parameter_field in self.FIELD_WITH_LIST_OF_STRING:
-            # Return the original form for parameters that contain a list of string 
             return parameter_field, [parameter_value] 
         elif parameter_field in self.FIELD_WITH_NESTED_STRUCTURE:
             json_parameter_value = json.loads(parameter_value)
@@ -89,15 +88,12 @@ class ParameterTable(object):
             paragraph_element = header_row['tableCells'][col_index]['content'][0]['paragraph']
             header = intent_parser_utils.get_paragraph_text(paragraph_element).strip()
             cell_txt = ' '.join([intent_parser_utils.get_paragraph_text(content['paragraph']).strip() for content in row['tableCells'][col_index]['content']])
-            
             if header == intent_parser_constants.COL_HEADER_PARAMETER:
                 param_field = self._get_parameter_field(cell_txt)
             elif header == intent_parser_constants.COL_HEADER_PARAMETER_VALUE:
                 param_value = cell_txt
-
         if not param_field:
             raise TableException('Parameter field should not be empty')
-        
         if not param_value:
             return param_field, []
         

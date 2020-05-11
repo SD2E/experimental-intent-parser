@@ -38,6 +38,7 @@
                         'temperature' : theForm.temperature.checked,
                         'timepoint' : theForm.timepoint.checked,
                         'ods' : theForm.ods.checked,
+                        'batch' : theForm.batch.checked,
                         'notes' : theForm.notes.checked,
                         'numRows' : theForm.num_rows.value};
         formInfo.extra = extra;
@@ -118,6 +119,12 @@
           <th align="right">Optical Density: </th>
           <td>
             <input type="checkbox" name="ods" title="Check to add a column for optical density configuration.  Comma separated lists are accepted. No units are expected.">
+          </td>
+        </tr>
+        <tr>
+          <th align="right">Batch: </th>
+          <td>
+            <input type="checkbox" name="batch" title="Check to add a column for batch.  Comma separated lists are accepted.">
           </td>
         </tr>
         <tr>
