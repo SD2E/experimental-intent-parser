@@ -75,13 +75,13 @@ def detect_controls_table(table):
     headerRow = rows[0]
     for cell in headerRow['tableCells']:
         cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
-        if cellTxt == intent_parser_constants.COL_HEADER_CHANNEL:
+        if cellTxt == intent_parser_constants.COL_HEADER_CONTROL_CHANNEL:
             has_channel = True
         elif cellTxt == intent_parser_constants.COL_HEADER_CONTROL_TYPE:
             has_control_type = True
         elif cellTxt == intent_parser_constants.COL_HEADER_CONTROL_STRAINS:
             has_strains = True
-        elif cellTxt == intent_parser_constants.COL_HEADER_CONTENT:
+        elif cellTxt == intent_parser_constants.COL_HEADER_CONTROL_CONTENT:
             has_contents = True
         elif cellTxt == intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT:
             has_timepoints = True
@@ -163,11 +163,22 @@ def extract_name_value(cell):
     
     return result
 
-def parse_and_append_named_value_unit(cell_txt, cell_type, unit_list):
+def parse_and_append_named_value_unit(cell_txt, unit_type, unit_list):
+    """
+    Parses the content of a cell to get a name, followed by a value, followed by a unit.
+    Args:
+        cell_txt: content of cell
+        unit_type: type of unit for specifying the value
+        unit_list: list of units
+        
+    Raises:
+        TableException: 
+        ValueError: Invalid value for a cell 
+    """
     tokens = _tokenize(cell_txt) 
     index = 0
     tokens = [token for token in tokens if _get_token_type(token) not in ['SEPARATOR', 'SKIP']]
-    abbrev_units = _abbreviated_unit_dict[cell_type] if cell_type is not None else {}
+    abbrev_units = _abbreviated_unit_dict[unit_type] if unit_type is not None else {}
     unit = _determine_unit(tokens, _canonicalize_units(unit_list), abbrev_units)
     
     if len(tokens) % 3 > 0:
@@ -198,7 +209,9 @@ def parse_and_append_value_unit(cell_txt, cell_type, unit_list):
     
     Returns:
         A list of dictionaries. The dictionary key represents a numerical value. 
-        The dictionary value represents a unit corresponding to the value. 
+        The dictionary value represents a unit corresponding to the value.
+    Raises:
+         TableException: For cells with no unit
     """
     result = []
     for value,unit in transform_cell(cell_txt, unit_list, cell_type=cell_type):
@@ -240,6 +253,8 @@ def transform_cell(cell, units, cell_type=None):
         Yield two variables. 
         The first variable represents the cell's content.
         The second variable represents an identified unit for the cell.
+    
+    Raises:
         A TableException is thrown for a cell that has no unit. 
     """
     tokens = _tokenize(cell) 

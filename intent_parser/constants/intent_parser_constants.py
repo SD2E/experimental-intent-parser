@@ -1,3 +1,5 @@
+from enum import Enum
+
 """
 List of constants used for intent parser server
 """
@@ -47,12 +49,6 @@ PROTOCOL_NAMES = {GROWTH_CURVE_PROTOCOL: 'Growth Curves',
                   TIME_SERIES_HTP_PROTOCOL: 'Time Series', 
                   OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course'}
 
-COL_HEADER_CHANNEL = 'Channel'
-COL_HEADER_CONTENT = 'Contents'
-COL_HEADER_CONTROL_TYPE = 'Control Type'
-COL_HEADER_CONTROL_STRAINS = 'Strains'
-COL_HEADER_CONTROL_TIMEPOINT= 'Timepoints'
-
 # String defines for headers in measurements table
 COL_HEADER_FILE_TYPE = 'file-type'
 COL_HEADER_MEASUREMENT_TYPE = 'measurement-type'
@@ -89,3 +85,26 @@ UNIT_TEST_SPREADSHEET_ID = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0' #sd2 u
 
 SBH_HUB_STAGING_URL = 'https://hub-staging.sd2e.org/user/sd2e/src/intent_parser_collection/1'
 
+# Table Constants
+
+# Header types
+COL_HEADER_CONTROL_CHANNEL = 'Channel'
+COL_HEADER_CONTROL_CONTENT = 'Contents'
+COL_HEADER_CONTROL_TYPE = 'Control Type'
+COL_HEADER_CONTROL_STRAINS = 'Strains'
+COL_HEADER_CONTROL_TIMEPOINT= 'Timepoints'
+
+class ColumnHeaderType(Enum):
+    CONTROL_CHANNEL = 1
+    CONTROL_CONTENT = 2
+    CONTROL_TYPE = 3
+    CONTROL_STRAINS = 4
+    CONTROL_TIMEPOINT = 5
+    
+COLUMN_TO_TYPE = {
+    COL_HEADER_CONTROL_CHANNEL: ColumnHeaderType.CONTROL_CHANNEL,
+    COL_HEADER_CONTROL_CONTENT: ColumnHeaderType.CONTROL_CONTENT,
+    COL_HEADER_CONTROL_TYPE: ColumnHeaderType.CONTROL_TYPE,
+    COL_HEADER_CONTROL_STRAINS: ColumnHeaderType.CONTROL_STRAINS,
+    COL_HEADER_CONTROL_TIMEPOINT: ColumnHeaderType.CONTROL_TIMEPOINT
+                  }
