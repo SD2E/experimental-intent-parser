@@ -1058,6 +1058,8 @@ class IntentParserServer:
                 measurement_row.append('')
             if has_temp:
                 measurement_row.append('')
+            if has_batch:
+                measurement_row.append('')
             if has_notes:
                 measurement_row.append('')
             table_data.append(measurement_row)
