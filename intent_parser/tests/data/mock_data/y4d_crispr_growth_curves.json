@@ -282,5 +282,6 @@
             "plate_reader_info.fluor_em": "509:nanometer",
             "plate_reader_info.gain": 0.274
         }
-    ]
+    ],
+    "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/y4d_crispr_growth_curves.json"
 }

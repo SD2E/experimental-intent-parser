@@ -922,5 +922,16 @@
             "plate_reader_info.fluor_em": "670:nanometer",
             "plate_reader_info.gain": 0.16
         }
+    ],
+    "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/Microbe-LiveDeadClassification.json",
+    "overnight_growth": {
+        "value": 16.0,
+        "unit": "hour"
+    },
+    "recovery_loops": [
+        {
+            "value": 6.0,
+            "unit": "hour"
+        }
     ]
 }

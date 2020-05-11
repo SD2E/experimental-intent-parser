@@ -1523,5 +1523,6 @@
             ]
         }
     ],
-    "doc_revision_id": "1023"
+    "doc_revision_id": "1023",
+    "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/NovelChassis_Ginkgo_Strain_GrowthCurve.json"
 }
