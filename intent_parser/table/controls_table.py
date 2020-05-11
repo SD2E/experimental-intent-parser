@@ -4,7 +4,6 @@ from intent_parser.table.intent_parser_table import IntentParserTable
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.table.table_utils as table_utils
 import logging
-from test.test_funcattrs import cell
 
 class ControlsTable(object):
     """
