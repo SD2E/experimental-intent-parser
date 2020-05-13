@@ -1,0 +1,1528 @@
+{
+    "name": "NovelChassis_Ginkgo_Strain_Inducer_Characterization",
+    "experiment_id": "experiment.transcriptic.2019-11-18-NovelChassis-Ginkgo-Strain-Inducer-Characterization",
+    "challenge_problem": "NOVEL_CHASSIS",
+    "experiment_reference": "NovelChassis-Ginkgo-Strain-Inducer-Characterization",
+    "experiment_reference_url": "https://docs.google.com/document/d/16p9WmU9_dEz6wGN5_maotPl5uGrAIxPZ3-pNq1hipfI",
+    "experiment_version": 1,
+    "lab": "Transcriptic",
+    "runs": [
+        {
+            "measurements": [
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "B. subtilis 168 PmtlA-comKS",
+                        "Bacillus subtilis 168 Marburg",
+                        "B_subtilis_comKS_mCherry_1x",
+                        "B_subtilis_comKS_mCherry_5x",
+                        "B_subtilis_comKS_mCherry_4x"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "IPTG",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Vanillic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Vanillic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Cuminic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Xylose/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 minimal media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "IPTG",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Vanillic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Vanillic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Cuminic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Xylose/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 minimal media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "IPTG",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Vanillic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Vanillic0x20Acid/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Cuminic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Xylose/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 minimal media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "IPTG",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Vanillic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Vanillic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Cuminic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid/1"
+                                },
+                                "value": "0.1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Xylose/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 minimal media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "IPTG",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Vanillic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Vanillic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Cuminic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Xylose/1"
+                                },
+                                "value": "1",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 minimal media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "IPTG",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Vanillic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Vanillic0x20Acid/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Cuminic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Xylose/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 minimal media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "IPTG",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Vanillic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Vanillic0x20Acid/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Cuminic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid/1"
+                                },
+                                "value": "0.1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Xylose/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 minimal media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "IPTG",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Vanillic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Vanillic0x20Acid/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Cuminic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Xylose/1"
+                                },
+                                "value": "1",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 minimal media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "IPTG",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Vanillic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Vanillic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Cuminic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid/1"
+                                },
+                                "value": "0.1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Xylose/1"
+                                },
+                                "value": "1",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 minimal media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "IPTG",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Vanillic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Vanillic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Cuminic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Xylose/1"
+                                },
+                                "value": "1",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 minimal media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 4,
+                    "strains": [
+                        "Bacillus subtilis 168 Marburg"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "IPTG",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Vanillic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Vanillic0x20Acid/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Cuminic Acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid/1"
+                                },
+                                "value": "0.1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Xylose/1"
+                                },
+                                "value": "0",
+                                "unit": "%"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "Modified M9 minimal media"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        }
+    ],
+    "doc_revision_id": "1023",
+    "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/NovelChassis_Ginkgo_Strain_GrowthCurve.json"
+}

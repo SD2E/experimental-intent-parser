@@ -8,16 +8,16 @@ class AppScriptUtilTest(unittest.TestCase):
     """
 
     def setUp(self):
-        curr_path = os.path.dirname(os.path.realpath(__file__))
-        self.src_dir = os.path.join(curr_path, '../src')
-                     
+        pass 
+     
     def tearDown(self):
         pass
 
     def test_get_function_name_from_js_file(self):
-        local_code_path = os.path.join('data', 'Test.js')
+        curr_path = os.path.dirname(os.path.realpath(__file__))
+        local_code_path = os.path.join(curr_path, 'data', 'Test.js')
         function_names = script_util.get_function_names_from_js_file(local_code_path)
-        self.assertEquals(len(function_names['values']), 36)
+        self.assertEqual(len(function_names['values']), 36)
         
    
 

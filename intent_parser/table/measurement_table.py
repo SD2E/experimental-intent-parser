@@ -74,6 +74,14 @@ class MeasurementTable(object):
                 except TableException as err:
                     message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_TIMEPOINT, err.get_message())
                     self._validation_errors.append(message)
+            elif header == intent_parser_constants.COL_HEADER_BATCH:
+                try:
+                    if table_utils.is_name(cell_txt):
+                        raise TableException('%s must contain a list of integer values.' % cell_txt)
+                    measurement['batch'] = [int(value) for value in table_utils.extract_number_value(cell_txt)] 
+                except TableException as err:
+                    message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_BATCH, err.get_message())
+                    self._validation_errors.append(message)
             else:
                 try:
                     reagents = self._parse_reagent_media(paragraph_element, cell_txt)

@@ -24,11 +24,21 @@ def detect_lab_table(table):
     Determine if the given table is a lab table, defining the lab to run measurements.
     """
     rows = table['tableRows']
-    numRows = len(rows)
-    labRow = rows[0]
-    numCols = len(labRow['tableCells'])
-    lab = intent_parser_utils.get_paragraph_text(labRow['tableCells'][0]['content'][0]['paragraph'])
-    return numRows == 1 and numCols == 1 and 'lab' in lab.lower()
+    num_rows = len(rows)
+    has_lab = False
+    num_cols = 1
+    for row_index in range(len(rows)):
+        curr_row = rows[row_index]
+        cells = curr_row['tableCells']
+        if len(cells) != 1:
+            num_cols = len(cells)
+        for cell_index in range(len(cells)):
+            cell_content = cells[cell_index]['content'][0]['paragraph']
+            value = intent_parser_utils.get_paragraph_text(cell_content)
+            canonicalize_value = value.lower()
+            if canonicalize_value.startswith('lab'):
+                has_lab = True
+    return num_rows > 0 and num_cols == 1 and has_lab 
 
 
 def detect_new_measurement_table(table):
@@ -115,6 +125,33 @@ def is_name(cell):
         if _get_token_type(token) == 'NUMBER':
             return False
     return True
+
+def extract_name_from_str(cell, prefix_str):
+    """
+    Parses a given cell with a specified prefix.
+    
+    Args:
+        cell: a string representing a cell's content.
+        prefix_str: the prefix that the cell's content must begin with
+    Returns:
+        A string following after the prefix. An empty string is returned if no string follows after the given prefix string.
+    Raises:
+        ValueException if the cell does not have enough content to perform the desired task.
+        TableException if the prefix cannot be found from the given cell.
+    """
+    tokens = _tokenize(cell, False)
+    if len(tokens) < 1:
+        raise ValueError('%s does not have enough value provided.' % cell)
+    
+    if _get_token_type(tokens[0]) == 'NAME':
+        canonicalize_prefix = _get_token_value(tokens[0]).lower()
+        if canonicalize_prefix != prefix_str:
+            raise TableException('%s does not begin with %s' % (cell, prefix_str))
+    name = []
+    for token_index in range(1,len(tokens)):
+        name.append(_get_token_value(tokens[token_index]))
+    return ''.join(name)
+               
         
 def extract_number_value(cell):
     """

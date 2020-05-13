@@ -3,7 +3,7 @@ google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
 jsonschema
-pysbol
+sbol2
 pyspellchecker
 python-docx
 python-Levenshtein
