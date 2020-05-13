@@ -27,8 +27,8 @@ class GoldenFileTest(unittest.TestCase):
         self.mock_data_dir = os.path.join(self.data_dir, 'mock_data')
         
         cp_request_dir = os.path.join(curr_path, 'data', 'cp-request')
-#         git_accessor = git.cmd.Git(cp_request_dir)
-#         git_accessor.pull()
+        git_accessor = git.cmd.Git(cp_request_dir)
+        git_accessor.pull()
         self.structured_request_dir = os.path.join(cp_request_dir, 'input', 'structured_requests')
         
         with open(os.path.join(self.data_dir, 'authn.json'), 'r') as file:
@@ -249,8 +249,6 @@ class GoldenFileTest(unittest.TestCase):
             list_of_measurements = run['measurements']
             for measurement_index in range(len(list_of_measurements)) :
                 measurement = list_of_measurements[measurement_index]
-                if 'batch' in measurement:
-                    del measurement['batch']
                 if 'controls' in measurement:
                     del measurement['controls']
         self.assertEqual(golden, generated)

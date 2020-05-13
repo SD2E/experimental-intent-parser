@@ -991,7 +991,7 @@ class IntentParserServer:
         Process create measurement table
         """
 
-        lab = "Lab: %s" % data['lab']
+        lab_data = self.process_lab_table(data)
         num_reagents = int(data['numReagents'])
         has_batch = data['batch']
         has_temp = data['temperature']
@@ -1069,10 +1069,16 @@ class IntentParserServer:
         create_table['cursorChildIndex'] = data['cursorChildIndex']
         create_table['tableData'] = table_data
         create_table['tableType'] = 'measurements'
-        create_table['tableLab'] = [[lab]]
+        create_table['tableLab'] = lab_data
         create_table['colSizes'] = col_sizes
 
         return [create_table]
+   
+    def process_lab_table(self, data):
+        lab_name = "Lab: %s" % data['lab']
+        experiment_id = 'Experiment_id: '
+        lab_content = [[lab_name], [experiment_id]]
+        return lab_content
     
     def process_create_parameter_table(self, data):
         selected_protocol = data['protocol']
