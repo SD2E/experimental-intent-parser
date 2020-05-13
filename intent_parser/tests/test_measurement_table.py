@@ -3,7 +3,7 @@ import unittest
 
 class MeasurementTableTest(unittest.TestCase):
     """
-    Test parsing information from a measurement table
+    Test parsing information from a measurement table.
     """
                 
     def test_table_with_measurement_type(self):
@@ -482,6 +482,19 @@ class MeasurementTableTest(unittest.TestCase):
         exp_res1 = {'name' : {'label' : 'media', 'sbh_uri' : 'NO PROGRAM DICTIONARY ENTRY'}, 'value' : 'SC+Glucose+Adenine+0.8M'}
         self.assertEquals(1, len(meas_result[0]['contents'][0]))
         self.assertEquals(exp_res1, meas_result[0]['contents'][0][0])
+        
+    def test_table_with_batch_values(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'batch\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': '0, 1\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable()
+        meas_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(meas_result))
+        self.assertEquals(meas_result[0]['batch'], [0,1])
         
 if __name__ == '__main__':
     unittest.main()

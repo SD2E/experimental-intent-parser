@@ -1,0 +1,118 @@
+{
+    "name": "CP_NovelChassis_OR_Circuit_Cycle0",
+    "experiment_id": "experiment.ginkgo.2019-11-08-NovelChassis-OR-Circuit-Cycle0",
+    "challenge_problem": "NOVEL_CHASSIS",
+    "experiment_reference": "NovelChassis-OR-Circuit-Cycle0",
+    "experiment_reference_url": "https://docs.google.com/document/d/1N0i5RPY-xEsM_MIjqeWZI6cjb9rj3B7L1PGR-Q-ufe0",
+    "experiment_version": 1,
+    "lab": "Ginkgo",
+    "runs": [
+        {
+            "measurements": [
+                {
+                    "measurement_type": "DNA_SEQ",
+                    "file_type": [
+                        "FASTQ"
+                    ],
+                    "replicates": 2,
+                    "strains": [
+                        "B_subtilis_WT_JH642_Colony_1",
+                        "B_subtilis_WT_JH642_Colony_2",
+                        "B_subtilis_WT_JH642_Colony_3",
+                        "B_subtilis_WT_PY79_Colony_1",
+                        "B_subtilis_WT_PY79_Colony_2",
+                        "B_subtilis_WT_PY79_Colony_3",
+                        "B_subtilis_LG227_Colony_1",
+                        "B_subtilis_LG227_Colony_2",
+                        "B_subtilis_LG227_Colony_3",
+                        "B_subtilis_LG371_Colony_1",
+                        "B_subtilis_LG371_Colony_2",
+                        "B_subtilis_LG371_Colony_3",
+                        "B_subtilis_GFP_min_Colony_1",
+                        "B_subtilis_GFP_min_Colony_2",
+                        "B_subtilis_GFP_min_Colony_3",
+                        "B_subtilis_GFP_medium_Colony_1",
+                        "B_subtilis_GFP_medium_Colony_2",
+                        "B_subtilis_GFP_medium_Colony_3",
+                        "B_subtilis_GFP_max_Colony_1",
+                        "B_subtilis_GFP_max_Colony_2",
+                        "B_subtilis_GFP_max_Colony_3",
+                        "\u201c\u201d"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Inoculation0x20media/1"
+                                },
+                                "value": "S750"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Inoculation0x20media/1"
+                                },
+                                "value": "Modified M9 Media"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        }
+    ],
+    "doc_revision_id": "1345",
+    "parameters": [
+        {
+            "inoc_info.inoc_vol": "15:microliter",
+            "inoc_info.inoc_media_vol": "1000:microliter",
+            "inoc_info.inc_time_1": "18:hour",
+            "inoc_info.inoculation_media.0": "S750",
+            "inoc_info.inoculation_media.1": "Modified M9 Media",
+            "recovery_info.recovery_sample_vol": "15:microliter",
+            "recovery_info.recovery_media_vol": "1000:microliter",
+            "read_info.sampling_info.read_cult_vol": "20:microliter",
+            "read_info.sampling_info.read_solv_vol": "180:microliter",
+            "read_info.sampling_info.read_solv": "PBS",
+            "validate_samples": true,
+            "plate_reader_info.fluor_ex": "488:nanometer",
+            "plate_reader_info.fluor_em": "530:nanometer",
+            "plate_reader_info.gain": 0.274
+        }
+    ],
+    "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/CP Experimental Request - NovelChassis_OR_circuit_GrowthCurve.json"
+}

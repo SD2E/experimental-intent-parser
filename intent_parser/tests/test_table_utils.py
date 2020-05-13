@@ -11,75 +11,73 @@ class TableUtilsTest(unittest.TestCase):
         cell_str = '1 X, 2 X, 3 X'
         expected_values = ['1', '2', '3']
         for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
-           self.assertEqual(unit, 'X')
-           self.assertTrue(value in expected_values) 
+            self.assertEqual(unit, 'X')
+            self.assertTrue(value in expected_values) 
            
     def test_cell_without_propagated_unit(self):
         cell_str = '1, 2, 3 X'
         expected_values = ['1', '2', '3']
         for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
-           self.assertEqual(unit, 'X')
-           self.assertTrue(value in expected_values) 
+            self.assertEqual(unit, 'X')
+            self.assertTrue(value in expected_values) 
 
     def test_cell_without_units(self):
         cell_str = '1, 2, 3'
-        expected_values = ['1', '2', '3']
         with self.assertRaises(TableException):
-            value, unit = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
+            _, _ = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
 
     def test_cell_with_unit_abbreviation(self):
         cell_str = '1, 2, 3 fold'
         expected_values = ['1', '2', '3']
         for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
-           self.assertEqual(unit, 'X')
-           self.assertTrue(value in expected_values)
+            self.assertEqual(unit, 'X')
+            self.assertTrue(value in expected_values)
     
     def test_cell_with_unspecified_unit(self):
         cell_str = '1, 2, 3 foo'
         with self.assertRaises(TableException):
-            value, unit = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
+            _, _ = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
     
     def test_cell_with_incorrect_unit_location(self):
         cell_str = '1 X, 2, 3'
         with self.assertRaises(TableException):
-            value, unit = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
+            _, _ = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
     
     def test_cell_with_incorrect_unit_value_swapped(self):
         cell_str = '1, 2, X 3'
         with self.assertRaises(TableException):
-            value, unit = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
+            _, _ = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
     
     def test_cell_with_unit_without_spacing(self):
         cell_str = '1X'
         for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
-           self.assertEqual(unit, 'X')
-           self.assertEqual('1', value)
+            self.assertEqual(unit, 'X')
+            self.assertEqual('1', value)
            
     def test_cell_with_multiple_value_unit_without_space(self):
         cell_str = '1X,2X,3X'
         expected_values = ['1', '2', '3']
         for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
-           self.assertEqual(unit, 'X')
-           self.assertTrue(value in expected_values)
+            self.assertEqual(unit, 'X')
+            self.assertTrue(value in expected_values)
            
     def test_cell_with_single_value(self):
         cell_str = '1 X'
         expected_values = ['1']
         for value, unit in tu.transform_cell(cell_str, ['X'], cell_type='fluid'):
-           self.assertEqual(unit, 'X')
-           self.assertTrue(value in expected_values)       
+            self.assertEqual(unit, 'X')
+            self.assertTrue(value in expected_values)       
 
     def test_cell_with_nonvalues(self):
         cell_str = 'one, two X'
         with self.assertRaises(TableException):
-            value, unit = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
+            _, _ = tu.transform_cell(cell_str, ['X'], cell_type='fluid')
 
     def test_cell_not_type_value_unit(self):
         cell_str = 'A simple string'
         with self.assertRaises(TableException):
-            value, unit = tu.transform_cell(cell_str, ['celsius', 'fahrenheit'], cell_type='temperature')
+            _, _ = tu.transform_cell(cell_str, ['celsius', 'fahrenheit'], cell_type='temperature')
                 
-    
     def test_cell_without_cell_type(self):
         cell_str = '1, 2 hour'
         expected_values = ['1', '2']
@@ -180,8 +178,8 @@ class TableUtilsTest(unittest.TestCase):
         cell_str = '1 h, 2 hr, 3 hours'
         expected_values = ['1', '2', '3']
         for value, unit in tu.transform_cell(cell_str, ['hour'], cell_type='timepoints'):
-           self.assertEqual(unit, 'hour')
-           self.assertTrue(value in expected_values)
+            self.assertEqual(unit, 'hour')
+            self.assertTrue(value in expected_values)
           
     def test_cell_with_unicode_characters(self):
         cell_str = '\x0bApp'
@@ -191,7 +189,41 @@ class TableUtilsTest(unittest.TestCase):
         self.assertFalse(tu.is_valued_cells('Modified M9 Media + Kan 5_ug_per_ml')) 
         self.assertTrue(tu.is_valued_cells('5X'))
         self.assertTrue(tu.is_valued_cells('1X,2X,3X'))
-
+        
+    def test_get_name_with_prefix(self):
+        cell_str = 'lab: abc'
+        lab_name = tu.extract_name_from_str(cell_str, 'lab:')
+        self.assertEqual(lab_name, 'abc')
+        
+    def test_get_name_with_prefix_and_whitespace(self):
+        cell_str = 'lab: abc defg'
+        lab_name = tu.extract_name_from_str(cell_str, 'lab:')
+        self.assertEqual(lab_name, 'abcdefg')
+        
+    def test_get_name_with_capitalize_prefix(self):
+        cell_str = 'LAB: abc defg'
+        lab_name = tu.extract_name_from_str(cell_str, 'lab:')
+        self.assertEqual(lab_name, 'abcdefg')
+    
+    def test_get_name_with_underscore_prefix(self):
+        cell_str = 'Experiment_Id: abc'
+        lab_name = tu.extract_name_from_str(cell_str, 'experiment_id:')
+        self.assertEqual(lab_name, 'abc')
+    
+    def test_get_name_with_numerical_values(self):
+        cell_str = 'Experiment_Id: 123'
+        lab_name = tu.extract_name_from_str(cell_str, 'experiment_id:')
+        self.assertEqual(lab_name, '123')
+        
+    def test_get_name_without_name(self):
+        cell_str = 'Experiment_Id: '
+        lab_name = tu.extract_name_from_str(cell_str, 'experiment_id:')
+        self.assertFalse(lab_name)
+            
+    def test_get_name_with_unkown_prefix(self):
+        cell_str = 'unknown: @foo'
+        with self.assertRaises(TableException):
+            tu.extract_name_from_str(cell_str, 'experiment_id:')
         
 if __name__ == "__main__":
     unittest.main()

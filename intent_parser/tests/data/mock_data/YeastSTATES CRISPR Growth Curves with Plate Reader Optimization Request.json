@@ -1,0 +1,435 @@
+{
+    "name": "YeastSTATES CRISPR Growth Curves with Plate Reader Optimization Request",
+    "experiment_id": "experiment.transcriptic.2019-11-21-YeastSTATES-CRISPR-Growth-Curves-with-Plate-Reader-Optimization",
+    "challenge_problem": "YEAST_STATES",
+    "experiment_reference": "YeastSTATES-CRISPR-Growth-Curves-with-Plate-Reader-Optimization",
+    "experiment_reference_url": "https://docs.google.com/document/d/1ISVqTR3GfnzWB7pq66CbAWdVTn2RHBs4rgBbQt9N2Oo",
+    "experiment_version": 1,
+    "lab": "Transcriptic",
+    "runs": [
+        {
+            "measurements": [
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 12,
+                    "strains": [
+                        "UWBF_24959",
+                        "UWBF_24960",
+                        "UWBF_24961",
+                        "UWBF_24962",
+                        "UWBF_24963",
+                        "UWBF_25784"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 15.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 18.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 21.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "sc_media"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "sc_media_200nm_be"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 3,
+                    "strains": [
+                        "UWBF_24864"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 15.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 18.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 21.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "sc_media"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "sc_media_200nm_be"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 3,
+                    "strains": [
+                        "UWBF_23970"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 15.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 18.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 21.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "sc_media"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "sc_media_200nm_be"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 3,
+                    "strains": [
+                        "UWBF_22800",
+                        "UWBF_22801"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 15.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 18.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 21.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "sc_media"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "sc_media_200nm_be"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "CONDITION_SPACE",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 20,
+                    "strains": [
+                        "UWBF_24959",
+                        "UWBF_24960",
+                        "UWBF_24961",
+                        "UWBF_24962",
+                        "UWBF_24963",
+                        "UWBF_24864",
+                        "UWBF_23970",
+                        "UWBF_22800",
+                        "UWBF_22801",
+                        "UWBF_25784"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 0.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 100.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "m9"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "s750"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "lb"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "sc_media"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "sc_media_200nm_be"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "yapd"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        }
+    ],
+    "doc_revision_id": "440",
+    "parameters": [
+        {
+            "inoc_info.inoc_vol": "5:microliter",
+            "inoc_info.inoc_media_vol": "500:microliter",
+            "inoc_info.inc_time_1": "16:hour",
+            "inoc_info.inoculation_media": "sc_media",
+            "recovery_info.recovery_sample_vol": "2:microliter",
+            "recovery_info.recovery_media_vol": "700:microliter",
+            "read_info.sampling_info.read_cult_vol": "10:microliter",
+            "read_info.sampling_info.read_solv_vol": "90:microliter",
+            "read_info.sampling_info.read_solv": "PBS",
+            "validate_samples": false,
+            "plate_reader_info.fluor_ex": "488:nanometer",
+            "plate_reader_info.fluor_em": "509:nanometer",
+            "plate_reader_info.gain.0": 0.2,
+            "plate_reader_info.gain.1": 0.3
+        }
+    ],
+    "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/YeastSTATES CRISPR Growth Curves with Plate Reader Optimization Request.json",
+    "overnight_growth": {
+        "value": 16.0,
+        "unit": "hour"
+    },
+    "recovery_loops": []
+}

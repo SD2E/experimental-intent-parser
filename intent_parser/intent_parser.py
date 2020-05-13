@@ -250,9 +250,7 @@ class IntentParser(object):
             except:
                 pass # We don't need to do anything, failure is handled later, but we don't want it to crash
 
-        lab = 'Unknown'
         title = self.lab_experiment.title()[0]
-        experiment_id = 'experiment.tacc.TBD'
 
         if 'challenge_problem' in output_doc and 'experiment_reference' in output_doc and 'experiment_reference_url' in output_doc:
             cp_id = output_doc['challenge_problem']
@@ -320,10 +318,16 @@ class IntentParser(object):
             self.validation_errors.extend(meas_table.get_validation_errors())
             self.validation_warnings.extend(meas_table.get_validation_warnings())
 
+        lab = 'Unknown'
+        experiment_id = 'experiment.tacc.tbd'
         if lab_table_idx >= 0:
             table = doc_tables[lab_table_idx]
             lab_table = LabTable()
-            lab = lab_table.parse_table(table)
+            lab_content = lab_table.parse_table(table)
+            lab = lab_content['lab']
+            experiment_id = lab_content['experiment_id']
+            self.validation_errors.extend(lab_table.get_validation_errors())
+            self.validation_warnings.extend(lab_table.get_validation_warnings())
         
         if parameter_table_idx >=0:
             try:

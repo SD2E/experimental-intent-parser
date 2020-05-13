@@ -24,9 +24,10 @@ import threading
 import time
 import traceback
 
-class IntentParserServer:
 
-    logger = logging.getLogger('intent_parser_server')
+logger = logging.getLogger(__name__)
+
+class IntentParserServer:
 
     DICT_PATH = 'dictionaries'
     LINK_PREF_PATH = 'link_pref'
@@ -58,8 +59,6 @@ class IntentParserServer:
         
         self.bind_port = bind_port
         self.bind_ip = bind_ip
-        fh = logging.FileHandler('intent_parser_server.log')
-        self.logger.addHandler(fh)
        
         self.socket = None
         self.shutdownThread = False
@@ -88,7 +87,7 @@ class IntentParserServer:
         self.socket.bind((self.bind_ip, self.bind_port))
 
         self.socket.listen(5)
-        self.logger.info('listening on {}:{}'.format(self.bind_ip, self.bind_port))
+        logger.info('listening on {}:{}'.format(self.bind_ip, self.bind_port))
         
         self.item_map_lock.acquire()
         self.item_map = self.sbol_dictionary.generate_item_map()
@@ -108,11 +107,11 @@ class IntentParserServer:
             raise RuntimeError('Server has not been initialized.')
         if background:
             run_thread = threading.Thread(target=self.start)
-            self.logger.info('Start background thread')
+            logger.info('Start background thread')
             run_thread.start()
             return
 
-        self.logger.info('Start Listener')
+        logger.info('Start Listener')
 
         while True:
             try:
@@ -147,7 +146,7 @@ class IntentParserServer:
             self.client_thread_lock.release()
             
     def handle_client_connection(self, client_socket):
-        self.logger.info('Connection')
+        logger.info('Connection')
         socket_manager = SocketManager(client_socket)
 
         try:
@@ -172,12 +171,12 @@ class IntentParserServer:
                     response = self._create_http_response(ex.http_status, ex.content)
                     response.send(socket_manager)
                 except Exception as ex:
-                    self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+                    logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
                     response = self._create_http_response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Internal Server Error\n')
                     response.send(socket_manager)
 
         except Exception as e:
-            self.logger.info(''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__)))
+            logger.info(''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__)))
 
         client_socket.close()
         client_socket.shutdown(socket.SHUT_RDWR)
@@ -200,11 +199,11 @@ class IntentParserServer:
             response = self.process_document_request(httpMessage)
         else:
             response = self._create_http_response(HTTPStatus.NOT_FOUND, 'Resource Not Found')
-            self.logger.warning('Did not find ' + resource)
+            logger.warning('Did not find ' + resource)
         end = time.time()
         
         response.send(socket_manager)
-        self.logger.info('Generated GET request for %s in %0.2fms' %(resource, (end - start) * 1000))
+        logger.info('Generated GET request for %s in %0.2fms' %(resource, (end - start) * 1000))
         
     def process_document_report(self, httpMessage):
         """
@@ -262,7 +261,7 @@ class IntentParserServer:
             response = self._create_http_response(HTTPStatus.NOT_FOUND, 'Resource Not Found\n')
         end = time.time()
         response.send(socket_manager)
-        self.logger.info('Generated POST request in %0.2fms, %s' %((end - start) * 1000, time.time()))
+        logger.info('Generated POST request in %0.2fms, %s' %((end - start) * 1000, time.time()))
 
     def process_analyze_document(self, httpMessage):
         """
@@ -430,11 +429,11 @@ class IntentParserServer:
                           'results': {'operationSucceeded': True}
                 }
             else:
-                self.logger.error('Unsupported form action: {}'.format(action))
-            self.logger.info('Action: %s' % result)
+                logger.error('Unsupported form action: {}'.format(action))
+            logger.info('Action: %s' % result)
             return self._create_http_response(HTTPStatus.OK, json.dumps(result), 'application/json')
         except (Exception, DictionaryMaintainerException) as err:
-            self.logger.info('Action: %s resulted in exception %s' % (action, err))
+            logger.info('Action: %s resulted in exception %s' % (action, err))
             return self._create_http_response(HTTPStatus.INTERNAL_SERVER_ERROR, json.dumps(result), 'application/json')
         finally:
             self.release_connection(client_state)
@@ -508,7 +507,7 @@ class IntentParserServer:
     def process_message(self, httpMessage):
         json_body = self.get_json_body(httpMessage)
         if 'message' in json_body:
-            self.logger.info(json_body['message'])
+            logger.info(json_body['message'])
         return self._create_http_response(HTTPStatus.OK, '{}', 'application/json')
     
     def process_validate_structured_request(self, httpMessage):
@@ -661,9 +660,9 @@ class IntentParserServer:
                 try:
                     with open(link_pref_file, 'r') as fin:
                         self.analyze_never_link[userId] = json.load(fin)
-                        self.logger.info('Loaded link preferences for userId, path: %s' % link_pref_file)
+                        logger.info('Loaded link preferences for userId, path: %s' % link_pref_file)
                 except:
-                    self.logger.error('ERROR: Failed to load link preferences file!')
+                    logger.error('ERROR: Failed to load link preferences file!')
             else:
                 self.analyze_never_link[userId] = {}
 
@@ -680,7 +679,7 @@ class IntentParserServer:
             with open(link_pref_file, 'w') as fout:
                 json.dump(self.analyze_never_link[userId], fout)
         except:
-            self.logger.error('ERROR: Failed to write link preferences file!')
+            logger.error('ERROR: Failed to write link preferences file!')
 
         # Remove all of these associations from the results
         # This is different from "No to All", because that's only termed based
@@ -750,7 +749,7 @@ class IntentParserServer:
 
 
         except Exception as err:
-            self.logger.error(str(err))
+            logger.error(str(err))
             return self._create_http_response(HTTPStatus.OK, json.dumps(intent_parser_view.operation_failed('Failed to search SynBioHub')), 'application/json')
 
         return self._create_http_response(HTTPStatus.OK, json.dumps(response), 'application/json')
@@ -773,7 +772,7 @@ class IntentParserServer:
                 dialog_action = intent_parser_view.create_parameter_table_template(cursor_child_index, protocol_options)
                 actionList.append(dialog_action)
             else :
-                self.logger.warning('WARNING: unsupported table type: %s' % table_type)
+                logger.warning('WARNING: unsupported table type: %s' % table_type)
 
             actions = {'actions': actionList}
             return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
@@ -861,7 +860,7 @@ class IntentParserServer:
                 self.spellCheckers[userId] = SpellChecker()
                 dict_path = os.path.join(self.DICT_PATH, userId + '.json')
                 if os.path.exists(dict_path):
-                    self.logger.info('Loaded dictionary for userId, path: %s' % dict_path)
+                    logger.info('Loaded dictionary for userId, path: %s' % dict_path)
                     self.spellCheckers[userId].word_frequency.load_dictionary(dict_path)
 
             lab_experiment = self.intent_parser_factory.create_lab_experiment() 
@@ -992,8 +991,9 @@ class IntentParserServer:
         Process create measurement table
         """
 
-        lab = "Lab: %s" % data['lab']
+        lab_data = self.process_lab_table(data)
         num_reagents = int(data['numReagents'])
+        has_batch = data['batch']
         has_temp = data['temperature']
         has_time = data['timepoint']
         has_ods  = data['ods']
@@ -1006,6 +1006,8 @@ class IntentParserServer:
         if has_time:
             num_cols += 1
         if has_temp:
+            num_cols += 1
+        if has_batch:
             num_cols += 1
 
         col_sizes = []
@@ -1033,7 +1035,9 @@ class IntentParserServer:
         if has_temp:
             header.append(intent_parser_constants.COL_HEADER_TEMPERATURE)
             col_sizes.append(len(intent_parser_constants.COL_HEADER_TEMPERATURE) + 1)
-
+        if has_batch:
+            header.append(intent_parser_constants.COL_HEADER_BATCH)
+            col_sizes.append(len(intent_parser_constants.COL_HEADER_BATCH) + 1)
         if has_notes:
             header.append(intent_parser_constants.COL_HEADER_NOTES)
             col_sizes.append(len(intent_parser_constants.COL_HEADER_NOTES) + 1)
@@ -1054,6 +1058,8 @@ class IntentParserServer:
                 measurement_row.append('')
             if has_temp:
                 measurement_row.append('')
+            if has_batch:
+                measurement_row.append('')
             if has_notes:
                 measurement_row.append('')
             table_data.append(measurement_row)
@@ -1063,10 +1069,16 @@ class IntentParserServer:
         create_table['cursorChildIndex'] = data['cursorChildIndex']
         create_table['tableData'] = table_data
         create_table['tableType'] = 'measurements'
-        create_table['tableLab'] = [[lab]]
+        create_table['tableLab'] = lab_data
         create_table['colSizes'] = col_sizes
 
         return [create_table]
+   
+    def process_lab_table(self, data):
+        lab_name = "Lab: %s" % data['lab']
+        experiment_id = 'Experiment_id: '
+        lab_content = [[lab_name], [experiment_id]]
+        return lab_content
     
     def process_create_parameter_table(self, data):
         selected_protocol = data['protocol']
@@ -1099,7 +1111,7 @@ class IntentParserServer:
                     col_sizes.append(len(str(protocol_value)) + 1)
                     break
             if not parameter_row:
-                self.logger.warning('Unable to include %s to the Parameter table because there is no parameter name in the SBOL Dictionary for this Strateos UID' % protocol_key)
+                logger.warning('Unable to include %s to the Parameter table because there is no parameter name in the SBOL Dictionary for this Strateos UID' % protocol_key)
                 continue
             else:
                 table_data.append(parameter_row)
@@ -1297,7 +1309,7 @@ class IntentParserServer:
         if document_id in self.client_state_map:
             client_state = self.client_state_map[document_id]
             if not client_state['locked']:
-                self.logger.error('Error: releasing client_state, but it is not locked! doc_id: %s, called by %s' % (document_id, inspect.currentframe().f_back.f_code.co_name))
+                logger.error('Error: releasing client_state, but it is not locked! doc_id: %s, called by %s' % (document_id, inspect.currentframe().f_back.f_code.co_name))
             client_state['locked'] = False
 
         self.client_state_lock.release()
@@ -1307,17 +1319,17 @@ class IntentParserServer:
         Stop all jobs running on intent table server
         """
         self.initialized = False
-        self.logger.info('Signaling shutdown...')
+        logger.info('Signaling shutdown...')
         self.shutdownThread = True
         self.event.set()
         if self.sbh is not None:
             self.sbh.stop()
-            self.logger.info('Stopped SynBioHub') 
+            logger.info('Stopped SynBioHub') 
         if self.strateos_accessor is not None:
             self.strateos_accessor.stop_synchronizing_protocols()
-            self.logger.info('Stopped caching Strateos protocols.')
+            logger.info('Stopped caching Strateos protocols.')
         if self.socket is not None:
-            self.logger.info('Closing server...')
+            logger.info('Closing server...')
             try:
                 self.socket.shutdown(socket.SHUT_RDWR)
                 self.socket.close()
@@ -1328,7 +1340,7 @@ class IntentParserServer:
                 if client_thread.isAlive():
                     client_thread.join()
                     
-        self.logger.info('Shutdown complete')
+        logger.info('Shutdown complete')
 
     def housekeeping(self):
         while True:
@@ -1339,7 +1351,7 @@ class IntentParserServer:
             try:
                 item_map = self.sbol_dictionary.generate_item_map(use_cache=False)
             except Exception as ex:
-                self.logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+                logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
 
             self.item_map_lock.acquire()
             self.item_map = item_map
@@ -1421,6 +1433,7 @@ def setup_logging(
     else:
         logging.basicConfig(level=default_level, format="[%(levelname)-8s] %(asctime)-24s %(filename)-23s line:%(lineno)-4s  %(message)s")
     
+    logger.addHandler(logging.FileHandler('intent_parser_server.log'))
     logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.CRITICAL)
     logging.getLogger("googleapiclient.discovery").setLevel(logging.CRITICAL)
 
@@ -1476,9 +1489,7 @@ def main():
     
     input_args = parser.parse_args()
     setup_logging()
- 
     intent_parser_server = None
-    
     try:
         sbh = IntentParserSBH(sbh_collection_uri=input_args.collection,
                  spreadsheet_id=intent_parser_constants.SD2_SPREADSHEET_ID,
@@ -1494,7 +1505,11 @@ def main():
                                        bind_port=input_args.bind_port)
         intent_parser_server.initialize_server()
         intent_parser_server.start() 
-    except Exception:
+    except (KeyboardInterrupt, SystemExit) as ex:
+        return
+    except Exception as ex:
+        logger.warning(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+    finally:
         if intent_parser_server is not None:
             intent_parser_server.stop()
 
