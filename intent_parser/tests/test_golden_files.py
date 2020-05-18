@@ -211,6 +211,26 @@ class GoldenFileTest(unittest.TestCase):
         file_path = os.path.join(self.mock_data_dir, file)
         self._compare_structured_requests(file_path)
 
+    def test_y4d_cen_pk_inducible_crispr_characterization(self):  
+        file = 'y4d_cen_pk_inducible_crispr_characterization.json' 
+        file_path = os.path.join(self.mock_data_dir, file)
+        self._compare_structured_requests(file_path)
+    
+    def test_y4d_crispr_dose_response(self):  
+        file = 'y4d_crispr_dose_response.json' 
+        file_path = os.path.join(self.mock_data_dir, file)
+        self._compare_structured_requests(file_path)
+
+    def test_NovelChassis_OR_Circuit_Cycle0_8hour(self):  
+        file = 'NovelChassis-OR-Circuit-Cycle0-8hour.json' 
+        file_path = os.path.join(self.mock_data_dir, file)
+        self._compare_structured_requests(file_path)
+        
+    def test_NovelChassis_OR_Circuit_Cycle0_24hour(self):  
+        file = 'NovelChassis-OR-Circuit-Cycle0-24hour.json' 
+        file_path = os.path.join(self.mock_data_dir, file)
+        self._compare_structured_requests(file_path)
+
     def _compare_structured_requests(self, document):
         golden_structured_request = intent_parser_utils.load_json_file(document)
         golden_doc_url = golden_structured_request['experiment_reference_url']
