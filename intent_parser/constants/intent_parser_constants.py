@@ -51,6 +51,7 @@ PROTOCOL_NAMES = {GROWTH_CURVE_PROTOCOL: 'Growth Curves',
 
 # String defines for headers in measurements table
 COL_HEADER_BATCH = 'batch'
+COL_HEADER_MEASUREMENT_CONTROL = 'control'
 COL_HEADER_FILE_TYPE = 'file-type'
 COL_HEADER_MEASUREMENT_TYPE = 'measurement-type'
 COL_HEADER_NOTES = 'notes'

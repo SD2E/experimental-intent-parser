@@ -18,6 +18,21 @@ _abbreviated_unit_dict = {'fluid' : _fluid_units,
                           'timepoints' : _timepoint_units
                           }
 
+def parse_cell(cell):
+    content = cell['content']
+    for paragraph_index in range(len(content)):
+        paragraph = content[paragraph_index]['paragraph']
+        url = None
+        
+        if 'link' in paragraph and 'url' in paragraph['link']:
+            url = paragraph['link']['url']
+            
+        list_of_contents = []
+        for element in paragraph['elements']: 
+            result = element['textRun']['content']
+            list_of_contents.append(result)
+        flatten_content = ''.join(list_of_contents)
+        yield flatten_content, url
 
 def detect_lab_table(table):
     """
@@ -51,7 +66,7 @@ def detect_new_measurement_table(table):
     found_file_type = False
 
     rows = table['tableRows']
-    headerRow = rows[0]
+    headerRow = rows[1]
     for cell in headerRow['tableCells']:
         cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
         found_replicates |= cellTxt == intent_parser_constants.COL_HEADER_REPLICATE 
@@ -82,7 +97,7 @@ def detect_controls_table(table):
     has_timepoints = False
     
     rows = table['tableRows']
-    headerRow = rows[0]
+    headerRow = rows[1]
     for cell in headerRow['tableCells']:
         cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
         if cellTxt == intent_parser_constants.COL_HEADER_CONTROL_CHANNEL:
@@ -126,31 +141,45 @@ def is_name(cell):
             return False
     return True
 
-def extract_name_from_str(cell, prefix_str):
+def extract_table_caption(cell):
+    tokens = _tokenize(cell, keep_space=False)
+    caption = []
+    for token in tokens:
+        if _get_token_type(token) == 'SEPARATOR' and _get_token_value(token) == ':':
+            break
+        caption.append(token)
+    return ''.join([_get_token_value(token) for token in caption]).strip() 
+    
+
+def extract_str_after_prefix(cell, seperator_type=':'):
     """
     Parses a given cell with a specified prefix.
     
     Args:
         cell: a string representing a cell's content.
-        prefix_str: the prefix that the cell's content must begin with
+        seperator_type: a character that separates the string's prefix and postfix
     Returns:
-        A string following after the prefix. An empty string is returned if no string follows after the given prefix string.
+        A prefix and postfix.
     Raises:
         ValueException if the cell does not have enough content to perform the desired task.
         TableException if the prefix cannot be found from the given cell.
     """
-    tokens = _tokenize(cell, False)
-    if len(tokens) < 1:
-        raise ValueError('%s does not have enough value provided.' % cell)
-    
-    if _get_token_type(tokens[0]) == 'NAME':
-        canonicalize_prefix = _get_token_value(tokens[0]).lower()
-        if canonicalize_prefix != prefix_str:
-            raise TableException('%s does not begin with %s' % (cell, prefix_str))
-    name = []
-    for token_index in range(1,len(tokens)):
-        name.append(_get_token_value(tokens[token_index]))
-    return ''.join(name)
+    tokens = _tokenize(cell, keep_space=False)
+    prefix = []
+    postfix = []
+    encountered_seperator = False 
+    for token in tokens:
+        if _get_token_type(token) == 'SEPARATOR' and _get_token_value(token) == seperator_type:
+            encountered_seperator = True
+            continue
+        
+        if encountered_seperator:
+            postfix.append(token)
+        else:
+            prefix.append(token)
+    appended_prefix = ''.join([_get_token_value(token) for token in prefix])
+    appended_postfix = ''.join([_get_token_value(token) for token in postfix])
+    return appended_prefix, appended_postfix 
                
         
 def extract_number_value(cell):
@@ -336,9 +365,9 @@ def _tokenize(cell, keep_space=True):
     tokens = []
     token_specification = [
         ('NUMBER',   r'\d+(\.\d*)?([eE]([-+])?\d+)?'),
-        ('NAME',       r'[^\t \d,][^ \t,]*'),
+        ('NAME',       r'[^\t \d,:][^ \t,:]*'),
         ('SKIP',     r'[ \t]+'),
-        ('SEPARATOR',     r'[,]')
+        ('SEPARATOR',     r'[,:]')
     ]
     tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
     for mo in re.finditer(tok_regex, cell):

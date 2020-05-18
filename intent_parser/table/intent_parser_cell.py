@@ -4,7 +4,7 @@ class IntentParserCell(object):
     An internal data structure for representing the contents of a table cell.
     """
 
-    def __init__(self):
+    def __init__(self, cell):
         self.paragraphs = []
     
     def add_paragraph(self, content, link=None):
