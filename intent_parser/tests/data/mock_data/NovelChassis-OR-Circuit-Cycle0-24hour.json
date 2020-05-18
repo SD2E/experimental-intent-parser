@@ -1,0 +1,786 @@
+{
+    "name": "CP_NovelChassis_OR_Circuit_Cycle0_24hour",
+    "experiment_id": "experiment.transcriptic.2019-12-12-NovelChassis-OR-Circuit-Cycle0-24hour",
+    "challenge_problem": "NOVEL_CHASSIS",
+    "experiment_reference": "NovelChassis-OR-Circuit-Cycle0-24hour",
+    "experiment_reference_url": "https://docs.google.com/document/d/1oIBd-a_n8pGNtoM9zYkWjhlsG04B2lmfYKhlLSAkRFw",
+    "experiment_version": 1,
+    "lab": "Transcriptic",
+    "runs": [
+        {
+            "measurements": [
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 2,
+                    "strains": [
+                        "B_subtilis_WT_JH642_Colony_1",
+                        "B_subtilis_WT_JH642_Colony_2",
+                        "B_subtilis_WT_JH642_Colony_3",
+                        "B_subtilis_WT_PY79_Colony_1",
+                        "B_subtilis_WT_PY79_Colony_2",
+                        "B_subtilis_WT_PY79_Colony_3",
+                        "B_subtilis_LG227_Colony_1",
+                        "B_subtilis_LG227_Colony_2",
+                        "B_subtilis_LG227_Colony_3",
+                        "B_subtilis_LG371_Colony_1",
+                        "B_subtilis_LG371_Colony_2",
+                        "B_subtilis_LG371_Colony_3",
+                        "B_subtilis_GFP_min_Colony_1",
+                        "B_subtilis_GFP_min_Colony_2",
+                        "B_subtilis_GFP_min_Colony_3",
+                        "B_subtilis_GFP_medium_Colony_1",
+                        "B_subtilis_GFP_medium_Colony_2",
+                        "B_subtilis_GFP_medium_Colony_3",
+                        "B_subtilis_GFP_max_Colony_1",
+                        "B_subtilis_GFP_max_Colony_2",
+                        "B_subtilis_GFP_max_Colony_3"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "S750 Minimal Media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 5,
+                    "strains": [
+                        "MediaControl"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "S750 Minimal Media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 2,
+                    "strains": [
+                        "B_subtilis_WT_JH642_Colony_1",
+                        "B_subtilis_WT_JH642_Colony_2",
+                        "B_subtilis_WT_JH642_Colony_3",
+                        "B_subtilis_WT_PY79_Colony_1",
+                        "B_subtilis_WT_PY79_Colony_2",
+                        "B_subtilis_WT_PY79_Colony_3",
+                        "B_subtilis_LG227_Colony_1",
+                        "B_subtilis_LG227_Colony_2",
+                        "B_subtilis_LG227_Colony_3",
+                        "B_subtilis_LG371_Colony_1",
+                        "B_subtilis_LG371_Colony_2",
+                        "B_subtilis_LG371_Colony_3",
+                        "B_subtilis_GFP_min_Colony_1",
+                        "B_subtilis_GFP_min_Colony_2",
+                        "B_subtilis_GFP_min_Colony_3",
+                        "B_subtilis_GFP_medium_Colony_1",
+                        "B_subtilis_GFP_medium_Colony_2",
+                        "B_subtilis_GFP_medium_Colony_3",
+                        "B_subtilis_GFP_max_Colony_1",
+                        "B_subtilis_GFP_max_Colony_2",
+                        "B_subtilis_GFP_max_Colony_3"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "Modified M9 Media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 5,
+                    "strains": [
+                        "MediaControl"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "Modified M9 Media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "FLOW",
+                    "file_type": [
+                        "FCS"
+                    ],
+                    "replicates": 2,
+                    "strains": [
+                        "B_subtilis_WT_JH642_Colony_1",
+                        "B_subtilis_WT_JH642_Colony_2",
+                        "B_subtilis_WT_JH642_Colony_3",
+                        "B_subtilis_WT_PY79_Colony_1",
+                        "B_subtilis_WT_PY79_Colony_2",
+                        "B_subtilis_WT_PY79_Colony_3",
+                        "B_subtilis_LG227_Colony_1",
+                        "B_subtilis_LG227_Colony_2",
+                        "B_subtilis_LG227_Colony_3",
+                        "B_subtilis_LG371_Colony_1",
+                        "B_subtilis_LG371_Colony_2",
+                        "B_subtilis_LG371_Colony_3",
+                        "B_subtilis_GFP_min_Colony_1",
+                        "B_subtilis_GFP_min_Colony_2",
+                        "B_subtilis_GFP_min_Colony_3",
+                        "B_subtilis_GFP_medium_Colony_1",
+                        "B_subtilis_GFP_medium_Colony_2",
+                        "B_subtilis_GFP_medium_Colony_3",
+                        "B_subtilis_GFP_max_Colony_1",
+                        "B_subtilis_GFP_max_Colony_2",
+                        "B_subtilis_GFP_max_Colony_3"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "S750 Minimal Media"
+                            }
+                        ]
+                    ],
+                    "controls": [
+                        {
+                            "type": "HIGH_FITC",
+                            "channel": "BL1-A",
+                            "strains": [
+                                "B_subtilis_GFP_max_Colony_1",
+                                "B_subtilis_GFP_max_Colony_2",
+                                "B_subtilis_GFP_max_Colony_3"
+                            ],
+                            "timepoints": [
+                                {
+                                    "value": 30.0,
+                                    "unit": "hour"
+                                },
+                                {
+                                    "value": 42.0,
+                                    "unit": "hour"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "EMPTY_VECTOR",
+                            "strains": [
+                                "B_subtilis_WT_JH642_Colony_1",
+                                "B_subtilis_WT_JH642_Colony_2",
+                                "B_subtilis_WT_JH642_Colony_3"
+                            ],
+                            "contents": [
+                                {
+                                    "name": {
+                                        "label": "S750",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/S750/1"
+                                    }
+                                },
+                                {
+                                    "name": {
+                                        "label": "Cuminic Acid + IPTG",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                    },
+                                    "value": 0.0,
+                                    "unit": "mM"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "measurement_type": "FLOW",
+                    "file_type": [
+                        "FCS"
+                    ],
+                    "replicates": 5,
+                    "strains": [
+                        "MediaControl"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "S750 Minimal Media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "FLOW",
+                    "file_type": [
+                        "FCS"
+                    ],
+                    "replicates": 2,
+                    "strains": [
+                        "B_subtilis_WT_JH642_Colony_1",
+                        "B_subtilis_WT_JH642_Colony_2",
+                        "B_subtilis_WT_JH642_Colony_3",
+                        "B_subtilis_WT_PY79_Colony_1",
+                        "B_subtilis_WT_PY79_Colony_2",
+                        "B_subtilis_WT_PY79_Colony_3",
+                        "B_subtilis_LG227_Colony_1",
+                        "B_subtilis_LG227_Colony_2",
+                        "B_subtilis_LG227_Colony_3",
+                        "B_subtilis_LG371_Colony_1",
+                        "B_subtilis_LG371_Colony_2",
+                        "B_subtilis_LG371_Colony_3",
+                        "B_subtilis_GFP_min_Colony_1",
+                        "B_subtilis_GFP_min_Colony_2",
+                        "B_subtilis_GFP_min_Colony_3",
+                        "B_subtilis_GFP_medium_Colony_1",
+                        "B_subtilis_GFP_medium_Colony_2",
+                        "B_subtilis_GFP_medium_Colony_3",
+                        "B_subtilis_GFP_max_Colony_1",
+                        "B_subtilis_GFP_max_Colony_2",
+                        "B_subtilis_GFP_max_Colony_3"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "Modified M9 Media"
+                            }
+                        ]
+                    ],
+                    "controls": [
+                        {
+                            "type": "HIGH_FITC",
+                            "channel": "BL1-A",
+                            "strains": [
+                                "B_subtilis_GFP_max_Colony_1",
+                                "B_subtilis_GFP_max_Colony_2",
+                                "B_subtilis_GFP_max_Colony_3"
+                            ],
+                            "timepoints": [
+                                {
+                                    "value": 30.0,
+                                    "unit": "hour"
+                                },
+                                {
+                                    "value": 42.0,
+                                    "unit": "hour"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "EMPTY_VECTOR",
+                            "strains": [
+                                "B_subtilis_WT_PY79_Colony_1",
+                                "B_subtilis_WT_PY79_Colony_2",
+                                "B_subtilis_WT_PY79_Colony_3"
+                            ],
+                            "contents": [
+                                {
+                                    "name": {
+                                        "label": "Modified M9 Media",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Modified0x20M90x20Media/1"
+                                    }
+                                },
+                                {
+                                    "name": {
+                                        "label": "Cuminic Acid + IPTG",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                    },
+                                    "value": 0.0,
+                                    "unit": "mM"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "measurement_type": "FLOW",
+                    "file_type": [
+                        "FCS"
+                    ],
+                    "replicates": 5,
+                    "strains": [
+                        "MediaControl"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "Modified M9 Media"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "CONDITION_SPACE",
+                    "file_type": [
+                        "CSV",
+                        "FCS"
+                    ],
+                    "replicates": 20,
+                    "strains": [
+                        "B_subtilis_WT_JH642_Colony_1",
+                        "B_subtilis_WT_JH642_Colony_2",
+                        "B_subtilis_WT_JH642_Colony_3",
+                        "B_subtilis_WT_PY79_Colony_1",
+                        "B_subtilis_WT_PY79_Colony_2",
+                        "B_subtilis_WT_PY79_Colony_3",
+                        "B_subtilis_LG227_Colony_1",
+                        "B_subtilis_LG227_Colony_2",
+                        "B_subtilis_LG227_Colony_3",
+                        "B_subtilis_LG371_Colony_1",
+                        "B_subtilis_LG371_Colony_2",
+                        "B_subtilis_LG371_Colony_3",
+                        "B_subtilis_GFP_min_Colony_1",
+                        "B_subtilis_GFP_min_Colony_2",
+                        "B_subtilis_GFP_min_Colony_3",
+                        "B_subtilis_GFP_medium_Colony_1",
+                        "B_subtilis_GFP_medium_Colony_2",
+                        "B_subtilis_GFP_medium_Colony_3",
+                        "B_subtilis_GFP_max_Colony_1",
+                        "B_subtilis_GFP_max_Colony_2",
+                        "B_subtilis_GFP_max_Colony_3",
+                        "MediaControl"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 30.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 0.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 100.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "iptg_and_cuminic_acid",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Cuminic0x20Acid0x200x2B0x20IPTG/1"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "S750 Minimal Media"
+                            },
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/Media/1"
+                                },
+                                "value": "Modified M9 Media"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        }
+    ],
+    "doc_revision_id": "113",
+    "parameters": [
+        {
+            "inoc_info.inoc_vol": "15:microliter",
+            "inoc_info.inoc_media_vol": "1000:microliter",
+            "inoc_info.inc_time_1": "18:hour",
+            "inoc_info.inoculation_media.0": "S750",
+            "inoc_info.inoculation_media.1": "Modified M9 Media",
+            "recovery_info.recovery_sample_vol": "15:microliter",
+            "recovery_info.recovery_media_vol": "1000:microliter",
+            "read_info.sampling_info.read_cult_vol": "20:microliter",
+            "read_info.sampling_info.read_solv_vol": "180:microliter",
+            "read_info.sampling_info.read_solv": "PBS",
+            "validate_samples": true,
+            "plate_reader_info.fluor_ex": "488:nanometer",
+            "plate_reader_info.fluor_em": "530:nanometer",
+            "plate_reader_info.gain": 0.274
+        }
+    ],
+    "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/NovelChassis-OR-Circuit-Cycle0-24hour.json",
+    "overnight_growth": {
+        "value": 18.0,
+        "unit": "hour"
+    },
+    "recovery_loops": []
+}
