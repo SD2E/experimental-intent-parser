@@ -58,7 +58,7 @@ class GoldenFileTest(unittest.TestCase):
     
     def test_CEN_PK_Inducible_CRISPR_4_Day_Obstacle_Course(self):  
         file = 'CEN-PK-Inducible-CRISPR-4-Day-Obstacle-Course.json'
-        file_path = os.path.join(self.structured_request_dir, file)
+        file_path = os.path.join(self.mock_data_dir, file)
         self._compare_structured_requests(file_path)
      
     def test_CP_Experimental_Request_NovelChassis_OR_circuit_GrowthCurve(self):  
