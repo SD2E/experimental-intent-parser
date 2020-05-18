@@ -191,39 +191,34 @@ class TableUtilsTest(unittest.TestCase):
         self.assertTrue(tu.is_valued_cells('1X,2X,3X'))
         
     def test_get_name_with_prefix(self):
-        cell_str = 'lab: abc'
-        lab_name = tu.extract_name_from_str(cell_str, 'lab:')
+        prefix, lab_name = tu.extract_str_after_prefix('lab: abc')
+        self.assertEqual(prefix, 'lab')
         self.assertEqual(lab_name, 'abc')
         
     def test_get_name_with_prefix_and_whitespace(self):
-        cell_str = 'lab: abc defg'
-        lab_name = tu.extract_name_from_str(cell_str, 'lab:')
-        self.assertEqual(lab_name, 'abcdefg')
-        
-    def test_get_name_with_capitalize_prefix(self):
-        cell_str = 'LAB: abc defg'
-        lab_name = tu.extract_name_from_str(cell_str, 'lab:')
+        prefix, lab_name = tu.extract_str_after_prefix('lab: abc defg')
+        self.assertEqual(prefix, 'lab')
         self.assertEqual(lab_name, 'abcdefg')
     
     def test_get_name_with_underscore_prefix(self):
-        cell_str = 'Experiment_Id: abc'
-        lab_name = tu.extract_name_from_str(cell_str, 'experiment_id:')
+        prefix, lab_name = tu.extract_str_after_prefix('Experiment_Id: abc')
+        self.assertEqual(prefix, 'Experiment_Id')
         self.assertEqual(lab_name, 'abc')
     
     def test_get_name_with_numerical_values(self):
-        cell_str = 'Experiment_Id: 123'
-        lab_name = tu.extract_name_from_str(cell_str, 'experiment_id:')
+        prefix, lab_name = tu.extract_str_after_prefix('Experiment_Id: 123')
+        self.assertEqual(prefix, 'Experiment_Id')
         self.assertEqual(lab_name, '123')
         
     def test_get_name_without_name(self):
-        cell_str = 'Experiment_Id: '
-        lab_name = tu.extract_name_from_str(cell_str, 'experiment_id:')
+        prefix, lab_name = tu.extract_str_after_prefix('Experiment_Id: ')
+        self.assertEqual(prefix, 'Experiment_Id')
         self.assertFalse(lab_name)
             
-    def test_get_name_with_unkown_prefix(self):
-        cell_str = 'unknown: @foo'
-        with self.assertRaises(TableException):
-            tu.extract_name_from_str(cell_str, 'experiment_id:')
+    def test_get_name_with_whitespace(self):
+        prefix, lab_name = tu.extract_str_after_prefix('Experiment_Id:123')
+        self.assertEqual(prefix, 'Experiment_Id')
+        self.assertEqual(lab_name, '123')
         
 if __name__ == "__main__":
     unittest.main()
