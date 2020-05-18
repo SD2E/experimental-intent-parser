@@ -1,6 +1,6 @@
 var serverURL = 'http://intentparser.sd2e.org'
 
-var versionString = '2.5'
+var versionString = '2.5.1'
 
 function onOpen() {
   var ui = DocumentApp.getUi()
