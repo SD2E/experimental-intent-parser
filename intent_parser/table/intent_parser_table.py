@@ -8,6 +8,7 @@ class IntentParserTable(object):
 
     def __init__(self, table_parser):
         self._rows = {}
+        self._row_size = table_parser['rows']
         self._cols = {}
         self._table_parser = table_parser
 
@@ -34,13 +35,13 @@ class IntentParserTable(object):
             cell.add_paragraph(paragraph, link)
 
     def number_of_rows(self):
-        return len(self._rows)
+        return self._row_size 
     
     def row_cells(self, row):
         return len(self._rows[row]) 
             
     def get_row_by_index(self, row_index):
-        rows = self._table['tableRows']
+        rows = self._table_parser['tableRows']
         if row_index < 0 or row_index >= len(rows):
             raise TableException('Index out of bound')
         return rows[row_index]
@@ -53,8 +54,7 @@ class IntentParserTable(object):
         if cell_index < 0 or cell_index > len(cells):
             raise TableException('Index out of bound')
         cell = cells[cell_index]
-        converted_cell = IntentParserCell(cell)
-        return converted_cell
+        return cell
     
 
         

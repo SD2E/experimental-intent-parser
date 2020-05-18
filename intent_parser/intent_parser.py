@@ -15,11 +15,11 @@ import logging
 import numpy as np
 
 class IntentParser(object):
-    '''
+    """
     Processes information from a lab experiment to:
         - link information to/from a SynBioHub data repository
         - generate and validate a structure request
-    '''
+    """
     
     # Used for inserting experiment result data
     # Since the experiment result data is uploaded with the requesting document id
@@ -38,7 +38,6 @@ class IntentParser(object):
         self.datacatalog_config = datacatalog_config
         self.sbh = sbh_instance
         self.sbol_dictionary = sbol_dictionary
-        
         self.request = {} 
         self.validation_errors = []
         self.validation_warnings = []
@@ -48,7 +47,6 @@ class IntentParser(object):
         self._validate_schema()
     
     def calculate_samples(self):
-        
         doc_tables = self.lab_experiment.tables()
         
         table_ids = []
@@ -284,10 +282,10 @@ class IntentParser(object):
         parameter = []
         
         doc_tables = self.lab_experiment.tables() 
-        controls_table_idx = -1
         lab_table_idx = -1
         measurement_table_new_idx = -1
         parameter_table_idx = -1
+        control_table_indexes = []
         for tIdx in range(len(doc_tables)):
             table = doc_tables[tIdx]
             
@@ -306,18 +304,8 @@ class IntentParser(object):
             is_control_table = table_utils.detect_controls_table(table)
             if is_control_table:
                 controls_table_idx = tIdx
-
-        if measurement_table_new_idx >= 0:
-            table = doc_tables[measurement_table_new_idx]
-            meas_table = MeasurementTable(self.catalog_accessor.get_temperature_units(), 
-                                          self.catalog_accessor.get_time_units(), 
-                                          self.catalog_accessor.get_fluid_units(), 
-                                          self.catalog_accessor.get_measurement_types(), 
-                                          self.catalog_accessor.get_file_types())
-            measurements = meas_table.parse_table(table)
-            self.validation_errors.extend(meas_table.get_validation_errors())
-            self.validation_warnings.extend(meas_table.get_validation_warnings())
-
+                control_table_indexes.append(controls_table_idx)
+        
         lab = 'Unknown'
         experiment_id = 'experiment.tacc.tbd'
         if lab_table_idx >= 0:
@@ -337,13 +325,30 @@ class IntentParser(object):
                 self.validation_errors.extend(parameter_table.get_validation_errors())
             except DictionaryMaintainerException as err:
                 self.validation_errors.extend(err.get_message())
-                
-        if controls_table_idx >=0:
+        
+        control_tables = {}
+        for controls_table_idx in control_table_indexes:
             table = doc_tables[controls_table_idx]
-            controls_table = ControlsTable(self.catalog_accessor.get_control_type()) 
-            controls_data = controls_table.parse_table(table)
-            self.validation_errors.extend(controls_data.get_validation_errors())
-            self.validation_warnings.extend(controls_data.get_validation_warnings())
+            controls_table = ControlsTable(table, 
+                                           self.catalog_accessor.get_control_type(),
+                                           self.catalog_accessor.get_fluid_units(),
+                                           self.catalog_accessor.get_time_units()) 
+            controls_data = controls_table.process_table()
+            table_caption = controls_table.get_table_caption()
+            control_tables[table_caption] = controls_data
+            self.validation_errors.extend(controls_table.get_validation_errors())
+            self.validation_warnings.extend(controls_table.get_validation_warnings())
+        
+        if measurement_table_new_idx >= 0:
+            table = doc_tables[measurement_table_new_idx]
+            meas_table = MeasurementTable(self.catalog_accessor.get_temperature_units(), 
+                                          self.catalog_accessor.get_time_units(), 
+                                          self.catalog_accessor.get_fluid_units(), 
+                                          self.catalog_accessor.get_measurement_types(), 
+                                          self.catalog_accessor.get_file_types())
+            measurements = meas_table.parse_table(table, control_tables)
+            self.validation_errors.extend(meas_table.get_validation_errors())
+            self.validation_warnings.extend(meas_table.get_validation_warnings())
             
         self.request['name'] = title
         self.request['experiment_id'] = experiment_id

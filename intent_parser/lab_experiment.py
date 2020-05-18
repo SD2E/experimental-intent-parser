@@ -4,12 +4,12 @@ from http import HTTPStatus
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 
 class LabExperiment(object):
-    '''
+    """
     Processes information for a lab experiment from a:
         - Google Doc 
         - Microsoft Word Document 
-    '''
-
+    """
+    
     def __init__(self, document_id):
         self._document_id = document_id
     

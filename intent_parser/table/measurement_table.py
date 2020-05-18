@@ -19,17 +19,21 @@ class MeasurementTable(object):
         self._file_type = file_type
         self._validation_errors = []
         self._validation_warnings = []
+        self._referenced_table = {} #key is name of table, value is content for table
+    
+    def get_referenced_controls(self):
+        return self._referenced_table
         
-    def parse_table(self, table):
+    def parse_table(self, table, control_tables):
         measurements = []
         rows = table['tableRows']
-        for row in rows[1:]:
-            meas_data = self._parse_row(rows[0], row)
+        for row in rows[2:]:
+            meas_data = self._parse_row(rows[1], row, control_tables)
             if meas_data:
                 measurements.append(meas_data)
         return measurements   
             
-    def _parse_row(self, header_row, row):
+    def _parse_row(self, header_row, row, control_tables):
         measurement = {}
         content = []
         num_cols = len(row['tableCells'])
@@ -81,6 +85,16 @@ class MeasurementTable(object):
                     measurement['batch'] = [int(value) for value in table_utils.extract_number_value(cell_txt)] 
                 except TableException as err:
                     message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_BATCH, err.get_message())
+                    self._validation_errors.append(message)
+            elif header == intent_parser_constants.COL_HEADER_MEASUREMENT_CONTROL:
+                try:
+                    for ref_table in table_utils.extract_name_value(cell_txt):
+                        canonicalize_ref_table = ''.join(ref_table.lower().split())
+                        if canonicalize_ref_table not in control_tables:
+                            raise TableException('%s did not refer to any control table in this document' % ref_table)
+                        measurement['controls'] = control_tables[canonicalize_ref_table]
+                except TableException as err:
+                    message = 'Measurement table has invalid %s value: %s.' % (intent_parser_constants.COL_HEADER_MEASUREMENT_CONTROL, err.get_message())
                     self._validation_errors.append(message)
             else:
                 try:
