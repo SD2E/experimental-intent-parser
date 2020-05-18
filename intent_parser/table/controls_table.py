@@ -27,7 +27,7 @@ class ControlsTable(object):
     
     def process_table(self):
         controls = []
-        self._process_table_caption(self._table.get_row_by_index(self.TABLE_CAPTION_ROW_INDEX))
+        self._process_table_caption(self._table.get_row(self.TABLE_CAPTION_ROW_INDEX))
         for row_index in range(2, self._table.number_of_rows()):
             row = self._table.get_row_by_index(row_index)
             control_data = self._process_row(row)
