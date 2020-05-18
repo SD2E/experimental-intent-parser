@@ -18,6 +18,21 @@ _abbreviated_unit_dict = {'fluid' : _fluid_units,
                           'timepoints' : _timepoint_units
                           }
 
+def parse_cell(cell):
+    content = cell['content']
+    for paragraph_index in range(len(content)):
+        paragraph = content[paragraph_index]['paragraph']
+        url = None
+        
+        if 'link' in paragraph and 'url' in paragraph['link']:
+            url = paragraph['link']['url']
+            
+        list_of_contents = []
+        for element in paragraph['elements']: 
+            result = element['textRun']['content']
+            list_of_contents.append(result)
+        flatten_content = ''.join(list_of_contents)
+        yield flatten_content, url
 
 def detect_lab_table(table):
     """
@@ -103,31 +118,45 @@ def is_name(cell):
             return False
     return True
 
-def extract_name_from_str(cell, prefix_str):
+def extract_table_caption(cell):
+    tokens = _tokenize(cell, keep_space=False)
+    caption = []
+    for token in tokens:
+        if _get_token_type(token) == 'SEPARATOR' and _get_token_value(token) == ':':
+            break
+        caption.append(token)
+    return ''.join([_get_token_value(token) for token in caption]).strip() 
+    
+
+def extract_str_after_prefix(cell, seperator_type=':'):
     """
     Parses a given cell with a specified prefix.
     
     Args:
         cell: a string representing a cell's content.
-        prefix_str: the prefix that the cell's content must begin with
+        seperator_type: a character that separates the string's prefix and postfix
     Returns:
-        A string following after the prefix. An empty string is returned if no string follows after the given prefix string.
+        A prefix and postfix.
     Raises:
         ValueException if the cell does not have enough content to perform the desired task.
         TableException if the prefix cannot be found from the given cell.
     """
-    tokens = _tokenize(cell, False)
-    if len(tokens) < 1:
-        raise ValueError('%s does not have enough value provided.' % cell)
-    
-    if _get_token_type(tokens[0]) == 'NAME':
-        canonicalize_prefix = _get_token_value(tokens[0]).lower()
-        if canonicalize_prefix != prefix_str:
-            raise TableException('%s does not begin with %s' % (cell, prefix_str))
-    name = []
-    for token_index in range(1,len(tokens)):
-        name.append(_get_token_value(tokens[token_index]))
-    return ''.join(name)
+    tokens = _tokenize(cell, keep_space=False)
+    prefix = []
+    postfix = []
+    encountered_seperator = False 
+    for token in tokens:
+        if _get_token_type(token) == 'SEPARATOR' and _get_token_value(token) == seperator_type:
+            encountered_seperator = True
+            continue
+        
+        if encountered_seperator:
+            postfix.append(token)
+        else:
+            prefix.append(token)
+    appended_prefix = ''.join([_get_token_value(token) for token in prefix])
+    appended_postfix = ''.join([_get_token_value(token) for token in postfix])
+    return appended_prefix, appended_postfix 
                
         
 def extract_number_value(cell):
@@ -177,6 +206,62 @@ def extract_name_value(cell):
     
     return result
 
+def parse_and_append_named_value_unit(cell_txt, unit_type, unit_list):
+    """
+    Parses the content of a cell to get a name, followed by a value, followed by a unit.
+    Args:
+        cell_txt: content of cell
+        unit_type: type of unit for specifying the value
+        unit_list: list of units
+        
+    Raises:
+        TableException: 
+        ValueError: Invalid value for a cell 
+    """
+    tokens = _tokenize(cell_txt) 
+    index = 0
+    tokens = [token for token in tokens if _get_token_type(token) not in ['SEPARATOR', 'SKIP']]
+    abbrev_units = _abbreviated_unit_dict[unit_type] if unit_type is not None else {}
+    unit = _determine_unit(tokens, _canonicalize_units(unit_list), abbrev_units)
+    
+    if len(tokens) % 3 > 0:
+        raise ValueError('Cannot parse named value unit for cell %s.' % cell_txt)
+    
+    while index < len(tokens):
+        if _get_token_type(tokens[index]) != 'NAME':
+            raise ValueError('No name specified. Invalid named value unit cell.')
+        if _get_token_type(tokens[index+1]) != 'NUMBER':
+            raise ValueError('No value specified. Invalid named value unit cell.')
+        if _get_token_type(tokens[index+2]) != 'NAME':
+            raise ValueError('No unit specified. Invalid named value unit cell.')
+        
+        name = _get_token_value(tokens[index]) 
+        value = _get_token_value(tokens[index+1]) 
+        unit = _get_token_value(tokens[index+2]) 
+        
+        yield name, value, unit
+
+def parse_and_append_value_unit(cell_txt, cell_type, unit_list):
+    """
+    Parses a string to determine numerical values and units. 
+    
+    Args:
+        cell_txt: a string that can contain a list of value followed by a unit by using commas as a separator. 
+        cell_type: the type of units that this cell_txt is describing. (ex: fluid, temperature, or timepoints)
+        unit_list: a list of strings that the function will use for referring to units.
+    
+    Returns:
+        A list of dictionaries. The dictionary key represents a numerical value. 
+        The dictionary value represents a unit corresponding to the value.
+    Raises:
+         TableException: For cells with no unit
+    """
+    result = []
+    for value,unit in transform_cell(cell_txt, unit_list, cell_type=cell_type):
+        temp_dict = {'value' : float(value), 'unit' : unit}
+        result.append(temp_dict)
+    return result 
+
 def transform_strateos_string(cell):
     """
     Parses a given string to generate strateos string patterns:
@@ -211,6 +296,8 @@ def transform_cell(cell, units, cell_type=None):
         Yield two variables. 
         The first variable represents the cell's content.
         The second variable represents an identified unit for the cell.
+    
+    Raises:
         A TableException is thrown for a cell that has no unit. 
     """
     tokens = _tokenize(cell) 
@@ -255,9 +342,9 @@ def _tokenize(cell, keep_space=True):
     tokens = []
     token_specification = [
         ('NUMBER',   r'\d+(\.\d*)?([eE]([-+])?\d+)?'),
-        ('NAME',       r'[^\t \d,][^ \t,]*'),
+        ('NAME',       r'[^\t \d,:][^ \t,:]*'),
         ('SKIP',     r'[ \t]+'),
-        ('SEPARATOR',     r'[,]')
+        ('SEPARATOR',     r'[,:]')
     ]
     tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
     for mo in re.finditer(tok_regex, cell):
