@@ -316,7 +316,6 @@ class IntentParser(object):
         experiment_id = 'experiment.tacc.tbd'
         if lab_table_idx >= 0:
             table = doc_tables[lab_table_idx]
-
             lab_table = LabTable()
             lab_content = lab_table.parse_table(table)
             lab = lab_content['lab']
