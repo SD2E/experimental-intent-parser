@@ -28,9 +28,9 @@ class LabTable(object):
             result['lab'] = self._lab_content['lab']
         
         if 'experiment_id' not in self._lab_content:
-            result['experiment_id'] = 'experiment.%s.TBD' % result['lab']
+            result['experiment_id'] = 'experiment.%s.TBD' % result['lab'].lower()
         else:
-            result['experiment_id'] = 'experiment.%s.%s' % (result['lab'], self._lab_content['experiment_id'])
+            result['experiment_id'] = 'experiment.%s.%s' % (result['lab'].lower(), self._lab_content['experiment_id'])
         return result
     
     def get_validation_errors(self):
