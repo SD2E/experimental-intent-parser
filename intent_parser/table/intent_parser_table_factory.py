@@ -7,6 +7,15 @@ _MEASUREMENT_TABLE_HEADER = {intent_parser_constants.COL_HEADER_REPLICATE,
                              intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE,
                              intent_parser_constants.COL_HEADER_FILE_TYPE}
 
+_PARAMETER_TABLE_HEADER = {intent_parser_constants.COL_HEADER_PARAMETER,
+                           intent_parser_constants.COL_HEADER_PARAMETER_VALUE}
+
+_CONTROLS_TABLE_HEADER = {intent_parser_constants.COL_HEADER_CONTROL_CHANNEL,
+                          intent_parser_constants.COL_HEADER_CONTROL_TYPE,
+                          intent_parser_constants.COL_HEADER_CONTROL_STRAINS,
+                          intent_parser_constants.COL_HEADER_CONTROL_CONTENT,
+                          intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT}
+
 class IntentParserTableFactory(object):
         
     
@@ -19,7 +28,7 @@ class IntentParserTableFactory(object):
         pass
              
     def get_table_type(self, intent_parser_table):    
-        header_row = self._get_header_row(intent_parser_table)
+        header_row = self._header_row(intent_parser_table)
         
         header_values = {column.get_content() for column in header_row}
         
@@ -29,7 +38,7 @@ class IntentParserTableFactory(object):
         
         
     
-    def _get_header_row(self, intent_parser_table):
+    def _set_title(self, intent_parser_table):
         pass
         
         

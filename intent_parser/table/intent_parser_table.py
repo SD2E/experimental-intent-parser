@@ -24,14 +24,10 @@ class IntentParserTable(object):
     def number_of_rows(self):
         return len(self._rows)  
     
-    def _add_cell(self, row_index, col_index):
-        if row_index not in self._rows:
-            self._rows[row_index] = []
-        if col_index not in self._cols:
-            self._cols[col_index] = []
-        
-        cell = IntentParserCell() 
-        self._rows[row_index].append(cell)
-        self._cols[col_index].append(cell)
+    def remove_row(self, row_index):
+        if row_index < 0 or row_index >= self.number_of_rows():
+            raise IndexError('Cannot remove row at index %s' % row_index)
+        self._rows.pop(row_index)
+    
         
         

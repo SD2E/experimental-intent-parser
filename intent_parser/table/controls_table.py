@@ -13,13 +13,13 @@ class ControlsTable(object):
     TABLE_CAPTION_ROW_INDEX = 0
     TABLE_HEADER_ROW_INDEX = 1
 
-    def __init__(self, table, control_types={}, fluid_units={}, timepoint_units={}):
+    def __init__(self, intent_parser_table, control_types={}, fluid_units={}, timepoint_units={}):
         self._control_types = control_types
         self._fluid_units = fluid_units
         self._timepoint_units = timepoint_units
         self._validation_errors = []
         self._validation_warnings = []
-        self._table = IntentParserTable(table)
+        self._intent_parser_table = intent_parser_table 
         self._table_caption = ''
     
     def get_table_caption(self):
@@ -27,15 +27,16 @@ class ControlsTable(object):
     
     def process_table(self):
         controls = []
+        
         self._process_table_caption(self._table.get_row(self.TABLE_CAPTION_ROW_INDEX))
         for row_index in range(2, self._table.number_of_rows()):
             row = self._table.get_row_by_index(row_index)
             control_data = self._process_row(row)
             controls.append(control_data)
-        return controls
+        return controls 
     
     def _process_table_caption(self, row):
-        cell = self._table.get_cell_from_row(row, 0)
+        cell = self._table.get_row(row, 0)
         for cell_txt, _ in table_utils.parse_cell(cell):
             table_name = table_utils.extract_table_caption(cell_txt.lower())
             self._table_caption = table_name
@@ -50,7 +51,7 @@ class ControlsTable(object):
         control_data = {}
         content_data = {}
         for cell_index in range(len(row)):
-            cell = self._table.get_cell_from_row(row, cell_index)
+            cell = self._table.get_cell(row, cell_index)
             if cell_index == control_type_index:
                 control_type = self._process_control_type(cell)
                 if control_type:
@@ -136,9 +137,9 @@ class ControlsTable(object):
         return self._validation_warnings
     
     def _get_header_index(self, header_name):
-        header_row = self._table.get_row_by_index(self.TABLE_HEADER_ROW_INDEX)
+        header_row = self._table.get_row(self.TABLE_HEADER_ROW_INDEX)
         for cell_index in range(len(header_row)):
-            cell = self._table.get_cell_from_row(header_row, cell_index)
+            cell = self._table.get_cell(header_row, cell_index)
             cell_content = ''.join([cell_txt for cell_txt, _ in table_utils.parse_cell(cell)]).strip()
             if cell_content == header_name:
                 return cell_index
