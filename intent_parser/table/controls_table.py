@@ -12,6 +12,7 @@ class ControlsTable(object):
     
     TABLE_CAPTION_ROW_INDEX = 0
     TABLE_HEADER_ROW_INDEX = 1
+    TABLE_DATA_ROW_INDEX = 2
 
     def __init__(self, intent_parser_table, control_types={}, fluid_units={}, timepoint_units={}):
         self._control_types = control_types
@@ -21,61 +22,55 @@ class ControlsTable(object):
         self._validation_warnings = []
         self._intent_parser_table = intent_parser_table 
         self._table_caption = ''
+        self._header_indices = {}
     
     def get_table_caption(self):
         return self._table_caption
     
     def process_table(self):
         controls = []
-        
-        self._process_table_caption(self._table.get_row(self.TABLE_CAPTION_ROW_INDEX))
-        for row_index in range(2, self._table.number_of_rows()):
-            row = self._table.get_row_by_index(row_index)
-            control_data = self._process_row(row)
+        self._process_table_caption()
+        self._process_header()
+        for row_index in range(self.TABLE_DATA_ROW_INDEX, self._intent_parser_table.number_of_rows()):
+            control_data = self._process_row(row_index)
             controls.append(control_data)
         return controls 
     
-    def _process_table_caption(self, row):
-        cell = self._table.get_row(row, 0)
-        for cell_txt, _ in table_utils.parse_cell(cell):
-            table_name = table_utils.extract_table_caption(cell_txt.lower())
-            self._table_caption = table_name
-                    
-    def _process_row(self, row):
-        control_type_index = self._get_header_index(intent_parser_constants.COL_HEADER_CONTROL_TYPE) 
-        control_strains_index = self._get_header_index(intent_parser_constants.COL_HEADER_CONTROL_STRAINS) 
-        channel_index = self._get_header_index(intent_parser_constants.COL_HEADER_CONTROL_CHANNEL) 
-        contents_index = self._get_header_index(intent_parser_constants.COL_HEADER_CONTROL_CONTENT) 
-        timepoint_index = self._get_header_index(intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT) 
-        
+    def _process_table_caption(self):
+        cell = self._intent_parser_table.get_cell(self.TABLE_CAPTION_ROW_INDEX, 0)
+        table_name, _ = table_utils.extract_str_after_prefix(cell.get_text())
+        self._table_caption = table_name
+         
+    def _process_row(self, row_index):
+        row = self._intent_parser_table.get_row(row_index)
         control_data = {}
-        content_data = {}
         for cell_index in range(len(row)):
-            cell = self._table.get_cell(row, cell_index)
-            if cell_index == control_type_index:
+            cell = self._intent_parser_table.get_cell(row_index, cell_index)
+            if intent_parser_constants.COL_HEADER_CONTROL_TYPE in self._header_indices:
                 control_type = self._process_control_type(cell)
                 if control_type:
                     control_data['type'] = control_type
-            elif cell_index == control_strains_index:
+            elif intent_parser_constants.COL_HEADER_CONTROL_STRAINS in self._header_indices:
                 strains = self._process_control_strains(cell)    
                 if strains:
                     control_data['strains'] = strains
-            elif cell_index == channel_index:
+            elif intent_parser_constants.COL_HEADER_CONTROL_CHANNEL in self._header_indices:
                 channel = self._process_channels(cell)
                 if channel:
                     control_data['channels'] = channel
-            elif cell_index == contents_index:
-                content_data = self._process_contents(cell)
-            elif cell_index == timepoint_index:
+            elif intent_parser_constants.COL_HEADER_CONTROL_CONTENT in self._header_indices:
+                contents = self._process_contents(cell)
+                if contents:
+                    control_data['contents'] = contents
+            elif intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT in self._header_indices:
                 timepoint = self._process_timepoint(cell)
                 if timepoint:
-                    content_data['timepoints'] = timepoint
+                    control_data['timepoints'] = timepoint
         
-        control_data['contents'] = [content_data]
         return control_data
     
     def _process_channels(self, cell):
-        cell_content = ''.join([cell_txt for cell_txt, _ in table_utils.parse_cell(cell)])
+        cell_content = cell.get_text()
         if table_utils.is_valued_cells(cell_content):
             message = ('Controls table has invalid %s value: '
                        'Identified %s as a numerical value when ' 
@@ -91,18 +86,20 @@ class ControlsTable(object):
     
     def _process_contents(self, cell):
         list_of_contents = []
-        for cell_txt, url in table_utils.parse_cell(cell):
-            canonicalize_cell = cell_txt.strip() 
-            for name, value, unit in table_utils.parse_and_append_named_value_unit(canonicalize_cell, 'fluid', self._fluid_units):
-                content_name = {'label' : name, 'sbh_uri' : url} 
-                content = {'name' : content_name, 
+        text_with_urls = cell.get_text_with_url()
+        for name, value, unit in table_utils.parse_and_append_named_value_unit(cell.get_text(), 'fluid', self._fluid_units):
+            url = 'NO PROGRAM DICTIONARY ENTRY'
+            if name in text_with_urls:
+                url = text_with_urls[name]
+            content_name = {'label' : name, 'sbh_uri' : url} 
+            content = {'name' : content_name, 
                        'value' : float(value), 
                        'unit' : unit}
             list_of_contents.append(content)
         return list_of_contents
         
     def _process_control_strains(self, cell):
-        cell_content = ''.join([cell_txt for cell_txt, _ in table_utils.parse_cell(cell)])
+        cell_content = cell.get_text()
         if table_utils.is_valued_cells(cell_content):
             message = ('Controls table has invalid %s value: %s' 
                        'Identified %s as a numerical value when '
@@ -112,7 +109,7 @@ class ControlsTable(object):
         return [value for value in table_utils.extract_name_value(cell_content)]
                 
     def _process_control_type(self, cell):
-        control_type = ''.join([cell_txt for cell_txt, _ in table_utils.parse_cell(cell)]).strip()
+        control_type = cell.get_text()
         if control_type not in self._control_types:
             err = '%s does not match one of the following control types: \n %s' % (control_type, ' ,'.join((map(str, self._control_types))))
             message = 'Controls table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_CONTROL_TYPE, err)
@@ -121,7 +118,7 @@ class ControlsTable(object):
         return control_type
 
     def _process_timepoint(self, cell):
-        cell_content = ''.join([cell_txt for cell_txt, _ in table_utils.parse_cell(cell)])
+        cell_content = cell.get_text()
         timepoint = []
         try:
             timepoint = table_utils.parse_and_append_value_unit(cell_content, 'timepoints', self._timepoint_units)
@@ -136,12 +133,19 @@ class ControlsTable(object):
     def get_validation_warnings(self):
         return self._validation_warnings
     
-    def _get_header_index(self, header_name):
-        header_row = self._table.get_row(self.TABLE_HEADER_ROW_INDEX)
+    def _process_header(self):
+        header_row = self._intent_parser_table.get_row(self.TABLE_HEADER_ROW_INDEX)
         for cell_index in range(len(header_row)):
-            cell = self._table.get_cell(header_row, cell_index)
-            cell_content = ''.join([cell_txt for cell_txt, _ in table_utils.parse_cell(cell)]).strip()
-            if cell_content == header_name:
-                return cell_index
-    
+            cell = self._intent_parser_table.get_cell(self.TABLE_HEADER_ROW_INDEX, cell_index)
+            text = cell.get_text()
+            if text == intent_parser_constants.COL_HEADER_CONTROL_TYPE:
+                self._header_indices[intent_parser_constants.COL_HEADER_CONTROL_TYPE] = cell_index
+            elif text == intent_parser_constants.COL_HEADER_CONTROL_STRAINS:
+                self._header_indices[intent_parser_constants.COL_HEADER_CONTROL_STRAINS] = cell_index
+            elif text == intent_parser_constants.COL_HEADER_CONTROL_CHANNEL:
+                self._header_indices[intent_parser_constants.COL_HEADER_CONTROL_CHANNEL] = cell_index
+            elif text == intent_parser_constants.COL_HEADER_CONTROL_CONTENT:
+                self._header_indices[intent_parser_constants.COL_HEADER_CONTROL_CONTENT] = cell_index
+            elif text == intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT:
+                self._header_indices[intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT] = cell_index
         

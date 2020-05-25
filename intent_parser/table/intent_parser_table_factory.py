@@ -24,18 +24,17 @@ class IntentParserTableFactory(object):
         self._google_table_parser = GoogleTableParser()
     
     def from_google_doc(self, table):
-        intent_parser_table = self._google_table_parser.parse_table(table)
-        pass
+        return self._google_table_parser.parse_table(table)
              
     def get_table_type(self, intent_parser_table):    
         header_row = self._header_row(intent_parser_table)
-        
         header_values = {column.get_content() for column in header_row}
         
         if _MEASUREMENT_TABLE_HEADER.issubset(header_values):
             return None # enum
             
-        
+    def _header_row(self, intent_parser_table):
+        pass   
         
     
     def _set_title(self, intent_parser_table):
@@ -69,15 +68,16 @@ class GoogleTableParser(TableParser):
             yield ip_cell 
     
     def _parse_cell(self, cell):
-        content = cell['content']
-        for paragraph in content['paragraph']:
+        contents = cell['content']
+        for content in contents:
+            paragraph = content['paragraph'] 
             url = None
-            if 'url' in paragraph['link']:
+            if 'link' in paragraph and 'url' in paragraph['link']:
                 url = paragraph['link']['url']
             list_of_contents = []
-            for element in paragraph['elements']: 
-                for text_run in element['textRun']:
-                    result = text_run['content']
-                    list_of_contents.append(result)
+            for element in paragraph['elements']:
+                text_run = element['textRun']
+                result = text_run['content'].strip()
+                list_of_contents.append(result)
             flatten_content = ''.join(list_of_contents)
             yield flatten_content, url
