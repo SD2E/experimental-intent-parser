@@ -1,4 +1,3 @@
-from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.table.table_utils as table_utils
 import logging

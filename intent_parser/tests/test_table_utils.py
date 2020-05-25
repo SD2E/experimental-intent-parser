@@ -220,6 +220,11 @@ class TableUtilsTest(unittest.TestCase):
         self.assertEquals(tu.extract_table_caption('Table 1 : Measurement'), 'Table1')
         self.assertEquals(tu.extract_table_caption('Table1:'), 'Table1')
         self.assertEquals(tu.extract_table_caption('Table1:Controls'), 'Table1')
+    
+    def test_get_name_with_whitespace(self):
+        prefix, lab_name = tu.extract_str_after_prefix('Experiment_Id:123')
+        self.assertEqual(prefix, 'Experiment_Id')
+        self.assertEqual(lab_name, '123')
         
 if __name__ == "__main__":
     unittest.main()
