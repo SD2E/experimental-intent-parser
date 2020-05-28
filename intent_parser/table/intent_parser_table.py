@@ -1,8 +1,7 @@
-from intent_parser.intent_parser_exceptions import TableException
 
 class IntentParserTable(object):
     """
-    
+    Intent Parser's representation of a table. 
     """
     def __init__(self):
         self._rows = [] 

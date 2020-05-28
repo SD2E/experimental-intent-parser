@@ -1,5 +1,4 @@
 from intent_parser.intent_parser_exceptions import TableException
-from intent_parser.table.intent_parser_table import IntentParserTable
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.table.table_utils as table_utils
 import logging
@@ -30,7 +29,6 @@ class ControlsTable(object):
     def process_table(self):
         controls = []
         self._process_table_caption()
-        self._process_header()
         for row_index in range(self.TABLE_DATA_ROW_INDEX, self._intent_parser_table.number_of_rows()):
             control_data = self._process_row(row_index)
             controls.append(control_data)
@@ -46,28 +44,32 @@ class ControlsTable(object):
         control_data = {}
         for cell_index in range(len(row)):
             cell = self._intent_parser_table.get_cell(row_index, cell_index)
-            if intent_parser_constants.COL_HEADER_CONTROL_TYPE in self._header_indices:
+            # Cell type based on column header
+            header_cell = self._intent_parser_table.get_cell(self.TABLE_HEADER_ROW_INDEX, cell_index)
+            cell_type = header_cell.get_text()
+            
+            if intent_parser_constants.COL_HEADER_CONTROL_TYPE == cell_type:
                 control_type = self._process_control_type(cell)
                 if control_type:
                     control_data['type'] = control_type
-            elif intent_parser_constants.COL_HEADER_CONTROL_STRAINS in self._header_indices:
+            elif intent_parser_constants.COL_HEADER_CONTROL_STRAINS == cell_type:
                 strains = self._process_control_strains(cell)    
                 if strains:
                     control_data['strains'] = strains
-            elif intent_parser_constants.COL_HEADER_CONTROL_CHANNEL in self._header_indices:
+            elif intent_parser_constants.COL_HEADER_CONTROL_CHANNEL == cell_type:
                 channel = self._process_channels(cell)
                 if channel:
                     control_data['channels'] = channel
-            elif intent_parser_constants.COL_HEADER_CONTROL_CONTENT in self._header_indices:
+            elif intent_parser_constants.COL_HEADER_CONTROL_CONTENT == cell_type:
                 contents = self._process_contents(cell)
                 if contents:
                     control_data['contents'] = contents
-            elif intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT in self._header_indices:
+            elif intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT == cell_type:
                 timepoint = self._process_timepoint(cell)
                 if timepoint:
                     control_data['timepoints'] = timepoint
         
-        return control_data
+        return control_data 
     
     def _process_channels(self, cell):
         cell_content = cell.get_text()
@@ -131,21 +133,5 @@ class ControlsTable(object):
         return self._validation_errors
 
     def get_validation_warnings(self):
-        return self._validation_warnings
-    
-    def _process_header(self):
-        header_row = self._intent_parser_table.get_row(self.TABLE_HEADER_ROW_INDEX)
-        for cell_index in range(len(header_row)):
-            cell = self._intent_parser_table.get_cell(self.TABLE_HEADER_ROW_INDEX, cell_index)
-            text = cell.get_text()
-            if text == intent_parser_constants.COL_HEADER_CONTROL_TYPE:
-                self._header_indices[intent_parser_constants.COL_HEADER_CONTROL_TYPE] = cell_index
-            elif text == intent_parser_constants.COL_HEADER_CONTROL_STRAINS:
-                self._header_indices[intent_parser_constants.COL_HEADER_CONTROL_STRAINS] = cell_index
-            elif text == intent_parser_constants.COL_HEADER_CONTROL_CHANNEL:
-                self._header_indices[intent_parser_constants.COL_HEADER_CONTROL_CHANNEL] = cell_index
-            elif text == intent_parser_constants.COL_HEADER_CONTROL_CONTENT:
-                self._header_indices[intent_parser_constants.COL_HEADER_CONTROL_CONTENT] = cell_index
-            elif text == intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT:
-                self._header_indices[intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT] = cell_index
+        return self._validation_warnings 
         
