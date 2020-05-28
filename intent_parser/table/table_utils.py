@@ -141,7 +141,9 @@ def extract_str_after_prefix(cell, seperator_type=':'):
         ValueException if the cell does not have enough content to perform the desired task.
         TableException if the prefix cannot be found from the given cell.
     """
-    tokens = _tokenize(cell, keep_space=False)
+    tokens = _tokenize(cell, keep_space=False, 
+                       name_specification='[^\t \d,:][^ \t,:]*', 
+                       seperator_specification='[,:]')
     prefix = []
     postfix = []
     encountered_seperator = False 
@@ -326,7 +328,9 @@ def _get_token_type(token):
 def _get_token_value(token):
     return token[1]
 
-def _tokenize(cell, keep_space=True):
+def _tokenize(cell, keep_space=True, 
+              name_specification='[^\t \d,:][^ \t,]*', 
+              seperator_specification='[,]'):
     """
     Identify NUMBER and NAME pattern from a cell by classifying the pattern into tokens. 
     
@@ -342,9 +346,9 @@ def _tokenize(cell, keep_space=True):
     tokens = []
     token_specification = [
         ('NUMBER',   r'\d+(\.\d*)?([eE]([-+])?\d+)?'),
-        ('NAME',       r'[^\t \d,:][^ \t,:]*'),
+        ('NAME',       r'%s' % name_specification),
         ('SKIP',     r'[ \t]+'),
-        ('SEPARATOR',     r'[,:]')
+        ('SEPARATOR',     r'%s' % seperator_specification)
     ]
     tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
     for mo in re.finditer(tok_regex, cell):
