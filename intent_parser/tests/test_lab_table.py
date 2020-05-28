@@ -42,6 +42,17 @@ class LabTableTest(unittest.TestCase):
         table_content = table_parser.parse_table(input_table)
         self.assertEqual(table_content['lab'], 'abc')
         self.assertEqual(table_content['experiment_id'], 'experiment.abc.TBD')
+        
+    def test_table_with_experiment_id_spacing(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Experiment_id:29422' }}]}}]}]} ]
+        }
+        
+        table_parser =  LabTable()
+        table_content = table_parser.parse_table(input_table)
+        self.assertEqual(table_content['lab'], 'tacc')
+        self.assertEqual(table_content['experiment_id'], 'experiment.tacc.29422')
 
 if __name__ == "__main__":
     unittest.main()

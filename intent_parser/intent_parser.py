@@ -1,6 +1,7 @@
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
 from intent_parser.lab_experiment import LabExperiment
+from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory, TableType
 from intent_parser.table.lab_table import LabTable
 from intent_parser.table.controls_table import ControlsTable 
 from intent_parser.table.measurement_table import MeasurementTable
@@ -278,89 +279,120 @@ class IntentParser(object):
                     if new_cp_id is not None:
                         cp_id = new_cp_id
 
-        measurements = []
-        parameter = []
+        control_tables, lab_tables, measurement_tables, parameter_tables = self._sort_tables()
+        ref_controls = self._process_control_tables(control_tables)
+        lab_content = self._process_lab_table(lab_tables)
+        parameter = self._process_parameter_table(parameter_tables)
+        measurements = self._process_measurement_table(measurement_tables, ref_controls)
         
-        doc_tables = self.lab_experiment.tables() 
-        lab_table_idx = -1
-        measurement_table_new_idx = -1
-        parameter_table_idx = -1
-        control_table_indexes = []
-        for tIdx in range(len(doc_tables)):
-            table = doc_tables[tIdx]
-            
-            is_new_measurement_table = table_utils.detect_new_measurement_table(table)
-            if is_new_measurement_table:
-                measurement_table_new_idx = tIdx
-
-            is_lab_table = table_utils.detect_lab_table(table)
-            if is_lab_table:
-                lab_table_idx = tIdx
-                
-            is_parameter_table = table_utils.detect_parameter_table(table)
-            if is_parameter_table:
-                parameter_table_idx = tIdx
-            
-            is_control_table = table_utils.detect_controls_table(table)
-            if is_control_table:
-                controls_table_idx = tIdx
-                control_table_indexes.append(controls_table_idx)
+        self.request['name'] = title
+        self.request['experiment_id'] = lab_content['experiment_id']
+        self.request['challenge_problem'] = cp_id
+        self.request['experiment_reference'] = experiment_reference
+        self.request['experiment_reference_url'] = experiment_reference_url
+        self.request['experiment_version'] = 1
+        self.request['lab'] = lab_content['lab']
+        self.request['runs'] = measurements
+        self.request['doc_revision_id'] = self.lab_experiment.head_revision()
+        if parameter:
+            self.request['parameters'] = parameter
+    
+    def _process_control_tables(self, control_tables):
+        ref_controls = {}
+        if not control_tables:
+            return ref_controls
         
-        lab = 'Unknown'
-        experiment_id = 'experiment.tacc.tbd'
-        if lab_table_idx >= 0:
-            table = doc_tables[lab_table_idx]
-            lab_table = LabTable()
-            lab_content = lab_table.parse_table(table)
-            lab = lab_content['lab']
-            experiment_id = lab_content['experiment_id']
-            self.validation_errors.extend(lab_table.get_validation_errors())
-            self.validation_warnings.extend(lab_table.get_validation_warnings())
-        
-        if parameter_table_idx >=0:
-            try:
-                table = doc_tables[parameter_table_idx]
-                parameter_table = ParameterTable(self.sbol_dictionary.get_strateos_mappings())
-                parameter = parameter_table.parse_table(table)
-                self.validation_errors.extend(parameter_table.get_validation_errors())
-            except DictionaryMaintainerException as err:
-                self.validation_errors.extend(err.get_message())
-        
-        control_tables = {}
-        for controls_table_idx in control_table_indexes:
-            table = doc_tables[controls_table_idx]
+        for table in control_tables:
             controls_table = ControlsTable(table, 
                                            self.catalog_accessor.get_control_type(),
                                            self.catalog_accessor.get_fluid_units(),
                                            self.catalog_accessor.get_time_units()) 
             controls_data = controls_table.process_table()
             table_caption = controls_table.get_table_caption()
-            control_tables[table_caption] = controls_data
+            ref_controls[table_caption] = controls_data
             self.validation_errors.extend(controls_table.get_validation_errors())
             self.validation_warnings.extend(controls_table.get_validation_warnings())
+        return ref_controls
+    
+    def _process_lab_table(self, lab_tables):
+        lab_content = {}
+        if not lab_tables:
+            lab = 'tacc'
+            lab_content['lab'] = lab
+            lab_content['experiment_id'] = 'experiment.%s.TBD' % lab 
+            message = ('There is no lab table specified in this experiment.')
+            self._logger.warning(message)
+        else:    
+            if len(lab_tables) > 1: 
+                message = ('There are more than one lab table specified in this experiment.'
+                       'Only the first lab table identified in the document will be used for generating a request.')
+                self._logger.warning(message)
+            table = lab_tables[0]
+            lab_table = LabTable()
+            lab_content = lab_table.process_table(table)
+            self.validation_errors.extend(lab_table.get_validation_errors())
+            self.validation_warnings.extend(lab_table.get_validation_warnings())
+        return lab_content 
+    
+    def _process_measurement_table(self, measurement_tables, ref_controls):
+        measurements = []
+        if not measurement_tables:
+            return measurements 
+        if len(measurement_tables) > 1: 
+                message = ('There are more than one lab table specified in this experiment.'
+                       'Only the first lab table identified in the document will be used for generating a request.')
+                self.validation_warnings.extend(message)
+        table = measurement_tables[0]
+        meas_table = MeasurementTable(table, 
+                                      self.catalog_accessor.get_temperature_units(), 
+                                      self.catalog_accessor.get_time_units(), 
+                                      self.catalog_accessor.get_fluid_units(), 
+                                      self.catalog_accessor.get_measurement_types(), 
+                                      self.catalog_accessor.get_file_types())
+        measurement_data = meas_table.process_table(ref_controls)
+        measurements.append({ 'measurements' : measurement_data})
+        self.validation_errors.extend(meas_table.get_validation_errors())
+        self.validation_warnings.extend(meas_table.get_validation_warnings())
+        return measurements
+    
+    def _process_parameter_table(self, parameter_tables):
+        parameter_data = []
+        if not parameter_tables:
+            return parameter_data 
         
-        if measurement_table_new_idx >= 0:
-            table = doc_tables[measurement_table_new_idx]
-            meas_table = MeasurementTable(self.catalog_accessor.get_temperature_units(), 
-                                          self.catalog_accessor.get_time_units(), 
-                                          self.catalog_accessor.get_fluid_units(), 
-                                          self.catalog_accessor.get_measurement_types(), 
-                                          self.catalog_accessor.get_file_types())
-            measurements = meas_table.parse_table(table, control_tables)
-            self.validation_errors.extend(meas_table.get_validation_errors())
-            self.validation_warnings.extend(meas_table.get_validation_warnings())
-            
-        self.request['name'] = title
-        self.request['experiment_id'] = experiment_id
-        self.request['challenge_problem'] = cp_id
-        self.request['experiment_reference'] = experiment_reference
-        self.request['experiment_reference_url'] = experiment_reference_url
-        self.request['experiment_version'] = 1
-        self.request['lab'] = lab
-        self.request['runs'] = [{ 'measurements' : measurements}]
-        self.request['doc_revision_id'] = self.lab_experiment.head_revision()
-        if parameter:
-            self.request['parameters'] = [parameter] 
+        if len(parameter_tables) > 1:
+            message = ('There are more than one parameter table specified in this experiment.'
+                       'Only the first parameter table identified in the document will be used for generating a request.')
+            self._logger.warning(message)
+        try:
+            table = parameter_tables[0]
+            parameter_table = ParameterTable(self.sbol_dictionary.get_strateos_mappings())
+            parameter = parameter_table.parse_table(table)
+            parameter_data.append(parameter)
+            self.validation_errors.extend(parameter_table.get_validation_errors())
+        except DictionaryMaintainerException as err:
+            self.validation_errors.extend(err.get_message())
+        return parameter_data 
+                        
+    def _sort_tables(self):
+        ip_table_factory = IntentParserTableFactory()
+        list_of_tables = self.lab_experiment.tables()
+        measurement_tables = []
+        lab_tables = []
+        parameter_tables = []
+        control_tables = []
+        for table in list_of_tables:
+            ip_table = ip_table_factory.from_google_doc(table) 
+            table_type = ip_table_factory.get_table_type(ip_table)
+            if table_type == TableType.CONTROL:
+                control_tables.append(ip_table)
+            elif table_type == TableType.LAB:
+                lab_tables.append(ip_table)
+            elif table_type == TableType.MEASUREMENT:
+                measurement_tables.append(ip_table)
+            elif table_type == TableType.PARAMETER:
+                parameter_tables.append(ip_table)
+        return control_tables, lab_tables, measurement_tables, parameter_tables
     
     def _validate_schema(self):
         if self.request:

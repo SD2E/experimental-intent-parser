@@ -229,6 +229,38 @@ def extract_name_value(cell):
     
     return result
 
+
+def parse_reagent_header(cell_txt, unit_list, unit_type):
+    """
+    Parses the content of a cell to get a name, followed by a value, followed by a unit.
+    The content must have the following format (ex: IPTG @ 40 hours or IPTG)
+    Args:
+        cell_txt: content of cell
+        unit_type: type of unit for specifying the value
+        unit_list: list of units
+    
+    Returns:
+        name: reagent name
+        value: 
+        unit:
+    Raises:
+        TableException: 
+    """
+    tokens = _tokenize(cell_txt) 
+    tokens = [token for token in tokens if _get_token_type(token) not in ['SKIP']]
+    
+    if len(tokens) != 1 and len(tokens) != 4:
+        raise TableException('%s is not identified as a reagent header' % cell_txt) 
+    name = _get_token_value(tokens[0])
+    value = None
+    unit = None  
+    if len(tokens) == 4:
+        abbrev_units = _abbreviated_unit_dict[unit_type] if unit_type is not None else {}
+        unit = _determine_unit(tokens, _canonicalize_units(unit_list), abbrev_units)
+        value = _get_token_value(tokens[2]) 
+    
+    return name, value, unit
+
 def parse_and_append_named_value_unit(cell_txt, unit_type, unit_list):
     """
     Parses the content of a cell to get a name, followed by a value, followed by a unit.
@@ -365,9 +397,9 @@ def _tokenize(cell, keep_space=True):
     tokens = []
     token_specification = [
         ('NUMBER',   r'\d+(\.\d*)?([eE]([-+])?\d+)?'),
-        ('NAME',       r'[^\t \d,:][^ \t,:]*'),
+        ('NAME',       r'[^\t \d,:][^ \t,:@]*'),
         ('SKIP',     r'[ \t]+'),
-        ('SEPARATOR',     r'[,:]')
+        ('SEPARATOR',     r'[,:@]')
     ]
     tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
     for mo in re.finditer(tok_regex, cell):

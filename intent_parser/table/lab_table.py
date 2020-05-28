@@ -9,15 +9,15 @@ class LabTable(object):
     EXPERIMENT_ID_PREFIX = 'experiment'
     _logger = logging.getLogger('intent_parser')
 
-    def __init__(self):
+    def __init__(self, intent_parser_table):
         self._lab_content = {}
         self._validation_errors = []
         self._validation_warnings = []
+        self._intent_parser_table = intent_parser_table
        
-    def parse_table(self, table):
-        rows = table['tableRows']
-        for row in rows:
-            self._parse_row(row)
+    def process_table(self, table):
+        for row_index in range(table.number_of_rows()):
+            self._process_row(table[row_index])
         
         result = {}
         if 'lab' not in self._lab_content:
@@ -37,14 +37,15 @@ class LabTable(object):
     def get_validation_warnings(self):
         return self._validation_warnings
     
-    def _parse_row(self, row):
-        cells = row['tableCells']
-        for i in range(len(cells)): 
-            cell_content = intent_parser_utils.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
-            if self._is_lab(cell_content.lower()):
-                self._parse_lab(cell_content)
-            elif self._is_experiment_id(cell_content.lower()):
-                self._parse_experiment_id(cell_content)
+    def _process_row(self, row_index):
+        row = self._intent_parser_table.get_row(row_index)
+        for cell_index in range(len(row)):
+            cell = self._intent_parser_table.get_cell(row_index, cell_index)
+            text = cell.get_text()
+            if self._is_lab(text.lower()):
+                self._parse_lab(text)
+            elif self._is_experiment_id(text.lower()):
+                self._parse_experiment_id(text)
             
     def _is_lab(self, cell_content):
         return cell_content.startswith('lab')
