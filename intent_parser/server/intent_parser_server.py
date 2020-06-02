@@ -511,9 +511,9 @@ class IntentParserServer:
         return self._create_http_response(HTTPStatus.OK, '{}', 'application/json')
     
     def process_validate_structured_request(self, httpMessage):
-        '''
+        """
         Generate a structured request from a given document, then run it against the validation.
-        '''
+        """
         json_body = intent_parser_utils.get_json_body(httpMessage)
         validation_errors = []
         validation_warnings = []
@@ -521,7 +521,10 @@ class IntentParserServer:
             validation_errors.append('Unable to get information from Google document.')
         else:
             document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
-            intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+            if 'data' in json_body and 'bookmarks' in json_body['data']:
+                intent_parser = self.intent_parser_factory.create_intent_parser(document_id, bookmarks=json_body['data']['bookmarks'])
+            else:
+                intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
             intent_parser.process()
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
@@ -536,9 +539,9 @@ class IntentParserServer:
         return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
     
     def process_generate_structured_request(self, httpMessage):
-        '''
+        """
         Validates then generates an HTML link to retrieve a structured request.
-        '''
+        """
         json_body = intent_parser_utils.get_json_body(httpMessage)
         http_host = httpMessage.get_header('Host')
         validation_errors = []
@@ -547,13 +550,17 @@ class IntentParserServer:
             validation_errors.append('Unable to get information from Google document.')
         else:
             document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
-            intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+            if 'data' in json_body and 'bookmarks' in json_body['data']:
+                intent_parser = self.intent_parser_factory.create_intent_parser(document_id, bookmarks=json_body['data']['bookmarks'])
+            else:
+                intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
             intent_parser.process()
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
        
         if len(validation_errors) == 0:
             dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings, intent_parser_view.get_download_link(http_host, document_id))
+#             return self._create_http_response(HTTPStatus.OK, json.dumps(intent_parser.get_structured_request()), 'application/json')
         else:
             all_messages = []
             all_messages.extend(validation_warnings)

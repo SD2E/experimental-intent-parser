@@ -35,7 +35,7 @@ class IntentParserTableFactory(object):
     def get_header_row_index(self, intent_parser_table):
         for row_index in range(intent_parser_table.number_of_rows()):
             row = intent_parser_table.get_row(row_index)
-            header_values = {column.get_content() for column in row}
+            header_values = {column.get_text() for column in row}
             if _CONTROLS_TABLE_HEADER.issubset(header_values) \
                 or _MEASUREMENT_TABLE_HEADER.issubset(header_values) \
                 or _PARAMETER_TABLE_HEADER.issubset(header_values):
@@ -50,7 +50,7 @@ class IntentParserTableFactory(object):
             return TableType.UNKNOWN
         
         header_row = intent_parser_table.get_row(header_row_index)
-        header_values = {column.get_content() for column in header_row}
+        header_values = {column.get_text() for column in header_row}
         if _CONTROLS_TABLE_HEADER.issubset(header_values):
             return TableType.CONTROL
         elif _MEASUREMENT_TABLE_HEADER.issubset(header_values):
@@ -69,7 +69,7 @@ class IntentParserTableFactory(object):
             if len(row) != 1:
                 return False 
             for column in row:
-                text = column.get_content().lower()
+                text = column.get_text().lower()
                 if text.startswith('lab'):
                     return True 
         return False 
@@ -90,7 +90,6 @@ class GoogleTableParser(TableParser):
     def __init__(self):
         pass
     
-    # Override
     def parse_table(self, table):
         intent_parser_table = IntentParserTable()
         rows = table['tableRows']
@@ -103,8 +102,8 @@ class GoogleTableParser(TableParser):
         columns = row['tableCells']
         for cell in columns:
             ip_cell = IntentParserCell()
-            for content, link in self._parse_cell(cell):
-                ip_cell.add_paragraph(content, link)
+            for content, link, bookmark_id in self._parse_cell(cell):
+                ip_cell.add_paragraph(content, link, bookmark_id)
             yield ip_cell 
     
     def _parse_cell(self, cell):
@@ -113,8 +112,13 @@ class GoogleTableParser(TableParser):
             paragraph = content['paragraph'] 
             for element in paragraph['elements']:
                 url = None
+                bookmark_id = None 
                 text_run = element['textRun']
-                if 'textStyle' in text_run and 'link' in text_run['textStyle'] and 'url' in text_run['textStyle']['link']:
-                    url = text_run['textStyle']['link']['url']
+                if 'textStyle' in text_run and 'link' in text_run['textStyle']:
+                    link = text_run['textStyle']['link']
+                    if 'url' in link:
+                        url = link['url']
+                    if 'bookmarkId' in link:
+                        bookmark_id = link['bookmarkId']
                 result = text_run['content'].strip()
-                yield result, url
+                yield result, url, bookmark_id 

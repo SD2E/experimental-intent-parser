@@ -310,6 +310,10 @@ def sidebar_dialog(htmlMessage):
 
     return action
 
+def open_new_window(link=None):
+    html = "<script>window.open('" + link + "');google.script.host.close();</script>"
+    return modal_dialog(html, 'Validation Passed', 500, 300)
+    
 def valid_request_model_dialog(warnings, link=None):
     text_area_rows = 15
     height = 300

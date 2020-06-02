@@ -2,6 +2,7 @@ from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.table.table_utils as table_utils
 import logging
+from intent_parser.table import intent_parser_table
 
 class MeasurementTable(object):
     """
@@ -25,21 +26,37 @@ class MeasurementTable(object):
         self._table_caption = ''
         self._header_indices = {}
     
-    def process_table(self, control_tables={}):
+    def process_table(self, control_tables={}, bookmarks={}):
         measurements = []
-        self._process_table_caption()
+        control_mappings = self._process_control_mapping(control_tables, bookmarks) 
         for row_index in range(self.TABLE_DATA_ROW_INDEX, self._intent_parser_table.number_of_rows()):
-            measurement_data = self._process_row(row_index, control_tables)
+            measurement_data = self._process_row(row_index, control_mappings)
             if measurement_data:
                 measurements.append(measurement_data)
         return measurements   
     
-    def _process_table_caption(self):
-        cell = self._intent_parser_table.get_cell(self.TABLE_CAPTION_ROW_INDEX, 0)
-        table_name, _ = table_utils.extract_str_after_prefix(cell.get_text())
-        self._table_caption = table_name
+    def _process_control_mapping(self, control_tables, bookmarks):
+        if bookmarks:
+            return self._map_bookmarks_to_captions(control_tables, bookmarks)
+        return self._map_captions_to_control(control_tables)
             
-    def _process_row(self, row_index, control_tables):
+    
+    def _map_captions_to_control(self, control_tables):
+        control_map = {}
+        for table_header,control_data in control_tables.items():
+            if table_header:
+                table_caption = table_utils.extract_table_caption(table_header)
+                control_map[table_caption] = control_data
+        return control_map
+                
+    def _map_bookmarks_to_captions(self, control_tables, bookmarks):
+        control_map = {}
+        for bookmark in bookmarks:
+            if bookmark['text'] in control_tables:
+                control_map[bookmark['id']] = control_tables[bookmark['text']]
+        return control_map
+    
+    def _process_row(self, row_index, control_data):
         row = self._intent_parser_table.get_row(row_index)
         measurement = {}
         content = []
@@ -85,7 +102,7 @@ class MeasurementTable(object):
                 if batch:
                     measurement['batch'] = batch
             elif intent_parser_constants.COL_HEADER_MEASUREMENT_CONTROL == cell_type:
-                controls = self._process_control(cell, control_tables)
+                controls = self._process_control(cell, control_data)
                 if controls:
                     measurement['controls'] = controls
             else:
@@ -157,16 +174,29 @@ class MeasurementTable(object):
         return [int(value) for value in table_utils.extract_number_value(text)] 
     
     def _process_control(self, cell, control_tables):
-        text = cell.get_text()
+        result = [] 
+        if cell.get_bookmark_ids():
+            result = self._process_control_with_bookmarks(cell, control_tables)
+        if not result:
+            return self._process_control_with_captions(cell, control_tables)
+        return result
+    
+    def _process_control_with_bookmarks(self, cell, control_tables):
         controls = []
-        for ref_table in table_utils.extract_name_value(text):
-            if ref_table not in control_tables:
-                err = '%s did not refer to any control table in this document' % ref_table
-                message = 'Measurement table has invalid %s value: %s.' % (intent_parser_constants.COL_HEADER_MEASUREMENT_CONTROL, err)
-                self._validation_errors.append(message)
-                return [] 
-            controls.append(control_tables[ref_table])
+        for bookmark_id in cell.get_bookmark_ids():
+            if bookmark_id in control_tables:
+                for control in control_tables[bookmark_id]:
+                    controls.append(control)
         return controls
+    
+    def _process_control_with_captions(self, cell, control_tables):
+        controls = []
+        for table_caption in table_utils.extract_name_value(cell.get_text()):
+            canonicalize_caption = ''.join(table_caption.lower().split())
+            if canonicalize_caption in control_tables:
+                for control in control_tables[canonicalize_caption]:
+                    controls.append(control)
+        return controls       
            
     def _process_file_type(self, cell):
         file_type = cell.get_text()

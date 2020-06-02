@@ -601,11 +601,23 @@ function reportIssues(){
 }
 
 function sendValidateStructuredRequest() {
-  sendPost('/validateStructuredRequest')
+  sendPost('/validateStructuredRequest', getBookmarks())
 }
 
 function sendGenerateStructuredRequest() {
-  sendPost('/generateStructuredRequest')
+	sendPost('/generateStructuredRequest', getBookmarks())
+}
+
+function getBookmarks(){
+	var doc = DocumentApp.getActiveDocument()
+	var bookmarks = doc.getBookmarks()
+	var result = []
+	for(var bookmark of bookmarks){
+        var bookmark_id = bookmark.getId()
+		var bookmark_text = bookmark.getPosition().getElement().asText().getText()
+        result.push({id:bookmark_id, text: bookmark_text})
+	}
+	return {'bookmarks': result}
 }
 
 function addToSynBioHub() {

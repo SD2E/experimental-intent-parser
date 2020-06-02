@@ -15,9 +15,9 @@ class LabTable(object):
         self._validation_warnings = []
         self._intent_parser_table = intent_parser_table
        
-    def process_table(self, table):
-        for row_index in range(table.number_of_rows()):
-            self._process_row(table[row_index])
+    def process_table(self):
+        for row_index in range(self._intent_parser_table.number_of_rows()):
+            self._process_row(row_index)
         
         result = {}
         if 'lab' not in self._lab_content:

@@ -309,7 +309,8 @@ class IntentParser(object):
                                            self.catalog_accessor.get_time_units()) 
             controls_data = controls_table.process_table()
             table_caption = controls_table.get_table_caption()
-            ref_controls[table_caption] = controls_data
+            if table_caption:
+                ref_controls[table_caption] = controls_data
             self.validation_errors.extend(controls_table.get_validation_errors())
             self.validation_warnings.extend(controls_table.get_validation_warnings())
         return ref_controls
@@ -321,15 +322,15 @@ class IntentParser(object):
             lab_content['lab'] = lab
             lab_content['experiment_id'] = 'experiment.%s.TBD' % lab 
             message = ('There is no lab table specified in this experiment.')
-            self._logger.warning(message)
+            self.logger.warning(message)
         else:    
             if len(lab_tables) > 1: 
-                message = ('There are more than one lab table specified in this experiment.'
-                       'Only the first lab table identified in the document will be used for generating a request.')
-                self._logger.warning(message)
-            table = lab_tables[0]
-            lab_table = LabTable()
-            lab_content = lab_table.process_table(table)
+                message = ('There is more than one lab table specified in this experiment.' 
+                           'Only the last lab table identified in the document will be used for generating a request.')
+                self.logger.warning(message)
+            table = lab_tables[-1]
+            lab_table = LabTable(table)
+            lab_content = lab_table.process_table()
             self.validation_errors.extend(lab_table.get_validation_errors())
             self.validation_warnings.extend(lab_table.get_validation_warnings())
         return lab_content 
@@ -340,16 +341,16 @@ class IntentParser(object):
             return measurements 
         if len(measurement_tables) > 1: 
                 message = ('There are more than one lab table specified in this experiment.'
-                       'Only the first lab table identified in the document will be used for generating a request.')
+                       'Only the last lab table identified in the document will be used for generating a request.')
                 self.validation_warnings.extend(message)
-        table = measurement_tables[0]
+        table = measurement_tables[-1]
         meas_table = MeasurementTable(table, 
                                       self.catalog_accessor.get_temperature_units(), 
                                       self.catalog_accessor.get_time_units(), 
                                       self.catalog_accessor.get_fluid_units(), 
                                       self.catalog_accessor.get_measurement_types(), 
                                       self.catalog_accessor.get_file_types())
-        measurement_data = meas_table.process_table(ref_controls)
+        measurement_data = meas_table.process_table(control_tables=ref_controls, bookmarks=self.lab_experiment.bookmarks())
         measurements.append({ 'measurements' : measurement_data})
         self.validation_errors.extend(meas_table.get_validation_errors())
         self.validation_warnings.extend(meas_table.get_validation_warnings())
@@ -362,10 +363,10 @@ class IntentParser(object):
         
         if len(parameter_tables) > 1:
             message = ('There are more than one parameter table specified in this experiment.'
-                       'Only the first parameter table identified in the document will be used for generating a request.')
-            self._logger.warning(message)
+                       'Only the last parameter table identified in the document will be used for generating a request.')
+            self.logger.warning(message)
         try:
-            table = parameter_tables[0]
+            table = parameter_tables[-1]
             parameter_table = ParameterTable(self.sbol_dictionary.get_strateos_mappings())
             parameter = parameter_table.parse_table(table)
             parameter_data.append(parameter)
