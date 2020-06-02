@@ -106,7 +106,20 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEquals(1, len(meas_result))
         self.assertEqual(1, len(meas_result[0]['strains']))
         self.assertEqual('AND_00', meas_result[0]['strains'][0]) 
-        
+    
+    def test_strains_using_uri_as_string(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'strains\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1\n'}}]}}]}]}]
+        } 
+    
+        meas_table = MeasurementTable()
+        meas_result = meas_table.parse_table(input_table)
+        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result[0]['strains']))
+        self.assertEqual('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', meas_result[0]['strains'][0])    
         
     def test_table_with_3_strains(self):
         input_table = {'tableRows': [
