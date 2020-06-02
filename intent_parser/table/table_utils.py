@@ -141,15 +141,22 @@ def is_name(cell):
             return False
     return True
 
-def extract_table_caption(cell):
-    tokens = _tokenize(cell, keep_space=False)
-    caption = []
-    for token in tokens:
-        if _get_token_type(token) == 'SEPARATOR' and _get_token_value(token) == ':':
-            break
-        caption.append(token)
-    return ''.join([_get_token_value(token) for token in caption]).strip() 
+def is_table_caption(cell_text):
+    tokens = _tokenize(cell_text, keep_space=False)
+    if len(tokens) < 2:
+        return False 
+  
+    if _get_token_type(tokens[0]) != 'NAME' or _get_token_type(tokens[1]) != 'NUMBER':
+        return False
     
+    if _get_token_value(tokens[0]) not in {'Table', 'table'}:
+        return False 
+    
+    return True
+
+def extract_table_caption(cell_text):
+    tokens = _tokenize(cell_text, keep_space=False)
+    return 'table%s' % _get_token_value(tokens[1]) 
 
 def extract_str_after_prefix(cell, seperator_type=':'):
     """
@@ -293,7 +300,7 @@ def parse_and_append_named_value_unit(cell_txt, unit_type, unit_list):
         name = _get_token_value(tokens[index]) 
         value = _get_token_value(tokens[index+1]) 
         unit = _get_token_value(tokens[index+2]) 
-        
+        index = index + 3
         yield name, value, unit
 
 def parse_and_append_value_unit(cell_txt, cell_type, unit_list):

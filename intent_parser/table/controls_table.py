@@ -21,7 +21,6 @@ class ControlsTable(object):
         self._validation_warnings = []
         self._intent_parser_table = intent_parser_table 
         self._table_caption = ''
-        self._header_indices = {}
     
     def get_table_caption(self):
         return self._table_caption
@@ -36,18 +35,20 @@ class ControlsTable(object):
     
     def _process_table_caption(self):
         cell = self._intent_parser_table.get_cell(self.TABLE_CAPTION_ROW_INDEX, 0)
-        table_name, _ = table_utils.extract_str_after_prefix(cell.get_text())
-        self._table_caption = table_name
+        if table_utils.is_table_caption(cell.get_text()):
+            self._table_caption = cell.get_text()
          
     def _process_row(self, row_index):
         row = self._intent_parser_table.get_row(row_index)
         control_data = {}
+        timepoint = None 
         for cell_index in range(len(row)):
             cell = self._intent_parser_table.get_cell(row_index, cell_index)
             # Cell type based on column header
             header_cell = self._intent_parser_table.get_cell(self.TABLE_HEADER_ROW_INDEX, cell_index)
             cell_type = header_cell.get_text()
-            
+            if not cell.get_text() :
+                continue
             if intent_parser_constants.COL_HEADER_CONTROL_TYPE == cell_type:
                 control_type = self._process_control_type(cell)
                 if control_type:
@@ -59,16 +60,20 @@ class ControlsTable(object):
             elif intent_parser_constants.COL_HEADER_CONTROL_CHANNEL == cell_type:
                 channel = self._process_channels(cell)
                 if channel:
-                    control_data['channels'] = channel
+                    control_data['channel'] = channel
             elif intent_parser_constants.COL_HEADER_CONTROL_CONTENT == cell_type:
                 contents = self._process_contents(cell)
                 if contents:
                     control_data['contents'] = contents
             elif intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT == cell_type:
                 timepoint = self._process_timepoint(cell)
-                if timepoint:
-                    control_data['timepoints'] = timepoint
-        
+                control_data['timepoints'] = timepoint 
+                
+#         if timepoint and 'contents' in control_data:
+#             contents = control_data['contents']
+#             for content in contents:
+#                 content['timepoints'] = timepoint
+             
         return control_data 
     
     def _process_channels(self, cell):
@@ -78,7 +83,7 @@ class ControlsTable(object):
                        'Identified %s as a numerical value when ' 
                        'expecting alpha-numeric values.') % (intent_parser_constants.COL_HEADER_CONTROL_CHANNEL, cell_content)
             self._validation_errors.append(message)
-            return []
+            return None  
         list_of_channels = [value for value in table_utils.extract_name_value(cell_content)]
         if len(list_of_channels) > 1:
             message = ('Controls table for %s has more than one channel provided. '
@@ -95,7 +100,7 @@ class ControlsTable(object):
                 url = text_with_urls[name]
             content_name = {'label' : name, 'sbh_uri' : url} 
             content = {'name' : content_name, 
-                       'value' : float(value), 
+                       'value' : value, 
                        'unit' : unit}
             list_of_contents.append(content)
         return list_of_contents
@@ -116,18 +121,26 @@ class ControlsTable(object):
             err = '%s does not match one of the following control types: \n %s' % (control_type, ' ,'.join((map(str, self._control_types))))
             message = 'Controls table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_CONTROL_TYPE, err)
             self._validation_errors.append(message)
-            return []
+            return None 
         return control_type
 
     def _process_timepoint(self, cell):
         cell_content = cell.get_text()
-        timepoint = []
+        result = []
         try:
-            timepoint = table_utils.parse_and_append_value_unit(cell_content, 'timepoints', self._timepoint_units)
+            timepoints = table_utils.parse_and_append_value_unit(cell_content, 'timepoints', self._timepoint_units)
+            if not timepoints:
+                return [] 
+            if len(timepoints) > 1:
+                message = ('Controls table for %s has more than one timepoint provided. '
+                       'Only the first timepoint will be used from %s.') % (intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT, cell_content)
+                self._logger.warning(message)
+            result = timepoints
+            
         except TableException as err:
             message = 'Controls table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_CONTROL_TYPE, err.get_message())
             self._validation_errors.append(message)
-        return timepoint
+        return result
         
     def get_validation_errors(self):
         return self._validation_errors

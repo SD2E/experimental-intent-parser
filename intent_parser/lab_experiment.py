@@ -10,8 +10,9 @@ class LabExperiment(object):
         - Microsoft Word Document 
     """
     
-    def __init__(self, document_id):
+    def __init__(self, document_id, bookmarks):
         self._document_id = document_id
+        self._bookmarks = bookmarks
     
     def load_from_google_doc(self):
         try:
@@ -58,6 +59,9 @@ class LabExperiment(object):
     
     def head_revision(self):
         return self._head_revision
+    
+    def bookmarks(self):
+        return self._bookmarks
     
     def _get_paragraph_from_doc(self, doc):
         body = doc.get('body');
