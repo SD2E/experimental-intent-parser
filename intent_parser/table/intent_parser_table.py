@@ -1,4 +1,4 @@
-from intent_parser.table import table_utils
+import intent_parser.table.cell_parser as cell_parser
 
 class IntentParserTable(object):
     """
@@ -18,8 +18,8 @@ class IntentParserTable(object):
         row = self.get_row(self._caption_index)
         for col_index in range(len(row)):
             cell = self.get_cell(self._caption_index, col_index)
-            if table_utils.is_table_caption(cell.get_text()):
-                return table_utils.extract_table_caption(cell.get_text())
+            if cell_parser.PARSER.is_table_caption(cell):
+                return cell_parser.PARSER.process_table_caption(cell)
         return ''
     
     def caption_row_index(self):

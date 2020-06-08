@@ -96,10 +96,6 @@ def is_table_caption(cell_text):
     
     return True
 
-def extract_table_caption(cell_text):
-    tokens = _tokenize(cell_text, keep_space=False)
-    return 'table%s' % _get_token_value(tokens[1]) 
-
 def extract_str_after_prefix(cell, seperator_type=':'):
     """
     Parses a given cell with a specified prefix.
