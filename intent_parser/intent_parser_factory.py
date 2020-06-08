@@ -14,7 +14,7 @@ class IntentParserFactory(object):
     def create_lab_experiment(self, document_id, bookmarks={}, local_file_path=None): 
         lab_experiment = LabExperiment(document_id, bookmarks)
         if local_file_path:
-            lab_experiment.load_from_local_docx_file(local_file_path) 
+            pass 
         else:  
             lab_experiment.load_from_google_doc()
         return lab_experiment

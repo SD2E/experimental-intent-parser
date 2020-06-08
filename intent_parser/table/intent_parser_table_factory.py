@@ -2,6 +2,7 @@ from enum import Enum
 from intent_parser.constants import intent_parser_constants
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table import IntentParserTable
+import intent_parser.table.table_utils as table_utils
 
 _MEASUREMENT_TABLE_HEADER = {intent_parser_constants.COL_HEADER_REPLICATE,
                              intent_parser_constants.COL_HEADER_STRAIN,
@@ -31,7 +32,14 @@ class IntentParserTableFactory(object):
         
     def from_google_doc(self, table):
         return self._google_table_parser.parse_table(table)
-             
+    
+    def get_caption_row_index(self, intent_parser_table):
+        for row_index in range(intent_parser_table.number_of_rows()):
+            cell = intent_parser_table.get_cell(row_index, 0)
+            if table_utils.is_table_caption(cell.get_text()):
+                return row_index
+        return None 
+        
     def get_header_row_index(self, intent_parser_table):
         for row_index in range(intent_parser_table.number_of_rows()):
             row = intent_parser_table.get_row(row_index)
@@ -40,24 +48,22 @@ class IntentParserTableFactory(object):
                 or _MEASUREMENT_TABLE_HEADER.issubset(header_values) \
                 or _PARAMETER_TABLE_HEADER.issubset(header_values):
                 return row_index
-        return -1
+        return None  
     
     def get_table_type(self, intent_parser_table):    
         header_row_index = self.get_header_row_index(intent_parser_table)
-        if header_row_index == -1:
-            if self._lab_table(intent_parser_table):
-                return TableType.LAB
-            return TableType.UNKNOWN
+        if header_row_index:
+            header_row = intent_parser_table.get_row(header_row_index)
+            header_values = {column.get_text() for column in header_row}
+            if _CONTROLS_TABLE_HEADER.issubset(header_values):
+                return TableType.CONTROL
+            elif _MEASUREMENT_TABLE_HEADER.issubset(header_values):
+                return TableType.MEASUREMENT 
+            elif _PARAMETER_TABLE_HEADER.issubset(header_values):
+                return TableType.PARAMETER
         
-        header_row = intent_parser_table.get_row(header_row_index)
-        header_values = {column.get_text() for column in header_row}
-        if _CONTROLS_TABLE_HEADER.issubset(header_values):
-            return TableType.CONTROL
-        elif _MEASUREMENT_TABLE_HEADER.issubset(header_values):
-            return TableType.MEASUREMENT 
-        elif _PARAMETER_TABLE_HEADER.issubset(header_values):
-            return TableType.PARAMETER
-        
+        if self._lab_table(intent_parser_table):
+            return TableType.LAB
         return TableType.UNKNOWN
     
     def _lab_table(self, intent_parser_table):
@@ -73,12 +79,7 @@ class IntentParserTableFactory(object):
                 if text.startswith('lab'):
                     return True 
         return False 
-            
-    def _header_row(self, intent_parser_table):
-        pass 
-     
-    def _set_title(self, intent_parser_table):
-        pass
+
         
         
 class TableParser(object):

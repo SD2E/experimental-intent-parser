@@ -2,7 +2,6 @@ from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.table.table_utils as table_utils
 import logging
-from intent_parser.table import intent_parser_table
 
 class MeasurementTable(object):
     """
@@ -10,9 +9,6 @@ class MeasurementTable(object):
     """
     _logger = logging.getLogger('intent_parser')
     IGNORE_COLUMNS = [intent_parser_constants.COL_HEADER_SAMPLES, intent_parser_constants.COL_HEADER_NOTES]
-    TABLE_CAPTION_ROW_INDEX = 0
-    TABLE_HEADER_ROW_INDEX = 1
-    TABLE_DATA_ROW_INDEX = 2
     
     def __init__(self, intent_parser_table, temperature_units={}, timepoint_units={}, fluid_units={}, measurement_types={}, file_type={}):
         self._temperature_units = temperature_units
@@ -24,12 +20,12 @@ class MeasurementTable(object):
         self._validation_warnings = []
         self._intent_parser_table = intent_parser_table 
         self._table_caption = ''
-        self._header_indices = {}
     
     def process_table(self, control_tables={}, bookmarks={}):
         measurements = []
+        self._table_caption = self._intent_parser_table.caption()
         control_mappings = self._process_control_mapping(control_tables, bookmarks) 
-        for row_index in range(self.TABLE_DATA_ROW_INDEX, self._intent_parser_table.number_of_rows()):
+        for row_index in range(self._intent_parser_table.data_row_index(), self._intent_parser_table.number_of_rows()):
             measurement_data = self._process_row(row_index, control_mappings)
             if measurement_data:
                 measurements.append(measurement_data)
@@ -43,9 +39,8 @@ class MeasurementTable(object):
     
     def _map_captions_to_control(self, control_tables):
         control_map = {}
-        for table_header,control_data in control_tables.items():
-            if table_header:
-                table_caption = table_utils.extract_table_caption(table_header)
+        for table_caption,control_data in control_tables.items():
+            if table_caption:
                 control_map[table_caption] = control_data
         return control_map
                 
@@ -63,7 +58,7 @@ class MeasurementTable(object):
         for cell_index in range(len(row)):
             cell = self._intent_parser_table.get_cell(row_index, cell_index)
             # Cell type based on column header
-            header_cell = self._intent_parser_table.get_cell(self.TABLE_HEADER_ROW_INDEX, cell_index)
+            header_cell = self._intent_parser_table.get_cell(self._intent_parser_table.header_row_index(), cell_index)
             cell_type = header_cell.get_text()
             
             if not cell.get_text() or cell_type in self.IGNORE_COLUMNS:

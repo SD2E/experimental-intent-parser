@@ -34,28 +34,6 @@ def parse_cell(cell):
         flatten_content = ''.join(list_of_contents)
         yield flatten_content, url
 
-def detect_lab_table(table):
-    """
-    Determine if the given table is a lab table, defining the lab to run measurements.
-    """
-    rows = table['tableRows']
-    num_rows = len(rows)
-    has_lab = False
-    num_cols = 1
-    for row_index in range(len(rows)):
-        curr_row = rows[row_index]
-        cells = curr_row['tableCells']
-        if len(cells) != 1:
-            num_cols = len(cells)
-        for cell_index in range(len(cells)):
-            cell_content = cells[cell_index]['content'][0]['paragraph']
-            value = intent_parser_utils.get_paragraph_text(cell_content)
-            canonicalize_value = value.lower()
-            if canonicalize_value.startswith('lab'):
-                has_lab = True
-    return num_rows > 0 and num_cols == 1 and has_lab 
-
-
 def detect_new_measurement_table(table):
     """
     Scan the header row to see if it contains what we expect in a new-style measurements table.
@@ -76,42 +54,6 @@ def detect_new_measurement_table(table):
 
     return found_replicates and found_strain and found_measurement_type and found_file_type
 
-def detect_parameter_table(table):
-    has_parameter_field = False
-    has_parameter_value = False 
-    rows = table['tableRows']
-    headerRow = rows[0]
-    for cell in headerRow['tableCells']:
-        cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
-        if cellTxt == intent_parser_constants.COL_HEADER_PARAMETER:
-            has_parameter_field = True
-        elif cellTxt == intent_parser_constants.COL_HEADER_PARAMETER_VALUE:
-            has_parameter_value = True
-    return has_parameter_field and has_parameter_value
-
-def detect_controls_table(table):
-    has_channel = False
-    has_control_type = False 
-    has_strains = False 
-    has_contents = False
-    has_timepoints = False
-    
-    rows = table['tableRows']
-    headerRow = rows[1]
-    for cell in headerRow['tableCells']:
-        cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
-        if cellTxt == intent_parser_constants.COL_HEADER_CONTROL_CHANNEL:
-            has_channel = True
-        elif cellTxt == intent_parser_constants.COL_HEADER_CONTROL_TYPE:
-            has_control_type = True
-        elif cellTxt == intent_parser_constants.COL_HEADER_CONTROL_STRAINS:
-            has_strains = True
-        elif cellTxt == intent_parser_constants.COL_HEADER_CONTROL_CONTENT:
-            has_contents = True
-        elif cellTxt == intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT:
-            has_timepoints = True
-    return has_channel and has_control_type and has_strains and has_contents and has_timepoints
-    
 def is_number(cell):
     """
     Check if the cell only contains numbers.
@@ -255,7 +197,9 @@ def parse_reagent_header(cell_txt, unit_list, unit_type):
     Raises:
         TableException: 
     """
-    tokens = _tokenize(cell_txt) 
+    tokens = _tokenize(cell_txt, 
+                       name_specification='[^\t \d,:][^ \t,@]*', 
+                       seperator_specification='[,@]') 
     tokens = [token for token in tokens if _get_token_type(token) not in ['SKIP']]
     
     if len(tokens) != 1 and len(tokens) != 4:

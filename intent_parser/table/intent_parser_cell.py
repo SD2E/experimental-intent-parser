@@ -6,6 +6,7 @@ class IntentParserCell(object):
 
     def __init__(self):
         self.paragraphs = []
+        self.properties = {} 
     
     def add_paragraph(self, content, link=None, bookmark_id=None):
         self.paragraphs.append(self.Paragraph(content, link, bookmark_id))
@@ -26,7 +27,5 @@ class IntentParserCell(object):
             self.link = link
             self.bookmark_id = bookmark_id
             
-
-
-        
+  
         

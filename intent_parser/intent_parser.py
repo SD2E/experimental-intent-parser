@@ -42,6 +42,7 @@ class IntentParser(object):
         self.request = {} 
         self.validation_errors = []
         self.validation_warnings = []
+        self.ip_table_factory = IntentParserTableFactory()
        
     def process(self):
         self._generate_request()
@@ -316,11 +317,10 @@ class IntentParser(object):
         return ref_controls
     
     def _process_lab_table(self, lab_tables):
-        lab_content = {}
+        default_lab = 'tacc'
+        lab_content = {'lab': default_lab, 
+                       'experiment_id' : 'experiment.%s.TBD' % default_lab}
         if not lab_tables:
-            lab = 'tacc'
-            lab_content['lab'] = lab
-            lab_content['experiment_id'] = 'experiment.%s.TBD' % lab 
             message = ('There is no lab table specified in this experiment.')
             self.logger.warning(message)
         else:    
@@ -340,8 +340,8 @@ class IntentParser(object):
         if not measurement_tables:
             return measurements 
         if len(measurement_tables) > 1: 
-                message = ('There are more than one lab table specified in this experiment.'
-                       'Only the last lab table identified in the document will be used for generating a request.')
+                message = ('There are more than one measurement table specified in this experiment.'
+                       'Only the last measurement table identified in the document will be used for generating a request.')
                 self.validation_warnings.extend(message)
         table = measurement_tables[-1]
         meas_table = MeasurementTable(table, 
@@ -368,7 +368,7 @@ class IntentParser(object):
         try:
             table = parameter_tables[-1]
             parameter_table = ParameterTable(self.sbol_dictionary.get_strateos_mappings())
-            parameter = parameter_table.parse_table(table)
+            parameter = parameter_table.process_table(table)
             parameter_data.append(parameter)
             self.validation_errors.extend(parameter_table.get_validation_errors())
         except DictionaryMaintainerException as err:
@@ -376,15 +376,21 @@ class IntentParser(object):
         return parameter_data 
                         
     def _sort_tables(self):
-        ip_table_factory = IntentParserTableFactory()
         list_of_tables = self.lab_experiment.tables()
         measurement_tables = []
         lab_tables = []
         parameter_tables = []
         control_tables = []
         for table in list_of_tables:
-            ip_table = ip_table_factory.from_google_doc(table) 
-            table_type = ip_table_factory.get_table_type(ip_table)
+            ip_table = self.ip_table_factory.from_google_doc(table) 
+            caption_index = self.ip_table_factory.get_caption_row_index(ip_table)
+            header_index = self.ip_table_factory.get_header_row_index(ip_table)
+            if caption_index is not None:
+                ip_table.set_caption_row_index(caption_index)
+            if header_index is not None:
+                ip_table.set_header_row_index(header_index)
+                    
+            table_type = self.ip_table_factory.get_table_type(ip_table)
             if table_type == TableType.CONTROL:
                 control_tables.append(ip_table)
             elif table_type == TableType.LAB:
