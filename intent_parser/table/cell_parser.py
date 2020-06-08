@@ -109,6 +109,12 @@ class CellParser(object):
                 raise TableException('%s is not a valid timepoint unit.' % timepoint_unit)
         return content
     
+    def process_table_caption(self, cell):
+        tokens = self._table_tokenizer.tokenize(cell.get_text(), keep_space=False, keep_skip=False)
+        table_keyword = self._get_token_value(tokens[0]).lower()
+        table_value = self._get_token_value(tokens[1])
+        return ''.join([table_keyword, table_value]) 
+        
     def process_values_unit(self, cell, units={}, unit_type=None):
         """
         Parses the content of a cell to identify its value and unit. 
@@ -197,7 +203,6 @@ class CellParser(object):
     def _get_name(self, tokens):
         name = ' '.join([self._get_token_value(token) for token in tokens])
         return name  
-        
     
     def _get_token_type(self, token):
         return token[0]
@@ -358,6 +363,7 @@ class _Parser(_Tokenizer):
             ),
             ('NAME', _make_regex([_TokenMatcher('(NAME|SEPARATOR|SKIP)', qualifier='+')])),
             ('NUMBER', _make_regex([_TokenMatcher('NUMBER', qualifier='+')])),
+            ('TABLE', _make_regex([_TokenMatcher('KEYWORD', qualifier='+')])),
             # Fall through if none match
             ('NOT_DEFINED', _make_regex([_AnyMatcher()], qualifier='+'))
         ]

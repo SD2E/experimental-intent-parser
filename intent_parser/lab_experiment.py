@@ -10,7 +10,7 @@ class LabExperiment(object):
         - Microsoft Word Document 
     """
     
-    def __init__(self, document_id, bookmarks):
+    def __init__(self, document_id, bookmarks={}):
         self._document_id = document_id
         self._bookmarks = bookmarks
     
