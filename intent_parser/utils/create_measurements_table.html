@@ -39,6 +39,7 @@
                         'timepoint' : theForm.timepoint.checked,
                         'ods' : theForm.ods.checked,
                         'batch' : theForm.batch.checked,
+                        'controls' : theForm.control.checked,
                         'notes' : theForm.notes.checked,
                         'numRows' : theForm.num_rows.value};
         formInfo.extra = extra;
@@ -124,7 +125,13 @@
         <tr>
           <th align="right">Batch: </th>
           <td>
-            <input type="checkbox" name="batch" title="Check to add a column for batch.  Comma separated lists are accepted.">
+            <input type="checkbox" name="batch" title="Check to add a column for batch. Comma separated lists are accepted.">
+          </td>
+        </tr>
+        <tr>
+          <th align="right">Control: </th>
+          <td>
+            <input type="checkbox" name="control" title="Check to add a column for control. Comma separated lists are accepted.">
           </td>
         </tr>
         <tr>

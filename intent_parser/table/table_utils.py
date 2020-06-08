@@ -34,28 +34,6 @@ def parse_cell(cell):
         flatten_content = ''.join(list_of_contents)
         yield flatten_content, url
 
-def detect_lab_table(table):
-    """
-    Determine if the given table is a lab table, defining the lab to run measurements.
-    """
-    rows = table['tableRows']
-    num_rows = len(rows)
-    has_lab = False
-    num_cols = 1
-    for row_index in range(len(rows)):
-        curr_row = rows[row_index]
-        cells = curr_row['tableCells']
-        if len(cells) != 1:
-            num_cols = len(cells)
-        for cell_index in range(len(cells)):
-            cell_content = cells[cell_index]['content'][0]['paragraph']
-            value = intent_parser_utils.get_paragraph_text(cell_content)
-            canonicalize_value = value.lower()
-            if canonicalize_value.startswith('lab'):
-                has_lab = True
-    return num_rows > 0 and num_cols == 1 and has_lab 
-
-
 def detect_new_measurement_table(table):
     """
     Scan the header row to see if it contains what we expect in a new-style measurements table.
@@ -66,7 +44,7 @@ def detect_new_measurement_table(table):
     found_file_type = False
 
     rows = table['tableRows']
-    headerRow = rows[0]
+    headerRow = rows[1]
     for cell in headerRow['tableCells']:
         cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
         found_replicates |= cellTxt == intent_parser_constants.COL_HEADER_REPLICATE 
@@ -75,19 +53,6 @@ def detect_new_measurement_table(table):
         found_file_type |= cellTxt == intent_parser_constants.COL_HEADER_FILE_TYPE 
 
     return found_replicates and found_strain and found_measurement_type and found_file_type
-
-def detect_parameter_table(table):
-    has_parameter_field = False
-    has_parameter_value = False 
-    rows = table['tableRows']
-    headerRow = rows[0]
-    for cell in headerRow['tableCells']:
-        cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
-        if cellTxt == intent_parser_constants.COL_HEADER_PARAMETER:
-            has_parameter_field = True
-        elif cellTxt == intent_parser_constants.COL_HEADER_PARAMETER_VALUE:
-            has_parameter_value = True
-    return has_parameter_field and has_parameter_value
 
 def is_number(cell):
     """
@@ -118,15 +83,18 @@ def is_name(cell):
             return False
     return True
 
-def extract_table_caption(cell):
-    tokens = _tokenize(cell, keep_space=False)
-    caption = []
-    for token in tokens:
-        if _get_token_type(token) == 'SEPARATOR' and _get_token_value(token) == ':':
-            break
-        caption.append(token)
-    return ''.join([_get_token_value(token) for token in caption]).strip() 
+def is_table_caption(cell_text):
+    tokens = _tokenize(cell_text, keep_space=False)
+    if len(tokens) < 2:
+        return False 
+  
+    if _get_token_type(tokens[0]) != 'NAME' or _get_token_type(tokens[1]) != 'NUMBER':
+        return False
     
+    if _get_token_value(tokens[0]) not in {'Table', 'table'}:
+        return False 
+    
+    return True
 
 def extract_str_after_prefix(cell, seperator_type=':'):
     """
@@ -208,6 +176,40 @@ def extract_name_value(cell):
     
     return result
 
+
+def parse_reagent_header(cell_txt, unit_list, unit_type):
+    """
+    Parses the content of a cell to get a name, followed by a value, followed by a unit.
+    The content must have the following format (ex: IPTG @ 40 hours or IPTG)
+    Args:
+        cell_txt: content of cell
+        unit_type: type of unit for specifying the value
+        unit_list: list of units
+    
+    Returns:
+        name: reagent name
+        value: 
+        unit:
+    Raises:
+        TableException: 
+    """
+    tokens = _tokenize(cell_txt, 
+                       name_specification='[^\t \d,:][^ \t,@]*', 
+                       seperator_specification='[,@]') 
+    tokens = [token for token in tokens if _get_token_type(token) not in ['SKIP']]
+    
+    if len(tokens) != 1 and len(tokens) != 4:
+        raise TableException('%s is not identified as a reagent header' % cell_txt) 
+    name = _get_token_value(tokens[0])
+    value = None
+    unit = None  
+    if len(tokens) == 4:
+        abbrev_units = _abbreviated_unit_dict[unit_type] if unit_type is not None else {}
+        unit = _determine_unit(tokens, _canonicalize_units(unit_list), abbrev_units)
+        value = _get_token_value(tokens[2]) 
+    
+    return name, value, unit
+
 def parse_and_append_named_value_unit(cell_txt, unit_type, unit_list):
     """
     Parses the content of a cell to get a name, followed by a value, followed by a unit.
@@ -240,7 +242,7 @@ def parse_and_append_named_value_unit(cell_txt, unit_type, unit_list):
         name = _get_token_value(tokens[index]) 
         value = _get_token_value(tokens[index+1]) 
         unit = _get_token_value(tokens[index+2]) 
-        
+        index = index + 3
         yield name, value, unit
 
 def parse_and_append_value_unit(cell_txt, cell_type, unit_list):

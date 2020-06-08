@@ -62,6 +62,9 @@ COL_HEADER_STRAIN = 'strains'
 COL_HEADER_TEMPERATURE = 'temperature'
 COL_HEADER_TIMEPOINT = 'timepoint'
 
+COL_HEADER_LAB = 'lab'
+COL_HEADER_EXPERIMENT_ID = 'experiment_id'
+
 COL_HEADER_PARAMETER = 'Parameter'
 COL_HEADER_PARAMETER_VALUE = 'Value'
 

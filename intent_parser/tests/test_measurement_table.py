@@ -1,11 +1,18 @@
+from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.measurement_table import MeasurementTable
+from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
 import unittest
 
 class MeasurementTableTest(unittest.TestCase):
     """
     Test parsing information from a measurement table.
     """
-                
+    def setUp(self):
+        self.ip_table_factory = IntentParserTableFactory()
+
+    def tearDown(self):
+        pass
+              
     def test_table_with_measurement_type(self):
         input_table = {'tableRows': [
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
@@ -13,9 +20,10 @@ class MeasurementTableTest(unittest.TestCase):
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
                 'content': 'FLOW\n'}}]}}]}]}]
         } 
-    
-        meas_table = MeasurementTable(measurement_types={'PLATE_READER', 'FLOW'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'})
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         self.assertEquals(meas_result[0]['measurement_type'], 'FLOW')
 
@@ -27,8 +35,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
         self.assertEquals(0, len(meas_result))
     
     def test_table_with_file_type(self):
@@ -38,9 +48,10 @@ class MeasurementTableTest(unittest.TestCase):
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
                 'content': 'FASTQ\n'}}]}}]}]}]
         } 
-    
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        meas_table = MeasurementTable(ip_table)
+        ip_table.set_header_row_index(0)
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         self.assertEquals(1, len(meas_result[0]['file_type']))
         self.assertEquals(meas_result[0]['file_type'][0], 'FASTQ')  
@@ -53,8 +64,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '3\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         self.assertEquals(meas_result[0]['replicates'], 3) 
         
@@ -66,9 +79,12 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '1,2,3\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
-        self.assertEquals(0, len(meas_result))
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
+        self.assertEquals(1, len(meas_result))
+        self.assertEquals(meas_result[0]['replicates'], 1) 
     
     def test_table_with_1_strain(self):
         input_table = {'tableRows': [
@@ -78,8 +94,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': 'AND_00\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         self.assertEqual(1, len(meas_result[0]['strains']))
         self.assertEqual('AND_00', meas_result[0]['strains'][0]) 
@@ -91,27 +109,13 @@ class MeasurementTableTest(unittest.TestCase):
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
                 'content': 'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1\n'}}]}}]}]}]
         } 
-    
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         self.assertEqual(1, len(meas_result[0]['strains']))
         self.assertEqual('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', meas_result[0]['strains'][0])    
-        
-    def test_table_with_3_strains(self):
-        input_table = {'tableRows': [
-            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
-                'content': 'strains\n' }}]}}]}]},
-            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
-                'content': 'MG1655, MG1655_LPV3,MG1655_RPU_Standard\n'}}]}}]}]}]
-        } 
-    
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
-        self.assertEquals(1, len(meas_result))
-        
-        exp_res = ['MG1655', 'MG1655_LPV3','MG1655_RPU_Standard']
-        self.assertListEqual(exp_res, meas_result[0]['strains'])
         
     def test_table_with_1_timepoint(self):
         input_table = {'tableRows': [
@@ -121,8 +125,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '3 hour\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable(timepoint_units={'hour'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, timepoint_units={'hour'})
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'value': 3.0, 'unit': 'hour'}
@@ -137,16 +143,18 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '6, 12, 24 hour\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable(timepoint_units={'hour'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, timepoint_units={'hour'})
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'value': 6.0, 'unit': 'hour'}
         exp_res2 = {'value': 12.0, 'unit': 'hour'}
         exp_res3 = {'value': 24.0, 'unit': 'hour'}
         self.assertEquals(3, len(meas_result[0]['timepoints']))
-        for list in meas_result[0]['timepoints']:
-            self.assertFalse(list != exp_res1 and list != exp_res2 and list != exp_res3)
+        for timepoint in meas_result[0]['timepoints']:
+            self.assertFalse(timepoint != exp_res1 and timepoint != exp_res2 and timepoint != exp_res3)
     
     def test_table_with_1_temperature(self):
         input_table = {'tableRows': [
@@ -156,8 +164,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '1 fahrenheit\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable(temperature_units={'fahrenheit'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, temperature_units={'fahrenheit'})
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'value': 1.0, 'unit': 'fahrenheit'}
@@ -172,8 +182,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '1 dummy\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable(temperature_units={'celsius', 'fahrenheit'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, temperature_units={'celsius', 'fahrenheit'})
+        meas_result = meas_table.process_table()
         self.assertEquals(0, len(meas_result))
         
     
@@ -185,16 +197,18 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '3, 2, 1 C\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable(temperature_units={'celsius'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, temperature_units={'celsius'})
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'value': 3.0, 'unit': 'celsius'}
         exp_res2 = {'value': 2.0, 'unit': 'celsius'}
         exp_res3 = {'value': 1.0, 'unit': 'celsius'}
         self.assertEquals(3, len(meas_result[0]['temperatures']))
-        for list in meas_result[0]['temperatures']:
-            self.assertFalse(list != exp_res1 and list != exp_res2 and list != exp_res3)  
+        for temperature in meas_result[0]['temperatures']:
+            self.assertFalse(temperature != exp_res1 and temperature != exp_res2 and temperature != exp_res3)  
              
     def test_table_with_3_temperature(self):
         input_table = {'tableRows': [
@@ -204,16 +218,18 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '3, 2, 1 celsius\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable(temperature_units={'celsius'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, temperature_units={'celsius'})
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'value': 3.0, 'unit': 'celsius'}
         exp_res2 = {'value': 2.0, 'unit': 'celsius'}
         exp_res3 = {'value': 1.0, 'unit': 'celsius'}
         self.assertEquals(3, len(meas_result[0]['temperatures']))
-        for list in meas_result[0]['temperatures']:
-            self.assertFalse(list != exp_res1 and list != exp_res2 and list != exp_res3)  
+        for temperature in meas_result[0]['temperatures']:
+            self.assertFalse(temperature != exp_res1 and temperature != exp_res2 and temperature != exp_res3)  
     
     def test_table_with_samples(self):
         input_table = {'tableRows': [
@@ -223,8 +239,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '5, 10, 15\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
         self.assertEquals(0, len(meas_result))
     
     def test_table_with_notes(self):
@@ -235,8 +253,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': 'A simple string\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
         self.assertEquals(0, len(meas_result))
     
     def test_table_with_1_ods(self):
@@ -247,8 +267,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '3\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         self.assertEquals(1, len(meas_result[0]['ods']))
         self.assertListEqual([3.0], meas_result[0]['ods'])
@@ -261,8 +283,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '33, 22, 11\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         self.assertEquals(3, len(meas_result[0]['ods']))
         self.assertListEqual([33.0, 22.0, 11.0], meas_result[0]['ods'])
@@ -281,8 +305,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '9 mM\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable(fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : reagent_name, 'sbh_uri' : reagent_uri}, 'value' : '9', 'unit' : 'mM'}
@@ -303,8 +329,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '0, 1, 2 micromole\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable(fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : reagent_name, 'sbh_uri' : reagent_uri}, 'value' : '0', 'unit' : 'micromole'}
@@ -327,9 +355,10 @@ class MeasurementTableTest(unittest.TestCase):
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
                 'content': '1 fold\n'}}]}}]}]}]
         } 
-    
-        meas_table = MeasurementTable(fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : reagent_name, 'sbh_uri' : reagent_uri}, 'value' : '1', 'unit' : 'X'}
@@ -350,8 +379,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '11 %\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable(fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : reagent_name, 'sbh_uri' : reagent_uri}, 'value' : '11', 'unit' : '%'}
@@ -370,8 +401,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '11 g/L\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable(fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : reagent_name, 'sbh_uri' : reagent_uri}, 'value' : '11', 'unit' : 'g/L'}
@@ -384,16 +417,19 @@ class MeasurementTableTest(unittest.TestCase):
         input_table = {'tableRows': [
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
                 'content': 'SC_Media @ 18 hour', 'textStyle': {'link': {'url': reagent_uri}}
-                        }}]}}]}]},
+                        }}
+                ]}}]}]},
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
                 'content': '0 M\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable(timepoint_units={'hour'}, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, timepoint_units={'hour'}, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
-        exp_res1 = {'name' : {'label' : 'SC_Media', 'sbh_uri' : reagent_uri}, 'value' : '0', 'unit' : 'M', 
+        exp_res1 = {'name' : {'label' : 'SC_Media', 'sbh_uri' : 'NO PROGRAM DICTIONARY ENTRY'}, 'value' : '0', 'unit' : 'M', 
                     'timepoint' : {'value' : 18.0, 'unit' : 'hour'}}
         self.assertEquals(1, len(meas_result[0]['contents'][0]))
         self.assertEquals(exp_res1, meas_result[0]['contents'][0][0])
@@ -403,14 +439,18 @@ class MeasurementTableTest(unittest.TestCase):
 
         input_table = {'tableRows': [
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
-                'content': 'IPTG @ 40 hours', 'textStyle': {'link': {'url': reagent_uri}}
-                        }}]}}]}]},
+                'content': 'IPTG', 'textStyle': {'link': {'url': reagent_uri}}
+                        }}, {'textRun': {
+                'content': '@ 40 hours'}}
+                ]}}]}]},
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
                 'content': 'NA\n'}}]}}]}]}]
         }
 
-        meas_table = MeasurementTable(timepoint_units={'hour'}, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table, timepoint_units={'hour'}, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
 
         exp_res1 = {'name' : {'label' : 'IPTG', 'sbh_uri' : reagent_uri}, 'value' : 'NA',
@@ -430,8 +470,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': 'sc_media\n'}}]}}]}]}]
         } 
  
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : 'Media', 'sbh_uri' : media_uri}, 'value' : 'sc_media'}
@@ -449,8 +491,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': 'Yeast_Extract_Peptone_Adenine_Dextrose (a.k.a. YPAD Media)\n'}}]}}]}]}]
         } 
  
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : 'media', 'sbh_uri' : 'NO PROGRAM DICTIONARY ENTRY'}, 
@@ -469,8 +513,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': 'Synthetic_Complete_2%Glycerol_2%Ethanol\n'}}]}}]}]}]
         } 
  
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : 'media', 'sbh_uri' : 'NO PROGRAM DICTIONARY ENTRY'}, 'value' : 'Synthetic_Complete_2%Glycerol_2%Ethanol'}
@@ -488,8 +534,10 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': 'SC+Glucose+Adenine+0.8M\n'}}]}}]}]}]
         } 
  
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : 'media', 'sbh_uri' : 'NO PROGRAM DICTIONARY ENTRY'}, 'value' : 'SC+Glucose+Adenine+0.8M'}
@@ -504,10 +552,163 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': '0, 1\n'}}]}}]}]}]
         } 
     
-        meas_table = MeasurementTable()
-        meas_result = meas_table.parse_table(input_table)
+        ip_table = self.ip_table_factory.from_google_doc(input_table)
+        ip_table.set_header_row_index(0)
+        meas_table = MeasurementTable(ip_table)
+        meas_result = meas_table.process_table()
         self.assertEquals(1, len(meas_result))
         self.assertEquals(meas_result[0]['batch'], [0,1])
+        
+    def test_table_with_1_reference_control(self):
+        measurement_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'control\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Table 2\n'}}]}}]}]}]
+        }
+        control_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Table 2: Control\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Control Type\n' }}]}}]}, {'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Strains\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'HIGH_FITC\n'}}]}}]}, {'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'UWBF_25784\n' }}]}}]}]}]
+        }
+        ip_measurement_table = self.ip_table_factory.from_google_doc(measurement_table)
+        ip_measurement_table.set_header_row_index(0)
+        ip_control_table = self.ip_table_factory.from_google_doc(control_table)
+        ip_control_table.set_caption_row_index(0)
+        ip_control_table.set_header_row_index(1)
+        
+        control_parser = ControlsTable(ip_control_table, control_types={'HIGH_FITC'})
+        control_result = control_parser.process_table()
+        
+        measurement_parser = MeasurementTable(ip_measurement_table)
+        meas_result = measurement_parser.process_table(control_tables={control_parser.get_table_caption(): control_result})
+        self.assertEquals(1, len(meas_result))
+        self.assertEquals(1, len(meas_result[0]['controls']))
+        control = meas_result[0]['controls'][0]
+        self.assertEqual(control['type'], 'HIGH_FITC')
+        self.assertListEqual(control['strains'], ['UWBF_25784'])
+    
+    def test_table_with_2_reference_control_in_one_measurement(self): 
+        measurement_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'control\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Table 1, Table 2\n'}}]}}]}]}]
+        }
+        control_table1 = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Table 1: Control\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Control Type\n' }}]}}]}, {'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Strains\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'HIGH_FITC\n'}}]}}]}, {'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'UWBF_25784\n' }}]}}]}]}]
+        }
+        control_table2 = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Table 2: Control\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Control Type\n' }}]}}]}, {'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Strains\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'foo\n'}}]}}]}, {'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'UWBF_6390\n','textStyle': {'link': {'url': 'https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1'}
+                        } }}]}}]}]}]
+        }
+        ip_measurement_table = self.ip_table_factory.from_google_doc(measurement_table)
+        ip_measurement_table.set_header_row_index(0)
+        
+        ip_control_table1 = self.ip_table_factory.from_google_doc(control_table1)
+        ip_control_table1.set_caption_row_index(0)
+        ip_control_table1.set_header_row_index(1)
+        
+        ip_control_table2 = self.ip_table_factory.from_google_doc(control_table2)
+        ip_control_table2.set_caption_row_index(0)
+        ip_control_table2.set_header_row_index(1)
+        
+        control1_parser = ControlsTable(ip_control_table1, control_types={'HIGH_FITC'})
+        control1_result = control1_parser.process_table()
+        control2_parser = ControlsTable(ip_control_table2, control_types={'foo'})
+        control2_result = control2_parser.process_table()
+        
+        measurement_parser = MeasurementTable(ip_measurement_table)
+        meas_result = measurement_parser.process_table(control_tables={control1_parser.get_table_caption(): control1_result,
+                                                                       control2_parser.get_table_caption(): control2_result})
+        self.assertEquals(1, len(meas_result))
+        self.assertEquals(2, len(meas_result[0]['controls']))
+        
+        control1 = meas_result[0]['controls'][0]
+        self.assertEqual(control1['type'], 'HIGH_FITC')
+        self.assertListEqual(control1['strains'], ['UWBF_25784'])
+        control2 = meas_result[0]['controls'][1]
+        self.assertEqual(control2['type'], 'foo')
+        self.assertListEqual(control2['strains'], ['https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1'])
+    
+    def test_table_with_2_reference_control_in_seperate_measurements(self): 
+        measurement_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'control\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Table 1\n'}}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Table 2\n'}}]}}]}]}]
+        }
+        control_table1 = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Table 1: Control\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Control Type\n' }}]}}]}, {'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Strains\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'HIGH_FITC\n'}}]}}]}, {'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'UWBF_25784\n' }}]}}]}]}]
+        }
+        control_table2 = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Table 2: Control\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Control Type\n' }}]}}]}, {'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'Strains\n' }}]}}]}]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'foo\n'}}]}}]}, {'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'UWBF_6390\n','textStyle': {'link': {'url': 'https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1'}
+                        } }}]}}]}]}]
+        }
+        ip_measurement_table = self.ip_table_factory.from_google_doc(measurement_table)
+        ip_measurement_table.set_header_row_index(0)
+        
+        ip_control_table1 = self.ip_table_factory.from_google_doc(control_table1)
+        ip_control_table1.set_caption_row_index(0)
+        ip_control_table1.set_header_row_index(1)
+        
+        ip_control_table2 = self.ip_table_factory.from_google_doc(control_table2)
+        ip_control_table2.set_caption_row_index(0)
+        ip_control_table2.set_header_row_index(1)
+        
+        control1_parser = ControlsTable(ip_control_table1, control_types={'HIGH_FITC'})
+        control1_result = control1_parser.process_table()
+        control2_parser = ControlsTable(ip_control_table2, control_types={'foo'})
+        control2_result = control2_parser.process_table()
+        
+        measurement_parser = MeasurementTable(ip_measurement_table)
+        meas_result = measurement_parser.process_table(control_tables={control1_parser.get_table_caption(): control1_result,
+                                                                       control2_parser.get_table_caption(): control2_result})
+        self.assertEquals(2, len(meas_result))
+        self.assertEquals(1, len(meas_result[0]['controls']))
+        
+        control1 = meas_result[0]['controls'][0]
+        self.assertEqual(control1['type'], 'HIGH_FITC')
+        self.assertListEqual(control1['strains'], ['UWBF_25784'])
+        control2 = meas_result[1]['controls'][0]
+        self.assertEqual(control2['type'], 'foo')
+        self.assertListEqual(control2['strains'], ['https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1'])
+      
         
 if __name__ == '__main__':
     unittest.main()
