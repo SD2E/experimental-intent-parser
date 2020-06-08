@@ -67,7 +67,19 @@ class AnalyzeHtmlBuilder():
         self.html = self.html.replace('${BUTTONS_SCRIPT}', button_script)
     def build(self):
         return self.htm
-       
+
+class ControlsTableHtmlBuilder():
+    def __init__(self):
+        _curr_path = os.path.dirname(os.path.realpath(__file__))
+        html_file = intent_parser_utils.load_file(os.path.join(_curr_path, 'create_controls_table.html'))
+        self.html = html_file  
+    def cursor_child_index_html(self, cursor_child_index):
+        self.html = self.html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
+    def control_types_html(self, control_types_html):
+        self.html = self.html.replace('${CONTROLTYPEOPTIONS}', control_types_html)
+    def build(self):
+        return self.html
+
 class MeasurementTableHtmlBuilder():
     def __init__(self):
         _curr_path = os.path.dirname(os.path.realpath(__file__))
