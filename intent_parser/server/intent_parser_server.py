@@ -418,6 +418,11 @@ class IntentParserServer:
                         reportActions = intent_parser_view.report_spelling_results(client_state)
                         for action in reportActions:
                             result['actions'].append(action)
+            elif action == 'createControlsTable':
+                actions = self.process_controls_table(data)
+                result = {'actions': actions,
+                          'results': {'operationSucceeded': True}
+                }
             elif action == 'createMeasurementTable':
                 actions = self.process_create_measurement_table(data)
                 result = {'actions': actions,
@@ -511,9 +516,9 @@ class IntentParserServer:
         return self._create_http_response(HTTPStatus.OK, '{}', 'application/json')
     
     def process_validate_structured_request(self, httpMessage):
-        '''
+        """
         Generate a structured request from a given document, then run it against the validation.
-        '''
+        """
         json_body = intent_parser_utils.get_json_body(httpMessage)
         validation_errors = []
         validation_warnings = []
@@ -521,7 +526,10 @@ class IntentParserServer:
             validation_errors.append('Unable to get information from Google document.')
         else:
             document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
-            intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+            if 'data' in json_body and 'bookmarks' in json_body['data']:
+                intent_parser = self.intent_parser_factory.create_intent_parser(document_id, bookmarks=json_body['data']['bookmarks'])
+            else:
+                intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
             intent_parser.process()
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
@@ -536,9 +544,9 @@ class IntentParserServer:
         return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
     
     def process_generate_structured_request(self, httpMessage):
-        '''
+        """
         Validates then generates an HTML link to retrieve a structured request.
-        '''
+        """
         json_body = intent_parser_utils.get_json_body(httpMessage)
         http_host = httpMessage.get_header('Host')
         validation_errors = []
@@ -547,7 +555,10 @@ class IntentParserServer:
             validation_errors.append('Unable to get information from Google document.')
         else:
             document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
-            intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+            if 'data' in json_body and 'bookmarks' in json_body['data']:
+                intent_parser = self.intent_parser_factory.create_intent_parser(document_id, bookmarks=json_body['data']['bookmarks'])
+            else:
+                intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
             intent_parser.process()
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
@@ -756,6 +767,7 @@ class IntentParserServer:
         
     def process_create_table_template(self,  httpMessage):
         """
+        Process create table templates.
         """
         try:
             json_body = intent_parser_utils.get_json_body(httpMessage)
@@ -764,7 +776,10 @@ class IntentParserServer:
             table_type = data['tableType']
 
             actionList = []
-            if table_type == 'measurements':
+            if table_type == 'controls':
+                dialog_action = intent_parser_view.create_controls_table_dialog(cursor_child_index)
+                actionList.append(dialog_action)
+            elif table_type == 'measurements':
                 dialog_action = intent_parser_view.create_measurement_table_template(cursor_child_index)
                 actionList.append(dialog_action)
             elif table_type == 'parameters':
@@ -990,7 +1005,6 @@ class IntentParserServer:
         """
         Process create measurement table
         """
-
         lab_data = self.process_lab_table(data)
         num_reagents = int(data['numReagents'])
         has_batch = data['batch']
@@ -998,6 +1012,7 @@ class IntentParserServer:
         has_time = data['timepoint']
         has_ods  = data['ods']
         has_notes = data['notes']
+        has_controls = data['controls']
         num_rows = int(data['numRows'])
         measurement_types = data['measurementTypes']
         file_types = data['fileTypes']
@@ -1008,6 +1023,8 @@ class IntentParserServer:
         if has_temp:
             num_cols += 1
         if has_batch:
+            num_cols += 1
+        if has_controls:
             num_cols += 1
 
         col_sizes = []
@@ -1041,7 +1058,9 @@ class IntentParserServer:
         if has_notes:
             header.append(intent_parser_constants.COL_HEADER_NOTES)
             col_sizes.append(len(intent_parser_constants.COL_HEADER_NOTES) + 1)
-
+        if has_controls:
+            header.append(intent_parser_constants.COL_HEADER_MEASUREMENT_CONTROL)
+            col_sizes.append(len(intent_parser_constants.COL_HEADER_MEASUREMENT_CONTROL) + 1)
         table_data.append(header)
 
         for r in range(num_rows):
@@ -1062,6 +1081,8 @@ class IntentParserServer:
                 measurement_row.append('')
             if has_notes:
                 measurement_row.append('')
+            if has_controls:
+                measurement_row.append('')
             table_data.append(measurement_row)
 
         create_table = {}
@@ -1071,7 +1092,6 @@ class IntentParserServer:
         create_table['tableType'] = 'measurements'
         create_table['tableLab'] = lab_data
         create_table['colSizes'] = col_sizes
-
         return [create_table]
    
     def process_lab_table(self, data):
@@ -1080,6 +1100,34 @@ class IntentParserServer:
         lab_content = [[lab_name], [experiment_id]]
         return lab_content
     
+    def process_controls_table(self, data):
+        table_template = []
+        header_row = [intent_parser_constants.COL_HEADER_CONTROL_TYPE,
+                      intent_parser_constants.COL_HEADER_CONTROL_STRAINS]
+        if data['channel']:
+            header_row.append(intent_parser_constants.COL_HEADER_CONTROL_CHANNEL)
+        if data['content']:
+            header_row.append(intent_parser_constants.COL_HEADER_CONTROL_CONTENT)
+        if data['timepoint']:
+            header_row.append(intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT)
+        
+        # column_offset = column size - # of columns with generated default value
+        column_offset = len(header_row) - 1
+        if data['caption']:
+            table_caption = ['Table 1: Control']
+            table_caption.extend(['' for _ in range(column_offset)])
+            table_template.append(table_caption)
+        table_template.append(header_row)
+        for control_type in data['controlTypes']:
+            curr_row = [control_type]
+            curr_row.extend(['' for _ in range(column_offset)])
+            table_template.append(curr_row)
+        column_width = [len(header) for header in header_row]
+        return intent_parser_view.create_table_template(data['cursorChildIndex'], 
+                                                        table_template, 
+                                                        'controls', 
+                                                        column_width)
+        
     def process_create_parameter_table(self, data):
         selected_protocol = data['protocol']
         table_data = []
@@ -1121,7 +1169,6 @@ class IntentParserServer:
         create_table['cursorChildIndex'] = data['cursorChildIndex']
         create_table['tableData'] = table_data
         create_table['tableType'] = 'parameters'
-        create_table['tableProtocol'] = [["Protocol: %s" % selected_protocol]]
         create_table['colSizes'] = col_sizes
         return [create_table]
     

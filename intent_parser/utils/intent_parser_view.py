@@ -2,11 +2,31 @@
 Contains functionalities for generating views related to intent parser
 """
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
-from intent_parser.utils.html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, MeasurementTableHtmlBuilder, ParameterTableHtmlBuilder
+from intent_parser.utils.html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, ControlsTableHtmlBuilder, MeasurementTableHtmlBuilder, ParameterTableHtmlBuilder
 import logging
 
 logger = logging.getLogger('intent_parser_server')
 
+def create_table_template(position_in_document, table_data, table_type, col_sizes):
+    create_table = {}
+    create_table['action'] = 'addTable'
+    create_table['cursorChildIndex'] = position_in_document
+    create_table['tableData'] = table_data
+    create_table['tableType'] = table_type
+    create_table['colSizes'] = col_sizes
+    return [create_table]
+
+def create_controls_table_dialog(cursor_index):
+    catalog_accessor = CatalogAccessor()
+    control_types_html = generate_html_options(catalog_accessor.get_control_type()) 
+    control_types_html = control_types_html.replace('\n', ' ')
+    builder = ControlsTableHtmlBuilder()
+    builder.cursor_child_index_html(cursor_index) 
+    builder.control_types_html(control_types_html)
+    html = builder.build()
+    dialog_action = modal_dialog(html, 'Create Controls Table', 600, 600)
+    return dialog_action
+    
 def create_parameter_table_template(cursor_child_index, protocol_options):
     html_protocols = generate_html_options(protocol_options)
     builder = ParameterTableHtmlBuilder()
@@ -39,7 +59,6 @@ def create_measurement_table_template(cursor_child_index):
     builder.measurement_types_html(measurement_types_html) 
     builder.file_types_html(file_types_html)
     html = builder.build()
-   
 
     dialog_action = modal_dialog(html, 'Create Measurements Table', 600, 600)
     return dialog_action
@@ -310,6 +329,10 @@ def sidebar_dialog(htmlMessage):
 
     return action
 
+def open_new_window(link=None):
+    html = "<script>window.open('" + link + "');google.script.host.close();</script>"
+    return modal_dialog(html, 'Validation Passed', 500, 300)
+    
 def valid_request_model_dialog(warnings, link=None):
     text_area_rows = 15
     height = 300
