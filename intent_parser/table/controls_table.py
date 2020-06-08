@@ -1,6 +1,6 @@
 from intent_parser.intent_parser_exceptions import TableException
-import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.table.cell_parser as cell_parser
 import intent_parser.table.table_utils as table_utils
 import logging
 
@@ -87,7 +87,6 @@ class ControlsTable(object):
             self._validation_errors.append(message)
             return []
         
-        
     def _process_control_strains(self, cell):
         if cell_parser.PARSER.is_valued_cell(cell):
             message = ('Controls table has invalid %s value: %s' 
@@ -107,22 +106,12 @@ class ControlsTable(object):
         return control_type
 
     def _process_timepoint(self, cell):
-        cell_content = cell.get_text()
-        result = []
         try:
-            timepoints = table_utils.parse_and_append_value_unit(cell_content, 'timepoints', self._timepoint_units)
-            if not timepoints:
-                return [] 
-            if len(timepoints) > 1:
-                message = ('Controls table for %s has more than one timepoint provided. '
-                       'Only the first timepoint will be used from %s.') % (intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT, cell_content)
-                self._logger.warning(message)
-            result = timepoints
-            
+            return cell_parser.PARSER.process_values_unit(cell, self._timepoint_units, 'timepoints')
         except TableException as err:
             message = 'Controls table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_CONTROL_TYPE, err.get_message())
             self._validation_errors.append(message)
-        return result
+            return []
         
     def get_validation_errors(self):
         return self._validation_errors

@@ -2,7 +2,7 @@ from enum import Enum
 from intent_parser.constants import intent_parser_constants
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table import IntentParserTable
-import intent_parser.table.table_utils as table_utils
+import intent_parser.table.cell_parser as cell_parser
 
 _MEASUREMENT_TABLE_HEADER = {intent_parser_constants.COL_HEADER_REPLICATE,
                              intent_parser_constants.COL_HEADER_STRAIN,
@@ -36,7 +36,7 @@ class IntentParserTableFactory(object):
     def get_caption_row_index(self, intent_parser_table):
         for row_index in range(intent_parser_table.number_of_rows()):
             cell = intent_parser_table.get_cell(row_index, 0)
-            if table_utils.is_table_caption(cell.get_text()):
+            if cell_parser.PARSER.is_table_caption(cell):
                 return row_index
         return None 
         

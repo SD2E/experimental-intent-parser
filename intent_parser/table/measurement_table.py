@@ -1,4 +1,5 @@
 from intent_parser.intent_parser_exceptions import TableException
+import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.table.table_utils as table_utils
 import logging
@@ -226,8 +227,13 @@ class MeasurementTable(object):
         return int(list_of_replicates[0])
         
     def _process_strains(self, cell):
-        text = cell.get_text()               
-        return [value for value in table_utils.extract_name_value(text)]
+        if cell_parser.PARSER.is_valued_cell(cell):
+            message = ('Measurement table has invalid %s value: %s' 
+                       'Identified %s as a numerical value when '
+                       'expecting alpha-numeric values.') % (intent_parser_constants.COL_HEADER_STRAIN, cell.get_text())
+            self._validation_errors.append(message)
+            return []
+        return cell_parser.PARSER.process_names(cell, check_name_in_url=True)
     
     def _process_temperature(self, cell):
         text = cell.get_text()

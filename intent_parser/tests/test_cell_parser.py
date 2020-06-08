@@ -118,7 +118,37 @@ class CellParserTest(unittest.TestCase):
         self.assertEqual(3, len(result))
         self.assertEqual({'value': 1.0, 'unit': 'X'}, result[0])   
         self.assertEqual({'value': 2.0, 'unit': 'mM'}, result[1])   
-        self.assertEqual({'value': 3.0, 'unit': 'micromole'}, result[2])  
+        self.assertEqual({'value': 3.0, 'unit': 'micromole'}, result[2]) 
+    
+    def test_false_table_caption(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('foo 1: a table caption')
+        self.assertFalse(self.parser.is_table_caption(cell))
+        
+    def test_table_caption_case_sensitive(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('table 1:')
+        self.assertTrue(self.parser.is_table_caption(cell))
+        
+    def test_is_table_caption_keyword(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('Table 1')
+        self.assertTrue(self.parser.is_table_caption(cell))
+        
+    def test_is_table_caption_with_description(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('Table 1: a table caption')
+        self.assertTrue(self.parser.is_table_caption(cell))
+        
+    def test_is_table_caption_without_spaces(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('Table1:Controls')
+        self.assertTrue(self.parser.is_table_caption(cell))
+    
+    def test_get_table_caption(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('Table1:Controls')
+        self.assertEqual('table1', self.parser.process_table_caption(cell))
         
 if __name__ == "__main__":
     unittest.main()
