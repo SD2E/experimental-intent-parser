@@ -1,4 +1,4 @@
-import intent_parser.utils.intent_parser_utils as intent_parser_utils
+import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.table.table_utils as table_utils
 import logging
 
@@ -8,27 +8,34 @@ class LabTable(object):
     """
     EXPERIMENT_ID_PREFIX = 'experiment'
     _logger = logging.getLogger('intent_parser')
-
-    def __init__(self):
+    
+    DEFAULT_LAB = 'tacc'
+    
+    def __init__(self, intent_parser_table):
         self._lab_content = {}
         self._validation_errors = []
         self._validation_warnings = []
+        self._intent_parser_table = intent_parser_table
+        self._table_caption = ''
+        
        
-    def parse_table(self, table):
-        rows = table['tableRows']
-        for row in rows:
-            self._parse_row(row)
+    def process_table(self):
+        self._table_caption = self._intent_parser_table.caption()
+        for row_index in range(self._intent_parser_table.number_of_rows()):
+            self._process_row(row_index)
         
-        result = {}
-        if 'lab' not in self._lab_content:
-            result['lab'] = 'tacc'
-        else:
-            result['lab'] = self._lab_content['lab']
+        result = {intent_parser_constants.COL_HEADER_LAB : self.DEFAULT_LAB, 
+                  intent_parser_constants.COL_HEADER_EXPERIMENT_ID : 'experiment.%s.TBD' % self.DEFAULT_LAB}
         
-        if 'experiment_id' not in self._lab_content:
-            result['experiment_id'] = 'experiment.%s.TBD' % result['lab'].lower()
+        if intent_parser_constants.COL_HEADER_LAB in self._lab_content:
+            result[intent_parser_constants.COL_HEADER_LAB] = self._lab_content['lab']
+        
+        if intent_parser_constants.COL_HEADER_EXPERIMENT_ID in self._lab_content:
+            result[intent_parser_constants.COL_HEADER_EXPERIMENT_ID] = 'experiment.%s.%s' % (result['lab'].lower(), 
+                                                                                             self._lab_content[intent_parser_constants.COL_HEADER_EXPERIMENT_ID])
         else:
-            result['experiment_id'] = 'experiment.%s.%s' % (result['lab'].lower(), self._lab_content['experiment_id'])
+            result[intent_parser_constants.COL_HEADER_EXPERIMENT_ID] = 'experiment.%s.%s' % (result['lab'].lower(), 'TBD')
+        
         return result
     
     def get_validation_errors(self):
@@ -37,38 +44,26 @@ class LabTable(object):
     def get_validation_warnings(self):
         return self._validation_warnings
     
-    def _parse_row(self, row):
-        cells = row['tableCells']
-        for i in range(len(cells)): 
-            cell_content = intent_parser_utils.get_paragraph_text(cells[i]['content'][0]['paragraph']).strip()
-            if self._is_lab(cell_content.lower()):
-                self._parse_lab(cell_content)
-            elif self._is_experiment_id(cell_content.lower()):
-                self._parse_experiment_id(cell_content)
+    def _process_row(self, row_index):
+        row = self._intent_parser_table.get_row(row_index)
+        for cell_index in range(len(row)):
+            cell = self._intent_parser_table.get_cell(row_index, cell_index)
+            text = cell.get_text()
+            if text.lower().startswith(intent_parser_constants.COL_HEADER_LAB):
+                lab_name = self._process_content(cell.get_text(), intent_parser_constants.COL_HEADER_LAB)
+                if lab_name:
+                    self._lab_content[intent_parser_constants.COL_HEADER_LAB] = lab_name
+            elif text.lower().startswith(intent_parser_constants.COL_HEADER_EXPERIMENT_ID):
+                experiment_id = self._process_content(cell.get_text(), intent_parser_constants.COL_HEADER_EXPERIMENT_ID)
+                if experiment_id:
+                    self._lab_content[intent_parser_constants.COL_HEADER_EXPERIMENT_ID] = experiment_id
+                else:
+                    self._lab_content[intent_parser_constants.COL_HEADER_EXPERIMENT_ID] = 'TBD'
+                    
+    def _process_content(self, text, keyword):
+        prefix, postfix = table_utils.extract_str_after_prefix(text)
+        if prefix.lower() != keyword:
+            self._validation_errors.append('Lab table has invalid value: Expected text to begin with %s but got %s' % (keyword, prefix))
+            return None
+        return postfix
             
-    def _is_lab(self, cell_content):
-        return cell_content.startswith('lab')
-        
-    def _parse_lab(self, cell_content):
-        prefix, postfix = table_utils.extract_str_after_prefix(cell_content)
-        if prefix.lower() != 'lab':
-            self._validation_errors.append('Lab table has invalid value: Expecting the starting phrase to begin with lab but got %s' % prefix)
-            return
-        
-        if not postfix:
-            self._lab_content['lab'] = 'tacc'
-        else:
-            self._lab_content['lab'] = postfix
-
-    def _is_experiment_id(self, cell_content):
-        return cell_content.startswith('experiment_id')
-   
-    def _parse_experiment_id(self, cell_content):
-        prefix, postfix = table_utils.extract_str_after_prefix(cell_content)
-        if prefix.lower() != 'experiment_id':
-            self._validation_errors.append('Lab table has invalid value: Expecting the starting phrase to begin with experiment_id but got %s' % prefix)
-            return 
-        if not postfix:
-            self._lab_content['experiment_id'] = 'TBD'
-        else:
-            self._lab_content['experiment_id'] = postfix
