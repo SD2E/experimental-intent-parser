@@ -322,16 +322,20 @@ class _TokenMatcher(object):
         if self._group:
             return '(\(%s,(?P<%s>%s)\))%s' % (self._type, self._group, self._value, self._qualifier)
         return '(\(%s,%s\))%s' % (self._type, self._value, self._qualifier)
-    
+
 class _AnyMatcher(_TokenMatcher):
-    def __init__(self, token_type='[^\(]+', value='[^\(]+', qualifier=''):
+    def __init__(self, token_type='[^,]+', value='[^\(]+', qualifier=''):
         super().__init__(token_type, value, qualifier)
             
+class _EndMatcher(_TokenMatcher):
+    def __init__(self):
+        super().__init__(token_type='END')
+            
     def __str__(self):
-        return '(%s,%s)%s' % (self._type, self._value, self._qualifier)
+        return '\(%s\)' % (self._type)
    
 def _make_regex(token_matchers, qualifier=''):
-    return r'(%s)%s' % (''.join([str(token_matcher) for token_matcher in token_matchers]), qualifier) 
+    return r'(%s)%s\(END_OF_MATCH\)' % (''.join([str(token_matcher) for token_matcher in token_matchers]), qualifier) 
             
 class _Parser(_Tokenizer):
     token_specification = [
@@ -347,15 +351,15 @@ class _Parser(_Tokenizer):
                                               _TokenMatcher('NAME')])
             ),
             ('VALUES_UNIT',  _make_regex([_TokenMatcher('NUMBER', qualifier='+'),
-                                        _TokenMatcher('NAME')])
+                                         _TokenMatcher('NAME')])
             ),
             ('VALUE_UNIT_PAIRS',  _make_regex([_TokenMatcher('NUMBER'),
                                                _TokenMatcher('NAME')], qualifier='+')
             ),
-            ('NAME', _make_regex([_TokenMatcher('NAME', qualifier='+')])),
+            ('NAME', _make_regex([_TokenMatcher('(NAME|SEPARATOR|SKIP)', qualifier='+')])),
             ('NUMBER', _make_regex([_TokenMatcher('NUMBER', qualifier='+')])),
             # Fall through if none match
-            ('NOT_DEFINED', _make_regex([_AnyMatcher(qualifier='+')]))
+            ('NOT_DEFINED', _make_regex([_AnyMatcher()], qualifier='+'))
         ]
     
     def __init__(self):
@@ -370,7 +374,7 @@ class _Parser(_Tokenizer):
         return tokens
     
     def parse(self, tokens):
-        token_str = ''.join(['(%s,%s)' % token for token in tokens]) 
+        token_str = '%s(END_OF_MATCH)' % (''.join(['(%s,%s)' % token for token in tokens])) 
         return self.tokenize(token_str) 
 
 
