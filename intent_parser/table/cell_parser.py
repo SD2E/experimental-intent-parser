@@ -1,4 +1,5 @@
 from intent_parser.intent_parser_exceptions import TableException
+import intent_parser.table.table_utils as table_utils 
 import collections
 import re
 
@@ -71,7 +72,7 @@ class CellParser(object):
         return cell_type == 'VALUES_UNIT' or cell_type == 'VALUE_UNIT_PAIRS'
 
     def parse_content_item(self, cell, fluid_units={}, timepoint_units={}):
-        content = {} 
+        list_of_contents = []
         tokens = self._cell_tokenizer.tokenize(cell.get_text(), keep_skip=False) 
         if len(tokens) < 1:
             raise TableException('Invalid value: %s does not contain a name' % cell.get_text())
@@ -79,36 +80,50 @@ class CellParser(object):
         label, value, unit, timepoint_value, timepoint_unit = (None, None, None, None, None)
         if cell_type == 'NAME_VALUE_UNIT_TIMEPOINT':
             label, value, unit, timepoint_value, timepoint_unit = self._get_name_values_unit_timepoint(tokens)
+            content = {} 
+            content['name'] = self.process_name_with_uri(label, cell.get_text_with_url())
+            content['value'] = value
+            content['unit'] = self.process_content_item_unit(unit, fluid_units, timepoint_units)
+            content['timepoints'] = self.process_timepoint(timepoint_value, timepoint_unit, timepoint_units)
+            list_of_contents.append(content)
         elif cell_type == 'NAME_VALUE_UNIT':
             label, value, unit = self._get_name_values_unit(tokens)
+            content = {} 
+            content['name'] = self.process_name_with_uri(label, cell.get_text_with_url())
+            content['value'] = value
+            content['unit'] = self.process_content_item_unit(unit, fluid_units, timepoint_units)
+            list_of_contents.append(content)
         elif cell_type == 'NAME':
-            label = self._get_name(tokens) 
+            labels =  table_utils.extract_name_value(cell.get_text())
+            for label in labels:
+                content = {} 
+                content['name'] = self.process_name_with_uri(label, cell.get_text_with_url())
+                list_of_contents.append(content)
         else:
             raise TableException('Unable to parse %s' % cell.get_text())
-        
-        uri_dictionary = cell.get_text_with_url()
+        return list_of_contents
+    
+    def process_name_with_uri(self, label, uri_dictionary):
         uri = 'NO PROGRAM DICTIONARY ENTRY' 
         if label in uri_dictionary and uri_dictionary[label]:
             uri = uri_dictionary[label]
-        name = {'label': label, 'sbh_uri' : uri}  
-        
-        content['name'] = name
-        
-        if value:
-            content['value'] = value
-        
-        if unit:
-            if (fluid_units and unit in fluid_units) or (timepoint_units and unit in timepoint_units):
-                content['unit'] = unit
-            else:
-                raise TableException('%s is not a valid fluid or timepoint unit.' % unit)
-        if timepoint_value and timepoint_unit:
-            if timepoint_unit in timepoint_units:
-                content['timepoints'] = [{'value': float(timepoint_value), 'unit': timepoint_unit}] 
-            else:
-                raise TableException('%s is not a valid timepoint unit.' % timepoint_unit)
-        return content
+        return {'label': label, 'sbh_uri' : uri}  
     
+    def process_content_item_unit(self, unit, fluid_units, timepoint_units):
+        all_units = set()
+        if fluid_units:
+            all_units.update(fluid_units)
+        if timepoint_units:
+            all_units.update(timepoint_units)
+        abbrev_units = self._abbreviated_unit_dict['fluid'] if 'fluid' is not None else {}
+        abbrev_units.update(self._abbreviated_unit_dict['timepoints'] if 'timepoints' is not None else {})
+        return self._determine_unit(unit, all_units, abbrev_units) 
+    
+    def process_timepoint(self, timepoint_value, timepoint_unit, timepoint_units):
+        abbrev_units = self._abbreviated_unit_dict['timepoints'] if 'timepoints' is not None else {}
+        validated_unit = self._determine_unit(timepoint_unit, timepoint_units, abbrev_units) 
+        return [{'value': float(timepoint_value), 'unit': validated_unit}] 
+        
     def process_table_caption(self, cell):
         tokens = self._table_tokenizer.tokenize(cell.get_text(), keep_space=False, keep_skip=False)
         table_keyword = self._get_token_value(tokens[0]).lower()
@@ -137,14 +152,20 @@ class CellParser(object):
             raise TableException('Invalid value: %s does not contain a numerical value' % cell.get_text())
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
         
+        abbrev_units = self._abbreviated_unit_dict[unit_type] if unit_type is not None else {}
         if cell_type == 'VALUES_UNIT':
             values, unit = self._get_values_unit(tokens)
-            if units and unit in units:
+            validated_unit = self._determine_unit(unit, 
+                                        units, abbrev_units)
+            if units and validated_unit in units:
                 for value in values:
-                    result.append({'value': float(value), 'unit': unit})
+                    result.append({'value': float(value), 'unit': validated_unit})
         elif cell_type == 'VALUE_UNIT_PAIRS':
             for value,unit in self._get_values_unit_pairs(tokens, units, unit_type):
-                result.append({'value': float(value), 'unit': unit})
+                validated_unit = self._determine_unit(unit, 
+                                        units, abbrev_units)
+                if units and validated_unit in units:
+                    result.append({'value': float(value), 'unit': unit})
         return result
             
     def _determine_unit(self, unit, units, abbrev_units):
@@ -201,8 +222,8 @@ class CellParser(object):
         return name, value, unit
     
     def _get_name(self, tokens):
-        name = ' '.join([self._get_token_value(token) for token in tokens])
-        return name  
+        name = [self._get_token_value(token) for token in tokens]
+        return name
     
     def _get_token_type(self, token):
         return token[0]
@@ -214,13 +235,14 @@ class CellParser(object):
         result = []
         links = cell.get_text_with_url()
         for name in self.extract_name_value(cell):
+            stripped_name = name.strip()
             if check_name_in_url:
-                if name in links and links[name] is not None:
-                    result.append(links[name])
+                if stripped_name in links and links[stripped_name] is not None:
+                    result.append(links[stripped_name])
                 else:
-                    result.append(name)
+                    result.append(stripped_name)
             else:
-                result.append(name)
+                result.append(stripped_name)
         return result
     
     def extract_name_value(self, cell):

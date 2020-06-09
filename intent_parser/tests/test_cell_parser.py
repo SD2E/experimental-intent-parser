@@ -13,16 +13,32 @@ class CellParserTest(unittest.TestCase):
     def test_parse_content_item_with_name(self):
         cell = IntentParserCell()
         cell.add_paragraph('name')
-        result = self.parser.parse_content_item(cell)
+        results = self.parser.parse_content_item(cell)
+        self.assertEqual(len(results), 1)
+        result = results[0]
         name = result['name']
         self.assertEqual(2, len(name))
         self.assertEqual('name', name['label'])
         self.assertEqual('NO PROGRAM DICTIONARY ENTRY', name['sbh_uri'])
         
+    def test_parse_content_item_with_list_of_names(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('name1, name2, name3')
+        results = self.parser.parse_content_item(cell)
+        self.assertEqual(len(results), 3)
+        name1 = results[0]['name']
+        name2 = results[1]['name']
+        name3 = results[2]['name']
+        self.assertEqual(name1, {'label': 'name1', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'})
+        self.assertEqual(name2, {'label': 'name2', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'})
+        self.assertEqual(name3, {'label': 'name3', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'})
+        
     def test_parse_content_item_with_name_value_unit(self):
         cell = IntentParserCell()
         cell.add_paragraph('name1 123 unit')
-        result = self.parser.parse_content_item(cell, timepoint_units={'unit', 'timeunit'})
+        results = self.parser.parse_content_item(cell, timepoint_units={'unit', 'timeunit'})
+        self.assertEqual(len(results), 1)
+        result = results[0]
         name = result['name']
         self.assertEqual(2, len(name))
         self.assertEqual('name1', name['label'])
@@ -33,7 +49,9 @@ class CellParserTest(unittest.TestCase):
     def test_parse_content_item_with_name_value_unit_timepoint(self):
         cell = IntentParserCell()
         cell.add_paragraph('name1 name2 123 unit @ 15 timeunit')
-        result = self.parser.parse_content_item(cell, timepoint_units={'unit', 'timeunit'})
+        results = self.parser.parse_content_item(cell, timepoint_units={'unit', 'timeunit'})
+        self.assertEqual(len(results), 1)
+        result = results[0]
         name = result['name']
         timepoints = result['timepoints']
         self.assertEqual(2, len(name))
@@ -44,6 +62,20 @@ class CellParserTest(unittest.TestCase):
         self.assertEqual('unit', result['unit'])
         self.assertEqual(15.0, timepoints[0]['value'])
         self.assertEqual('timeunit', timepoints[0]['unit'])
+        
+    def test_parse_content_item_with_name_uri_value_unit(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('name1', link='https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1')
+        cell.add_paragraph('123 unit')
+        results = self.parser.parse_content_item(cell, timepoint_units={'unit', 'timeunit'})
+        self.assertEqual(len(results), 1)
+        result = results[0]
+        name = result['name']
+        self.assertEqual(2, len(name))
+        self.assertEqual('name1', name['label'])
+        self.assertEqual('https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1', name['sbh_uri'])
+        self.assertEqual('123', result['value'])
+        self.assertEqual('unit', result['unit'])
 
     def test_names_without_separators(self):
         cell = IntentParserCell()

@@ -81,7 +81,7 @@ class ControlsTable(object):
     
     def _process_contents(self, cell):
         try:
-            return [cell_parser.PARSER.parse_content_item(cell, fluid_units=self._fluid_units, timepoint_units=self._timepoint_units)]
+            return cell_parser.PARSER.parse_content_item(cell, fluid_units=self._fluid_units, timepoint_units=self._timepoint_units)
         except TableException as err:
             message = 'Controls table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_CONTROL_CONTENT, err.get_message())
             self._validation_errors.append(message)

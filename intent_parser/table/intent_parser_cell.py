@@ -16,7 +16,7 @@ class IntentParserCell(object):
                   
     def get_text(self):
         flatten = [p.paragraph for p in self.paragraphs]
-        return ''.join(flatten)
+        return ' '.join(flatten)
     
     def get_text_with_url(self):
         return {p.paragraph: p.link for p in self.paragraphs}
