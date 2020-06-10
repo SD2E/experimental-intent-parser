@@ -9,7 +9,7 @@ class MeasurementTable(object):
     Process information from Intent Parser's Measurement Table
     """
     _logger = logging.getLogger('intent_parser')
-    IGNORE_COLUMNS = [intent_parser_constants.COL_HEADER_SAMPLES, intent_parser_constants.COL_HEADER_NOTES]
+    IGNORE_COLUMNS = ['SAMPLES', 'NOTES']
     
     def __init__(self, intent_parser_table, temperature_units={}, timepoint_units={}, fluid_units={}, measurement_types={}, file_type={}):
         self._temperature_units = temperature_units
