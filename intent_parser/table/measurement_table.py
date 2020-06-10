@@ -60,44 +60,44 @@ class MeasurementTable(object):
             cell = self._intent_parser_table.get_cell(row_index, cell_index)
             # Cell type based on column header
             header_cell = self._intent_parser_table.get_cell(self._intent_parser_table.header_row_index(), cell_index)
-            cell_type = header_cell.get_text()
+            cell_type = cell_parser.PARSER.get_header_type(header_cell)
             
             if not cell.get_text() or cell_type in self.IGNORE_COLUMNS:
                 continue
             
-            elif intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE == cell_type:
+            elif 'MEASUREMENT_TYPE' == cell_type:
                 measurement_type = self._process_measurement_type(cell)
                 if measurement_type:
                     measurement['measurement_type'] = measurement_type
-            elif intent_parser_constants.COL_HEADER_FILE_TYPE == cell_type:
+            elif 'FILE_TYPE' == cell_type:
                 file_type = self._process_file_type(cell) 
                 if file_type:
                     measurement['file_type'] = file_type  
-            elif intent_parser_constants.COL_HEADER_REPLICATE == cell_type:
+            elif 'REPLICATE' == cell_type:
                 replicates = self._process_replicate(cell)
                 if replicates:
                     measurement['replicates'] = replicates
-            elif intent_parser_constants.COL_HEADER_STRAIN == cell_type:
+            elif 'STRAINS' == cell_type:
                 strains = self._process_strains(cell)
                 if strains:
                     measurement['strains'] = strains
-            elif intent_parser_constants.COL_HEADER_ODS == cell_type:
+            elif 'ODS' == cell_type:
                 ods = self._process_ods(cell)
                 if ods:
                     measurement['ods'] =ods
-            elif intent_parser_constants.COL_HEADER_TEMPERATURE == cell_type:
+            elif 'TEMPERATURE' == cell_type:
                 temperatures = self._process_temperature(cell)
                 if temperatures:
                     measurement['temperatures'] = temperatures
-            elif intent_parser_constants.COL_HEADER_TIMEPOINT == cell_type:
+            elif 'TIMEPOINT'  == cell_type:
                 timepoints = self._process_timepoints(cell)
                 if timepoints:
                     measurement['timepoints'] = timepoints
-            elif intent_parser_constants.COL_HEADER_BATCH == cell_type:
+            elif 'BATCH' == cell_type:
                 batch = self._process_batch(cell)
                 if batch:
                     measurement['batch'] = batch
-            elif intent_parser_constants.COL_HEADER_MEASUREMENT_CONTROL == cell_type:
+            elif 'CONTROL' == cell_type:
                 controls = self._process_control(cell, control_data)
                 if controls:
                     measurement['controls'] = controls
@@ -127,7 +127,7 @@ class MeasurementTable(object):
     def _process_reagent_media(self, cell, header_cell):
         reagents_media = []
         text = cell.get_text()
-        name_dict, timepoint_dict = self._process_reagent_header(header_cell)
+        name_dict, timepoint_dict = cell_parser.PARSER.process_reagent_header(header_cell, self._timepoint_units, unit_type='timepoints')
         # Determine if cells is numerical or name value 
         if table_utils.is_valued_cells(text):                   
             try:
@@ -199,7 +199,7 @@ class MeasurementTable(object):
         return [value for value in table_utils.extract_name_value(file_type)] 
     
     def _process_measurement_type(self, cell):
-        measurement_type = cell.get_text()
+        measurement_type = cell.get_text().strip()
         if measurement_type not in self._measurement_types:
             err = '%s does not match one of the following measurement types: \n %s' % (measurement_type, ' ,'.join((map(str, self._measurement_types))))
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE, err)

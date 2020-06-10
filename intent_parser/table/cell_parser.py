@@ -25,12 +25,21 @@ class CellParser(object):
         self._cell_tokenizer = _CellContentTokenizer() 
         self._lab_tokenizer = _LabTableTokenizer()
         self._table_tokenizer = _TableCaptionTokenizer()
+        self._table_header_tokenizer = _TableHeaderTokenizer()
         self._cell_parser = _Parser()
         
     def _is_lab_table(self, cell):
         tokens = self._lab_tokenizer.tokenize(cell.get_text())
         return len(tokens) > 0 and self._get_token_type(tokens[0]) == 'KEYWORD'
+     
+    def get_header_type(self, cell):
+        cell_text = cell.get_text()
+        tokens = self._table_header_tokenizer.tokenize(cell_text, keep_skip=False)
+        if len(tokens) != 1:
+            return 'UNKNOWN'
+        return self._get_token_type(tokens[0])
         
+           
     def is_name(self, cell):
         """
         Check if the content of a cell is alpha-numeric.
@@ -102,6 +111,29 @@ class CellParser(object):
         else:
             raise TableException('Unable to parse %s' % cell.get_text())
         return list_of_contents
+    
+    def process_reagent_header(self, cell, units, unit_type):
+        tokens = self._cell_tokenizer.tokenize(cell.get_text(), keep_skip=False) 
+        cell_type = self._get_token_type(self._cell_parser.parse(tokens))
+        name = {}
+        timepoint = {}
+        if cell_type == 'NAME_SEPARATOR_VALUE_UNIT':
+            label, timepoint_value, timepoint_unit = self._get_name_timepoint(tokens)
+            name = self.process_name_with_uri(label, cell.get_text_with_url())
+            abbrev_units = self._abbreviated_unit_dict[unit_type] if unit_type is not None else {}
+            unit = self._determine_unit(timepoint_unit, units, abbrev_units)
+            timepoint['value'] = float(timepoint_value)
+            timepoint['unit'] = unit 
+        elif cell_type == 'NAME':
+            label = ' '.join([self._get_token_value(token) for token in tokens])
+            name = self.process_name_with_uri(label, cell.get_text_with_url())
+        else:
+            label, value, unit = table_utils.parse_reagent_header(cell.get_text(), units, unit_type)
+            if value and unit:
+                timepoint['value'] = float(value)
+                timepoint['unit'] = unit 
+            name = self.process_name_with_uri(label, cell.get_text_with_url())
+        return name, timepoint
     
     def process_name_with_uri(self, label, uri_dictionary):
         uri = 'NO PROGRAM DICTIONARY ENTRY' 
@@ -206,6 +238,12 @@ class CellParser(object):
         unit = self._get_token_value(tokens[-1])
         values = [self._get_token_value(token) for token in tokens[0:-1]]
         return values, unit 
+    
+    def _get_name_timepoint(self, tokens):
+        timepoint_unit = self._get_token_value(tokens[-1])
+        timepoint_value = self._get_token_value(tokens[-2])
+        name = ' '.join([self._get_token_value(token) for token in tokens[0:-3]])
+        return name, timepoint_value, timepoint_unit
     
     def _get_name_values_unit_timepoint(self, tokens):
         timepoint_unit = self._get_token_value(tokens[-1])
@@ -338,6 +376,31 @@ class _TableCaptionTokenizer(_Tokenizer):
     def __init__(self):
         super().__init__(self.token_specification)
  
+class _TableHeaderTokenizer(_Tokenizer): 
+    
+    token_specification = [
+            ('BATCH', r'(Batch|batch)'), 
+            ('CHANNEL', r'(Channel|channel)'),
+            ('CONTENTS', r'(Contents|contents)'),
+            ('CONTROL', r'(Control|control)'),
+            ('CONTROL_TYPE', r'(Control|control)[ \t\n]*(Type|type)'),
+            ('FILE_TYPE', r'(File|file)[ \t\n]*-[ \t\n]*(Type|type)'), 
+            ('MEASUREMENT_TYPE', r'(Measurement|measurement)[ \t\n]*-[ \t\n]*(Type|type)'),
+            ('NOTES', r'(Notes|notes)'),
+            ('ODS', r'(Ods|ods|ODS)'),
+            ('PARAMETER', r'(Parameter|parameter)'),
+            ('PARAMETER_VALUE', r'(Value|value)'),
+            ('REPLICATE', r'Replicate|replicate'),
+            ('SAMPLE', r'(Samples|samples)'),
+            ('SKIP',     r'([ \t\n]|\u000b)+'),
+            ('STRAINS',   r'Strains|strains'),
+            ('TEMPERATURE', r'(Temperature|temperature)'),
+            ('TIMEPOINT', r'(Timepoint|timepoint)'),
+            ('UNKNOWN',     r'.+')]
+    
+    def __init__(self):
+        super().__init__(self.token_specification)
+        
 class _TokenMatcher(object):
     def __init__(self, token_type, value='[^\(]+', qualifier='', group=None):
         self._type = token_type
@@ -363,13 +426,18 @@ class _EndMatcher(_TokenMatcher):
    
 def _make_regex(token_matchers, qualifier=''):
     return r'(%s)%s\(END_OF_MATCH\)' % (''.join([str(token_matcher) for token_matcher in token_matchers]), qualifier) 
-            
+                
 class _Parser(_Tokenizer):
     token_specification = [
             ('NAME_VALUE_UNIT_TIMEPOINT', _make_regex([_TokenMatcher('NAME', qualifier='+'),
                                                        _TokenMatcher('NUMBER'),
                                                        _TokenMatcher('NAME'),
                                                        _TokenMatcher('SEPARATOR'),
+                                                       _TokenMatcher('NUMBER'),
+                                                       _TokenMatcher('NAME')])
+            ),
+            ('NAME_SEPARATOR_VALUE_UNIT', _make_regex([_TokenMatcher('NAME', qualifier='+'),
+                                                       _TokenMatcher('SEPARATOR', value='@'),
                                                        _TokenMatcher('NUMBER'),
                                                        _TokenMatcher('NAME')])
             ),

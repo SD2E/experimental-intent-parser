@@ -197,17 +197,30 @@ def parse_reagent_header(cell_txt, unit_list, unit_type):
                        name_specification='[^\t \d,:][^ \t,@]*', 
                        seperator_specification='[,@]') 
     tokens = [token for token in tokens if _get_token_type(token) not in ['SKIP']]
-    
-    if len(tokens) != 1 and len(tokens) != 4:
-        raise TableException('%s is not identified as a reagent header' % cell_txt) 
-    name = _get_token_value(tokens[0])
-    value = None
-    unit = None  
-    if len(tokens) == 4:
+    value, unit = (None, None)
+    if len(tokens) > 2 and _get_token_type(tokens[-1]) == 'NAME' and _get_token_type(tokens[-2]) == 'NUMBER':
+        value = _get_token_value(tokens[-2])
         abbrev_units = _abbreviated_unit_dict[unit_type] if unit_type is not None else {}
         unit = _determine_unit(tokens, _canonicalize_units(unit_list), abbrev_units)
-        value = _get_token_value(tokens[2]) 
+        if _get_token_value(tokens[-3]) == '@':
+            name = ''.join([_get_token_value(token) for token in tokens[0:-3]])
+        else:
+            name = ' '.join([_get_token_value(token) for token in tokens[0:-2]])
+    else:
+        name = ' '.join([_get_token_value(token) for token in tokens])
+            
+            
     
+#     if len(tokens) != 1 and len(tokens) != 4:
+#         raise TableException('%s is not identified as a reagent header' % cell_txt) 
+#     name = _get_token_value(tokens[0])
+#     value = None
+#     unit = None  
+#     if len(tokens) == 4:
+#         abbrev_units = _abbreviated_unit_dict[unit_type] if unit_type is not None else {}
+#         unit = _determine_unit(tokens, _canonicalize_units(unit_list), abbrev_units)
+#         value = _get_token_value(tokens[2]) 
+     
     return name, value, unit
 
 def parse_and_append_named_value_unit(cell_txt, unit_type, unit_list):

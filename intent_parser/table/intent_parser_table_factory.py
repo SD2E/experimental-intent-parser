@@ -4,19 +4,20 @@ from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table import IntentParserTable
 import intent_parser.table.cell_parser as cell_parser
 
-_MEASUREMENT_TABLE_HEADER = {intent_parser_constants.COL_HEADER_REPLICATE,
-                             intent_parser_constants.COL_HEADER_STRAIN,
-                             intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE,
-                             intent_parser_constants.COL_HEADER_FILE_TYPE}
+_MEASUREMENT_TABLE_HEADER = {'REPLICATE',
+                             'STRAINS',
+                             'MEASUREMENT_TYPE',
+                             'FILE_TYPE'}
 
-_PARAMETER_TABLE_HEADER = {intent_parser_constants.COL_HEADER_PARAMETER,
-                           intent_parser_constants.COL_HEADER_PARAMETER_VALUE}
+_PARAMETER_TABLE_HEADER = {'PARAMETER',
+                           'PARAMETER_VALUE'}
 
-_CONTROLS_TABLE_HEADER = {intent_parser_constants.COL_HEADER_CONTROL_CHANNEL,
-                          intent_parser_constants.COL_HEADER_CONTROL_TYPE,
-                          intent_parser_constants.COL_HEADER_CONTROL_STRAINS,
-                          intent_parser_constants.COL_HEADER_CONTROL_CONTENT,
-                          intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT}
+_CONTROLS_TABLE_HEADER = {'CHANNEL', 
+                          'CONTROL_TYPE',
+                          'STRAINS',
+                          'CONTENTS',
+                          'TIMEPOINT'
+                          }
 
 class TableType(Enum):
     CONTROL = 1 
@@ -43,7 +44,8 @@ class IntentParserTableFactory(object):
     def get_header_row_index(self, intent_parser_table):
         for row_index in range(intent_parser_table.number_of_rows()):
             row = intent_parser_table.get_row(row_index)
-            header_values = {column.get_text() for column in row}
+            header_values = {cell_parser.PARSER.get_header_type(column) for column in row}
+            
             if _CONTROLS_TABLE_HEADER.issubset(header_values) \
                 or _MEASUREMENT_TABLE_HEADER.issubset(header_values) \
                 or _PARAMETER_TABLE_HEADER.issubset(header_values):
@@ -52,9 +54,10 @@ class IntentParserTableFactory(object):
     
     def get_table_type(self, intent_parser_table):    
         header_row_index = self.get_header_row_index(intent_parser_table)
-        if header_row_index:
-            header_row = intent_parser_table.get_row(header_row_index)
-            header_values = {column.get_text() for column in header_row}
+        if header_row_index is not None:
+            row = intent_parser_table.get_row(header_row_index)
+            header_values = {cell_parser.PARSER.get_header_type(column) for column in row}
+            
             if _CONTROLS_TABLE_HEADER.issubset(header_values):
                 return TableType.CONTROL
             elif _MEASUREMENT_TABLE_HEADER.issubset(header_values):
