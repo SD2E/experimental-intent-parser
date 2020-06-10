@@ -367,8 +367,8 @@ class IntentParser(object):
             self.logger.warning(message)
         try:
             table = parameter_tables[-1]
-            parameter_table = ParameterTable(self.sbol_dictionary.get_strateos_mappings())
-            parameter = parameter_table.process_table(table)
+            parameter_table = ParameterTable(table, self.sbol_dictionary.get_strateos_mappings())
+            parameter = parameter_table.process_table()
             parameter_data.append(parameter)
             self.validation_errors.extend(parameter_table.get_validation_errors())
         except DictionaryMaintainerException as err:
