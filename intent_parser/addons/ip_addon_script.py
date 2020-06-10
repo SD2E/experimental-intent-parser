@@ -148,7 +148,7 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                 time.sleep(60)  
 
 def main():
-    current_release = '2.5.1'
+    current_release = '2.6'
     setup_logging()
     logger.info('Running IP addon script for release %s' % current_release)
     try:
