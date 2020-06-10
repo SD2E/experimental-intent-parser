@@ -76,7 +76,7 @@ class ControlsTableTest(unittest.TestCase):
     def test_table_with_1_timepoint(self):
         input_table = {'tableRows': [
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
-                'content': 'Timepoints\n' }}]}}]}]},
+                'content': 'Timepoint\n' }}]}}]}]},
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
                 'content': '8 hour\n'}}]}}]}]}]
         } 

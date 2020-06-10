@@ -1,5 +1,6 @@
 from intent_parser.intent_parser_exceptions import TableException, DictionaryMaintainerException
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.table.cell_parser as cell_parser
 import intent_parser.table.table_utils as table_utils
 import json
 import logging
@@ -69,10 +70,10 @@ class ParameterTable(object):
             # Cell type based on column header
             header_row_index = self._intent_parser_table.header_row_index()
             header_cell = self._intent_parser_table.get_cell(header_row_index, cell_index)
-            cell_type = header_cell.get_text()
-            if intent_parser_constants.COL_HEADER_PARAMETER == cell_type:
-                param_field = self._get_parameter_field(cell.get_text())
-            elif intent_parser_constants.COL_HEADER_PARAMETER_VALUE == cell_type:
+            cell_type = cell_parser.PARSER.get_header_type(header_cell)
+            if 'PARAMETER' == cell_type:
+                param_field = self._get_parameter_field(cell.get_text().strip())
+            elif 'PARAMETER_VALUE' == cell_type:
                 param_value = cell.get_text()
         if not param_field:
             raise TableException('Parameter field should not be empty')
