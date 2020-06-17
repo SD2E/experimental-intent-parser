@@ -19,6 +19,7 @@ function onOpen() {
 	menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling');
 	menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor');
 	menu.addItem('Update experimental results', 'updateExperimentalResults');
+	menu.addItem('Execute Experiment', 'executeExperiment');
 	menu.addSubMenu(tablesMenu);
 	menu.addItem('File Issues', 'reportIssues');
 	menu.addItem('Help', 'showHelp');
@@ -66,11 +67,11 @@ function validate_uri(uri) {
 		var response = UrlFetchApp.fetch(uri);
 		if (response.getResponseCode() == 200) {
 			return true;
-		} 
+		}
 		else {
 			return false;
 		}
-	} 
+	}
 	catch (e) {
 		return false;
 	}
@@ -86,7 +87,7 @@ function enterLinkPrompt(title, msg) {
 	while (button == ui.Button.OK) {
 		if (validate_uri(text)) {
 			return [true, text];
-		} 
+		}
 		else { // If URI is invalid, reprompt
 			var result = ui.prompt('Entered URI was invalid!\n' + title, msg, ui.ButtonSet.OK_CANCEL);
 			button = result.getSelectedButton();
@@ -94,6 +95,10 @@ function enterLinkPrompt(title, msg) {
 		}
 	}
 	return [false, text];
+}
+
+function executeExperiment() {
+	sendPost('/executeExperiment');
 }
 
 function sendMessage(message) {
@@ -141,11 +146,11 @@ function processActions(response) {
 				sampleColIdx = sampleIndices[tIdx];
 				var numRows = tables[tableIds[tIdx]].getNumRows();
 				// Samples column doesn't exist
-				if (sampleColIdx < 0){ 
+				if (sampleColIdx < 0){
 					// Create new column for samples
 					var numCols = tables[tableIds[tIdx]].getRow(0).getNumCells();
 					tables[tableIds[tIdx]].getRow(0).appendTableCell("samples");
-					for (var rowIdx = 1; rowIdx < numRows; rowIdx++) 
+					for (var rowIdx = 1; rowIdx < numRows; rowIdx++)
 					{
 						tables[tableIds[tIdx]].getRow(rowIdx).appendTableCell();
 					}
@@ -198,7 +203,7 @@ function processActions(response) {
 					var protocolTable = body.insertTable(childIndex, protocolTableData);
 					protocolTable.setAttributes(tableStyle);
 				}
-			} 
+			}
 			catch (err){
 				console.log(err);
 			}
@@ -652,7 +657,7 @@ function createControlsTable(){
 		const rangeElement = selectionRange.getRangeElements()[0];
 		// Extract element and offset from end of selection
 		var el = rangeElement.getElement();
-	} 
+	}
 	else {
 		// Select element and off set from current position
 		var el = cursorPosition.getElement();

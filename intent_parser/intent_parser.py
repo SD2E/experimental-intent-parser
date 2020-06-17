@@ -243,7 +243,7 @@ class IntentParser(object):
         """
         Generates a structured request for a given doc id
         """
-        output_doc = { "experiment_reference_url" : "https://docs.google.com/document/d/%s" % self.lab_experiment.document_id() }
+        output_doc = {"experiment_reference_url" : "https://docs.google.com/document/d/%s" % self.lab_experiment.document_id() }
         if self.datacatalog_config['mongodb']['authn']:
             try:
                 map_experiment_reference(self.datacatalog_config, output_doc)

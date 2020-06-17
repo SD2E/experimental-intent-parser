@@ -24,8 +24,8 @@ import threading
 import time
 import traceback
 
-
 logger = logging.getLogger(__name__)
+
 
 class IntentParserServer:
 
@@ -230,33 +230,54 @@ class IntentParserServer:
         
         return self._create_http_response(HTTPStatus.OK, json.dumps(intent_parser.get_structured_request()), 'application/json')
 
+    def process_execute_experiment(self, http_message):
+        json_body = intent_parser_utils.get_json_body(http_message)
+        http_host = http_message.get_header('Host')
+        validation_errors = []
+        validation_warnings = []
+        if json_body is None or http_host is None:
+            validation_errors.append('Unable to get information from Google document.')
+            #TODO: send bad request
+            return
+        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+        intent_parser.process()
+        if intent_parser.get_validation_errors():
+            # TODO: tell user there are errors and report failure
+            return
+        
+        request_data = {}
+        #TODO: send to TACC "Go" API
+
     def handle_POST(self, httpMessage, socket_manager):
         resource = httpMessage.get_resource()
         start = time.time() 
         if resource == '/analyzeDocument':
-            response = self.process_analyze_document(httpMessage) 
-        elif resource == '/updateExperimentalResults':
-            response = self.process_update_exp_results(httpMessage)
-        elif resource == '/calculateSamples':
-            response = self.process_calculate_samples(httpMessage)
-        elif resource == '/buttonClick':
-            response = self.process_button_click(httpMessage)
-        elif resource == '/message':
-            response = self.process_message(httpMessage) 
-        elif resource == '/addToSynBioHub':
-            response = self.process_add_to_syn_bio_hub(httpMessage) 
+            response = self.process_analyze_document(httpMessage)
         elif resource == '/addBySpelling':
             response = self.process_add_by_spelling(httpMessage)
+        elif resource == '/addToSynBioHub':
+            response = self.process_add_to_syn_bio_hub(httpMessage)
+        elif resource == '/buttonClick':
+            response = self.process_button_click(httpMessage)
+        elif resource == '/calculateSamples':
+            response = self.process_calculate_samples(httpMessage)
+        elif resource == '/createTableTemplate':
+            response = self.process_create_table_template(httpMessage)
+        elif resource == '/executeExperiment':
+            response = self.process_execute_experiment(httpMessage)
+        elif resource == '/generateStructuredRequest':
+            response = self.process_generate_structured_request(httpMessage)
+        elif resource == '/message':
+            response = self.process_message(httpMessage) 
         elif resource == '/searchSynBioHub':
             response = self.process_search_syn_bio_hub(httpMessage)
         elif resource == '/submitForm':
             response = self.process_submit_form(httpMessage)
-        elif resource == '/createTableTemplate':
-            response = self.process_create_table_template(httpMessage)
+        elif resource == '/updateExperimentalResults':
+            response = self.process_update_exp_results(httpMessage)
         elif resource == '/validateStructuredRequest':
             response = self.process_validate_structured_request(httpMessage)
-        elif resource == '/generateStructuredRequest':
-            response = self.process_generate_structured_request(httpMessage)
         else:
             response = self._create_http_response(HTTPStatus.NOT_FOUND, 'Resource Not Found\n')
         end = time.time()
