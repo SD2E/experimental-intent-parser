@@ -93,7 +93,7 @@ class ControlsTable(object):
                        'expecting alpha-numeric values.') % (intent_parser_constants.COL_HEADER_CONTROL_STRAINS, cell.get_text())
             self._validation_errors.append(message)
             return []
-        return cell_parser.PARSER.process_names(cell, check_name_in_url=True)
+        return cell_parser.PARSER.process_names(cell)
                 
     def _process_control_type(self, cell):
         control_type = cell.get_text()

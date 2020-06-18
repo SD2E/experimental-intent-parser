@@ -86,7 +86,7 @@ class ParameterTable(object):
             values = table_utils.extract_number_value(parameter_value)
             return parameter_field, [float(float_val) for float_val in values]
         elif parameter_field in self.FIELD_WITH_BOOLEAN_VALUE:
-            parameter_value = parameter_value.lower()
+            parameter_value = parameter_value.lower().strip()
             if parameter_value == 'false':
                 return parameter_field, [False]
             elif parameter_value == 'true':
