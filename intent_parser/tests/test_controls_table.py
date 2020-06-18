@@ -106,7 +106,7 @@ class ControlsTableTest(unittest.TestCase):
         control_result = control_table_parser.process_table()
         self.assertEquals(1, len(control_result))
         self.assertEqual(1, len(control_result[0]['strains']))
-        self.assertEqual('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', control_result[0]['strains'][0])    
+        self.assertEqual('UWBF_7376', control_result[0]['strains'][0])
     
     def test_strains_with_uri_and_trailing_strings(self):
         input_table = {'tableRows': [
@@ -125,7 +125,7 @@ class ControlsTableTest(unittest.TestCase):
         control_result = control_table_parser.process_table()
         self.assertEquals(1, len(control_result))
         
-        exp_res = ['https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'MG1655_LPV3','MG1655_RPU_Standard']
+        exp_res = ['MG1655', 'MG1655_LPV3','MG1655_RPU_Standard']
         self.assertListEqual(exp_res, control_result[0]['strains'])
         
     def test_strains_with_string_and_trailing_uris(self):
@@ -152,8 +152,8 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEquals(1, len(control_result))
         
         exp_res = ['MG1655_RPU_Standard',
-                   'https://hub.sd2e.org/user/sd2e/design/MG1655/1', 
-                   'https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1']
+                   'MG1655',
+                   'MG1655_LPV3']
         self.assertListEqual(exp_res, control_result[0]['strains'])
     
     def test_strains_with_mix_string_and_uri(self):
@@ -182,7 +182,7 @@ class ControlsTableTest(unittest.TestCase):
         control_result = control_table_parser.process_table()
         self.assertEquals(1, len(control_result))
         
-        exp_res = ['https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'MG1655_RPU_Standard', 'https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1']
+        exp_res = ['MG1655', 'MG1655_RPU_Standard', 'MG1655_LPV3']
         self.assertListEqual(exp_res, control_result[0]['strains'])
     
     def test_table_with_contents(self):

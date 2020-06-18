@@ -233,7 +233,7 @@ class MeasurementTable(object):
                        'expecting alpha-numeric values.') % (intent_parser_constants.COL_HEADER_STRAIN, cell.get_text())
             self._validation_errors.append(message)
             return []
-        return cell_parser.PARSER.process_names(cell, check_name_in_url=True)
+        return cell_parser.PARSER.process_names(cell)
     
     def _process_temperature(self, cell):
         text = cell.get_text()

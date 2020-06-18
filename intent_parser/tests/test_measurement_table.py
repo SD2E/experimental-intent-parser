@@ -648,7 +648,7 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertListEqual(control1['strains'], ['UWBF_25784'])
         control2 = meas_result[0]['controls'][1]
         self.assertEqual(control2['type'], 'foo')
-        self.assertListEqual(control2['strains'], ['https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1'])
+        self.assertListEqual(control2['strains'], ['UWBF_6390'])
     
     def test_table_with_2_reference_control_in_seperate_measurements(self): 
         measurement_table = {'tableRows': [
@@ -707,7 +707,7 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertListEqual(control1['strains'], ['UWBF_25784'])
         control2 = meas_result[1]['controls'][0]
         self.assertEqual(control2['type'], 'foo')
-        self.assertListEqual(control2['strains'], ['https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1'])
+        self.assertListEqual(control2['strains'], ['UWBF_6390'])
       
         
 if __name__ == '__main__':
