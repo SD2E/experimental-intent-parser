@@ -149,12 +149,12 @@ class TableUtilsTest(unittest.TestCase):
     def test_cell_values_with_named_spacing(self):
         cell_str = 'Yeast_Extract_Peptone_Adenine_Dextrose (a.k.a. YPAD Media)'   
         for name in tu.extract_name_value(cell_str):
-            self.assertEquals(cell_str, name)
+            self.assertEqual(cell_str, name)
     
     def test_cell_values_with_named_and_numerical_spacing(self):
         cell_str = 'B. subtilis 168 PmtlA-comKS'   
         for name in tu.extract_name_value(cell_str):
-            self.assertEquals(cell_str, name)
+            self.assertEqual(cell_str, name)
     
     def test_cell_with_trailing_whitespace(self):
         cell_str = 'Yeast1_, Yeast2_, Yeast3_ '
@@ -165,14 +165,14 @@ class TableUtilsTest(unittest.TestCase):
     def test_cell_with_strateos_number_unit(self):
         cell_str = '5 microliter'
         actual_res = tu.transform_strateos_string(cell_str)   
-        self.assertEquals(1, len(actual_res))
-        self.assertEquals('5:microliter', actual_res[0])
+        self.assertEqual(1, len(actual_res))
+        self.assertEqual('5:microliter', actual_res[0])
         
     def test_cell_with_strateos_name(self):
         cell_str = 'sc_media'
         actual_res = tu.transform_strateos_string(cell_str)   
-        self.assertEquals(1, len(actual_res))
-        self.assertEquals('sc_media', actual_res[0])
+        self.assertEqual(1, len(actual_res))
+        self.assertEqual('sc_media', actual_res[0])
     
     def test_cell_with_unit_containing_multiple_abbreviations(self):
         cell_str = '1 h, 2 hr, 3 hours'

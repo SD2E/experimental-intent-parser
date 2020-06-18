@@ -24,8 +24,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'})
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
-        self.assertEquals(meas_result[0]['measurement_type'], 'FLOW')
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(meas_result[0]['measurement_type'], 'FLOW')
 
     def test_table_with_empty_file_type(self):
         input_table = {'tableRows': [
@@ -39,7 +39,7 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table)
         meas_result = meas_table.process_table()
-        self.assertEquals(0, len(meas_result))
+        self.assertEqual(0, len(meas_result))
     
     def test_table_with_file_type(self):
         input_table = {'tableRows': [
@@ -52,9 +52,9 @@ class MeasurementTableTest(unittest.TestCase):
         meas_table = MeasurementTable(ip_table)
         ip_table.set_header_row_index(0)
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
-        self.assertEquals(1, len(meas_result[0]['file_type']))
-        self.assertEquals(meas_result[0]['file_type'][0], 'FASTQ')  
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(1, len(meas_result[0]['file_type']))
+        self.assertEqual(meas_result[0]['file_type'][0], 'FASTQ')
     
     def test_table_with_1_replicate(self):
         input_table = {'tableRows': [
@@ -68,8 +68,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table)
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
-        self.assertEquals(meas_result[0]['replicates'], 3) 
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(meas_result[0]['replicates'], 3)
         
     def test_table_with_3_replicates(self):
         input_table = {'tableRows': [
@@ -83,8 +83,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table)
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
-        self.assertEquals(meas_result[0]['replicates'], 1) 
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(meas_result[0]['replicates'], 1)
     
     def test_table_with_1_strain(self):
         input_table = {'tableRows': [
@@ -98,7 +98,7 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table)
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         self.assertEqual(1, len(meas_result[0]['strains']))
         self.assertEqual('AND_00', meas_result[0]['strains'][0]) 
     
@@ -113,7 +113,7 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table)
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         self.assertEqual(1, len(meas_result[0]['strains']))
         self.assertEqual('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', meas_result[0]['strains'][0])    
         
@@ -129,10 +129,10 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, timepoint_units={'hour'})
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'value': 3.0, 'unit': 'hour'}
-        self.assertEquals(1, len(meas_result[0]['timepoints']))
+        self.assertEqual(1, len(meas_result[0]['timepoints']))
         self.assertDictEqual(exp_res1, meas_result[0]['timepoints'][0])
                   
     def test_table_with_3_timepoint(self):
@@ -147,12 +147,12 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, timepoint_units={'hour'})
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'value': 6.0, 'unit': 'hour'}
         exp_res2 = {'value': 12.0, 'unit': 'hour'}
         exp_res3 = {'value': 24.0, 'unit': 'hour'}
-        self.assertEquals(3, len(meas_result[0]['timepoints']))
+        self.assertEqual(3, len(meas_result[0]['timepoints']))
         for timepoint in meas_result[0]['timepoints']:
             self.assertFalse(timepoint != exp_res1 and timepoint != exp_res2 and timepoint != exp_res3)
     
@@ -168,10 +168,10 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, temperature_units={'fahrenheit'})
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'value': 1.0, 'unit': 'fahrenheit'}
-        self.assertEquals(1, len(meas_result[0]['temperatures']))
+        self.assertEqual(1, len(meas_result[0]['temperatures']))
         self.assertDictEqual(exp_res1, meas_result[0]['temperatures'][0]) 
         
     def test_table_with_1_temperature_and_unspecified_unit(self):
@@ -186,7 +186,7 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, temperature_units={'celsius', 'fahrenheit'})
         meas_result = meas_table.process_table()
-        self.assertEquals(0, len(meas_result))
+        self.assertEqual(0, len(meas_result))
         
     
     def test_table_with_2_temperature_and_unit_abbreviation(self):
@@ -201,12 +201,12 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, temperature_units={'celsius'})
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'value': 3.0, 'unit': 'celsius'}
         exp_res2 = {'value': 2.0, 'unit': 'celsius'}
         exp_res3 = {'value': 1.0, 'unit': 'celsius'}
-        self.assertEquals(3, len(meas_result[0]['temperatures']))
+        self.assertEqual(3, len(meas_result[0]['temperatures']))
         for temperature in meas_result[0]['temperatures']:
             self.assertFalse(temperature != exp_res1 and temperature != exp_res2 and temperature != exp_res3)  
              
@@ -222,12 +222,12 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, temperature_units={'celsius'})
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'value': 3.0, 'unit': 'celsius'}
         exp_res2 = {'value': 2.0, 'unit': 'celsius'}
         exp_res3 = {'value': 1.0, 'unit': 'celsius'}
-        self.assertEquals(3, len(meas_result[0]['temperatures']))
+        self.assertEqual(3, len(meas_result[0]['temperatures']))
         for temperature in meas_result[0]['temperatures']:
             self.assertFalse(temperature != exp_res1 and temperature != exp_res2 and temperature != exp_res3)  
     
@@ -243,7 +243,7 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table)
         meas_result = meas_table.process_table()
-        self.assertEquals(0, len(meas_result))
+        self.assertEqual(0, len(meas_result))
     
     def test_table_with_notes(self):
         input_table = {'tableRows': [
@@ -257,7 +257,7 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table)
         meas_result = meas_table.process_table()
-        self.assertEquals(0, len(meas_result))
+        self.assertEqual(0, len(meas_result))
     
     def test_table_with_1_ods(self):
         input_table = {'tableRows': [
@@ -271,8 +271,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table)
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
-        self.assertEquals(1, len(meas_result[0]['ods']))
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(1, len(meas_result[0]['ods']))
         self.assertListEqual([3.0], meas_result[0]['ods'])
         
     def test_table_with_3_ods(self):
@@ -287,8 +287,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table)
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
-        self.assertEquals(3, len(meas_result[0]['ods']))
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(3, len(meas_result[0]['ods']))
         self.assertListEqual([33.0, 22.0, 11.0], meas_result[0]['ods'])
         
     def test_table_with_one_value_reagent(self):
@@ -309,11 +309,11 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : reagent_name, 'sbh_uri' : reagent_uri}, 'value' : '9', 'unit' : 'mM'}
-        self.assertEquals(1, len(meas_result[0]['contents'][0]))
-        self.assertEquals(exp_res1, meas_result[0]['contents'][0][0])
+        self.assertEqual(1, len(meas_result[0]['contents'][0]))
+        self.assertEqual(exp_res1, meas_result[0]['contents'][0][0])
             
     def test_table_with_three_value_reagent(self):
         reagent_name = 'L-arabinose'
@@ -333,12 +333,12 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : reagent_name, 'sbh_uri' : reagent_uri}, 'value' : '0', 'unit' : 'micromole'}
         exp_res2 = {'name' : {'label' : reagent_name, 'sbh_uri' : reagent_uri}, 'value' : '1', 'unit' : 'micromole'}
         exp_res3 = {'name' : {'label' : reagent_name, 'sbh_uri' : reagent_uri}, 'value' : '2', 'unit' : 'micromole'}
-        self.assertEquals(3, len(meas_result[0]['contents'][0]))
+        self.assertEqual(3, len(meas_result[0]['contents'][0]))
         for act_res in meas_result[0]['contents'][0]:
             self.assertFalse(act_res != exp_res1 and act_res != exp_res2 and act_res != exp_res3)
             
@@ -359,11 +359,11 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : reagent_name, 'sbh_uri' : reagent_uri}, 'value' : '1', 'unit' : 'X'}
-        self.assertEquals(1, len(meas_result[0]['contents'][0]))
-        self.assertEquals(exp_res1, meas_result[0]['contents'][0][0])
+        self.assertEqual(1, len(meas_result[0]['contents'][0]))
+        self.assertEqual(exp_res1, meas_result[0]['contents'][0][0])
     
     def test_table_with_reagent_and_percentage_unit(self):
         reagent_name = 'L-arabinose'
@@ -383,11 +383,11 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : reagent_name, 'sbh_uri' : reagent_uri}, 'value' : '11', 'unit' : '%'}
-        self.assertEquals(1, len(meas_result[0]['contents'][0]))
-        self.assertEquals(exp_res1, meas_result[0]['contents'][0][0])
+        self.assertEqual(1, len(meas_result[0]['contents'][0]))
+        self.assertEqual(exp_res1, meas_result[0]['contents'][0][0])
         
     def test_table_with_reagent_and_unit_containing_backslash(self):
         reagent_name = 'L-arabinose'
@@ -405,7 +405,7 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : reagent_name, 'sbh_uri' : reagent_uri}, 'value' : '11', 'unit' : 'g/L'}
         self.assertEquals(1, len(meas_result[0]['contents'][0]))
@@ -427,12 +427,12 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, timepoint_units={'hour'}, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : 'SC_Media', 'sbh_uri' : 'NO PROGRAM DICTIONARY ENTRY'}, 'value' : '0', 'unit' : 'M', 
                     'timepoint' : {'value' : 18.0, 'unit' : 'hour'}}
-        self.assertEquals(1, len(meas_result[0]['contents'][0]))
-        self.assertEquals(exp_res1, meas_result[0]['contents'][0][0])
+        self.assertEqual(1, len(meas_result[0]['contents'][0]))
+        self.assertEqual(exp_res1, meas_result[0]['contents'][0][0])
 
     def test_table_text_with_reagent_and_timepoint(self):
         reagent_uri = 'https://hub.sd2e.org/user/sd2e/design/IPTG/1'
@@ -451,12 +451,12 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table, timepoint_units={'hour'}, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
 
         exp_res1 = {'name' : {'label' : 'IPTG', 'sbh_uri' : reagent_uri}, 'value' : 'NA',
                     'timepoint' : {'value' : 40.0, 'unit' : 'hour'}}
-        self.assertEquals(1, len(meas_result[0]['contents'][0]))
-        self.assertEquals(exp_res1, meas_result[0]['contents'][0][0])
+        self.assertEqual(1, len(meas_result[0]['contents'][0]))
+        self.assertEqual(exp_res1, meas_result[0]['contents'][0][0])
 
     def test_table_with_media(self):
         media_uri = 'https://hub.sd2e.org/user/sd2e/design/Media/1'
@@ -477,8 +477,8 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : 'Media', 'sbh_uri' : media_uri}, 'value' : 'sc_media'}
-        self.assertEquals(1, len(meas_result[0]['contents'][0]))
-        self.assertEquals(exp_res1, meas_result[0]['contents'][0][0])
+        self.assertEqual(1, len(meas_result[0]['contents'][0]))
+        self.assertEqual(exp_res1, meas_result[0]['contents'][0][0])
      
     def test_table_with_media_containing_period_values(self):
         input_table ={'tableRows': [
@@ -495,7 +495,7 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table)
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : 'media', 'sbh_uri' : 'NO PROGRAM DICTIONARY ENTRY'}, 
                     'value' : 'Yeast_Extract_Peptone_Adenine_Dextrose (a.k.a. YPAD Media)'}
@@ -517,11 +517,11 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table)
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : 'media', 'sbh_uri' : 'NO PROGRAM DICTIONARY ENTRY'}, 'value' : 'Synthetic_Complete_2%Glycerol_2%Ethanol'}
-        self.assertEquals(1, len(meas_result[0]['contents'][0]))
-        self.assertEquals(exp_res1, meas_result[0]['contents'][0][0])
+        self.assertEqual(1, len(meas_result[0]['contents'][0]))
+        self.assertEqual(exp_res1, meas_result[0]['contents'][0][0])
     
     def test_table_with_media_containing_numerical_values(self):
         input_table ={'tableRows': [
@@ -538,11 +538,11 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table)
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {'name' : {'label' : 'media', 'sbh_uri' : 'NO PROGRAM DICTIONARY ENTRY'}, 'value' : 'SC+Glucose+Adenine+0.8M'}
-        self.assertEquals(1, len(meas_result[0]['contents'][0]))
-        self.assertEquals(exp_res1, meas_result[0]['contents'][0][0])
+        self.assertEqual(1, len(meas_result[0]['contents'][0]))
+        self.assertEqual(exp_res1, meas_result[0]['contents'][0][0])
         
     def test_table_with_batch_values(self):
         input_table = {'tableRows': [
@@ -556,8 +556,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         meas_table = MeasurementTable(ip_table)
         meas_result = meas_table.process_table()
-        self.assertEquals(1, len(meas_result))
-        self.assertEquals(meas_result[0]['batch'], [0,1])
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(meas_result[0]['batch'], [0,1])
         
     def test_table_with_1_reference_control(self):
         measurement_table = {'tableRows': [
@@ -587,8 +587,8 @@ class MeasurementTableTest(unittest.TestCase):
         
         measurement_parser = MeasurementTable(ip_measurement_table)
         meas_result = measurement_parser.process_table(control_tables={control_parser.get_table_caption(): control_result})
-        self.assertEquals(1, len(meas_result))
-        self.assertEquals(1, len(meas_result[0]['controls']))
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(1, len(meas_result[0]['controls']))
         control = meas_result[0]['controls'][0]
         self.assertEqual(control['type'], 'HIGH_FITC')
         self.assertListEqual(control['strains'], ['UWBF_25784'])
@@ -640,8 +640,8 @@ class MeasurementTableTest(unittest.TestCase):
         measurement_parser = MeasurementTable(ip_measurement_table)
         meas_result = measurement_parser.process_table(control_tables={control1_parser.get_table_caption(): control1_result,
                                                                        control2_parser.get_table_caption(): control2_result})
-        self.assertEquals(1, len(meas_result))
-        self.assertEquals(2, len(meas_result[0]['controls']))
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(2, len(meas_result[0]['controls']))
         
         control1 = meas_result[0]['controls'][0]
         self.assertEqual(control1['type'], 'HIGH_FITC')
