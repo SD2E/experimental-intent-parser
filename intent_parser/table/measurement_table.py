@@ -9,7 +9,7 @@ class MeasurementTable(object):
     Process information from Intent Parser's Measurement Table
     """
     _logger = logging.getLogger('intent_parser')
-    IGNORE_COLUMNS = ['SAMPLES', 'NOTES']
+    IGNORE_COLUMNS = [intent_parser_constants.HEADER_SAMPLES_TYPE, intent_parser_constants.HEADER_NOTES_TYPE]
     
     def __init__(self, intent_parser_table, temperature_units={}, timepoint_units={}, fluid_units={}, measurement_types={}, file_type={}):
         self._temperature_units = temperature_units
@@ -65,39 +65,39 @@ class MeasurementTable(object):
             if not cell.get_text() or cell_type in self.IGNORE_COLUMNS:
                 continue
             
-            elif 'MEASUREMENT_TYPE' == cell_type:
+            elif intent_parser_constants.HEADER_MEASUREMENT_TYPE_TYPE == cell_type:
                 measurement_type = self._process_measurement_type(cell)
                 if measurement_type:
                     measurement['measurement_type'] = measurement_type
-            elif 'FILE_TYPE' == cell_type:
+            elif intent_parser_constants.HEADER_FILE_TYPE_TYPE == cell_type:
                 file_type = self._process_file_type(cell) 
                 if file_type:
                     measurement['file_type'] = file_type  
-            elif 'REPLICATE' == cell_type:
+            elif intent_parser_constants.HEADER_REPLICATE_TYPE == cell_type:
                 replicates = self._process_replicate(cell)
                 if replicates:
                     measurement['replicates'] = replicates
-            elif 'STRAINS' == cell_type:
+            elif intent_parser_constants.HEADER_STRAINS_TYPE == cell_type:
                 strains = self._process_strains(cell)
                 if strains:
                     measurement['strains'] = strains
-            elif 'ODS' == cell_type:
+            elif intent_parser_constants.HEADER_ODS_TYPE == cell_type:
                 ods = self._process_ods(cell)
                 if ods:
                     measurement['ods'] =ods
-            elif 'TEMPERATURE' == cell_type:
+            elif intent_parser_constants.HEADER_TEMPERATURE_TYPE == cell_type:
                 temperatures = self._process_temperature(cell)
                 if temperatures:
                     measurement['temperatures'] = temperatures
-            elif 'TIMEPOINT'  == cell_type:
+            elif intent_parser_constants.HEADER_TIMEPOINT_TYPE  == cell_type:
                 timepoints = self._process_timepoints(cell)
                 if timepoints:
                     measurement['timepoints'] = timepoints
-            elif 'BATCH' == cell_type:
+            elif intent_parser_constants.HEADER_BATCH_TYPE == cell_type:
                 batch = self._process_batch(cell)
                 if batch:
                     measurement['batch'] = batch
-            elif 'CONTROL' == cell_type:
+            elif intent_parser_constants.HEADER_CONTROL_TYPE == cell_type:
                 controls = self._process_control(cell, control_data)
                 if controls:
                     measurement['controls'] = controls
@@ -164,7 +164,7 @@ class MeasurementTable(object):
         text = cell.get_text()
         if table_utils.is_name(text):
             err = '%s must contain a list of integer values.' % text
-            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_BATCH, err)
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_BATCH_VALUE, err)
             self._validation_errors.append(message)
             return []
         return [int(value) for value in table_utils.extract_number_value(text)] 
@@ -202,7 +202,7 @@ class MeasurementTable(object):
         measurement_type = cell.get_text().strip()
         if measurement_type not in self._measurement_types:
             err = '%s does not match one of the following measurement types: \n %s' % (measurement_type, ' ,'.join((map(str, self._measurement_types))))
-            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE, err)
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE, err)
             self._validation_errors.append(message)
             return []
         return measurement_type
@@ -215,14 +215,14 @@ class MeasurementTable(object):
         text = cell.get_text()
         if not table_utils.is_number(text):
             err = '%s must be a numerical value' % text
-            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_REPLICATE, err.get_message())
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_REPLICATE_VALUE, err.get_message())
             self._validation_errors.append(message)
             return None
         
         list_of_replicates = table_utils.extract_number_value(text)
         if len(list_of_replicates) > 1:
             message = ('Measurement table for %s has more than one replicate provided.'
-                       'Only the first replicate will be used from %s.') % (intent_parser_constants.COL_HEADER_REPLICATE, text)
+                       'Only the first replicate will be used from %s.') % (intent_parser_constants.HEADER_REPLICATE_VALUE, text)
             self._logger.warning(message)
         return int(list_of_replicates[0])
         
@@ -230,7 +230,7 @@ class MeasurementTable(object):
         if cell_parser.PARSER.is_valued_cell(cell):
             message = ('Measurement table has invalid %s value: %s' 
                        'Identified %s as a numerical value when '
-                       'expecting alpha-numeric values.') % (intent_parser_constants.COL_HEADER_STRAIN, cell.get_text())
+                       'expecting alpha-numeric values.') % (intent_parser_constants.HEADER_STRAINS_VALUE, cell.get_text())
             self._validation_errors.append(message)
             return []
         return cell_parser.PARSER.process_names(cell, check_name_in_url=True)
@@ -240,7 +240,7 @@ class MeasurementTable(object):
         try:
             return table_utils.parse_and_append_value_unit(text, 'temperature', self._temperature_units)
         except TableException as err:
-            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_TEMPERATURE, err.get_message())
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_TEMPERATURE_VALUE, err.get_message())
             self._validation_errors.append(message)
             return []
             
@@ -249,7 +249,7 @@ class MeasurementTable(object):
         try:
             return table_utils.parse_and_append_value_unit(text, 'timepoints', self._timepoint_units) 
         except TableException as err:
-            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.COL_HEADER_TIMEPOINT, err.get_message())
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_TIMEPOINT_VALUE, err.get_message())
             self._validation_errors.append(message)
             return []
     

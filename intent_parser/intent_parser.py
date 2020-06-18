@@ -66,7 +66,7 @@ class IntentParser(object):
             samples_col = -1
             for cell_idx in range(len(headerRow['tableCells'])):
                 cellTxt = intent_parser_utils.get_paragraph_text(headerRow['tableCells'][cell_idx]['content'][0]['paragraph']).strip()
-                if cellTxt == intent_parser_constants.COL_HEADER_SAMPLES:
+                if cellTxt == intent_parser_constants.HEADER_SAMPLES_VALUE:
                     samples_col = cell_idx
 
             samples = []
@@ -81,7 +81,7 @@ class IntentParser(object):
                 while colIdx < numCols and not is_type_col:
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
                     headerTxt =  intent_parser_utils.get_paragraph_text(paragraph_element).strip()
-                    if headerTxt == intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE:
+                    if headerTxt == intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE:
                         is_type_col = True
                     else:
                         cellContent = row['tableCells'][colIdx]['content']
@@ -94,14 +94,14 @@ class IntentParser(object):
                     paragraph_element = headerRow['tableCells'][colIdx]['content'][0]['paragraph']
                     headerTxt =  intent_parser_utils.get_paragraph_text(paragraph_element).strip()
                     # Certain columns don't contain info about samples
-                    if headerTxt == intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE or headerTxt == intent_parser_constants.COL_HEADER_NOTES or headerTxt == intent_parser_constants.COL_HEADER_SAMPLES:
+                    if headerTxt == intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE or headerTxt == intent_parser_constants.HEADER_NOTES_VALUE or headerTxt == intent_parser_constants.HEADER_SAMPLES_VALUE:
                         colIdx += 1
                         continue
 
                     cellContent = row['tableCells'][colIdx]['content']
                     cellTxt = ' '.join([intent_parser_utils.get_paragraph_text(c['paragraph']).strip() for c in cellContent]).strip()
 
-                    if headerTxt == intent_parser_constants.COL_HEADER_REPLICATE:
+                    if headerTxt == intent_parser_constants.HEADER_REPLICATE_VALUE:
                         comp_count.append(int(cellTxt))
                     else:
                         comp_count.append(len(cellTxt.split(sep=',')))

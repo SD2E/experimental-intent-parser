@@ -245,7 +245,7 @@ class IntentParserServer:
         if intent_parser.get_validation_errors():
             # TODO: tell user there are errors and report failure
             return
-        
+
         request_data = {}
         #TODO: send to TACC "Go" API
 
@@ -1024,7 +1024,7 @@ class IntentParserServer:
                 
     def process_create_measurement_table(self, data):
         """
-        Process create measurement table
+        Process create measurement table and lab table
         """
         lab_data = self.process_lab_table(data)
         num_reagents = int(data['numReagents'])
@@ -1055,33 +1055,33 @@ class IntentParserServer:
             header.append('')
             col_sizes.append(4)
 
-        header.append(intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE)
-        header.append(intent_parser_constants.COL_HEADER_FILE_TYPE)
-        header.append(intent_parser_constants.COL_HEADER_REPLICATE)
-        header.append(intent_parser_constants.COL_HEADER_STRAIN)
+        header.append(intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE)
+        header.append(intent_parser_constants.HEADER_FILE_TYPE_VALUE)
+        header.append(intent_parser_constants.HEADER_REPLICATE_VALUE)
+        header.append(intent_parser_constants.HEADER_STRAINS_VALUE)
 
-        col_sizes.append(len(intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE) + 1)
-        col_sizes.append(len(intent_parser_constants.COL_HEADER_FILE_TYPE) + 1)
-        col_sizes.append(len(intent_parser_constants.COL_HEADER_REPLICATE) + 1)
-        col_sizes.append(len(intent_parser_constants.COL_HEADER_STRAIN) + 1)
+        col_sizes.append(len(intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE) + 1)
+        col_sizes.append(len(intent_parser_constants.HEADER_FILE_TYPE_VALUE) + 1)
+        col_sizes.append(len(intent_parser_constants.HEADER_REPLICATE_VALUE) + 1)
+        col_sizes.append(len(intent_parser_constants.HEADER_STRAINS_VALUE) + 1)
         if has_ods:
-            header.append(intent_parser_constants.COL_HEADER_ODS)
-            col_sizes.append(len(intent_parser_constants.COL_HEADER_ODS) + 1)
+            header.append(intent_parser_constants.HEADER_ODS_VALUE)
+            col_sizes.append(len(intent_parser_constants.HEADER_ODS_VALUE) + 1)
         if has_time:
-            header.append(intent_parser_constants.COL_HEADER_TIMEPOINT)
-            col_sizes.append(len(intent_parser_constants.COL_HEADER_TIMEPOINT) + 1)
+            header.append(intent_parser_constants.HEADER_TIMEPOINT_VALUE)
+            col_sizes.append(len(intent_parser_constants.HEADER_TIMEPOINT_VALUE) + 1)
         if has_temp:
-            header.append(intent_parser_constants.COL_HEADER_TEMPERATURE)
-            col_sizes.append(len(intent_parser_constants.COL_HEADER_TEMPERATURE) + 1)
+            header.append(intent_parser_constants.HEADER_TEMPERATURE_VALUE)
+            col_sizes.append(len(intent_parser_constants.HEADER_TEMPERATURE_VALUE) + 1)
         if has_batch:
-            header.append(intent_parser_constants.COL_HEADER_BATCH)
-            col_sizes.append(len(intent_parser_constants.COL_HEADER_BATCH) + 1)
+            header.append(intent_parser_constants.HEADER_BATCH_VALUE)
+            col_sizes.append(len(intent_parser_constants.HEADER_BATCH_VALUE) + 1)
         if has_notes:
-            header.append(intent_parser_constants.COL_HEADER_NOTES)
-            col_sizes.append(len(intent_parser_constants.COL_HEADER_NOTES) + 1)
+            header.append(intent_parser_constants.HEADER_NOTES_VALUE)
+            col_sizes.append(len(intent_parser_constants.HEADER_NOTES_VALUE) + 1)
         if has_controls:
-            header.append(intent_parser_constants.COL_HEADER_MEASUREMENT_CONTROL)
-            col_sizes.append(len(intent_parser_constants.COL_HEADER_MEASUREMENT_CONTROL) + 1)
+            header.append(intent_parser_constants.HEADER_CONTROL_VALUE)
+            col_sizes.append(len(intent_parser_constants.HEADER_CONTROL_VALUE) + 1)
         table_data.append(header)
 
         for r in range(num_rows):
@@ -1116,21 +1116,21 @@ class IntentParserServer:
         return [create_table]
    
     def process_lab_table(self, data):
-        lab_name = "Lab: %s" % data['lab']
-        experiment_id = 'Experiment_id: '
+        lab_name = "%s: %s" % (intent_parser_constants.HEADER_LAB_VALUE, data['lab'])
+        experiment_id = '%s: ' % intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE
         lab_content = [[lab_name], [experiment_id]]
         return lab_content
     
     def process_controls_table(self, data):
         table_template = []
-        header_row = [intent_parser_constants.COL_HEADER_CONTROL_TYPE,
-                      intent_parser_constants.COL_HEADER_CONTROL_STRAINS]
+        header_row = [intent_parser_constants.HEADER_CONTROL_TYPE_VALUE,
+                      intent_parser_constants.HEADER_STRAINS_VALUE]
         if data['channel']:
-            header_row.append(intent_parser_constants.COL_HEADER_CONTROL_CHANNEL)
+            header_row.append(intent_parser_constants.HEADER_CHANNEL_VALUE)
         if data['content']:
-            header_row.append(intent_parser_constants.COL_HEADER_CONTROL_CONTENT)
+            header_row.append(intent_parser_constants.HEADER_CONTENTS_VALUE)
         if data['timepoint']:
-            header_row.append(intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT)
+            header_row.append(intent_parser_constants.HEADER_TIMEPOINT_VALUE)
         
         # column_offset = column size - # of columns with generated default value
         column_offset = len(header_row) - 1
@@ -1148,19 +1148,23 @@ class IntentParserServer:
                                                         table_template, 
                                                         'controls', 
                                                         column_width)
-        
+
+    def process_experiment_status_table(self, data):
+        table_template = []
+
+
     def process_create_parameter_table(self, data):
         selected_protocol = data['protocol']
         table_data = []
         col_sizes = []
         
         header = []
-        header.append(intent_parser_constants.COL_HEADER_PARAMETER)
-        header.append(intent_parser_constants.COL_HEADER_PARAMETER_VALUE)
+        header.append(intent_parser_constants.HEADER_PARAMETER_VALUE)
+        header.append(intent_parser_constants.HEADER_PARAMETER_VALUE_VALUE)
         table_data.append(header)
         
-        col_sizes.append(len(intent_parser_constants.COL_HEADER_PARAMETER) + 1)
-        col_sizes.append(len(intent_parser_constants.COL_HEADER_PARAMETER_VALUE) + 1)
+        col_sizes.append(len(intent_parser_constants.HEADER_PARAMETER_VALUE) + 1)
+        col_sizes.append(len(intent_parser_constants.HEADER_PARAMETER_VALUE_VALUE) + 1)
         
         protocol = [key for key, value in intent_parser_constants.PROTOCOL_NAMES.items() if value == selected_protocol]
         
@@ -1534,8 +1538,8 @@ def main():
     parser.add_argument('-b', '--bind-host', nargs='?', default='0.0.0.0',
                             required=False, help='IP address to bind to.')
     
-    parser.add_argument('-c', '--collection', nargs='?', default=intent_parser_constants.SBH_HUB_STAGING_URL,
-                            required=False, help='Collection url.')
+    parser.add_argument('-c', '--collection', nargs='?',
+                            required=True, help='Collection url.')
     
     parser.add_argument('-i', '--spreadsheet-id', nargs='?', default=intent_parser_constants.SD2_SPREADSHEET_ID,
                             required=False, help='Dictionary spreadsheet id.')
