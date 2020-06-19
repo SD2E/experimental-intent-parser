@@ -5,7 +5,6 @@
     "experiment_reference": "Microbe-LiveDeadClassification",
     "experiment_reference_url": "https://docs.google.com/document/d/1Lwbrnys3FyoikqyYYWAElyvk7zOeZ4VX_o6IjZ0jfHg",
     "experiment_version": 1,
-    "erf_channel": "RL1-A",
     "lab": "Transcriptic",
     "runs": [
         {
@@ -19,38 +18,6 @@
                     "strains": [
                         "Bacillus subtilis 168 Marburg"
                     ],
-                    "controls": [
-                        {
-                            "type": "EMPTY_VECTOR",
-                            "strains": [
-								"Bacillus subtilis 168 Marburg"
-                            ],
-                            "timepoints": [
-                                {
-                                    "value": 22.5,
-                                    "unit": "hour"
-                                }
-                            ],
-                            "contents": [
-	                            {
-	                                "name": {
-	                                    "label": "Ethanol",
-	                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
-	                                },
-	                                "value": "0",
-	                                "unit": "%"
-	                            },
-	                            {
-	                                "name": {
-	                                    "label": "Sytox",
-	                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
-	                                },
-	                                "value": "0",
-	                                "unit": "nM"
-	                            }
-                            ]
-                        }
-                    ],
                     "timepoints": [
                         {
                             "value": 6.5,
@@ -185,6 +152,38 @@
                                 "unit": "nM"
                             }
                         ]
+                    ],
+                    "controls": [
+                        {
+                            "type": "EMPTY_VECTOR",
+                            "strains": [
+                                "Bacillus subtilis 168 Marburg"
+                            ],
+                            "timepoints": [
+                                {
+                                    "value": 22.5,
+                                    "unit": "hour"
+                                }
+                            ],
+                            "contents": [
+                                {
+                                    "name": {
+                                        "label": "Ethanol",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                    },
+                                    "value": "0",
+                                    "unit": "%"
+                                },
+                                {
+                                    "name": {
+                                        "label": "Sytox",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                    },
+                                    "value": "0",
+                                    "unit": "nM"
+                                }
+                            ]
+                        }
                     ]
                 },
                 {
@@ -338,6 +337,38 @@
                                 "unit": "nM"
                             }
                         ]
+                    ],
+                    "controls": [
+                        {
+                            "type": "EMPTY_VECTOR",
+                            "strains": [
+                                "Bacillus subtilis 168 Marburg"
+                            ],
+                            "timepoints": [
+                                {
+                                    "value": 22.5,
+                                    "unit": "hour"
+                                }
+                            ],
+                            "contents": [
+                                {
+                                    "name": {
+                                        "label": "Ethanol",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                    },
+                                    "value": "0",
+                                    "unit": "%"
+                                },
+                                {
+                                    "name": {
+                                        "label": "Sytox",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                    },
+                                    "value": "0",
+                                    "unit": "nM"
+                                }
+                            ]
+                        }
                     ]
                 },
                 {
@@ -348,38 +379,6 @@
                     "replicates": 2,
                     "strains": [
                         "MediaControl"
-                    ],
-                    "controls": [
-                        {
-                            "type": "EMPTY_VECTOR",
-                            "strains": [
-								"MediaControl"
-                            ],
-                            "timepoints": [
-                                {
-                                    "value": 22.5,
-                                    "unit": "hour"
-                                }
-                            ],
-                            "contents": [
-	                            {
-	                                "name": {
-	                                    "label": "Ethanol",
-	                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
-	                                },
-	                                "value": "0",
-	                                "unit": "%"
-	                            },
-	                            {
-	                                "name": {
-	                                    "label": "Sytox",
-	                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
-	                                },
-	                                "value": "0",
-	                                "unit": "nM"
-	                            }
-                            ]
-                        }
                     ],
                     "timepoints": [
                         {
@@ -474,6 +473,38 @@
                                 "unit": "nM"
                             }
                         ]
+                    ],
+                    "controls": [
+                        {
+                            "type": "EMPTY_VECTOR",
+                            "strains": [
+                                "MediaControl"
+                            ],
+                            "timepoints": [
+                                {
+                                    "value": 22.5,
+                                    "unit": "hour"
+                                }
+                            ],
+                            "contents": [
+                                {
+                                    "name": {
+                                        "label": "Ethanol",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                    },
+                                    "value": "0",
+                                    "unit": "%"
+                                },
+                                {
+                                    "name": {
+                                        "label": "Sytox",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                    },
+                                    "value": "0",
+                                    "unit": "nM"
+                                }
+                            ]
+                        }
                     ]
                 },
                 {
@@ -596,38 +627,6 @@
                     "replicates": 4,
                     "strains": [
                         "MG1655_WT"
-                    ],
-                    "controls": [
-                        {
-                            "type": "EMPTY_VECTOR",
-                            "strains": [
-								"MG1655_WT"
-                            ],
-                            "timepoints": [
-                                {
-                                    "value": 22.5,
-                                    "unit": "hour"
-                                }
-                            ],
-                            "contents": [
-	                            {
-	                                "name": {
-	                                    "label": "Ethanol",
-	                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
-	                                },
-	                                "value": "0",
-	                                "unit": "%"
-	                            },
-	                            {
-	                                "name": {
-	                                    "label": "Sytox",
-	                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
-	                                },
-	                                "value": "0",
-	                                "unit": "nM"
-	                            }
-                            ]
-                        }
                     ],
                     "timepoints": [
                         {
@@ -763,6 +762,38 @@
                                 "unit": "nM"
                             }
                         ]
+                    ],
+                    "controls": [
+                        {
+                            "type": "EMPTY_VECTOR",
+                            "strains": [
+                                "MG1655_WT"
+                            ],
+                            "timepoints": [
+                                {
+                                    "value": 22.5,
+                                    "unit": "hour"
+                                }
+                            ],
+                            "contents": [
+                                {
+                                    "name": {
+                                        "label": "Ethanol",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                    },
+                                    "value": "0",
+                                    "unit": "%"
+                                },
+                                {
+                                    "name": {
+                                        "label": "Sytox",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                    },
+                                    "value": "0",
+                                    "unit": "nM"
+                                }
+                            ]
+                        }
                     ]
                 },
                 {
@@ -916,6 +947,38 @@
                                 "unit": "nM"
                             }
                         ]
+                    ],
+                    "controls": [
+                        {
+                            "type": "EMPTY_VECTOR",
+                            "strains": [
+                                "MG1655_WT"
+                            ],
+                            "timepoints": [
+                                {
+                                    "value": 22.5,
+                                    "unit": "hour"
+                                }
+                            ],
+                            "contents": [
+                                {
+                                    "name": {
+                                        "label": "Ethanol",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_71006_012/1"
+                                    },
+                                    "value": "0",
+                                    "unit": "%"
+                                },
+                                {
+                                    "name": {
+                                        "label": "Sytox",
+                                        "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/CAT_S34859/1"
+                                    },
+                                    "value": "0",
+                                    "unit": "nM"
+                                }
+                            ]
+                        }
                     ]
                 },
                 {
@@ -1008,7 +1071,7 @@
             ]
         }
     ],
-    "doc_revision_id": "734",
+    "doc_revision_id": "781",
     "parameters": [
         {
             "exp_info.overnight_volumes.culture_volume": "200:microliter",
@@ -1030,5 +1093,7 @@
             "value": 6.0,
             "unit": "hour"
         }
-    ]
+    ],
+    "protocol": "TimeSeriesHTP",
+    "erf_channel": "RL1-A"
 }

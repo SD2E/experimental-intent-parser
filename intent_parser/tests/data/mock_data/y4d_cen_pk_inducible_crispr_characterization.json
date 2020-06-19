@@ -739,7 +739,7 @@
                         "UWBF_24962",
                         "UWBF_24963",
                         "UWBF_24961",
-                        "\u000bUWBF_6390",
+                        "UWBF_6390",
                         "UWBF_23970",
                         "UWBF_24864",
                         "UWBF_32302",
@@ -914,7 +914,7 @@
             ]
         }
     ],
-    "doc_revision_id": "2731",
+    "doc_revision_id": "2752",
     "parameters": [
         {
             "inoc_info.inoc_vol": "10:microliter",
@@ -940,5 +940,6 @@
         "value": 16.0,
         "unit": "hour"
     },
-    "recovery_loops": []
+    "recovery_loops": [],
+    "protocol": "ObstacleCourse"
 }

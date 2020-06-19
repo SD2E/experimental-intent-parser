@@ -274,7 +274,7 @@
                             "contents": [
                                 {
                                     "name": {
-                                        "label": "beta_estradiol",
+                                        "label": "beta-estradiol",
                                         "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/beta0x2Destradiol/1"
                                     },
                                     "value": "4e-04",
@@ -293,7 +293,6 @@
                     "strains": [
                         "UWBF_6390",
                         "UWBF_23970",
-                        "UWBF_24864",
                         "UWBF_32302"
                     ],
                     "timepoints": [
@@ -354,7 +353,6 @@
                     "strains": [
                         "UWBF_6390",
                         "UWBF_23970",
-                        "UWBF_24864",
                         "UWBF_32302"
                     ],
                     "timepoints": [
@@ -387,7 +385,6 @@
                             "channel": "BL1-A",
                             "strains": [
                                 "UWBF_6390",
-                                "UWBF_24864",
                                 "UWBF_32302"
                             ],
                             "timepoints": [
@@ -424,7 +421,6 @@
                         "UWBF_25784",
                         "UWBF_6390",
                         "UWBF_23970",
-                        "UWBF_24864",
                         "UWBF_32302"
                     ],
                     "timepoints": [
@@ -471,7 +467,7 @@
             ]
         }
     ],
-    "doc_revision_id": "376",
+    "doc_revision_id": "383",
     "parameters": [
         {
             "inoc_info.inoc_vol": "10:microliter",
@@ -506,5 +502,6 @@
             "value": 6.0,
             "unit": "hour"
         }
-    ]
+    ],
+    "protocol": "TimeSeriesHTP"
 }

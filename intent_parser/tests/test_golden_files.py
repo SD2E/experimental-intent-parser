@@ -256,6 +256,7 @@ class GoldenFileTest(unittest.TestCase):
         # Skip data that are modified from external resources:
         # experiment_reference, challenge_problem, doc_revision_id, and experiment_id.
         self.assertEqual('https://docs.google.com/document/d/%s' % self.uploaded_file_id, generated_structured_request['experiment_reference_url'])
+        # self.assertEqual(golden_structured_request['experiment_id'], generated_structured_request['experiment_id'])
         self.assertEqual(golden_structured_request['lab'], generated_structured_request['lab'])
         self.assertEqual(golden_structured_request['name'], generated_structured_request['name'])
         self._compare_runs(golden_structured_request['runs'], generated_structured_request['runs'])

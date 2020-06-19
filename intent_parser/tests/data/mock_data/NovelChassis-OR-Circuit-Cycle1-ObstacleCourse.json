@@ -1579,7 +1579,7 @@
             ]
         }
     ],
-    "doc_revision_id": "1264",
+    "doc_revision_id": "1268",
     "parameters": [
         {
             "exp_info.overnight_volumes.culture_volume": "10:microliter",
@@ -1607,5 +1607,6 @@
         "value": 16.0,
         "unit": "hour"
     },
-    "recovery_loops": []
+    "recovery_loops": [],
+    "protocol": "ObstacleCourse"
 }
