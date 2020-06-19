@@ -270,8 +270,8 @@ class GoldenFileTest(unittest.TestCase):
             list_of_measurements = run['measurements']
             for measurement_index in range(len(list_of_measurements)) :
                 measurement = list_of_measurements[measurement_index]
-#                 if 'controls' in measurement:
-#                     del measurement['controls']
+                if 'controls' in measurement:
+                    del measurement['controls']
         self.assertEqual(golden, generated)
             
     def tearDown(self):
