@@ -27,7 +27,7 @@ import traceback
 logger = logging.getLogger(__name__)
 
 
-class IntentParserServer:
+class IntentParserServer(object):
 
     DICT_PATH = 'dictionaries'
     LINK_PREF_PATH = 'link_pref'
@@ -246,8 +246,9 @@ class IntentParserServer:
             # TODO: tell user there are errors and report failure
             return
 
-        request_data = {}
+        request_data = intent_parser.get_structured_request()
         #TODO: send to TACC "Go" API
+
 
     def handle_POST(self, httpMessage, socket_manager):
         resource = httpMessage.get_resource()
