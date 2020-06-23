@@ -7,13 +7,16 @@ import logging
 
 logger = logging.getLogger('intent_parser_server')
 
-def create_table_template(position_in_document, table_data, table_type, col_sizes):
+def create_table_template(position_in_document, table_data, table_type, col_sizes, additional_info={}):
     create_table = {}
     create_table['action'] = 'addTable'
     create_table['cursorChildIndex'] = position_in_document
     create_table['tableData'] = table_data
     create_table['tableType'] = table_type
     create_table['colSizes'] = col_sizes
+    if additional_info:
+        for k, v in additional_info.items():
+            create_table[k] = v
     return [create_table]
 
 def create_controls_table_dialog(cursor_index):

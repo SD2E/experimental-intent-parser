@@ -1024,103 +1024,51 @@ class IntentParserServer(object):
                 self.release_connection(client_state)
                 
     def process_create_measurement_table(self, data):
-        """
-        Process create measurement table and lab table
-        """
         lab_data = self.process_lab_table(data)
-        num_reagents = int(data['numReagents'])
-        has_batch = data['batch']
-        has_temp = data['temperature']
-        has_time = data['timepoint']
-        has_ods  = data['ods']
-        has_notes = data['notes']
-        has_controls = data['controls']
-        num_rows = int(data['numRows'])
+        table_template = []
+        header_row = [intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE,
+                      intent_parser_constants.HEADER_FILE_TYPE_VALUE,
+                      intent_parser_constants.HEADER_REPLICATE_VALUE,
+                      intent_parser_constants.HEADER_STRAINS_VALUE]
+        if data['batch']:
+            header_row.append(intent_parser_constants.HEADER_BATCH_VALUE)
+        if data['temperature']:
+            header_row.append(intent_parser_constants.HEADER_TEMPERATURE_VALUE)
+        if data['timepoint']:
+            header_row.append(intent_parser_constants.HEADER_TIMEPOINT_VALUE)
+        if data['ods']:
+            header_row.append(intent_parser_constants.HEADER_ODS_VALUE)
+        if data['notes']:
+            header_row.append(intent_parser_constants.HEADER_NOTES_VALUE)
+        if data['controls']:
+            header_row.append(intent_parser_constants.HEADER_CONTROL_VALUE)
+        header_row.extend(['' for _ in range(int(data['numReagents']))])
+        table_template.append(header_row)
+
         measurement_types = data['measurementTypes']
         file_types = data['fileTypes']
+        # column_offset = column size - # of columns with generated default value
+        column_offset = len(header_row) - 2
+        for row_index in range(int(data['numRows'])):
+            curr_row = [measurement_types[row_index],
+                        file_types[row_index]]
+            curr_row.extend(['' for _ in range(column_offset)])
+            table_template.append(curr_row)
+        default_col_width = 4
+        column_width = [len(header) if len(header) != 0 else default_col_width for header in header_row]
+        return intent_parser_view.create_table_template(data['cursorChildIndex'],
+                                                        table_template,
+                                                        'measurements',
+                                                        column_width,
+                                                        additional_info={'tableLab': lab_data})
 
-        num_cols = num_reagents + 4
-        if has_time:
-            num_cols += 1
-        if has_temp:
-            num_cols += 1
-        if has_batch:
-            num_cols += 1
-        if has_controls:
-            num_cols += 1
-
-        col_sizes = []
-        table_data = []
-        header = []
-        for __ in range(num_reagents):
-            header.append('')
-            col_sizes.append(4)
-
-        header.append(intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE)
-        header.append(intent_parser_constants.HEADER_FILE_TYPE_VALUE)
-        header.append(intent_parser_constants.HEADER_REPLICATE_VALUE)
-        header.append(intent_parser_constants.HEADER_STRAINS_VALUE)
-
-        col_sizes.append(len(intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE) + 1)
-        col_sizes.append(len(intent_parser_constants.HEADER_FILE_TYPE_VALUE) + 1)
-        col_sizes.append(len(intent_parser_constants.HEADER_REPLICATE_VALUE) + 1)
-        col_sizes.append(len(intent_parser_constants.HEADER_STRAINS_VALUE) + 1)
-        if has_ods:
-            header.append(intent_parser_constants.HEADER_ODS_VALUE)
-            col_sizes.append(len(intent_parser_constants.HEADER_ODS_VALUE) + 1)
-        if has_time:
-            header.append(intent_parser_constants.HEADER_TIMEPOINT_VALUE)
-            col_sizes.append(len(intent_parser_constants.HEADER_TIMEPOINT_VALUE) + 1)
-        if has_temp:
-            header.append(intent_parser_constants.HEADER_TEMPERATURE_VALUE)
-            col_sizes.append(len(intent_parser_constants.HEADER_TEMPERATURE_VALUE) + 1)
-        if has_batch:
-            header.append(intent_parser_constants.HEADER_BATCH_VALUE)
-            col_sizes.append(len(intent_parser_constants.HEADER_BATCH_VALUE) + 1)
-        if has_notes:
-            header.append(intent_parser_constants.HEADER_NOTES_VALUE)
-            col_sizes.append(len(intent_parser_constants.HEADER_NOTES_VALUE) + 1)
-        if has_controls:
-            header.append(intent_parser_constants.HEADER_CONTROL_VALUE)
-            col_sizes.append(len(intent_parser_constants.HEADER_CONTROL_VALUE) + 1)
-        table_data.append(header)
-
-        for r in range(num_rows):
-            measurement_row = []
-            for __ in range(num_reagents):
-                measurement_row.append('')
-            measurement_row.append(measurement_types[r]) # Measurement Type col
-            measurement_row.append(file_types[r]) # File type col
-            measurement_row.append('') # Replicate Col
-            measurement_row.append('') # Strain col
-            if has_ods:
-                measurement_row.append('')
-            if has_time:
-                measurement_row.append('')
-            if has_temp:
-                measurement_row.append('')
-            if has_batch:
-                measurement_row.append('')
-            if has_notes:
-                measurement_row.append('')
-            if has_controls:
-                measurement_row.append('')
-            table_data.append(measurement_row)
-
-        create_table = {}
-        create_table['action'] = 'addTable'
-        create_table['cursorChildIndex'] = data['cursorChildIndex']
-        create_table['tableData'] = table_data
-        create_table['tableType'] = 'measurements'
-        create_table['tableLab'] = lab_data
-        create_table['colSizes'] = col_sizes
-        return [create_table]
-   
     def process_lab_table(self, data):
+        table_template = []
         lab_name = "%s: %s" % (intent_parser_constants.HEADER_LAB_VALUE, data['lab'])
         experiment_id = '%s: ' % intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE
-        lab_content = [[lab_name], [experiment_id]]
-        return lab_content
+        table_template.append([lab_name])
+        table_template.append([experiment_id])
+        return table_template
     
     def process_controls_table(self, data):
         table_template = []
@@ -1153,51 +1101,39 @@ class IntentParserServer(object):
     def process_experiment_status_table(self, data):
         table_template = []
 
-
     def process_create_parameter_table(self, data):
+        table_template = []
+        header_row = [intent_parser_constants.HEADER_PARAMETER_VALUE,
+                      intent_parser_constants.HEADER_PARAMETER_VALUE_VALUE]
+
         selected_protocol = data['protocol']
-        table_data = []
-        col_sizes = []
-        
-        header = []
-        header.append(intent_parser_constants.HEADER_PARAMETER_VALUE)
-        header.append(intent_parser_constants.HEADER_PARAMETER_VALUE_VALUE)
-        table_data.append(header)
-        
-        col_sizes.append(len(intent_parser_constants.HEADER_PARAMETER_VALUE) + 1)
-        col_sizes.append(len(intent_parser_constants.HEADER_PARAMETER_VALUE_VALUE) + 1)
-        
-        protocol = [key for key, value in intent_parser_constants.PROTOCOL_NAMES.items() if value == selected_protocol]
-        
-        if protocol[0] not in intent_parser_constants.PROTOCOL_NAMES.keys():
+        protocols = [key for key, value in intent_parser_constants.PROTOCOL_NAMES.items() if value == selected_protocol]
+        strateos_protocol = protocols[0]
+        if strateos_protocol not in intent_parser_constants.PROTOCOL_NAMES.keys():
             raise ConnectionException(HTTPStatus.BAD_REQUEST, 'Invalid protocol specified.')
-        
-        protocol_default_value = self.strateos_accessor.get_protocol(protocol[0])
-            
+
+        table_template.append([intent_parser_constants.PROTOCOL, strateos_protocol])
+        protocol_default_value = self.strateos_accessor.get_protocol(strateos_protocol)
         strateos_dictionary_mapping = self.sbol_dictionary.get_strateos_mappings()
-        for protocol_key,protocol_value in protocol_default_value.items():
+        for protocol_key, protocol_value in protocol_default_value.items():
             parameter_row = []
             for common_name, strateos_id in strateos_dictionary_mapping.items():
                 if protocol_key == strateos_id:
                     parameter_row.append(common_name)
                     parameter_row.append(protocol_value)
-                    col_sizes.append(len(common_name) + 1)
-                    col_sizes.append(len(str(protocol_value)) + 1)
                     break
             if not parameter_row:
-                logger.warning('Unable to include %s to the Parameter table because there is no parameter name in the SBOL Dictionary for this Strateos UID' % protocol_key)
+                logger.warning(
+                    'Unable to include %s to the Parameter table because there is no parameter name in the SBOL Dictionary for this Strateos UID' % protocol_key)
                 continue
             else:
-                table_data.append(parameter_row)
-                    
-        create_table = {}
-        create_table['action'] = 'addTable'
-        create_table['cursorChildIndex'] = data['cursorChildIndex']
-        create_table['tableData'] = table_data
-        create_table['tableType'] = 'parameters'
-        create_table['colSizes'] = col_sizes
-        return [create_table]
-    
+                table_template.append(parameter_row)
+        column_width = [len(header) for header in header_row]
+        return intent_parser_view.create_table_template(data['cursorChildIndex'],
+                                                        table_template,
+                                                        'parameters',
+                                                        column_width)
+
     def get_client_state(self, httpMessage):
         json_body = intent_parser_utils.get_json_body(httpMessage)
                 

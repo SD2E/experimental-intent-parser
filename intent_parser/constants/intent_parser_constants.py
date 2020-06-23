@@ -45,6 +45,7 @@ GROWTH_CURVE_PROTOCOL = 'GrowthCurve'
 OBSTACLE_COURSE_PROTOCOL = 'ObstacleCourse'
 TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
 
+PROTOCOL = 'protocol'
 PROTOCOL_NAMES = {GROWTH_CURVE_PROTOCOL: 'Growth Curves', 
                   TIME_SERIES_HTP_PROTOCOL: 'Time Series', 
                   OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course'}
