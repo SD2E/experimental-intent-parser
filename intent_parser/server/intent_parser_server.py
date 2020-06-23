@@ -950,7 +950,7 @@ class IntentParserServer(object):
                         continue
 
                     content = text_run['content']
-                    endIdx = len(content);
+                    endIdx = len(content)
                     currIdx = wordStart + 1
                     while currIdx < endIdx:
                         # Check for end of word
