@@ -24,10 +24,10 @@ import threading
 import time
 import traceback
 
-
 logger = logging.getLogger(__name__)
 
-class IntentParserServer:
+
+class IntentParserServer(object):
 
     DICT_PATH = 'dictionaries'
     LINK_PREF_PATH = 'link_pref'
@@ -230,33 +230,55 @@ class IntentParserServer:
         
         return self._create_http_response(HTTPStatus.OK, json.dumps(intent_parser.get_structured_request()), 'application/json')
 
+    def process_execute_experiment(self, http_message):
+        json_body = intent_parser_utils.get_json_body(http_message)
+        http_host = http_message.get_header('Host')
+        validation_errors = []
+        validation_warnings = []
+        if json_body is None or http_host is None:
+            validation_errors.append('Unable to get information from Google document.')
+            #TODO: send bad request
+            return
+        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+        intent_parser.process()
+        if intent_parser.get_validation_errors():
+            # TODO: tell user there are errors and report failure
+            return
+
+        request_data = intent_parser.get_structured_request()
+        #TODO: send to TACC "Go" API
+
+
     def handle_POST(self, httpMessage, socket_manager):
         resource = httpMessage.get_resource()
         start = time.time() 
         if resource == '/analyzeDocument':
-            response = self.process_analyze_document(httpMessage) 
-        elif resource == '/updateExperimentalResults':
-            response = self.process_update_exp_results(httpMessage)
-        elif resource == '/calculateSamples':
-            response = self.process_calculate_samples(httpMessage)
-        elif resource == '/buttonClick':
-            response = self.process_button_click(httpMessage)
-        elif resource == '/message':
-            response = self.process_message(httpMessage) 
-        elif resource == '/addToSynBioHub':
-            response = self.process_add_to_syn_bio_hub(httpMessage) 
+            response = self.process_analyze_document(httpMessage)
         elif resource == '/addBySpelling':
             response = self.process_add_by_spelling(httpMessage)
+        elif resource == '/addToSynBioHub':
+            response = self.process_add_to_syn_bio_hub(httpMessage)
+        elif resource == '/buttonClick':
+            response = self.process_button_click(httpMessage)
+        elif resource == '/calculateSamples':
+            response = self.process_calculate_samples(httpMessage)
+        elif resource == '/createTableTemplate':
+            response = self.process_create_table_template(httpMessage)
+        elif resource == '/executeExperiment':
+            response = self.process_execute_experiment(httpMessage)
+        elif resource == '/generateStructuredRequest':
+            response = self.process_generate_structured_request(httpMessage)
+        elif resource == '/message':
+            response = self.process_message(httpMessage) 
         elif resource == '/searchSynBioHub':
             response = self.process_search_syn_bio_hub(httpMessage)
         elif resource == '/submitForm':
             response = self.process_submit_form(httpMessage)
-        elif resource == '/createTableTemplate':
-            response = self.process_create_table_template(httpMessage)
+        elif resource == '/updateExperimentalResults':
+            response = self.process_update_exp_results(httpMessage)
         elif resource == '/validateStructuredRequest':
             response = self.process_validate_structured_request(httpMessage)
-        elif resource == '/generateStructuredRequest':
-            response = self.process_generate_structured_request(httpMessage)
         else:
             response = self._create_http_response(HTTPStatus.NOT_FOUND, 'Resource Not Found\n')
         end = time.time()
@@ -928,7 +950,7 @@ class IntentParserServer:
                         continue
 
                     content = text_run['content']
-                    endIdx = len(content);
+                    endIdx = len(content)
                     currIdx = wordStart + 1
                     while currIdx < endIdx:
                         # Check for end of word
@@ -1003,7 +1025,7 @@ class IntentParserServer:
                 
     def process_create_measurement_table(self, data):
         """
-        Process create measurement table
+        Process create measurement table and lab table
         """
         lab_data = self.process_lab_table(data)
         num_reagents = int(data['numReagents'])
@@ -1034,33 +1056,33 @@ class IntentParserServer:
             header.append('')
             col_sizes.append(4)
 
-        header.append(intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE)
-        header.append(intent_parser_constants.COL_HEADER_FILE_TYPE)
-        header.append(intent_parser_constants.COL_HEADER_REPLICATE)
-        header.append(intent_parser_constants.COL_HEADER_STRAIN)
+        header.append(intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE)
+        header.append(intent_parser_constants.HEADER_FILE_TYPE_VALUE)
+        header.append(intent_parser_constants.HEADER_REPLICATE_VALUE)
+        header.append(intent_parser_constants.HEADER_STRAINS_VALUE)
 
-        col_sizes.append(len(intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE) + 1)
-        col_sizes.append(len(intent_parser_constants.COL_HEADER_FILE_TYPE) + 1)
-        col_sizes.append(len(intent_parser_constants.COL_HEADER_REPLICATE) + 1)
-        col_sizes.append(len(intent_parser_constants.COL_HEADER_STRAIN) + 1)
+        col_sizes.append(len(intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE) + 1)
+        col_sizes.append(len(intent_parser_constants.HEADER_FILE_TYPE_VALUE) + 1)
+        col_sizes.append(len(intent_parser_constants.HEADER_REPLICATE_VALUE) + 1)
+        col_sizes.append(len(intent_parser_constants.HEADER_STRAINS_VALUE) + 1)
         if has_ods:
-            header.append(intent_parser_constants.COL_HEADER_ODS)
-            col_sizes.append(len(intent_parser_constants.COL_HEADER_ODS) + 1)
+            header.append(intent_parser_constants.HEADER_ODS_VALUE)
+            col_sizes.append(len(intent_parser_constants.HEADER_ODS_VALUE) + 1)
         if has_time:
-            header.append(intent_parser_constants.COL_HEADER_TIMEPOINT)
-            col_sizes.append(len(intent_parser_constants.COL_HEADER_TIMEPOINT) + 1)
+            header.append(intent_parser_constants.HEADER_TIMEPOINT_VALUE)
+            col_sizes.append(len(intent_parser_constants.HEADER_TIMEPOINT_VALUE) + 1)
         if has_temp:
-            header.append(intent_parser_constants.COL_HEADER_TEMPERATURE)
-            col_sizes.append(len(intent_parser_constants.COL_HEADER_TEMPERATURE) + 1)
+            header.append(intent_parser_constants.HEADER_TEMPERATURE_VALUE)
+            col_sizes.append(len(intent_parser_constants.HEADER_TEMPERATURE_VALUE) + 1)
         if has_batch:
-            header.append(intent_parser_constants.COL_HEADER_BATCH)
-            col_sizes.append(len(intent_parser_constants.COL_HEADER_BATCH) + 1)
+            header.append(intent_parser_constants.HEADER_BATCH_VALUE)
+            col_sizes.append(len(intent_parser_constants.HEADER_BATCH_VALUE) + 1)
         if has_notes:
-            header.append(intent_parser_constants.COL_HEADER_NOTES)
-            col_sizes.append(len(intent_parser_constants.COL_HEADER_NOTES) + 1)
+            header.append(intent_parser_constants.HEADER_NOTES_VALUE)
+            col_sizes.append(len(intent_parser_constants.HEADER_NOTES_VALUE) + 1)
         if has_controls:
-            header.append(intent_parser_constants.COL_HEADER_MEASUREMENT_CONTROL)
-            col_sizes.append(len(intent_parser_constants.COL_HEADER_MEASUREMENT_CONTROL) + 1)
+            header.append(intent_parser_constants.HEADER_CONTROL_VALUE)
+            col_sizes.append(len(intent_parser_constants.HEADER_CONTROL_VALUE) + 1)
         table_data.append(header)
 
         for r in range(num_rows):
@@ -1095,21 +1117,21 @@ class IntentParserServer:
         return [create_table]
    
     def process_lab_table(self, data):
-        lab_name = "Lab: %s" % data['lab']
-        experiment_id = 'Experiment_id: '
+        lab_name = "%s: %s" % (intent_parser_constants.HEADER_LAB_VALUE, data['lab'])
+        experiment_id = '%s: ' % intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE
         lab_content = [[lab_name], [experiment_id]]
         return lab_content
     
     def process_controls_table(self, data):
         table_template = []
-        header_row = [intent_parser_constants.COL_HEADER_CONTROL_TYPE,
-                      intent_parser_constants.COL_HEADER_CONTROL_STRAINS]
+        header_row = [intent_parser_constants.HEADER_CONTROL_TYPE_VALUE,
+                      intent_parser_constants.HEADER_STRAINS_VALUE]
         if data['channel']:
-            header_row.append(intent_parser_constants.COL_HEADER_CONTROL_CHANNEL)
+            header_row.append(intent_parser_constants.HEADER_CHANNEL_VALUE)
         if data['content']:
-            header_row.append(intent_parser_constants.COL_HEADER_CONTROL_CONTENT)
+            header_row.append(intent_parser_constants.HEADER_CONTENTS_VALUE)
         if data['timepoint']:
-            header_row.append(intent_parser_constants.COL_HEADER_CONTROL_TIMEPOINT)
+            header_row.append(intent_parser_constants.HEADER_TIMEPOINT_VALUE)
         
         # column_offset = column size - # of columns with generated default value
         column_offset = len(header_row) - 1
@@ -1127,19 +1149,23 @@ class IntentParserServer:
                                                         table_template, 
                                                         'controls', 
                                                         column_width)
-        
+
+    def process_experiment_status_table(self, data):
+        table_template = []
+
+
     def process_create_parameter_table(self, data):
         selected_protocol = data['protocol']
         table_data = []
         col_sizes = []
         
         header = []
-        header.append(intent_parser_constants.COL_HEADER_PARAMETER)
-        header.append(intent_parser_constants.COL_HEADER_PARAMETER_VALUE)
+        header.append(intent_parser_constants.HEADER_PARAMETER_VALUE)
+        header.append(intent_parser_constants.HEADER_PARAMETER_VALUE_VALUE)
         table_data.append(header)
         
-        col_sizes.append(len(intent_parser_constants.COL_HEADER_PARAMETER) + 1)
-        col_sizes.append(len(intent_parser_constants.COL_HEADER_PARAMETER_VALUE) + 1)
+        col_sizes.append(len(intent_parser_constants.HEADER_PARAMETER_VALUE) + 1)
+        col_sizes.append(len(intent_parser_constants.HEADER_PARAMETER_VALUE_VALUE) + 1)
         
         protocol = [key for key, value in intent_parser_constants.PROTOCOL_NAMES.items() if value == selected_protocol]
         
@@ -1513,8 +1539,8 @@ def main():
     parser.add_argument('-b', '--bind-host', nargs='?', default='0.0.0.0',
                             required=False, help='IP address to bind to.')
     
-    parser.add_argument('-c', '--collection', nargs='?', default=intent_parser_constants.SBH_HUB_STAGING_URL,
-                            required=False, help='Collection url.')
+    parser.add_argument('-c', '--collection', nargs='?',
+                            required=True, help='Collection url.')
     
     parser.add_argument('-i', '--spreadsheet-id', nargs='?', default=intent_parser_constants.SD2_SPREADSHEET_ID,
                             required=False, help='Dictionary spreadsheet id.')

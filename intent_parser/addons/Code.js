@@ -1,32 +1,33 @@
-var serverURL = 'http://intentparser.sd2e.org'
-	var versionString = '2.6'
+var serverURL = 'http://intentparser.sd2e.org';
+var versionString = '2.6';
 
-		function onOpen() {
-	var ui = DocumentApp.getUi()
-	var tablesMenu = ui.createMenu('Create table templates')
-	tablesMenu.addItem('Controls', 'createControlsTable')
-	tablesMenu.addItem('Parameter', 'createParameterTable')
-	tablesMenu.addItem('Measurements', 'createTableMeasurements')
+function onOpen() {
+	const ui = DocumentApp.getUi();
+	const tablesMenu = ui.createMenu('Create table templates');
+	tablesMenu.addItem('Controls', 'createControlsTable');
+	tablesMenu.addItem('Parameters', 'createParameterTable');
+	tablesMenu.addItem('Measurements', 'createTableMeasurements');
 
-	var menu = ui.createMenu('Parse Intent')
-	menu.addItem('Analyze from top', 'sendAnalyzeFromTop')
-	menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor')
-	menu.addItem('Add to SynBioHub', 'addToSynBioHub')
-	menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling')
-	menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor')
-	menu.addItem('Validate Structured Request', 'sendValidateStructuredRequest')
-	menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest')
-	menu.addItem('Generate Report', 'sendGenerateReport')
-	menu.addItem('Update experimental results', 'updateExperimentalResults')
-	menu.addItem('Calculate samples for measurements table', 'calculateSamples')
-	menu.addSubMenu(tablesMenu)
-	menu.addItem('File Issues', 'reportIssues')
-	menu.addItem('Help', 'showHelp')
-	menu.addToUi()
+	const menu = ui.createMenu('Parse Intent');
+	menu.addItem('Analyze from top', 'sendAnalyzeFromTop');
+	menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor');
+	menu.addItem('Add to SynBioHub', 'addToSynBioHub');
+	menu.addItem('Calculate samples for measurements table', 'calculateSamples');
+	menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest');
+	menu.addItem('Validate Structured Request', 'sendValidateStructuredRequest');
+	menu.addItem('Generate Report', 'sendGenerateReport');
+	menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling');
+	menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor');
+	menu.addItem('Update experimental results', 'updateExperimentalResults');
+	menu.addItem('Execute Experiment', 'executeExperiment');
+	menu.addSubMenu(tablesMenu);
+	menu.addItem('File Issues', 'reportIssues');
+	menu.addItem('Help', 'showHelp');
+	menu.addToUi();
 }
 
 function showHelp() {
-	helpHTML = '\
+	var helpHTML = '\
 		<p>\
 		Intent Parser version %s\
 		</p>\
@@ -56,23 +57,23 @@ function showHelp() {
 		<p>\
 		Problems? <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>File and issue</a>\
 		</p>\
-		'
-		verFormattedHTML = Utilities.formatString(helpHTML, versionString)
-		showModalDialog(verFormattedHTML, 'Help', 600, 600)
+		';
+		verFormattedHTML = Utilities.formatString(helpHTML, versionString);
+		showModalDialog(verFormattedHTML, 'Help', 600, 600);
 }
 
 function validate_uri(uri) {
 	try {
-		var response = UrlFetchApp.fetch(uri)
+		var response = UrlFetchApp.fetch(uri);
 		if (response.getResponseCode() == 200) {
-			return true
-		} 
-		else {
-			return false
+			return true;
 		}
-	} 
+		else {
+			return false;
+		}
+	}
 	catch (e) {
-		return false
+		return false;
 	}
 }
 
@@ -85,51 +86,55 @@ function enterLinkPrompt(title, msg) {
 	var text = result.getResponseText();
 	while (button == ui.Button.OK) {
 		if (validate_uri(text)) {
-			return [true, text]
-		} 
+			return [true, text];
+		}
 		else { // If URI is invalid, reprompt
 			var result = ui.prompt('Entered URI was invalid!\n' + title, msg, ui.ButtonSet.OK_CANCEL);
 			button = result.getSelectedButton();
-			text = result.getResponseText()
+			text = result.getResponseText();
 		}
 	}
-	return [false, text]
+	return [false, text];
+}
+
+function executeExperiment() {
+	sendPost('/executeExperiment');
 }
 
 function sendMessage(message) {
-	var request = {'message': message}
+	var request = {'message': message};
 	var requestJSON = JSON.stringify(request);
 	var options = {'method' : 'post',
-			'payload' : requestJSON };
-	UrlFetchApp.fetch(serverURL + '/message', options)
+				   'payload' : requestJSON };
+	UrlFetchApp.fetch(serverURL + '/message', options);
 }
 
 function buttonClick(buttonName) {
-	sendPost('/buttonClick', {'buttonId' : buttonName})
+	sendPost('/buttonClick', {'buttonId' : buttonName});
 }
 
 function processActions(response) {
 	if( typeof(response.actions) == 'undefined' ) {
-		return
+		return;
 	}
-	var actions = response.actions
-	waitForMoreActions = false
+	var actions = response.actions;
+	waitForMoreActions = false;
 	for( var actionKey in actions) {
-		var actionDesc = actions[actionKey]
+		var actionDesc = actions[actionKey];
 		switch(actionDesc['action']) {
 		case 'highlightText':
-			var paragraphIndex = actionDesc['paragraph_index']
-			var offset = actionDesc['offset']
-			var endOffset = actionDesc['end_offset']
-			highlightDocText(paragraphIndex, offset, endOffset)
-			break
+			var paragraphIndex = actionDesc['paragraph_index'];
+			var offset = actionDesc['offset'];
+			var endOffset = actionDesc['end_offset'];
+			highlightDocText(paragraphIndex, offset, endOffset);
+			break;
 		case 'linkText':
-			var paragraphIndex = actionDesc['paragraph_index']
-			var offset = actionDesc['offset']
-			var endOffset = actionDesc['end_offset']
-			var url = actionDesc['url']
-			linkDocText(paragraphIndex, offset, endOffset, url)
-			break
+			var paragraphIndex = actionDesc['paragraph_index'];
+			var offset = actionDesc['offset'];
+			var endOffset = actionDesc['end_offset'];
+			var url = actionDesc['url'];
+			linkDocText(paragraphIndex, offset, endOffset, url);
+			break;
 		case 'calculateSamples':
 			var tableIds = actionDesc['tableIds'];
 			var sampleIndices = actionDesc['sampleIndices'];
@@ -139,29 +144,29 @@ function processActions(response) {
 			var tables = body.getTables();
 			for (var tIdx = 0; tIdx < tableIds.length; tIdx++) {
 				sampleColIdx = sampleIndices[tIdx];
-				var numRows = tables[tableIds[tIdx]].getNumRows()
+				var numRows = tables[tableIds[tIdx]].getNumRows();
 				// Samples column doesn't exist
-				if (sampleColIdx < 0){ 
+				if (sampleColIdx < 0){
 					// Create new column for samples
 					var numCols = tables[tableIds[tIdx]].getRow(0).getNumCells();
 					tables[tableIds[tIdx]].getRow(0).appendTableCell("samples");
-					for (var rowIdx = 1; rowIdx < numRows; rowIdx++) 
+					for (var rowIdx = 1; rowIdx < numRows; rowIdx++)
 					{
-						tables[tableIds[tIdx]].getRow(rowIdx).appendTableCell()
+						tables[tableIds[tIdx]].getRow(rowIdx).appendTableCell();
 					}
-					sampleColIdx = numCols
+					sampleColIdx = numCols;
 				}
 				for (var rowIdx = 1; rowIdx < numRows; rowIdx++) {
 					var tableCell = tables[tableIds[tIdx]].getRow(rowIdx).getCell(sampleColIdx);
-					tableCell.setText(sampleValues[tIdx][rowIdx - 1])
+					tableCell.setText(sampleValues[tIdx][rowIdx - 1]);
 				}
 			}
 			break
 		case 'addTable':
 			try{
-				var childIndex = actionDesc['cursorChildIndex']
-				var tableData = actionDesc['tableData']
-				var colSizes = actionDesc['colSizes']
+				var childIndex = actionDesc['cursorChildIndex'];
+				var tableData = actionDesc['tableData'];
+				var colSizes = actionDesc['colSizes'];
 				var doc = DocumentApp.getActiveDocument();
 				var body = doc.getBody();
 				var newTable = body.insertTable(childIndex, tableData);
@@ -176,31 +181,31 @@ function processActions(response) {
 				tableStyle[DocumentApp.Attribute.ITALIC] = false;
 				tableStyle[DocumentApp.Attribute.BACKGROUND_COLOR] = '#FFFFFF';
 				tableStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = '#000000';
-				newTable.setAttributes(tableStyle)
+				newTable.setAttributes(tableStyle);
 
 				var style = {};
 				style[DocumentApp.Attribute.HORIZONTAL_ALIGNMENT] = DocumentApp.HorizontalAlignment.CENTER;
 				style[DocumentApp.Attribute.FONT_SIZE] = 11;
 				style[DocumentApp.Attribute.BOLD] = true;
-				headerRow.setAttributes(style)
+				headerRow.setAttributes(style);
 
 				for(var idx=0; idx < colSizes.length; ++idx) {
-					newTable.setColumnWidth(idx, colSizes[idx] * 7)
+					newTable.setColumnWidth(idx, colSizes[idx] * 7);
 				}
 
 				if (actionDesc['tableType'] == 'measurements') {
-					labTableData = actionDesc['tableLab']
+					labTableData = actionDesc['tableLab'];
 					var newLabTable = body.insertTable(childIndex, labTableData);
-					newLabTable.setAttributes(tableStyle)
+					newLabTable.setAttributes(tableStyle);
 				}
 				else if (actionDesc['tableType'] == 'parameters') {
-					protocolTableData = actionDesc['tableProtocol']
+					protocolTableData = actionDesc['tableProtocol'];
 					var protocolTable = body.insertTable(childIndex, protocolTableData);
-					protocolTable.setAttributes(tableStyle)
+					protocolTable.setAttributes(tableStyle);
 				}
-			} 
+			}
 			catch (err){
-				console.log(err)
+				console.log(err);
 			}
 			break
 		case 'updateExperimentResults':
@@ -241,79 +246,79 @@ function processActions(response) {
 					}
 				}
 			}
-			break
+			break;
 		case 'showSidebar':
-			showSidebar(actionDesc['html'])
-			break
+			showSidebar(actionDesc['html']);
+			break;
 		case 'showProgressbar':
-			showSidebar(actionDesc['html'])
+			showSidebar(actionDesc['html']);
 			var p = PropertiesService.getDocumentProperties();
-			p.setProperty("analyze_progress", '0')
-			waitForMoreActions = true
-			break
+			p.setProperty("analyze_progress", '0');
+			waitForMoreActions = true;
+			break;
 		case 'updateProgress':
-			waitForMoreActions = true
+			waitForMoreActions = true;
 			var p = PropertiesService.getDocumentProperties();
-			p.setProperty("analyze_progress", actionDesc['progress'])
-			break
+			p.setProperty("analyze_progress", actionDesc['progress']);
+			break;
 		case 'reportContent':
-			processReportContent(actionDesc['report'])
-			break
+			processReportContent(actionDesc['report']);
+			break;
 
 		case 'showModalDialog':
 			showModalDialog(actionDesc['html'], actionDesc['title'],
-					actionDesc['width'], actionDesc['height'])
-					break
+					actionDesc['width'], actionDesc['height']);
+					break;
 
 		default:
-			break
+			break;
 		}
 	}
-	return waitForMoreActions
+	return waitForMoreActions;
 }
 
 function getAnalyzeProgress() {
 	var p = PropertiesService.getDocumentProperties();
-	return p.getProperty("analyze_progress")
+	return p.getProperty("analyze_progress");
 }
 
 function showSidebar(html) {
 	var user = Session.getActiveUser();
 	var userEmail = user.getEmail();
 
-	var ui = DocumentApp.getUi()
-	var htmlOutput = HtmlService.createHtmlOutput(html)
-	ui.showSidebar(htmlOutput)
+	var ui = DocumentApp.getUi();
+	var htmlOutput = HtmlService.createHtmlOutput(html);
+	ui.showSidebar(htmlOutput);
 }
 
 function showModalDialog(html, title, width, height) {
-	var ui = DocumentApp.getUi()
-	var htmlOutput = HtmlService.createHtmlOutput(html)
-	htmlOutput.setWidth(width)
-	htmlOutput.setHeight(height)
+	var ui = DocumentApp.getUi();
+	var htmlOutput = HtmlService.createHtmlOutput(html);
+	htmlOutput.setWidth(width);
+	htmlOutput.setHeight(height);
 
-	ui.showModalDialog(htmlOutput, title)
+	ui.showModalDialog(htmlOutput, title);
 }
 
 function highlightDocText(paragraphIndex, offset, endOffset) {
-	var doc = DocumentApp.getActiveDocument()
-	var body = doc.getBody()
-	var paragraph = body.getParagraphs()[paragraphIndex]
-	var docText = paragraph.editAsText()
-	var selectionRange = doc.newRange()
+	var doc = DocumentApp.getActiveDocument();
+	var body = doc.getBody();
+	var paragraph = body.getParagraphs()[paragraphIndex];
+	var docText = paragraph.editAsText();
+	var selectionRange = doc.newRange();
 
-	selectionRange.addElement(docText, offset, endOffset)
+	selectionRange.addElement(docText, offset, endOffset);
 
-	doc.setSelection(selectionRange.build())
+	doc.setSelection(selectionRange.build());
 }
 
 function linkDocText(paragraphIndex, offset, endOffset, url) {
-	var doc = DocumentApp.getActiveDocument()
-	var body = doc.getBody()
-	var paragraph = body.getParagraphs()[paragraphIndex]
-	var docText = paragraph.editAsText()
+	var doc = DocumentApp.getActiveDocument();
+	var body = doc.getBody();
+	var paragraph = body.getParagraphs()[paragraphIndex];
+	var docText = paragraph.editAsText();
 
-	docText.setLinkUrl(offset, endOffset, url)
+	docText.setLinkUrl(offset, endOffset, url);
 }
 
 function sendPost(resource, data) {
@@ -325,7 +330,7 @@ function sendPost(resource, data) {
 			'documentId': docId,
 			'user': user,
 			'userEmail': userEmail
-	}
+	};
 
 	if( typeof(data) != 'undefined' ) {
 		request['data'] = data;
@@ -338,29 +343,29 @@ function sendPost(resource, data) {
 			'payload' : requestJSON
 	};
 
-	shouldProcessActions = true
+	shouldProcessActions = true;
 	while (shouldProcessActions) {
-		response = UrlFetchApp.fetch(serverURL + resource, options)
-		var responseText = response.getContentText()
-		var responseOb = JSON.parse(responseText)
+		response = UrlFetchApp.fetch(serverURL + resource, options);
+		var responseText = response.getContentText();
+		var responseOb = JSON.parse(responseText);
 
-		shouldProcessActions = processActions(responseOb)
+		shouldProcessActions = processActions(responseOb);
 	}
 
-	return responseOb.results
+	return responseOb.results;
 }
 
 //Identifies a paragraph with an array of hierarchy indicies
 function identifyParagraph(element) {
 	var foundParagraph = true;
-	var identity = []
+	var identity = [];
 
 	var parent = element.getParent();
 	while(parent != null) {
 		elementType = element.getType();
 
-		var idx = parent.getChildIndex(element)
-		identity.push(idx)
+		var idx = parent.getChildIndex(element);
+		identity.push(idx);
 
 		element = parent;
 		parent = element.getParent();
@@ -370,10 +375,10 @@ function identifyParagraph(element) {
 }
 
 function identity2str(identity) {
-	str = ''
+	str = '';
 		for(i=0; i<identity.length; ++i) {
-			val = identity[i]
-			str += '' + val + '.'
+			val = identity[i];
+			str += '' + val + '.';
 		}
 
 	return str;
@@ -390,7 +395,7 @@ function compareIdentities(identity1, identity2) {
 
 		if(identity1[idx] < identity2[idx]) {
 			// identity1 is smaller
-			return -1
+			return -1;
 		}
 
 		if(identity1[idx] > identity2[idx]) {
@@ -415,8 +420,8 @@ function findParagraph(identity, paragraphList) {
 		// If the list size is less than 4, do a brute force
 		// search
 		for(var idx=0; idx<paragraphList.length; ++idx) {
-			var pCompare = paragraphList[idx]
-			var valIdentity = identifyParagraph(pCompare)
+			var pCompare = paragraphList[idx];
+			var valIdentity = identifyParagraph(pCompare);
 			if(compareIdentities(identity, valIdentity) == 0) {
 				return idx;
 			}
@@ -433,13 +438,13 @@ function findParagraph(identity, paragraphList) {
 
 	if(compareIdentities(identity, middleIdentity) < 0) {
 		var newList = paragraphList.slice(0, middle);
-		var startIndex = 0
+		var startIndex = 0;
 
 	} else {
 
 		var newList = paragraphList.slice(middle,
-				paragraphList.length)
-				startIndex = middle
+				paragraphList.length);
+				startIndex = middle;
 	}
 
 	return startIndex + findParagraph(identity, newList);
@@ -447,7 +452,7 @@ function findParagraph(identity, paragraphList) {
 
 //Finds TEXT element under element
 function findTEXT(element) {
-	var elType = element.getType()
+	var elType = element.getType();
 
 	if(elType == elType.TEXT) {
 		return element;
@@ -458,11 +463,11 @@ function findTEXT(element) {
 	}
 
 	for(var i=0; i<element.getNumChildren(); ++i) {
-		var child = element.getChild(i)
+		var child = element.getChild(i);
 
-		var result = findTEXT(child)
+		var result = findTEXT(child);
 		if(result != null) {
-			return result
+			return result;
 		}
 	}
 
@@ -471,45 +476,45 @@ function findTEXT(element) {
 
 //Find the cursor location
 function findCursor() {
-	var doc = DocumentApp.getActiveDocument()
+	var doc = DocumentApp.getActiveDocument();
 
-	var cursorPosition = doc.getCursor()
+	var cursorPosition = doc.getCursor();
 
 	if(cursorPosition == null) {
 		// Cursor position is null, so assume a selection
-		selectionRange = doc.getSelection()
-		rangeElement = selectionRange.getRangeElements()[0]
+		selectionRange = doc.getSelection();
+		rangeElement = selectionRange.getRangeElements()[0];
 
 		// Extract element and offset from end of selection
-		var el = rangeElement.getElement()
-		var offset = rangeElement.getEndOffsetInclusive()
+		var el = rangeElement.getElement();
+		var offset = rangeElement.getEndOffsetInclusive();
 
 	} else {
 		// Select element and off set from current position
-		var el = cursorPosition.getElement()
-		var offset = cursorPosition.getOffset()
+		var el = cursorPosition.getElement();
+		var offset = cursorPosition.getOffset();
 	}
 
-	var elementType = el.getType()
+	var elementType = el.getType();
 	// Handle special case of cursor at the end of a paragraph
 	// Paragraphs appear to only have an offset of 0 or 1 (beginning or end)
 	// If we are at the end of a paragraph, we want to instead use the end of the text element in the paragraph
 	if(elementType != elementType.TEXT && offset > 0) {
-		var textElement = findTEXT(el)
+		var textElement = findTEXT(el);
 		if(textElement != null) {
-			var length = textElement.getText().length
-			offset = length - 1
+			var length = textElement.getText().length;
+			offset = length - 1;
 		}
 	}
 
-	return getLocation(el, offset)
+	return getLocation(el, offset);
 }
 
 function getLocation(el, offset) {
-	var doc = DocumentApp.getActiveDocument()
+	var doc = DocumentApp.getActiveDocument();
 
 	// Get the ordared list of paragraphs
-	var plist = doc.getBody().getParagraphs()
+	var plist = doc.getBody().getParagraphs();
 
 	// Identify the element by its location in the
 	// document hierarchy.
@@ -517,54 +522,54 @@ function getLocation(el, offset) {
 
 	// Find the index in plist of the paragraph with the
 	// same
-	var result = findParagraph(identity, plist)
+	var result = findParagraph(identity, plist);
 
 	if(result == null) {
-		return null
+		return null;
 	} else {
 		return {'paragraphIndex': result,
-			'offset': offset}
+			'offset': offset};
 	}
 }
 
 function updateExperimentalResults() {
-	sendPost('/updateExperimentalResults')
+	sendPost('/updateExperimentalResults');
 }
 
 function calculateSamples() {
-	sendPost('/calculateSamples')
+	sendPost('/calculateSamples');
 }
 
 function sendAnalyzeFromTop() {
-	sendPost('/analyzeDocument')
+	sendPost('/analyzeDocument');
 }
 
 function sendAnalyzeFromCursor() {
-	var cursorLocation = findCursor()
+	var cursorLocation = findCursor();
 
-	sendPost('/analyzeDocument', cursorLocation)
+	sendPost('/analyzeDocument', cursorLocation);
 }
 
 function sendGenerateReport() {
 	var docId = DocumentApp.getActiveDocument().getId();
-	var html = ''
-		html += '<script>\n'
-		html += 'function onSuccess() {\n'
-		html += '  google.script.host.close()\n'
-		html += '}\n'
-		html += '</script>\n'
-		html += '\n'
-		html += '<p>'
-		html += '<center>'
-		html += 'Download Report '
-		html += '<a href=' + serverURL + '/document_report?'
-		html += docId + ' target=_blank>here</a>'
-		html += '</p>'
-		html += '\n'
-		html += '<input id=okButton Button value="Done" '
-		html += 'type="button" onclick="onSuccess()" />\n'
-		html += '</center>'
-		showModalDialog(html, 'Download', 300, 100)
+	var html = '';
+		html += '<script>\n';
+		html += 'function onSuccess() {\n';
+		html += '  google.script.host.close()\n';
+		html += '}\n';
+		html += '</script>\n';
+		html += '\n';
+		html += '<p>';
+		html += '<center>';
+		html += 'Download Report ';
+		html += '<a href=' + serverURL + '/document_report?';
+		html += docId + ' target=_blank>here</a>';
+		html += '</p>';
+		html += '\n';
+		html += '<input id=okButton Button value="Done" ';
+		html += 'type="button" onclick="onSuccess()" />\n';
+		html += '</center>';
+		showModalDialog(html, 'Download', 300, 100);
 }
 
 function reportIssues(){
@@ -572,133 +577,131 @@ function reportIssues(){
 		<p>Something unexpected happen with the intent-parser plugin?</p> \
 		<p>Want to request a feature support?</p> \
 		<p>Send a bug report <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>here</a>.</p> \
-		'
-		verFormattedHTML = Utilities.formatString(helpHTML, versionString)
-		showModalDialog(verFormattedHTML, 'Issues', 400, 200)
+		';
+		verFormattedHTML = Utilities.formatString(helpHTML, versionString);
+		showModalDialog(verFormattedHTML, 'Issues', 400, 200);
 }
 
 function sendValidateStructuredRequest() {
-	sendPost('/validateStructuredRequest', getBookmarks())
+	sendPost('/validateStructuredRequest', getBookmarks());
 }
 
 function sendGenerateStructuredRequest() {
-	sendPost('/generateStructuredRequest', getBookmarks())
+	sendPost('/generateStructuredRequest', getBookmarks());
 }
 
 function getBookmarks(){
-	var doc = DocumentApp.getActiveDocument()
-	var bookmarks = doc.getBookmarks()
-	var result = []
+	var doc = DocumentApp.getActiveDocument();
+	var bookmarks = doc.getBookmarks();
+	var result = [];
 	for(var bookmark of bookmarks){
-		var bookmark_id = bookmark.getId()
-		var bookmark_text = bookmark.getPosition().getElement().asText().getText()
-		result.push({id:bookmark_id, text: bookmark_text})
+		var bookmark_id = bookmark.getId();
+		var bookmark_text = bookmark.getPosition().getElement().asText().getText();
+		result.push({id:bookmark_id, text: bookmark_text});
 	}
-	return {'bookmarks': result}
+	return {'bookmarks': result};
 }
 
 function addToSynBioHub() {
-	var doc = DocumentApp.getActiveDocument()
-	selectionRange = doc.getSelection()
+	var doc = DocumentApp.getActiveDocument();
+	selectionRange = doc.getSelection();
 
 	if(selectionRange == null) {
-		return
+		return;
 	}
 
 	// Cursor position is null, so assume a selection
-	var selectionRange = doc.getSelection()
-	var rangeElements = selectionRange.getRangeElements()
-	var firstElement = rangeElements[0]
-	var lastElement = rangeElements[ rangeElements.length - 1 ]
+	var selectionRange = doc.getSelection();
+	var rangeElements = selectionRange.getRangeElements();
+	var firstElement = rangeElements[0];
+	var lastElement = rangeElements[ rangeElements.length - 1 ];
 
 	// Extract element and offset from end of selection
-	var startEl = firstElement.getElement()
-	var startOffset = firstElement.getStartOffset()
-	var startLocation = getLocation(startEl, startOffset)
+	var startEl = firstElement.getElement();
+	var startOffset = firstElement.getStartOffset();
+	var startLocation = getLocation(startEl, startOffset);
 
-	var endEl = lastElement.getElement()
-	var endOffset = lastElement.getEndOffsetInclusive()
+	var endEl = lastElement.getElement();
+	var endOffset = lastElement.getEndOffsetInclusive();
 	var endLocation = getLocation(endEl, endOffset);
 
 	var selection = {'start': startLocation,
-			'end': endLocation}
-
-	sendPost('/addToSynBioHub', selection)
+					 'end': endLocation};
+	sendPost('/addToSynBioHub', selection);
 }
 
 function addBySpelling() {
-	sendPost('/addBySpelling')
+	sendPost('/addBySpelling');
 }
 
 function addBySpellingFromCursor() {
-	var cursorLocation = findCursor()
-
-	sendPost('/addBySpelling', cursorLocation)
+	const cursorLocation = findCursor();
+	sendPost('/addBySpelling', cursorLocation);
 }
 
 function submitForm(formData) {
-	return sendPost('/submitForm', formData)
+	return sendPost('/submitForm', formData);
 }
 
 function postFromClient(postInfo) {
-	return sendPost(postInfo.resource, postInfo.data)
+	return sendPost(postInfo.resource, postInfo.data);
 }
 
 function createControlsTable(){
-	var doc = DocumentApp.getActiveDocument();
-	var cursorPosition = doc.getCursor();
+	let doc = DocumentApp.getActiveDocument();
+	let cursorPosition = doc.getCursor();
 
 	if(cursorPosition == null) {
 		// Cursor position is null, so assume a selection
-		selectionRange = doc.getSelection()
-		rangeElement = selectionRange.getRangeElements()[0]
+		const selectionRange = doc.getSelection();
+		const rangeElement = selectionRange.getRangeElements()[0];
 		// Extract element and offset from end of selection
-		var el = rangeElement.getElement()
-	} 
+		var el = rangeElement.getElement();
+	}
 	else {
 		// Select element and off set from current position
-		var el = cursorPosition.getElement()
+		var el = cursorPosition.getElement();
 	}
-	childIndex = doc.getBody().getChildIndex(el)
-	data = {'childIndex' : childIndex, 'tableType' : 'controls'}
-	sendPost('/createTableTemplate', data)
+	const childIndex = doc.getBody().getChildIndex(el);
+	const data = {'childIndex' : childIndex, 'tableType' : 'controls'};
+	sendPost('/createTableTemplate', data);
 }
 
 function createTableMeasurements() {
-	var doc = DocumentApp.getActiveDocument();
-	var cursorPosition = doc.getCursor();
+	let doc = DocumentApp.getActiveDocument();
+	let cursorPosition = doc.getCursor();
 
 	if(cursorPosition == null) {
 		// Cursor position is null, so assume a selection
-		selectionRange = doc.getSelection()
-		rangeElement = selectionRange.getRangeElements()[0]
+		const selectionRange = doc.getSelection();
+		const rangeElement = selectionRange.getRangeElements()[0];
 		// Extract element and offset from end of selection
-		var el = rangeElement.getElement()
+		var el = rangeElement.getElement();
 	} else {
 		// Select element and off set from current position
-		var el = cursorPosition.getElement()
+		var el = cursorPosition.getElement();
 	}
-	childIndex = doc.getBody().getChildIndex(el)
-	data = {'childIndex' : childIndex, 'tableType' : 'measurements'}
-	sendPost('/createTableTemplate', data)
+	const childIndex = doc.getBody().getChildIndex(el);
+	const data = {'childIndex' : childIndex, 'tableType' : 'measurements'};
+	sendPost('/createTableTemplate', data);
 }
 
 function createParameterTable(){
-	var doc = DocumentApp.getActiveDocument();
-	var cursorPosition = doc.getCursor();
+	let doc = DocumentApp.getActiveDocument();
+	let cursorPosition = doc.getCursor();
 
 	if(cursorPosition == null) {
 		// Cursor position is null, so assume a selection
-		selectionRange = doc.getSelection()
-		rangeElement = selectionRange.getRangeElements()[0]
+		const selectionRange = doc.getSelection();
+		const rangeElement = selectionRange.getRangeElements()[0];
 		// Extract element and offset from end of selection
-		var el = rangeElement.getElement()
+		var el = rangeElement.getElement();
 	} else {
 		// Select element and off set from current position
-		var el = cursorPosition.getElement()
+		var el = cursorPosition.getElement();
 	}
-	childIndex = doc.getBody().getChildIndex(el)
-	data = {'childIndex' : childIndex, 'tableType' : 'parameters'}
-	sendPost('/createTableTemplate', data)
+	const childIndex = doc.getBody().getChildIndex(el);
+	const data = {'childIndex' : childIndex, 'tableType' : 'parameters'};
+	sendPost('/createTableTemplate', data);
 }
 

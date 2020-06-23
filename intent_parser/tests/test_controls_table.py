@@ -149,7 +149,7 @@ class ControlsTableTest(unittest.TestCase):
         ip_table.set_header_row_index(0)
         control_table_parser = ControlsTable(ip_table)
         control_result = control_table_parser.process_table()
-        self.assertEquals(1, len(control_result))
+        self.assertEqual(1, len(control_result))
         
         exp_res = ['MG1655_RPU_Standard',
                    'MG1655',
@@ -180,7 +180,7 @@ class ControlsTableTest(unittest.TestCase):
         
         control_table_parser = ControlsTable(ip_table)
         control_result = control_table_parser.process_table()
-        self.assertEquals(1, len(control_result))
+        self.assertEqual(1, len(control_result))
         
         exp_res = ['MG1655', 'MG1655_RPU_Standard', 'MG1655_LPV3']
         self.assertListEqual(exp_res, control_result[0]['strains'])

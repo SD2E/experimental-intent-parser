@@ -71,9 +71,9 @@ class ParameterTable(object):
             header_row_index = self._intent_parser_table.header_row_index()
             header_cell = self._intent_parser_table.get_cell(header_row_index, cell_index)
             cell_type = cell_parser.PARSER.get_header_type(header_cell)
-            if 'PARAMETER' == cell_type:
+            if intent_parser_constants.HEADER_PARAMETER_TYPE == cell_type:
                 param_field = self._get_parameter_field(cell.get_text().strip())
-            elif 'PARAMETER_VALUE' == cell_type:
+            elif intent_parser_constants.HEADER_PARAMETER_VALUE_TYPE == cell_type:
                 param_value = cell.get_text()
         if not param_field:
             raise TableException('Parameter field should not be empty')

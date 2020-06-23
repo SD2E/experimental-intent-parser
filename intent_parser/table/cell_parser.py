@@ -1,5 +1,6 @@
 from intent_parser.intent_parser_exceptions import TableException
-import intent_parser.table.table_utils as table_utils 
+import intent_parser.constants.intent_parser_constants as constants
+import intent_parser.table.table_utils as table_utils
 import collections
 import re
 
@@ -379,24 +380,24 @@ class _TableCaptionTokenizer(_Tokenizer):
 class _TableHeaderTokenizer(_Tokenizer): 
     
     token_specification = [
-            ('BATCH', r'(Batch|batch)'), 
-            ('CHANNEL', r'(Channel|channel)'),
-            ('CONTENTS', r'(Contents|contents)'),
-            ('CONTROL_TYPE', r'(Control|control)[ \t\n]*(Type|type)'),
-            ('CONTROL', r'(Control|control)'),
-            ('FILE_TYPE', r'(File|file)[ \t\n]*-[ \t\n]*(Type|type)'), 
-            ('MEASUREMENT_TYPE', r'(Measurement|measurement)[ \t\n]*-[ \t\n]*(Type|type)'),
-            ('NOTES', r'(Notes|notes)'),
-            ('ODS', r'(Ods|ods|ODS)'),
-            ('PARAMETER', r'(Parameter|parameter)'),
-            ('PARAMETER_VALUE', r'(Value|value)'),
-            ('REPLICATE', r'Replicate|replicate'),
-            ('SAMPLES', r'(Samples|samples)'),
-            ('SKIP',     r'([ \t\n]|\u000b)+'),
-            ('STRAINS',   r'Strains|strains'),
-            ('TEMPERATURE', r'(Temperature|temperature)'),
-            ('TIMEPOINT', r'(Timepoint|timepoint)'),
-            ('UNKNOWN',     r'.+')]
+            (constants.HEADER_BATCH_TYPE, r'(Batch|batch)'),
+            (constants.HEADER_CHANNEL_TYPE, r'(Channel|channel)'),
+            (constants.HEADER_CONTENTS_TYPE, r'(Contents|contents)'),
+            (constants.HEADER_CONTROL_TYPE_TYPE, r'(Control|control)[ \t\n]*(Type|type)'),
+            (constants.HEADER_CONTROL_TYPE, r'(Control|control)'),
+            (constants.HEADER_FILE_TYPE_TYPE, r'(File|file)[ \t\n]*-[ \t\n]*(Type|type)'),
+            (constants.HEADER_MEASUREMENT_TYPE_TYPE, r'(Measurement|measurement)[ \t\n]*-[ \t\n]*(Type|type)'),
+            (constants.HEADER_NOTES_TYPE, r'(Notes|notes)'),
+            (constants.HEADER_ODS_TYPE, r'(Ods|ods|ODS)'),
+            (constants.HEADER_PARAMETER_TYPE, r'(Parameter|parameter)'),
+            (constants.HEADER_PARAMETER_VALUE_TYPE, r'(Value|value)'),
+            (constants.HEADER_REPLICATE_TYPE, r'Replicate|replicate'),
+            (constants.HEADER_SAMPLES_TYPE, r'(Samples|samples)'),
+            (constants.HEADER_SKIP_TYPE,     r'([ \t\n]|\u000b)+'),
+            (constants.HEADER_STRAINS_TYPE,   r'Strains|strains'),
+            (constants.HEADER_TEMPERATURE_TYPE, r'(Temperature|temperature)'),
+            (constants.HEADER_TIMEPOINT_TYPE, r'(Timepoint|timepoint)'),
+            (constants.HEADER_UNKNOWN_TYPE, r'.+')]
     
     def __init__(self):
         super().__init__(self.token_specification)

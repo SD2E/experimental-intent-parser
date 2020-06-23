@@ -6,9 +6,8 @@ class LabTable(object):
     """
     Class for parsing Lab table
     """
-    EXPERIMENT_ID_PREFIX = 'experiment'
+
     _logger = logging.getLogger('intent_parser')
-    
     DEFAULT_LAB = 'tacc'
     
     def __init__(self, intent_parser_table):
@@ -24,17 +23,17 @@ class LabTable(object):
         for row_index in range(self._intent_parser_table.number_of_rows()):
             self._process_row(row_index)
         
-        result = {intent_parser_constants.COL_HEADER_LAB : self.DEFAULT_LAB, 
-                  intent_parser_constants.COL_HEADER_EXPERIMENT_ID : 'experiment.%s.TBD' % self.DEFAULT_LAB}
+        result = {intent_parser_constants.HEADER_LAB_VALUE : self.DEFAULT_LAB,
+                  intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE : 'experiment.%s.TBD' % self.DEFAULT_LAB}
         
-        if intent_parser_constants.COL_HEADER_LAB in self._lab_content:
-            result[intent_parser_constants.COL_HEADER_LAB] = self._lab_content['lab']
+        if intent_parser_constants.HEADER_LAB_VALUE in self._lab_content:
+            result[intent_parser_constants.HEADER_LAB_VALUE] = self._lab_content['lab']
         
-        if intent_parser_constants.COL_HEADER_EXPERIMENT_ID in self._lab_content:
-            result[intent_parser_constants.COL_HEADER_EXPERIMENT_ID] = 'experiment.%s.%s' % (result['lab'].lower(), 
-                                                                                             self._lab_content[intent_parser_constants.COL_HEADER_EXPERIMENT_ID])
+        if intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE in self._lab_content:
+            result[intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE] = 'experiment.%s.%s' % (result['lab'].lower(),
+                                                                                               self._lab_content[intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE])
         else:
-            result[intent_parser_constants.COL_HEADER_EXPERIMENT_ID] = 'experiment.%s.%s' % (result['lab'].lower(), 'TBD')
+            result[intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE] = 'experiment.%s.%s' % (result['lab'].lower(), 'TBD')
         
         return result
     
@@ -49,16 +48,16 @@ class LabTable(object):
         for cell_index in range(len(row)):
             cell = self._intent_parser_table.get_cell(row_index, cell_index)
             text = cell.get_text()
-            if text.lower().startswith(intent_parser_constants.COL_HEADER_LAB):
-                lab_name = self._process_content(cell.get_text(), intent_parser_constants.COL_HEADER_LAB)
+            if text.lower().startswith(intent_parser_constants.HEADER_LAB_VALUE):
+                lab_name = self._process_content(cell.get_text(), intent_parser_constants.HEADER_LAB_VALUE)
                 if lab_name:
-                    self._lab_content[intent_parser_constants.COL_HEADER_LAB] = lab_name
-            elif text.lower().startswith(intent_parser_constants.COL_HEADER_EXPERIMENT_ID):
-                experiment_id = self._process_content(cell.get_text(), intent_parser_constants.COL_HEADER_EXPERIMENT_ID)
+                    self._lab_content[intent_parser_constants.HEADER_LAB_VALUE] = lab_name
+            elif text.lower().startswith(intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE):
+                experiment_id = self._process_content(cell.get_text(), intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE)
                 if experiment_id:
-                    self._lab_content[intent_parser_constants.COL_HEADER_EXPERIMENT_ID] = experiment_id
+                    self._lab_content[intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE] = experiment_id
                 else:
-                    self._lab_content[intent_parser_constants.COL_HEADER_EXPERIMENT_ID] = 'TBD'
+                    self._lab_content[intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE] = 'TBD'
                     
     def _process_content(self, text, keyword):
         prefix, postfix = table_utils.extract_str_after_prefix(text)

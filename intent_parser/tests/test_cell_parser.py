@@ -79,7 +79,7 @@ class CellParserTest(unittest.TestCase):
         name = result['name']
         timepoints = result['timepoints']
         self.assertEqual(2, len(name))
-        self.assertEquals(1, len(timepoints))
+        self.assertEqual(1, len(timepoints))
         self.assertEqual('name1 name2', name['label'])
         self.assertEqual('NO PROGRAM DICTIONARY ENTRY', name['sbh_uri'])
         self.assertEqual('123', result['value'])
