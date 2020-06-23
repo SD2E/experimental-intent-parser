@@ -1,5 +1,5 @@
 """
-List of constants used in Google App Script Add-on
+List of constants used in intent parser's Google App Script Add-on
 """
 CURSOR_CHILD_INDEX = 'cursorChildIndex'
 
@@ -20,6 +20,8 @@ HTML_PROTOCOL = 'protocol'
 HTML_TEMPERATURE = 'temperature'
 HTML_TIMEPOINT = 'timepoint'
 
+TABLE_DATA = 'tableData'
+TABLE_TYPE = 'tableType'
 TABLE_TYPE_CONTROLS = 'controls'
 TABLE_TYPE_LAB = 'tableLab'
 TABLE_TYPE_MEASUREMENTS = 'measurements'

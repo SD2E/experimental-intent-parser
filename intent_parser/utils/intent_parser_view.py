@@ -3,6 +3,7 @@ Contains functionalities for generating views related to intent parser
 """
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
 from intent_parser.utils.html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, ControlsTableHtmlBuilder, MeasurementTableHtmlBuilder, ParameterTableHtmlBuilder
+import intent_parser.constants.ip_app_script_constants as addon_constants
 import logging
 
 logger = logging.getLogger('intent_parser_server')
@@ -10,9 +11,9 @@ logger = logging.getLogger('intent_parser_server')
 def create_table_template(position_in_document, table_data, table_type, col_sizes, additional_info={}):
     create_table = {}
     create_table['action'] = 'addTable'
-    create_table['cursorChildIndex'] = position_in_document
-    create_table['tableData'] = table_data
-    create_table['tableType'] = table_type
+    create_table[addon_constants.CURSOR_CHILD_INDEX] = position_in_document
+    create_table[addon_constants.TABLE_DATA] = table_data
+    create_table[addon_constants.TABLE_TYPE] = table_type
     create_table['colSizes'] = col_sizes
     if additional_info:
         for k, v in additional_info.items():
