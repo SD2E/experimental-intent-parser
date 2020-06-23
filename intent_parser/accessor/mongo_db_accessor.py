@@ -12,18 +12,17 @@ class MongoDBAccessor(object):
     SYNC_PERIOD = timedelta(minutes=5)
     _LOGGER = logging.getLogger('intent_parser_mongo_db_accessor')
 
-    def __init__(self, credentials, experiment_reference_url):
+    def __init__(self, credentials):
         self.database = pymongo.MongoClient(credentials).catalog_staging
-        self.experiment_reference_url = experiment_reference_url
 
         self.mongo_db_lock = threading.Lock()
         self.mongo_db = {}
         self.mongo_db_thread = threading.Thread(target=self._periodically_fetch_mongo_db)
 
-    def get_experiment_status(self):
+    def get_experiment_status(self, experiment_reference_url):
         """Retrieve a list of Status for an experiment
         """
-        experiment = self.mongo_db[self.experiment_reference_url]
+        experiment = self.mongo_db[experiment_reference_url]
         result = []
         for status_type, status_values in experiment['status'].items():
             status = _Status(status_type,
@@ -47,8 +46,7 @@ class MongoDBAccessor(object):
 
     def _fetch_mongo_db(self):
         self._LOGGER.info('Fetching Mongo database')
-        structure_requests = self.database.structured_requests.find({'experiment_reference_url': self.experiment_reference_url,
-                                                    '$where': 'this.derived_from.length > 0'})
+        structure_requests = self.database.structured_requests.find({'$where': 'this.derived_from.length > 0'})
 
         self.mongo_db_lock.acquire()
         for sr in structure_requests:
@@ -68,22 +66,22 @@ class _Status(object):
 
         Returns: A string
         """
-        return self.status_type()
+        return self.status_type
 
     def last_updated(self):
         """
         Returns: Datetime
         """
-        return self.last_updated()
+        return self.last_updated
 
     def state(self):
         """
         Returns: A boolean
         """
-        return self.state()
+        return self.state
 
     def path(self):
         """
         Returns: A string
         """
-        return self.path()
+        return self.path
