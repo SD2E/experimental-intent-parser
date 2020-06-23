@@ -9,6 +9,7 @@ from multiprocessing import Pool
 from operator import itemgetter
 from spellchecker import SpellChecker
 import intent_parser.server.http_message as http_message
+import intent_parser.constants.google_app_script_constants as gas_constants
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
@@ -1030,41 +1031,41 @@ class IntentParserServer(object):
                       intent_parser_constants.HEADER_FILE_TYPE_VALUE,
                       intent_parser_constants.HEADER_REPLICATE_VALUE,
                       intent_parser_constants.HEADER_STRAINS_VALUE]
-        if data['batch']:
+        if data[gas_constants.HTML_BATCH]:
             header_row.append(intent_parser_constants.HEADER_BATCH_VALUE)
-        if data['temperature']:
+        if data[gas_constants.HTML_TEMPERATURE]:
             header_row.append(intent_parser_constants.HEADER_TEMPERATURE_VALUE)
-        if data['timepoint']:
+        if data[gas_constants.HTML_TIMEPOINT]:
             header_row.append(intent_parser_constants.HEADER_TIMEPOINT_VALUE)
-        if data['ods']:
+        if data[gas_constants.HTML_ODS]:
             header_row.append(intent_parser_constants.HEADER_ODS_VALUE)
-        if data['notes']:
+        if data[gas_constants.HTML_NOTES]:
             header_row.append(intent_parser_constants.HEADER_NOTES_VALUE)
-        if data['controls']:
+        if data[gas_constants.HTML_CONTROLS]:
             header_row.append(intent_parser_constants.HEADER_CONTROL_VALUE)
-        header_row.extend(['' for _ in range(int(data['numReagents']))])
+        header_row.extend(['' for _ in range(int(data[gas_constants.HTML_NUM_OF_REAGENTS]))])
         table_template.append(header_row)
 
-        measurement_types = data['measurementTypes']
-        file_types = data['fileTypes']
+        measurement_types = data[gas_constants.HTML_MEASUREMENT_TYPES]
+        file_types = data[gas_constants.HTML_FILE_TYPES]
         # column_offset = column size - # of columns with generated default value
         column_offset = len(header_row) - 2
-        for row_index in range(int(data['numRows'])):
+        for row_index in range(int(data[gas_constants.HTML_NUM_OF_ROW])):
             curr_row = [measurement_types[row_index],
                         file_types[row_index]]
             curr_row.extend(['' for _ in range(column_offset)])
             table_template.append(curr_row)
         default_col_width = 4
         column_width = [len(header) if len(header) != 0 else default_col_width for header in header_row]
-        return intent_parser_view.create_table_template(data['cursorChildIndex'],
+        return intent_parser_view.create_table_template(data[gas_constants.CURSOR_CHILD_INDEX],
                                                         table_template,
-                                                        'measurements',
+                                                        gas_constants.TABLE_TYPE_MEASUREMENTS,
                                                         column_width,
-                                                        additional_info={'tableLab': lab_data})
+                                                        additional_info={gas_constants.TABLE_TYPE_LAB: lab_data})
 
     def process_lab_table(self, data):
         table_template = []
-        lab_name = "%s: %s" % (intent_parser_constants.HEADER_LAB_VALUE, data['lab'])
+        lab_name = "%s: %s" % (intent_parser_constants.HEADER_LAB_VALUE, data[gas_constants.HTML_LAB])
         experiment_id = '%s: ' % intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE
         table_template.append([lab_name])
         table_template.append([experiment_id])
@@ -1074,28 +1075,28 @@ class IntentParserServer(object):
         table_template = []
         header_row = [intent_parser_constants.HEADER_CONTROL_TYPE_VALUE,
                       intent_parser_constants.HEADER_STRAINS_VALUE]
-        if data['channel']:
+        if data[gas_constants.HTML_CHANNEL]:
             header_row.append(intent_parser_constants.HEADER_CHANNEL_VALUE)
-        if data['content']:
+        if data[gas_constants.HTML_CONTENT]:
             header_row.append(intent_parser_constants.HEADER_CONTENTS_VALUE)
-        if data['timepoint']:
+        if data[gas_constants.HTML_TIMEPOINT]:
             header_row.append(intent_parser_constants.HEADER_TIMEPOINT_VALUE)
         
         # column_offset = column size - # of columns with generated default value
         column_offset = len(header_row) - 1
-        if data['caption']:
+        if data[gas_constants.HTML_CAPTION]:
             table_caption = ['Table 1: Control']
             table_caption.extend(['' for _ in range(column_offset)])
             table_template.append(table_caption)
         table_template.append(header_row)
-        for control_type in data['controlTypes']:
+        for control_type in data[gas_constants.HTML_CONTROL_TYPES]:
             curr_row = [control_type]
             curr_row.extend(['' for _ in range(column_offset)])
             table_template.append(curr_row)
         column_width = [len(header) for header in header_row]
-        return intent_parser_view.create_table_template(data['cursorChildIndex'], 
+        return intent_parser_view.create_table_template(data[gas_constants.CURSOR_CHILD_INDEX],
                                                         table_template, 
-                                                        'controls', 
+                                                        gas_constants.TABLE_TYPE_CONTROLS,
                                                         column_width)
 
     def process_experiment_status_table(self, data):
@@ -1106,7 +1107,7 @@ class IntentParserServer(object):
         header_row = [intent_parser_constants.HEADER_PARAMETER_VALUE,
                       intent_parser_constants.HEADER_PARAMETER_VALUE_VALUE]
 
-        selected_protocol = data['protocol']
+        selected_protocol = data[gas_constants.HTML_PROTOCOL]
         protocols = [key for key, value in intent_parser_constants.PROTOCOL_NAMES.items() if value == selected_protocol]
         strateos_protocol = protocols[0]
         if strateos_protocol not in intent_parser_constants.PROTOCOL_NAMES.keys():
@@ -1129,9 +1130,9 @@ class IntentParserServer(object):
             else:
                 table_template.append(parameter_row)
         column_width = [len(header) for header in header_row]
-        return intent_parser_view.create_table_template(data['cursorChildIndex'],
+        return intent_parser_view.create_table_template(data[gas_constants.CURSOR_CHILD_INDEX],
                                                         table_template,
-                                                        'parameters',
+                                                        gas_constants.TABLE_TYPE_PARAMETERS,
                                                         column_width)
 
     def get_client_state(self, httpMessage):

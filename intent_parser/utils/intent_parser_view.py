@@ -37,7 +37,7 @@ def create_parameter_table_template(cursor_child_index, protocol_options):
     builder.protocol_options_html(html_protocols)
     html_parameter = builder.build() 
     
-    dialog_action = modal_dialog(html_parameter, 'Create Parameter Table', 600, 600)
+    dialog_action = modal_dialog(html_parameter, 'Create Parameters Table', 600, 600)
     return dialog_action
 
 def create_measurement_table_template(cursor_child_index):
