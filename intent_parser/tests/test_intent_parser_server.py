@@ -51,6 +51,10 @@ class IntentParserServerTest(unittest.TestCase):
         self.mock_intent_parser.get_experiment_request.return_value = experiment_request
         self.mock_intent_parser.get_validation_warnings.return_value = warnings
         self.mock_intent_parser.get_validation_errors.return_value = errors
+        self.mock_tacc_go_accessor.execute_experiment().return_value = {
+                "message": "The request was successful",
+                "status": "success",
+                "version": "1.5.4"}
         http_message = HttpMessage()
         http_message.process_header('Host:%s' % http_host)
         http_message.set_body(json.dumps(experiment_request).encode('utf-8'))

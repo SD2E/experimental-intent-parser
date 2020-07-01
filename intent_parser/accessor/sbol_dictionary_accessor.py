@@ -1,11 +1,8 @@
 from datetime import timedelta
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
-import intent_parser.constants.intent_parser_constants as intent_parser_constants
-import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import logging
-import os 
-import time 
+import time
 import threading
 
 class SBOLDictionaryAccessor(object):
@@ -33,6 +30,9 @@ class SBOLDictionaryAccessor(object):
         self.spreadsheet_tab_data = {}
         self.spreadsheet_thread = threading.Thread(target=self._periodically_fetch_spreadsheet)
 
+    def initial_fetch(self):
+        self._fetch_spreadsheet_data()
+
     def get_spreadsheet_data(self):
         self.spreadsheet_lock.acquire()
         sheet_data = self.spreadsheet_tab_data.copy()
@@ -40,7 +40,7 @@ class SBOLDictionaryAccessor(object):
         return sheet_data
 
     def start_synchronizing_spreadsheet(self):
-        self.fetch_spreadsheet_data()
+        self._fetch_spreadsheet_data()
         self.spreadsheet_thread.start()
 
     def stop_synchronizing_spreadsheet(self):
@@ -51,7 +51,7 @@ class SBOLDictionaryAccessor(object):
             time.sleep(self.SYNC_PERIOD.total_seconds())
             self.fetch_spreadsheet_data()
 
-    def fetch_spreadsheet_data(self):
+    def _fetch_spreadsheet_data(self):
         self.logger.info('Fetching SBOL Dictionary spreadsheet')
         spreadsheet_tabs = self.google_accessor.type_tabs.keys()
 
@@ -125,7 +125,7 @@ class SBOLDictionaryAccessor(object):
             DictionaryMaintainerException to indicate if a tab does not exist within a spreadsheet.
         """
         self.spreadsheet_lock.acquire()
-        sheet_data = self.spreadsheet_tab_data
+        sheet_data = self.spreadsheet_tab_data.copy()
         self.spreadsheet_lock.release()
         target_tab = None
         for tab in sheet_data:

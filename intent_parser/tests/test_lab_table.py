@@ -8,6 +8,9 @@ class LabTableTest(unittest.TestCase):
     """
     def setUp(self):
         self.ip_table_factory = IntentParserTableFactory()
+
+    def tearDown(self):
+        pass
         
     def test_table_with_experiment_id(self):
         input_table = {'tableRows': [

@@ -364,7 +364,6 @@ class GoogleAccessor:
             for i in range(len(header_value)):
                 if i >= len(row_values):
                     break
-
                 header = header_value[i]
                 value = row_values[i]
 
@@ -375,9 +374,7 @@ class GoogleAccessor:
                 this_row_data['row'] = row_index
                 this_row_data['tab'] = tab
                 row_data.append(this_row_data)
-
             row_index += 1
-
         return row_data
 
     def set_row_data(self, entry):

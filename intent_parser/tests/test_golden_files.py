@@ -5,7 +5,6 @@ from datetime import datetime
 from unittest.mock import patch
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
-import git
 import os
 import json 
 import unittest
@@ -19,31 +18,35 @@ class GoldenFileTest(unittest.TestCase):
     Once the document has been retrieved, it is passed into intent parser to generate a structured request. 
     The structured request is then compared with the structured_request result for equivalency.
     """
-    
+
     @classmethod
-    def setUpClass(self):
-        curr_path = os.path.dirname(os.path.realpath(__file__))
-        self.data_dir = os.path.join(curr_path, 'data')
-        self.mock_data_dir = os.path.join(self.data_dir, 'mock_data')
-        
-        cp_request_dir = os.path.join(curr_path, 'data', 'cp-request')
-#         git_accessor = git.cmd.Git(cp_request_dir)
-#         git_accessor.pull()
-        self.structured_request_dir = os.path.join(cp_request_dir, 'input', 'structured_requests')
-        
-        with open(os.path.join(self.data_dir, 'authn.json'), 'r') as file:
-            self.authn = json.load(file)['authn']
-             
-        self.google_accessor = GoogleAccessor.create()
-        self.maxDiff = None  
+    def setUpClass(cls):
+        pass
+        # curr_path = os.path.dirname(os.path.realpath(__file__))
+        # self.data_dir = os.path.join(curr_path, 'data')
+        # self.mock_data_dir = os.path.join(self.data_dir, 'mock_data')
+        # with open(os.path.join(self.data_dir, 'authn.json'), 'r') as file:
+        #     self.authn = json.load(file)['authn']
+        #
+        # self.google_accessor = GoogleAccessor.create()
+        # self.maxDiff = None
     
     @patch('intent_parser.intent_parser_sbh.IntentParserSBH')
     def setUp(self, mock_intent_parser_sbh):
+        curr_path = os.path.dirname(os.path.realpath(__file__))
+        self.data_dir = os.path.join(curr_path, 'data')
+        self.mock_data_dir = os.path.join(self.data_dir, 'mock_data')
+        with open(os.path.join(self.data_dir, 'authn.json'), 'r') as file:
+            self.authn = json.load(file)['authn']
+
+        self.google_accessor = GoogleAccessor.create()
+        self.maxDiff = None
+
         self.mock_intent_parser_sbh = mock_intent_parser_sbh
-        
-        sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, self.mock_intent_parser_sbh) 
-        datacatalog_config = { "mongodb" : { "database" : "catalog_staging", "authn" : self.authn} }
-        self.intentparser_factory = IntentParserFactory(datacatalog_config, self.mock_intent_parser_sbh, sbol_dictionary)
+        self.sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, self.mock_intent_parser_sbh)
+        self.sbol_dictionary.initial_fetch()
+        datacatalog_config = {"mongodb": {"database": "catalog_staging", "authn": self.authn}}
+        self.intentparser_factory = IntentParserFactory(datacatalog_config, self.mock_intent_parser_sbh, self.sbol_dictionary)
         self.uploaded_file_id = ''
         
     def test_intent_parsers_test_document(self):
@@ -268,7 +271,7 @@ class GoldenFileTest(unittest.TestCase):
         for run_index in range(len(golden)):
             run = golden[run_index]
             list_of_measurements = run['measurements']
-            for measurement_index in range(len(list_of_measurements)) :
+            for measurement_index in range(len(list_of_measurements)):
                 measurement = list_of_measurements[measurement_index]
                 if 'controls' in measurement:
                     del measurement['controls']
@@ -280,8 +283,8 @@ class GoldenFileTest(unittest.TestCase):
             print('%s delete doc %s' % (datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.uploaded_file_id))
            
     @classmethod
-    def tearDownClass(self):
-        pass 
-        
+    def tearDownClass(cls):
+        pass
+
 if __name__ == "__main__":
     unittest.main()

@@ -8,22 +8,30 @@ class ParameterTableTest(unittest.TestCase):
     """
     
     @classmethod
-    def setUpClass(self):
-        self.parameter_fields = {
-            'Flow cytometer configuration' : 'measurement_info.flow_info',
-            'Induction inducer'            : 'induction_info.induction_reagents.inducer',
-            'Inoculation increment time 1' : 'inoc_info.inc_time_1',
-            'Inoculation media'            : 'inoc_info.inoculation_media',
-            'Inoculation media volume'     : 'inoc_info.inoc_media_vol',
-            'Inoculation volume'           : 'inoc_info.inoc_vol',
-            'Kill switch'                  : 'reagent_info.kill_switch',
-            'Media well ids'               : 'exp_info.media_well_strings',
-            'Plate reader gain'            : 'plate_reader_info.gain',
-            'Sample has sbh_uri as an aliquot property' : 'validate_samples'
-            }
+    def setUpClass(cls):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
     
     def setUp(self):
         self.ip_table_factory = IntentParserTableFactory()
+        self.parameter_fields = {
+            'Flow cytometer configuration': 'measurement_info.flow_info',
+            'Induction inducer': 'induction_info.induction_reagents.inducer',
+            'Inoculation increment time 1': 'inoc_info.inc_time_1',
+            'Inoculation media': 'inoc_info.inoculation_media',
+            'Inoculation media volume': 'inoc_info.inoc_media_vol',
+            'Inoculation volume': 'inoc_info.inoc_vol',
+            'Kill switch': 'reagent_info.kill_switch',
+            'Media well ids': 'exp_info.media_well_strings',
+            'Plate reader gain': 'plate_reader_info.gain',
+            'Sample has sbh_uri as an aliquot property': 'validate_samples'
+        }
+
+    def tearDown(self):
+        pass
         
     def test_parameter_field_with_empty_value(self):
         input_table = {'tableRows': [

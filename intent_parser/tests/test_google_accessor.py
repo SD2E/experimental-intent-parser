@@ -3,9 +3,11 @@ import unittest
 
 class GoogleAccessorTest(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(self):
+    def setUp(self):
         self.google_accessor = GoogleAccessor.create()
+
+    def tearDown(self):
+        pass
 
     def test_spreadsheet_deletion(self):
         spreadsheet_id = self.google_accessor.create_new_spreadsheet(name='Spreadsheet To Delete')
