@@ -18,7 +18,7 @@ class LabTableTest(unittest.TestCase):
         }
         ip_table = self.ip_table_factory.from_google_doc(input_table)
         ip_table.set_header_row_index(0)
-        table_parser =  LabTable(ip_table)
+        table_parser = LabTable(ip_table)
         table_content = table_parser.process_table()
         self.assertEqual(table_content['lab'], 'abc')
         self.assertEqual(table_content['experiment_id'], 'experiment.abc.defg')
@@ -26,13 +26,13 @@ class LabTableTest(unittest.TestCase):
     def test_table_with_empty_experiment_id(self):
         input_table = {'tableRows': [
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
-                'content': 'lab: abc' }}]}}]}]},
+                'content': 'lab: abc'}}]}}]}]},
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
                 'content': 'experiment_id: ' }}]}}]}]} ]
         }
         ip_table = self.ip_table_factory.from_google_doc(input_table)
         ip_table.set_header_row_index(0)
-        table_parser =  LabTable(ip_table)
+        table_parser = LabTable(ip_table)
         table_content = table_parser.process_table()
         self.assertEqual(table_content['lab'], 'abc')
         self.assertEqual(table_content['experiment_id'], 'experiment.abc.TBD')
@@ -40,7 +40,7 @@ class LabTableTest(unittest.TestCase):
     def test_table_without_experiment_id(self):
         input_table = {'tableRows': [
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
-                'content': 'lab: abc' }}]}}]}]} ]
+                'content': 'lab: abc'}}]}}]}]}]
         }
         ip_table = self.ip_table_factory.from_google_doc(input_table)
         ip_table.set_header_row_index(0)
@@ -56,7 +56,7 @@ class LabTableTest(unittest.TestCase):
         }
         ip_table = self.ip_table_factory.from_google_doc(input_table)
         ip_table.set_header_row_index(0)
-        table_parser =  LabTable(ip_table)
+        table_parser = LabTable(ip_table)
         table_content = table_parser.process_table()
         self.assertEqual(table_content['lab'], 'tacc')
         self.assertEqual(table_content['experiment_id'], 'experiment.tacc.29422')

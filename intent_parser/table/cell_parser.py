@@ -29,10 +29,27 @@ class CellParser(object):
         self._table_header_tokenizer = _TableHeaderTokenizer()
         self._cell_parser = _Parser()
         
-    def _is_lab_table(self, cell):
+    def is_lab_table(self, cell):
         tokens = self._lab_tokenizer.tokenize(cell.get_text())
         return len(tokens) > 0 and self._get_token_type(tokens[0]) == 'KEYWORD'
-     
+
+    def has_lab_table_keyword(self, cell, keyword):
+        tokens = self._lab_tokenizer.tokenize(cell.get_text())
+        return len(tokens) > 0 and self._get_token_value(tokens[0]).lower() == keyword.lower()
+
+    def process_lab_table_value(self, cell):
+        tokens = self._lab_tokenizer.tokenize(cell.get_text(), keep_skip=False)
+        cell_type = self._get_token_type(self._cell_parser.parse(tokens))
+        if cell_type == 'KEYWORD_SEPARATOR_NAME' or cell_type == 'KEYWORD_SEPARATOR_VALUE':
+            return self._get_token_value(tokens[-1])
+        return 'TBD'
+
+    def process_lab_name(self, cell):
+        tokens = self._lab_tokenizer.tokenize(cell.get_text())
+        if self._get_token_type(tokens[0]) != 'KEYWORD':
+            return constants.TACC_SERVER
+        return self._get_token_value(tokens[-1])
+
     def get_header_type(self, cell):
         cell_text = cell.get_text()
         tokens = self._table_header_tokenizer.tokenize(cell_text, keep_skip=False)
@@ -104,7 +121,7 @@ class CellParser(object):
             content['unit'] = self.process_content_item_unit(unit, fluid_units, timepoint_units)
             list_of_contents.append(content)
         elif cell_type == 'NAME':
-            labels =  table_utils.extract_name_value(cell.get_text())
+            labels = table_utils.extract_name_value(cell.get_text())
             for label in labels:
                 content = {} 
                 content['name'] = self.process_name_with_uri(label, cell.get_text_with_url())
@@ -135,7 +152,7 @@ class CellParser(object):
                 timepoint['unit'] = unit 
             name = self.process_name_with_uri(label, cell.get_text_with_url())
         return name, timepoint
-    
+
     def process_name_with_uri(self, label, uri_dictionary):
         uri = 'NO PROGRAM DICTIONARY ENTRY' 
         if label in uri_dictionary and uri_dictionary[label]:
@@ -200,7 +217,32 @@ class CellParser(object):
                 if units and validated_unit in units:
                     result.append({'value': float(value), 'unit': unit})
         return result
-            
+
+    def process_boolean_flag(self, cell):
+        tokens = self._cell_tokenizer.tokenize(cell.get_text(), keep_space=False, keep_skip=False)
+        cell_type = self._get_token_type(self._cell_parser.parse(tokens))
+        if cell_type == 'BOOLEAN_FLAG':
+            token_type = self._get_token_type(tokens[0])
+            if token_type == 'BOOLEAN_FALSE':
+                return False
+            elif token_type == 'BOOLEAN_TRUE':
+                return True
+        if self._get_token_value(tokens[0]).lower() == 'false':
+            return False
+        elif self._get_token_value(tokens[0]).lower() == 'true':
+            return True
+        return None
+
+
+    def process_numbers(self, cell):
+        result = []
+        tokens = self._cell_tokenizer.tokenize(cell.get_text(), keep_space=False, keep_skip=False)
+        cell_type = self._get_token_type(self._cell_parser.parse(tokens))
+        if cell_type == 'NUMBER':
+            for token in tokens:
+                result.append(self._get_token_value(token))
+        return result
+
     def _determine_unit(self, unit, units, abbrev_units):
         """
         Identify the unit assigned to an array of tokens.
@@ -260,10 +302,6 @@ class CellParser(object):
         name = ' '.join([self._get_token_value(token) for token in tokens[0:-2]])
         return name, value, unit
     
-    def _get_name(self, tokens):
-        name = [self._get_token_value(token) for token in tokens]
-        return name
-    
     def _get_token_type(self, token):
         return token[0]
 
@@ -271,6 +309,14 @@ class CellParser(object):
         return token[1]
     
     def process_names(self, cell, check_name_in_url=False):
+        """
+        Parses a NAME cell.
+        Args:
+            cell: An IntentParserCell
+            check_name_in_url: a boolean flag default to False. Set flag to True in order to use linked URLs when present.
+        Returns:
+            a list of NAME strings.
+        """
         result = []
         links = cell.get_text_with_url()
         for name in self.extract_name_value(cell):
@@ -344,6 +390,8 @@ class _Tokenizer(object):
 class _CellContentTokenizer(_Tokenizer): 
     
     token_specification = [
+            ('BOOLEAN_TRUE', r'True|true'),
+            ('BOOLEAN_FALSE', r'False|false'),
             ('NUMBER',   r'\d+(\.\d*)?([eE]([-+])?\d+)?'),
             ('NAME',       r'[^\t \d,:@][^ \t,@]*'),
             ('SKIP',     r'([ \t]|\u000b)+'),
@@ -357,9 +405,9 @@ class _LabTableTokenizer(_Tokenizer):
     token_specification = [
             ('KEYWORD', r'Lab|lab'),
             ('NUMBER',   r'\d+(\.\d*)?([eE]([-+])?\d+)?'),
-            ('NAME',       r'[^\t \d,:][^ \t,]*'),
+            ('NAME',       r'[^\t \d,:][^ \t,:]*'),
             ('SKIP',     r'([ \t]|\u000b)+'),
-            ('SEPARATOR',     r'[,]')]
+            ('SEPARATOR',     r'[,:]')]
     
     def __init__(self):
         super().__init__(self.token_specification)
@@ -430,6 +478,13 @@ def _make_regex(token_matchers, qualifier=''):
                 
 class _Parser(_Tokenizer):
     token_specification = [
+            ('BOOLEAN_FLAG', _make_regex([_TokenMatcher('(BOOLEAN_FALSE|BOOLEAN_TRUE)')])),
+            ('KEYWORD_SEPARATOR_NAME', _make_regex([_TokenMatcher('NAME'),
+                                                    _TokenMatcher('SEPARATOR', value=':'),
+                                                    _TokenMatcher('NAME')])),
+            ('KEYWORD_SEPARATOR_VALUE', _make_regex([_TokenMatcher('NAME'),
+                                                _TokenMatcher('SEPARATOR', value=':'),
+                                                _TokenMatcher('NUMBER')])),
             ('NAME_VALUE_UNIT_TIMEPOINT', _make_regex([_TokenMatcher('NAME', qualifier='+'),
                                                        _TokenMatcher('NUMBER'),
                                                        _TokenMatcher('NAME'),
@@ -476,5 +531,3 @@ class _Parser(_Tokenizer):
 
 
 PARSER = CellParser()
- 
-        

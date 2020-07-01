@@ -205,6 +205,43 @@ class CellParserTest(unittest.TestCase):
         cell = IntentParserCell()
         cell.add_paragraph('Table1:Controls')
         self.assertEqual('table1', self.parser.process_table_caption(cell))
-        
+
+    def test_parsing_number(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('7')
+        self.assertEqual(self.parser.process_numbers(cell), ['7'])
+
+    def test_boolean_values(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('true')
+        self.assertTrue(self.parser.process_boolean_flag(cell))
+
+        cell = IntentParserCell()
+        cell.add_paragraph('True')
+        self.assertTrue(self.parser.process_boolean_flag(cell))
+
+        cell = IntentParserCell()
+        cell.add_paragraph('False')
+        self.assertFalse(self.parser.process_boolean_flag(cell))
+
+        cell = IntentParserCell()
+        cell.add_paragraph('False')
+        self.assertFalse(self.parser.process_boolean_flag(cell))
+
+        cell = IntentParserCell()
+        cell.add_paragraph('neither')
+        self.assertEqual(self.parser.process_boolean_flag(cell), None)
+
+    def test_lab_name(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('Lab: foo')
+        self.assertEqual('foo', (self.parser.process_lab_name(cell)))
+
+    def test_lab_experiment_id(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('Experiment_id: foo')
+        self.assertTrue(self.parser.has_lab_table_keyword(cell, 'experiment_id'))
+        self.assertEqual('foo', self.parser.process_lab_table_value(cell))
+
 if __name__ == "__main__":
     unittest.main()

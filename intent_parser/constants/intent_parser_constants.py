@@ -1,7 +1,7 @@
 from enum import Enum
 
 """
-List of constants used for intent parser server
+List of constants used for reading and writing contents from intent parser 
 """
 
 LAB_IDS_LIST = sorted(['BioFAB UID',
@@ -38,6 +38,7 @@ ITEM_TYPES = {
 
 SPARQL_LIMIT = 5
 
+GOOGLE_DOC_URL_PREFIX = 'https://docs.google.com/document/d/'
 GOOGLE_DOC_MIMETYPE = 'application/vnd.google-apps.document'
 WORD_DOC_MIMETYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
@@ -45,10 +46,21 @@ GROWTH_CURVE_PROTOCOL = 'GrowthCurve'
 OBSTACLE_COURSE_PROTOCOL = 'ObstacleCourse'
 TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
 
-PROTOCOL = 'protocol'
+PARAMETER_PROTOCOL = 'protocol'
 PROTOCOL_NAMES = {GROWTH_CURVE_PROTOCOL: 'Growth Curves', 
                   TIME_SERIES_HTP_PROTOCOL: 'Time Series', 
                   OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course'}
+DEFAULT_PARAMETERS = 'default_parameters'
+PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN = 'experiment_reference_url_for_xplan'
+PARAMETER_TEST_MODE = 'test_mode'
+PARAMETER_SUBMIT = 'submit'
+PARAMETER_XPLAN_REACTOR = 'xplan_reactor'
+PARAMETER_PLATE_SIZE = 'plate_size'
+PARAMETER_PLATE_NUMBER = 'plate_number'
+PARAMETER_CONTAINER_SEARCH_STRING = 'container_search_string'
+PARAMETER_STRAIN_PROPERTY = 'strain_property'
+PARAMETER_XPLAN_PATH = 'xplan_path'
+PARAMETER_PROTOCOL_ID = 'protocol_id'
 
 PARAMETER_EXP_INFO_MEDIA_WELL_STRINGS = 'exp_info.media_well_strings'
 PARAMETER_INDUCTION_INFO_REAGENTS_INDUCER = 'induction_info.induction_reagents.inducer'
@@ -109,4 +121,4 @@ HEADER_TEMPERATURE_TYPE = 'TEMPERATURE'
 HEADER_TIMEPOINT_TYPE = 'TIMEPOINT'
 HEADER_UNKNOWN_TYPE = 'UNKNOWN'
 
-
+TACC_SERVER = 'tacc'

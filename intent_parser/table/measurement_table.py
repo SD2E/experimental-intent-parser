@@ -36,8 +36,7 @@ class MeasurementTable(object):
         if bookmarks:
             return self._map_bookmarks_to_captions(control_tables, bookmarks)
         return self._map_captions_to_control(control_tables)
-            
-    
+
     def _map_captions_to_control(self, control_tables):
         control_map = {}
         for table_caption,control_data in control_tables.items():
@@ -89,7 +88,7 @@ class MeasurementTable(object):
                 temperatures = self._process_temperature(cell)
                 if temperatures:
                     measurement['temperatures'] = temperatures
-            elif intent_parser_constants.HEADER_TIMEPOINT_TYPE  == cell_type:
+            elif intent_parser_constants.HEADER_TIMEPOINT_TYPE == cell_type:
                 timepoints = self._process_timepoints(cell)
                 if timepoints:
                     measurement['timepoints'] = timepoints
@@ -117,7 +116,7 @@ class MeasurementTable(object):
         if name in text_with_urls and text_with_urls[name] is not None:
             uri = text_with_urls[name]
             
-        name_dict = {'label' : name, 'sbh_uri' : uri}
+        name_dict = {'label': name, 'sbh_uri': uri}
         timepoint_dict = {}
         if value and unit:
             timepoint_dict['value'] = float(value)
@@ -133,9 +132,9 @@ class MeasurementTable(object):
             try:
                 for value,unit in table_utils.transform_cell(text, self._fluid_units, cell_type='fluid'):
                     if timepoint_dict:
-                        numerical_dict = {'name' : name_dict, 'value' : value, 'unit' : unit, 'timepoint' : timepoint_dict}
+                        numerical_dict = {'name': name_dict, 'value': value, 'unit': unit, 'timepoint': timepoint_dict}
                     else:
-                        numerical_dict = {'name' : name_dict, 'value' : value, 'unit' : unit}
+                        numerical_dict = {'name': name_dict, 'value': value, 'unit': unit}
                     reagents_media.append(numerical_dict)
             except TableException as err:
                 message = err.get_message()
@@ -252,4 +251,3 @@ class MeasurementTable(object):
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_TIMEPOINT_VALUE, err.get_message())
             self._validation_errors.append(message)
             return []
-    
