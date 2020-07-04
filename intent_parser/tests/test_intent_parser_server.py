@@ -41,6 +41,8 @@ class IntentParserServerTest(unittest.TestCase):
 
     def test_process_execute_experiment(self):
         http_host = 'fake_host'
+        http_message = HttpMessage()
+        http_message.process_header('Host:%s' % http_host)
         document_id = 'foo'
         expected_response = 'The request was successful'
         experiment_request = {'documentId': document_id}
@@ -51,12 +53,7 @@ class IntentParserServerTest(unittest.TestCase):
         self.mock_intent_parser.get_experiment_request.return_value = experiment_request
         self.mock_intent_parser.get_validation_warnings.return_value = warnings
         self.mock_intent_parser.get_validation_errors.return_value = errors
-        self.mock_tacc_go_accessor.execute_experiment().return_value = {
-                "message": "The request was successful",
-                "status": "success",
-                "version": "1.5.4"}
-        http_message = HttpMessage()
-        http_message.process_header('Host:%s' % http_host)
+        self.mock_tacc_go_accessor.execute_experiment.return_value = "The request was successful"
         http_message.set_body(json.dumps(experiment_request).encode('utf-8'))
 
         response = self.ip_server.process_execute_experiment(http_message)
@@ -77,8 +74,8 @@ class IntentParserServerTest(unittest.TestCase):
                              ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: 'foo',
                              ip_constants.DEFAULT_PARAMETERS: {'exp_info.sample_time": "8:hour'}}
         self.mock_intent_parser.get_experiment_request.return_value = test_data
-        self.mock_intent_parser.execute_experiment.return_value = 'The request was successful'
         expected_response = 'The request was successful'
+        self.mock_tacc_go_accessor.execute_experiment.return_value = expected_response
         self.mock_intent_parser.get_validation_errors.return_value = []
 
         http_message = HttpMessage()

@@ -22,14 +22,6 @@ class GoldenFileTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pass
-        # curr_path = os.path.dirname(os.path.realpath(__file__))
-        # self.data_dir = os.path.join(curr_path, 'data')
-        # self.mock_data_dir = os.path.join(self.data_dir, 'mock_data')
-        # with open(os.path.join(self.data_dir, 'authn.json'), 'r') as file:
-        #     self.authn = json.load(file)['authn']
-        #
-        # self.google_accessor = GoogleAccessor.create()
-        # self.maxDiff = None
     
     @patch('intent_parser.intent_parser_sbh.IntentParserSBH')
     def setUp(self, mock_intent_parser_sbh):
@@ -67,7 +59,7 @@ class GoldenFileTest(unittest.TestCase):
     def test_CP_Experimental_Request_NovelChassis_OR_circuit_GrowthCurve(self):  
         file = 'CP Experimental Request - NovelChassis_OR_circuit_GrowthCurve.json'
         file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path) 
+        self._compare_structured_requests(file_path) #TODO: 0.274 (?) is not a number
          
     def test_ER_NovelChassis_mCherryControlStrains_GBW_Cycle0_24hour(self):  
         file = 'ER-NovelChassis-mCherryControlStrains-GBW-Cycle0-24hour.json'
@@ -77,7 +69,7 @@ class GoldenFileTest(unittest.TestCase):
     def test_ER_NovelChassis_mCherryControlStrains_GBW_Cycle0_8hour(self):  
         file = 'ER-NovelChassis-mCherryControlStrains-GBW-Cycle0-8hour.json'
         file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path) 
+        self._compare_structured_requests(file_path) #TODO: 0.25 (on normalized at Strateos) is not a number
          
     def test_NovelChassis_Ginkgo_Strain_Inducer_Characterization(self):  
         file = 'NovelChassis_Ginkgo_Strain_GrowthCurve.json'
@@ -227,12 +219,12 @@ class GoldenFileTest(unittest.TestCase):
     def test_NovelChassis_OR_Circuit_Cycle0_8hour(self):  
         file = 'NovelChassis-OR-Circuit-Cycle0-8hour.json' 
         file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path)
+        self._compare_structured_requests(file_path) #TODO: 0.274 (?) is not a number
         
     def test_NovelChassis_OR_Circuit_Cycle0_24hour(self):  
         file = 'NovelChassis-OR-Circuit-Cycle0-24hour.json' 
         file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path)
+        self._compare_structured_requests(file_path) #TODO: 0.274 (?) is not a number
 
     def _compare_structured_requests(self, document):
         golden_structured_request = intent_parser_utils.load_json_file(document)

@@ -109,35 +109,27 @@ class ParameterTable(object):
     def _parse_parameter_field_value(self, parameter_field, parameter_value):
         computed_value = None
         if parameter_field in self.FIELD_WITH_FLOAT_VALUE:
-            values = cell_parser.PARSER.process_numbers(parameter_value)
-            computed_value = [float(float_val) for float_val in values]
+            self.process_numbered_parameter(parameter_field, parameter_value, float)
         elif parameter_field in self.FIELD_WITH_BOOLEAN_VALUE:
-            boolean_value = cell_parser.PARSER.process_boolean_flag(parameter_value)
-            if boolean_value is None:
-                message = 'Parameter table has invalid %s value: %s should be a boolean value' % (parameter_field, parameter_value.get_text())
-                self._validation_errors.append(message)
-                return
-            else:
-                computed_value = [boolean_value]
+            self.process_boolean_parameter(parameter_field, parameter_value)
         elif parameter_field in self.FIELD_WITH_STRING_COMMAS:
-            computed_value = [parameter_value.get_text()]
+            self._flatten_parameter_values(parameter_field, [parameter_value.get_text()])
         elif parameter_field in self.FIELD_WITH_SINGLE_STRING:
-            computed_value = cell_parser.PARSER.process_names(parameter_value)
+            self.process_name_parameter(parameter_field, parameter_value)
         elif parameter_field in self.FIELD_WITH_INT_VALUES:
-            values = [int(value) for value in cell_parser.PARSER.process_numbers(parameter_value)]
-            computed_value = values
+            self.process_numbered_parameter(parameter_field, parameter_value, int)
         elif parameter_field in self.FIELD_WITH_NESTED_STRUCTURE:
             json_parameter_value = json.loads(parameter_value.get_text())
             computed_value = [json_parameter_value]
+            self._flatten_parameter_values(parameter_field, computed_value)
         else:
             computed_value = table_utils.transform_strateos_string(parameter_value.get_text())
-        self._flatten_parameter_values(parameter_field, computed_value)
+            self._flatten_parameter_values(parameter_field, computed_value)
     
     def _get_parameter_field(self, cell):
         parameters = cell_parser.PARSER.process_names(cell)
         if not parameters:
-            message = 'Parameter table has invalid %s value: field cannot be empty.' % (
-                        intent_parser_constants.HEADER_PARAMETER_VALUE_TYPE)
+            message = 'Parameter table has invalid %s value: field cannot be empty.' % (intent_parser_constants.HEADER_PARAMETER_VALUE_TYPE)
             self._validation_errors.append(message)
             return None
         if len(parameters) != 1:
@@ -154,6 +146,31 @@ class ParameterTable(object):
 
     def get_validation_errors(self):
         return self._validation_errors
+
+    def process_boolean_parameter(self, parameter_field, parameter_value):
+        boolean_value = cell_parser.PARSER.process_boolean_flag(parameter_value)
+        if boolean_value is None:
+            message = 'Parameter table has invalid %s value: %s should be a boolean value' % (parameter_field, parameter_value.get_text())
+            self._validation_errors.append(message)
+        else:
+            computed_value = [boolean_value]
+            self._flatten_parameter_values(parameter_field, computed_value)
+
+    def process_name_parameter(self, parameter_field, parameter_value):
+        if cell_parser.PARSER.is_name(parameter_value):
+            computed_value = cell_parser.PARSER.process_names(parameter_value)
+            self._flatten_parameter_values(parameter_field, computed_value)
+        else:
+            message = 'Parameter table has invalid %s value: %s should only contain a list names' % (parameter_field, parameter_value.get_text())
+            self._validation_errors.append(message)
+
+    def process_numbered_parameter(self, parameter_field, parameter_value, number_convert):
+        if cell_parser.PARSER.is_number(parameter_value):
+            computed_value = [number_convert(value) for value in cell_parser.PARSER.process_numbers(parameter_value)]
+            self._flatten_parameter_values(parameter_field, computed_value)
+        else:
+            message = 'Parameter table has invalid %s value: %s should only contain numbers' % (parameter_field, parameter_value.get_text())
+            self._validation_errors.append(message)
 
 class _ParameterIntent(object):
 

@@ -45,7 +45,7 @@ class CellParser(object):
         return 'TBD'
 
     def process_lab_name(self, cell):
-        tokens = self._lab_tokenizer.tokenize(cell.get_text())
+        tokens = self._lab_tokenizer.tokenize(cell.get_text(), keep_skip=False)
         if self._get_token_type(tokens[0]) != 'KEYWORD':
             return constants.TACC_SERVER
         return self._get_token_value(tokens[-1])
@@ -375,7 +375,7 @@ class _Tokenizer(object):
             value = mo.group()
             if kind not in ignore_tokens: 
                 tokens.append(self._Token(kind, value))
-            if value.startswith('\u000b') :
+            if value.startswith('\u000b'):
                 value = value.replace('\u000b', '')
         return tokens
 
@@ -451,7 +451,7 @@ class _TableHeaderTokenizer(_Tokenizer):
         super().__init__(self.token_specification)
         
 class _TokenMatcher(object):
-    def __init__(self, token_type, value='[^\(]+', qualifier='', group=None):
+    def __init__(self, token_type, value='[^»]+', qualifier='', group=None):
         self._type = token_type
         self._value = value
         self._qualifier = qualifier
@@ -459,22 +459,15 @@ class _TokenMatcher(object):
             
     def __str__(self):
         if self._group:
-            return '(\(%s,(?P<%s>%s)\))%s' % (self._type, self._group, self._value, self._qualifier)
-        return '(\(%s,%s\))%s' % (self._type, self._value, self._qualifier)
+            return '«%s,(?P<%s>%s)»%s' % (self._type, self._group, self._value, self._qualifier)
+        return '(«%s,%s»)%s' % (self._type, self._value, self._qualifier)
 
 class _AnyMatcher(_TokenMatcher):
-    def __init__(self, token_type='[^,]+', value='[^\(]+', qualifier=''):
+    def __init__(self, token_type='[^,]+', value='[^»]+', qualifier=''):
         super().__init__(token_type, value, qualifier)
-            
-class _EndMatcher(_TokenMatcher):
-    def __init__(self):
-        super().__init__(token_type='END')
-            
-    def __str__(self):
-        return '\(%s\)' % (self._type)
    
 def _make_regex(token_matchers, qualifier=''):
-    return r'(%s)%s\(END_OF_MATCH\)' % (''.join([str(token_matcher) for token_matcher in token_matchers]), qualifier) 
+    return r'(%s)%s«END_OF_MATCH»' % (''.join([str(token_matcher) for token_matcher in token_matchers]), qualifier)
                 
 class _Parser(_Tokenizer):
     token_specification = [
@@ -526,7 +519,7 @@ class _Parser(_Tokenizer):
         return tokens
     
     def parse(self, tokens):
-        token_str = '%s(END_OF_MATCH)' % (''.join(['(%s,%s)' % token for token in tokens])) 
+        token_str = '%s«END_OF_MATCH»' % (''.join(['«%s,%s»' % token for token in tokens]))
         return self.tokenize(token_str) 
 
 
