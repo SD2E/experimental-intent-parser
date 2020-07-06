@@ -52,10 +52,8 @@ class IntentParserServer(object):
                  sbol_dictionary,
                  strateos_accessor,
                  intent_parser_factory,
-                 tacc_accessor,
-                 bind_port, 
+                 bind_port,
                  bind_ip):
-        self.tacc_accessor = tacc_accessor
         self.sbh = sbh
         self.sbol_dictionary = sbol_dictionary
         self.strateos_accessor = strateos_accessor 
@@ -236,7 +234,7 @@ class IntentParserServer(object):
                                               'application/json')
 
         request_data = intent_parser.get_experiment_request()
-        experiment_response = self.tacc_accessor.execute_experiment(request_data)
+        experiment_response = TACCGoAccessor().execute_experiment(request_data)
         return self._create_http_response(HTTPStatus.OK, json.dumps(experiment_response),
                                           'application/json')
 
@@ -256,7 +254,7 @@ class IntentParserServer(object):
 
         if len(validation_errors) == 0:
             request_data = intent_parser.get_experiment_request()
-            experiment_response = self.tacc_accessor.execute_experiment(request_data)
+            experiment_response = TACCGoAccessor().execute_experiment(request_data)
             dialog_action = intent_parser_view.message_dialog('Experiment Execution Status', experiment_response)
         else:
             all_messages = []
@@ -1111,8 +1109,14 @@ class IntentParserServer(object):
                                                         ip_addon_constants.TABLE_TYPE_CONTROLS,
                                                         column_width)
 
-    def process_experiment_status_table(self, data):
+    def process_create_experiment_table(self, data):
+        """Creates a table to report the status of an experiment."""
+        #TODO:
         table_template = []
+
+    def process_update_experiment_table(self, data):
+        #TODO:
+        return None
 
     def process_create_parameter_table(self, data):
         table_template = []
@@ -1486,10 +1490,8 @@ def main():
         sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, sbh) 
         datacatalog_config = {"mongodb": {"database": "catalog_staging", "authn": input_args.authn}}
         strateos_accessor = StrateosAccessor(input_args.transcriptic)
-        tacc_accessor = TACCGoAccessor(input_args.execute_experiment)
         intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
         intent_parser_server = IntentParserServer(sbh, sbol_dictionary, strateos_accessor, intent_parser_factory,
-                                                  tacc_accessor,
                                                   bind_ip=input_args.bind_host,
                                                   bind_port=input_args.bind_port)
         intent_parser_server.initialize_server()

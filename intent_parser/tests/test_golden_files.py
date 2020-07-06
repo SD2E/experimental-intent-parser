@@ -31,7 +31,7 @@ class GoldenFileTest(unittest.TestCase):
         with open(os.path.join(self.data_dir, 'authn.json'), 'r') as file:
             self.authn = json.load(file)['authn']
 
-        self.google_accessor = GoogleAccessor.create()
+        self.drive_accessor = GoogleAccessor().get_google_drive_accessor()
         self.maxDiff = None
 
         self.mock_intent_parser_sbh = mock_intent_parser_sbh
@@ -238,10 +238,15 @@ class GoldenFileTest(unittest.TestCase):
         
         upload_mimetype = intent_parser_constants.GOOGLE_DOC_MIMETYPE
         download_mimetype = intent_parser_constants.WORD_DOC_MIMETYPE
-        response = self.google_accessor.get_file_with_revision(doc_id, doc_revision_id, download_mimetype)
+
+        response = self.drive_accessor.get_file_with_revision(doc_id, doc_revision_id, download_mimetype)
 
         drive_folder_test_dir = '1693MJT1Up54_aDUp1s3mPH_DRw1_GS5G'
-        self.uploaded_file_id = self.google_accessor.upload_revision(golden_structured_request['name'], response.content, drive_folder_test_dir, download_mimetype, title=golden_structured_request['name'], target_format=upload_mimetype)
+        self.uploaded_file_id = self.drive_accessor.upload_revision(golden_structured_request['name'],
+                                                                    response.content, drive_folder_test_dir,
+                                                                    download_mimetype,
+                                                                    title=golden_structured_request['name'],
+                                                                    target_format=upload_mimetype)
         print('%s upload doc %s' % (datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.uploaded_file_id))
         
         intent_parser = self.intentparser_factory.create_intent_parser(self.uploaded_file_id)
@@ -251,7 +256,6 @@ class GoldenFileTest(unittest.TestCase):
         # Skip data that are modified from external resources:
         # experiment_reference, challenge_problem, doc_revision_id, and experiment_id.
         self.assertEqual('https://docs.google.com/document/d/%s' % self.uploaded_file_id, generated_structured_request['experiment_reference_url'])
-        # self.assertEqual(golden_structured_request['experiment_id'], generated_structured_request['experiment_id'])
         self.assertEqual(golden_structured_request['lab'], generated_structured_request['lab'])
         self.assertEqual(golden_structured_request['name'], generated_structured_request['name'])
         self._compare_runs(golden_structured_request['runs'], generated_structured_request['runs'])
@@ -271,7 +275,7 @@ class GoldenFileTest(unittest.TestCase):
             
     def tearDown(self):
         if self.uploaded_file_id:
-            self.google_accessor.delete_file(self.uploaded_file_id)
+            self.drive_accessor.delete_file(self.uploaded_file_id)
             print('%s delete doc %s' % (datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.uploaded_file_id))
            
     @classmethod
