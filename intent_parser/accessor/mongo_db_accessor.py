@@ -1,87 +1,45 @@
-from datetime import timedelta
+from intent_parser.table.experiment_status_table import ExperimentStatusTable
+import intent_parser.utils.intent_parser_utils as ip_util
 import logging
+import os.path
 import pymongo
-import time
-import threading
 
 class MongoDBAccessor(object):
     """
     Retrieve information from MongoDB
     """
 
-    SYNC_PERIOD = timedelta(minutes=5)
     _LOGGER = logging.getLogger('intent_parser_mongo_db_accessor')
 
-    def __init__(self, credentials):
-        self.database = pymongo.MongoClient(credentials).catalog_staging
+    _MONGODB_ACCESSOR = None
 
-        self.mongo_db_lock = threading.Lock()
-        self.mongo_db = {}
-        self.mongo_db_thread = threading.Thread(target=self._periodically_fetch_mongo_db)
+    def __init__(self):
+        pass
 
-    def get_experiment_status(self, experiment_reference_url):
+    def __new__(cls, *args, **kwargs):
+        if not cls._MONGODB_ACCESSOR:
+            cls._MONGODB_ACCESSOR = super(MongoDBAccessor, cls).__new__(cls, *args, **kwargs)
+            cls._MONGODB_ACCESSOR._authenticate_credentials()
+        return cls._MONGODB_ACCESSOR
+
+    def _authenticate_credentials(self):
+        credential_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'intent_parser_api_keys.json')
+        credential = ip_util.load_json_file(credential_file)['dbURI']
+        self.database = pymongo.MongoClient(credential).catalog_staging
+
+
+    def get_experiment_status(self, doc_id):
         """Retrieve a list of Status for an experiment
         """
-        experiment = self.mongo_db[experiment_reference_url]
-        result = []
-        for status_type, status_values in experiment['status'].items():
-            status = _Status(status_type,
-                    status_values['last_updated'],
-                    status_values['state'],
-                    status_values['path'])
-            result.append(status)
-        return result
+        structure_requests = self.database.structured_requests.find({"experiment_reference_url":"https://docs.google.com/document/d/%s" % doc_id,
+                                                                     "$where": "this.derived_from.length > 0"})
 
-    def start_synchronize_mongo_db(self):
-        self._fetch_mongo_db()
-        self.mongo_db_thread.start()
-
-    def stop_synchronizing_mongo_db(self):
-        self.mongo_db_thread.join()
-
-    def _periodically_fetch_mongo_db(self):
-        while True:
-            time.sleep(self.SYNC_PERIOD.total_seconds())
-            self._fetch_mongo_db()
-
-    def _fetch_mongo_db(self):
-        self._LOGGER.info('Fetching Mongo database')
-        structure_requests = self.database.structured_requests.find({'$where': 'this.derived_from.length > 0'})
-
-        self.mongo_db_lock.acquire()
+        status_table = ExperimentStatusTable()
         for sr in structure_requests:
-            self.mongo_db[sr['experiment_reference_url']] = sr
-        self.mongo_db_lock.release()
+            for status_type, status_values in sr['status'].items():
+                status_table.add_status(status_type,
+                                        status_values['last_updated'],
+                                        status_values['state'],
+                                        status_values['path'])
+        return status_table
 
-class _Status(object):
-
-    def __init__(self, status_type, last_updated, state, path):
-        self.status_type = status_type
-        self.last_updated = last_updated
-        self.state = state
-        self.path = path
-
-    def status_type(self):
-        """Indicate the type of status
-
-        Returns: A string
-        """
-        return self.status_type
-
-    def last_updated(self):
-        """
-        Returns: Datetime
-        """
-        return self.last_updated
-
-    def state(self):
-        """
-        Returns: A boolean
-        """
-        return self.state
-
-    def path(self):
-        """
-        Returns: A string
-        """
-        return self.path

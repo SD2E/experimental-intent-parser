@@ -4,28 +4,33 @@ from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table import IntentParserTable
 import intent_parser.table.cell_parser as cell_parser
 
-_MEASUREMENT_TABLE_HEADER = {'REPLICATE',
-                             'STRAINS',
-                             'MEASUREMENT_TYPE',
-                             'FILE_TYPE'}
+_MEASUREMENT_TABLE_HEADER = {intent_parser_constants.HEADER_REPLICATE_TYPE,
+                             intent_parser_constants.HEADER_STRAINS_TYPE,
+                             intent_parser_constants.HEADER_MEASUREMENT_TYPE_TYPE,
+                             intent_parser_constants.HEADER_FILE_TYPE_TYPE}
 
-_PARAMETER_TABLE_HEADER = {'PARAMETER',
-                           'PARAMETER_VALUE'}
+_PARAMETER_TABLE_HEADER = {intent_parser_constants.HEADER_PARAMETER_TYPE,
+                           intent_parser_constants.HEADER_PARAMETER_VALUE_TYPE}
 
-_CONTROLS_TABLE_HEADER = {'CHANNEL', 
-                          'CONTROL_TYPE',
-                          'STRAINS',
-                          'CONTENTS',
-                          'TIMEPOINT'
-                          }
+_CONTROLS_TABLE_HEADER = {intent_parser_constants.HEADER_CHANNEL_TYPE,
+                          intent_parser_constants.HEADER_CONTROL_TYPE_TYPE,
+                          intent_parser_constants.HEADER_STRAINS_TYPE,
+                          intent_parser_constants.HEADER_CONTENTS_TYPE,
+                          intent_parser_constants.HEADER_TIMEPOINT_TYPE}
+
+_EXPERIMENT_STATUS_TABLE = {intent_parser_constants.HEADER_LAST_UPDATED_TYPE,
+                            intent_parser_constants.HEADER_PATH_TYPE,
+                            intent_parser_constants.HEADER_PIPELINE_STATUS_TYPE,
+                            intent_parser_constants.HEADER_STATE}
 
 class TableType(Enum):
-    CONTROL = 1 
+    UNKNOWN = 1
     LAB = 2
     MEASUREMENT = 3
     PARAMETER = 4
-    UNKNOWN = 5
-    
+    CONTROL = 5
+    EXPERIMENT_STATUS = 6
+
 class IntentParserTableFactory(object):
         
     def __init__(self):
@@ -62,8 +67,10 @@ class IntentParserTableFactory(object):
                 return TableType.CONTROL
             elif _MEASUREMENT_TABLE_HEADER.issubset(header_values):
                 return TableType.MEASUREMENT 
-            elif _PARAMETER_TABLE_HEADER.issubset(header_values):
+            elif _PARAMETER_TABLE_HEADER == header_values:
                 return TableType.PARAMETER
+            elif _EXPERIMENT_STATUS_TABLE == header_values:
+                return TableType.EXPERIMENT_STATUS
         
         if self._lab_table(intent_parser_table):
             return TableType.LAB
@@ -83,9 +90,8 @@ class IntentParserTableFactory(object):
                     return True 
         return False 
 
-        
-        
 class TableParser(object):
+
     def parse_table(self, table):
         pass
 
@@ -125,4 +131,4 @@ class GoogleTableParser(TableParser):
                     if 'bookmarkId' in link:
                         bookmark_id = link['bookmarkId']
                 result = text_run['content'].strip()
-                yield result, url, bookmark_id 
+                yield result, url, bookmark_id

@@ -243,5 +243,29 @@ class CellParserTest(unittest.TestCase):
         self.assertTrue(self.parser.has_lab_table_keyword(cell, 'experiment_id'))
         self.assertEqual('foo', self.parser.process_lab_table_value(cell))
 
+    def test_text_with_underscore(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('xplan_request_submitted')
+        self.assertTrue(self.parser.is_name(cell))
+        names = self.parser.process_names(cell)
+        self.assertEqual(len(names), 1)
+        self.assertEqual(names[0], 'xplan_request_submitted')
+
+    def test_text_with_url(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('agave://data-sd2e-community/uploads/transcriptic/202006/r1egb6rhggaqwt/samples.json')
+        self.assertTrue(self.parser.is_name(cell))
+        names = self.parser.process_names(cell)
+        self.assertEqual(len(names), 1)
+        self.assertEqual(names[0], 'agave://data-sd2e-community/uploads/transcriptic/202006/r1egb6rhggaqwt/samples.json')
+
+    def test_text_with_dash(self):
+        cell = IntentParserCell()
+        cell.add_paragraph('P---')
+        self.assertTrue(self.parser.is_name(cell))
+        names = self.parser.process_names(cell)
+        self.assertEqual(len(names), 1)
+        self.assertEqual(names[0], 'P---')
+
 if __name__ == "__main__":
     unittest.main()

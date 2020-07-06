@@ -28,6 +28,12 @@ class CellParser(object):
         self._table_tokenizer = _TableCaptionTokenizer()
         self._table_header_tokenizer = _TableHeaderTokenizer()
         self._cell_parser = _Parser()
+
+    def is_datetime_format(self, cell):
+        pass
+
+    def process_datetime_format(self, cell):
+        pass
         
     def is_lab_table(self, cell):
         tokens = self._lab_tokenizer.tokenize(cell.get_text())
@@ -392,6 +398,8 @@ class _CellContentTokenizer(_Tokenizer):
     token_specification = [
             ('BOOLEAN_TRUE', r'True|true'),
             ('BOOLEAN_FALSE', r'False|false'),
+            ('DATE', r'\d{4}-\d{2}-\d{2}')
+            ('TIME', r'\d{2}:\d{2}:\d{2}')
             ('NUMBER',   r'\d+(\.\d*)?([eE]([-+])?\d+)?'),
             ('NAME',       r'[^\t \d,:@][^ \t,@]*'),
             ('SKIP',     r'([ \t]|\u000b)+'),
@@ -408,7 +416,6 @@ class _LabTableTokenizer(_Tokenizer):
             ('NAME',       r'[^\t \d,:][^ \t,:]*'),
             ('SKIP',     r'([ \t]|\u000b)+'),
             ('SEPARATOR',     r'[,:]')]
-    
     def __init__(self):
         super().__init__(self.token_specification)
 
@@ -434,14 +441,18 @@ class _TableHeaderTokenizer(_Tokenizer):
             (constants.HEADER_CONTROL_TYPE_TYPE, r'(Control|control)[ \t\n]*(Type|type)'),
             (constants.HEADER_CONTROL_TYPE, r'(Control|control)'),
             (constants.HEADER_FILE_TYPE_TYPE, r'(File|file)[ \t\n]*-[ \t\n]*(Type|type)'),
+            (constants.HEADER_LAST_UPDATED_TYPE, r'(Last|last)[ \t\n]*(Updated|updated)'),
             (constants.HEADER_MEASUREMENT_TYPE_TYPE, r'(Measurement|measurement)[ \t\n]*-[ \t\n]*(Type|type)'),
             (constants.HEADER_NOTES_TYPE, r'(Notes|notes)'),
             (constants.HEADER_ODS_TYPE, r'(Ods|ods|ODS)'),
+            (constants.HEADER_PATH_TYPE, r'(Path|path)'),
             (constants.HEADER_PARAMETER_TYPE, r'(Parameter|parameter)'),
             (constants.HEADER_PARAMETER_VALUE_TYPE, r'(Value|value)'),
+            (constants.HEADER_PIPELINE_STATUS_TYPE, r'(Pipeline|pipeline)[ \t\n]*(Status|status)'),
             (constants.HEADER_REPLICATE_TYPE, r'Replicate|replicate'),
             (constants.HEADER_SAMPLES_TYPE, r'(Samples|samples)'),
             (constants.HEADER_SKIP_TYPE,     r'([ \t\n]|\u000b)+'),
+            (constants.HEADER_STATE_TYPE,   r'State|state'),
             (constants.HEADER_STRAINS_TYPE,   r'Strains|strains'),
             (constants.HEADER_TEMPERATURE_TYPE, r'(Temperature|temperature)'),
             (constants.HEADER_TIMEPOINT_TYPE, r'(Timepoint|timepoint)'),
@@ -472,6 +483,8 @@ def _make_regex(token_matchers, qualifier=''):
 class _Parser(_Tokenizer):
     token_specification = [
             ('BOOLEAN_FLAG', _make_regex([_TokenMatcher('(BOOLEAN_FALSE|BOOLEAN_TRUE)')])),
+            ('DATETIME', _make_regex([_TokenMatcher('DATE'),
+                                      _TokenMatcher('TIME')])),
             ('KEYWORD_SEPARATOR_NAME', _make_regex([_TokenMatcher('NAME'),
                                                     _TokenMatcher('SEPARATOR', value=':'),
                                                     _TokenMatcher('NAME')])),
