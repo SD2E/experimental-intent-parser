@@ -1,27 +1,47 @@
-from intent_parser.accessor.google_accessor import GoogleAccessor
-from intent_parser.accessor.mongo_db_accessor import MongoDBAccessor
+from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
 from datetime import timedelta
+from requests.exceptions import HTTPError
+import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import argparse
 import json
 import logging
 import os.path
+import requests
 import time
 import traceback
 
 logger = logging.getLogger('experiment_status_script')
 SYNC_PERIOD = timedelta(minutes=10)
 
-def perform_automatic_run(documents, mongodb_accessor):
+def perform_automatic_run(documents):
+    mongodb_accessor = TA4DBAccessor()
+    documents = execute_request('experiment_request_documents')['docId']
     while len(documents) > 0:
         doc = documents.pop(0)
-        doc_id = doc
-        logger.info('Processing doc: ' + doc_id)
-        # TODO: fetch information from mongodb
-        db_information = mongodb_accessor.get_experiment_status(doc_id)
-        # TODO: fetch table from document
-        # TODO: diff content from mongodb and document
-        # TODO: if document does not have experiment table(s), create them
-        # TODO: if content not equal, update document table. Else don't update table
+        document_id = doc
+        experiment_statuses = execute_request('experiment_status?%s' % document_id)
+        lab_name = experiment_statuses[dc_constants.LAB]
+        exp_id_to_statuses = experiment_statuses[dc_constants.STATUS_ELEMENT]
+        db_exp_id_to_statuses = mongodb_accessor.get_experiment_status(document_id, lab_name)
+        for db_exp_id, db_status_table in db_exp_id_to_statuses:
+            if db_exp_id in exp_id_to_statuses:
+                set_statuses = set(exp_id_to_statuses[db_exp_id])
+                if not db_status_table.compare_statuses(set_statuses):
+                    logger.warning('Updating experiment status for document id: %s' % document_id)
+                    execute_request('update_experiment_status?%s' % document_id)
+                else:
+                    logger.warning('Experiment Status are up to date for document ID: %s' % document_id)
+
+def execute_request(request_type):
+    request_url = 'http://intentparser.sd2e.org/%s' % (request_type)
+    try:
+        response = requests.get(request_url)
+        response.raise_for_status()
+    except HTTPError as http_err:
+        print(f'HTTP error occurred: {http_err}')
+    except Exception as err:
+        print(f'Other error occurred: {err}')
+    return response.json()
 
 def setup_logging(
         default_path='logging.json',
@@ -52,24 +72,19 @@ def setup_logging(
     logging.getLogger("googleapiclient.discovery").setLevel(logging.CRITICAL)
 
 def main():
-    parser = argparse.ArgumentParser(description='Script to synchronize experiment status tables across Experiment Intent Google Docs.')
+    parser = argparse.ArgumentParser(description='Script to synchronize experiment status tables across Experiment Docs.')
     parser.add_argument('-f', '--folder_id', nargs='?',
                         required=True, help='Google Drive folder id.')
-
-    parser.add_argument('-m', '--mongodb_credential', nargs='?',
-                        required=True, help='MongoDB credential.')
 
     input_args = parser.parse_args()
     setup_logging()
 
     try:
         logger.info('Running synchronizing experiment status script for release')
-        drive_access = GoogleAccessor().get_google_drive_accessor()
-        list_of_docs = drive_access.get_all_docs(input_args.folder_id)
-        mongodb_accessor = MongoDBAccessor(input_args.mongodb_credential)
         while True:
-            perform_automatic_run(list_of_docs, mongodb_accessor)
+            perform_automatic_run()
             time.sleep(SYNC_PERIOD.total_seconds())
+            logger.info('Scheduling next run.')
 
     except (KeyboardInterrupt, SystemExit, Exception) as ex:
         logger.info('Script stopped!')

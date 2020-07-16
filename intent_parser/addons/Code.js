@@ -20,6 +20,7 @@ function onOpen() {
 	menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor');
 	menu.addItem('Update experimental results', 'updateExperimentalResults');
 	menu.addItem('Execute Experiment', 'executeExperiment');
+	menu.addItem('Report Experiment Status', 'reportExperimentStatus');
 	menu.addSubMenu(tablesMenu);
 	menu.addItem('File Issues', 'reportIssues');
 	menu.addItem('Help', 'showHelp');
@@ -99,6 +100,26 @@ function enterLinkPrompt(title, msg) {
 
 function executeExperiment() {
 	sendPost('/executeExperiment');
+}
+
+function reportExperimentStatus() {
+	let doc = DocumentApp.getActiveDocument();
+	let cursorPosition = doc.getCursor();
+
+	if(cursorPosition == null) {
+		// Cursor position is null, so assume a selection
+		const selectionRange = doc.getSelection();
+		const rangeElement = selectionRange.getRangeElements()[0];
+		// Extract element and offset from end of selection
+		var el = rangeElement.getElement();
+	}
+	else {
+		// Select element and off set from current position
+		var el = cursorPosition.getElement();
+	}
+	const childIndex = doc.getBody().getChildIndex(el);
+	const data = {'childIndex' : childIndex};
+	sendPost('/reportExperimentStatus', data);
 }
 
 function sendMessage(message) {
@@ -197,11 +218,6 @@ function processActions(response) {
 					labTableData = actionDesc['tableLab'];
 					var newLabTable = body.insertTable(childIndex, labTableData);
 					newLabTable.setAttributes(tableStyle);
-				}
-				else if (actionDesc['tableType'] == 'parameters') {
-					protocolTableData = actionDesc['tableProtocol'];
-					var protocolTable = body.insertTable(childIndex, protocolTableData);
-					protocolTable.setAttributes(tableStyle);
 				}
 			}
 			catch (err){

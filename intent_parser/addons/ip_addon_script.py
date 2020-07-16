@@ -119,7 +119,10 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                     script_id = metadata['scriptId']
                     
                     remote_metadata = app_script_access.get_project_metadata(script_id)
-                    app_script_access.update_project_metadata(script_id, remote_metadata, INTENT_PARSER_ADDON_CODE_FILE, INTENT_PARSER_MANIFEST_FILE)
+                    app_script_access.update_project_metadata(script_id,
+                                                              remote_metadata,
+                                                              INTENT_PARSER_ADDON_CODE_FILE,
+                                                              INTENT_PARSER_MANIFEST_FILE)
                     
                     new_version = app_script_access.get_head_version(script_id) + 1
                     publish_message = current_release + ' Release'

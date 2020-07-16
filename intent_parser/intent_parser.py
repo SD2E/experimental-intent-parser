@@ -1,11 +1,13 @@
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
-from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
+from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, TableException
 from intent_parser.lab_experiment import LabExperiment
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory, TableType
+from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.lab_table import LabTable
-from intent_parser.table.controls_table import ControlsTable 
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.parameter_table import ParameterTable
+from intent_parser.table.experiment_specification_table import ExperimentSpecificationTable
+from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
 from datacatalog.formats.common import map_experiment_reference
 from jsonschema import validate
 from jsonschema import ValidationError
@@ -43,17 +45,72 @@ class IntentParser(object):
         self.sbh = sbh_instance
         self.sbol_dictionary = sbol_dictionary
         self.request = {}
+        self.experiment_status = {}
         self.experiment_request = None
         self.validation_errors = []
         self.validation_warnings = []
         self.ip_table_factory = IntentParserTableFactory()
 
-    def process(self):
-        self._generate_request()
+        self.lab_tables = []
+        self.parameter_tables = []
+        self.measurement_tables = []
+        self.control_tables = []
+        self.experiment_status_tables = []
+        self.experiment_specification_tables = []
+
+    def load_from_lab_experiment(self, lab_experiment):
+        pass
+
+    def get_largest_table_index(self):
+        table_indices = self.process_table_indices()
+        if table_indices:
+            return max(table_indices)
+        return 0
+
+    def process_table_indices(self):
+        table_indices = []
+        list_of_tables = self.lab_experiment.tables()
+        for table in list_of_tables:
+            ip_table = self.ip_table_factory.from_google_doc(table)
+            caption_index = self.ip_table_factory.get_caption_row_index(ip_table)
+            if caption_index is not None:
+                ip_table.set_caption_row_index(caption_index)
+                if ip_table.caption() in table_indices:
+                    raise TableException('There are more than one table with %d as a table caption index' % ip_table.caption())
+                table_indices.append(ip_table.caption())
+        return table_indices
+
+    def process_structure_request(self):
+        filtered_tables = self._filter_tables_by_type()
+        self._generate_request(filtered_tables[TableType.CONTROL],
+                               filtered_tables[TableType.LAB],
+                               filtered_tables[TableType.MEASUREMENT],
+                               filtered_tables[TableType.PARAMETER])
         self._validate_schema()
 
-    def process_experiment_request(self):
-        self._generate_experiment_request()
+    def process_experiment_run_request(self):
+        filtered_tables = self._filter_tables_by_type()
+        self._generate_experiment_request(filtered_tables[TableType.PARAMETER])
+
+    def process_experiment_status_request(self):
+        filtered_tables = self._filter_tables_by_type()
+        self._generate_experiment_status_request(filtered_tables[TableType.LAB],
+                                                 filtered_tables[TableType.EXPERIMENT_SPECIFICATION],
+                                                 filtered_tables[TableType.EXPERIMENT_STATUS])
+
+
+    def _generate_experiment_status_request(self, lab_tables, experiment_specification_tables, experiment_status_tables):
+        lab_content = self._process_lab_table(lab_tables)
+        exp_id_to_status_table = self._process_experiment_specification_tables(experiment_specification_tables)
+        table_id_to_statuses = self._process_experiment_status_tables(experiment_status_tables)
+        self.experiment_status[dc_constants.LAB] = lab_content[dc_constants.LAB]
+        statuses = []
+        for experiment_id, ref_status_table in exp_id_to_status_table.items():
+            if ref_status_table in table_id_to_statuses:
+                set_of_status = table_id_to_statuses[ref_status_table]
+                statuses.append({experiment_id: set_of_status})
+        self.experiment_status[dc_constants.STATUS_ELEMENT] = statuses
+
 
     def calculate_samples(self):
         doc_tables = self.lab_experiment.tables()
@@ -171,6 +228,9 @@ class IntentParser(object):
 
     def get_experiment_request(self):
         return self.experiment_request
+
+    def get_experiment_status_request(self):
+        return self.experiment_status
 
     def get_structured_request(self):
         return self.request
@@ -293,7 +353,7 @@ class IntentParser(object):
             self.logger.info('WARNING: Data catalog failed to map challenge problem for doc id %s!' % self.lab_experiment.document_id())
         return self._create_default_challenge_problem()
 
-    def _generate_request(self):
+    def _generate_request(self, control_tables, lab_tables, measurement_tables, parameter_tables):
         """Generates a structured request for a given doc id
         """
         experiment_ref = self._get_experiment_reference()
@@ -301,7 +361,6 @@ class IntentParser(object):
         cp_id = self._get_challenge_problem()
         title = self.lab_experiment.title()[0]
 
-        control_tables, lab_tables, measurement_tables, parameter_tables = self._sort_tables()
         ref_controls = self._process_control_tables(control_tables)
         lab_content = self._process_lab_table(lab_tables)
         parameter_sr = self._process_parameter_table(parameter_tables)
@@ -319,8 +378,7 @@ class IntentParser(object):
         if parameter_sr:
             self.request[dc_constants.PARAMETERS] = parameter_sr
 
-    def _generate_experiment_request(self):
-        _, _, _, parameter_tables = self._sort_tables()
+    def _generate_experiment_request(self, parameter_tables):
         experiment_request = self._process_parameter_table(parameter_tables, generate_experiment_request=True)
         if experiment_request is None:
             message = 'Cannot execute experiment without a parameter table.'
@@ -347,6 +405,32 @@ class IntentParser(object):
             self.validation_errors.extend(controls_table.get_validation_errors())
             self.validation_warnings.extend(controls_table.get_validation_warnings())
         return ref_controls
+
+    def _process_experiment_specification_tables(self, exp_specification_tables):
+        result = {}
+        if not exp_specification_tables:
+            message = 'No experiment specification table to parse from document.'
+            self.get_validation_errors(message)
+            return result
+        if len(exp_specification_tables) > 1:
+            message = 'More than one experiment specification table found. Only the last table is used.'
+            self.validation_warnings.append(message)
+            return result
+        table = exp_specification_tables[-1]
+        spec_table_parser = ExperimentSpecificationTable(table)
+        spec_table_parser.process_table()
+        return spec_table_parser.get_mappings_for_experiment_id_and_status_table()
+
+    def _process_experiment_status_tables(self, status_tables):
+        table_id_to_statuses = {}
+        if not status_tables:
+            message = 'No experiment status table to parse from document.'
+            self.get_validation_errors(message)
+        for table in status_tables:
+            status_table_parser = ExperimentStatusTableParser(table)
+            status_table_parser.process_table()
+            table_id_to_statuses[status_table_parser.get_table_caption()] = status_table_parser.get_statuses()
+        return table_id_to_statuses
     
     def _process_lab_table(self, lab_tables):
         if not lab_tables:
@@ -381,7 +465,7 @@ class IntentParser(object):
                                       self.catalog_accessor.get_measurement_types(), 
                                       self.catalog_accessor.get_file_types())
         measurement_data = meas_table.process_table(control_tables=ref_controls, bookmarks=self.lab_experiment.bookmarks())
-        measurements.append({'measurements' : measurement_data})
+        measurements.append({'measurements': measurement_data})
         self.validation_errors.extend(meas_table.get_validation_errors())
         self.validation_warnings.extend(meas_table.get_validation_warnings())
         return measurements
@@ -396,7 +480,7 @@ class IntentParser(object):
         try:
             table = parameter_tables[-1]
             attribute_tab = self.sbol_dictionary.get_tab_sheet(dictionary_constants.ATTRIBUTE_TAB)
-            strateos_dictionary_mapping = spreadsheet_data_util.get_common_names_to_transcriptic_id(attribute_tab)
+            strateos_dictionary_mapping = spreadsheet_data_util.map_common_names_and_transcriptic_id(attribute_tab)
             parameter_table = ParameterTable(table, strateos_dictionary_mapping)
             parameter_table.process_table()
             self.validation_errors.extend(parameter_table.get_validation_errors())
@@ -407,12 +491,14 @@ class IntentParser(object):
         except DictionaryMaintainerException as err:
             self.validation_errors.extend(err.get_message())
 
-    def _sort_tables(self):
+    def _filter_tables_by_type(self):
         list_of_tables = self.lab_experiment.tables()
         measurement_tables = []
         lab_tables = []
         parameter_tables = []
         control_tables = []
+        experiment_status_tables = []
+        experiment_spec_tables = []
         for table in list_of_tables:
             ip_table = self.ip_table_factory.from_google_doc(table) 
             caption_index = self.ip_table_factory.get_caption_row_index(ip_table)
@@ -425,18 +511,28 @@ class IntentParser(object):
             table_type = self.ip_table_factory.get_table_type(ip_table)
             if table_type == TableType.CONTROL:
                 control_tables.append(ip_table)
+            elif table_type == TableType.EXPERIMENT_STATUS:
+                experiment_status_tables.append(ip_table)
+            elif table_type == TableType.EXPERIMENT_SPECIFICATION:
+                experiment_spec_tables.append(ip_table)
             elif table_type == TableType.LAB:
                 lab_tables.append(ip_table)
             elif table_type == TableType.MEASUREMENT:
                 measurement_tables.append(ip_table)
             elif table_type == TableType.PARAMETER:
                 parameter_tables.append(ip_table)
-        return control_tables, lab_tables, measurement_tables, parameter_tables
+
+        return {TableType.CONTROL: control_tables,
+                TableType.EXPERIMENT_SPECIFICATION: experiment_spec_tables,
+                TableType.EXPERIMENT_STATUS: experiment_status_tables,
+                TableType.LAB: lab_tables,
+                TableType.MEASUREMENT: measurement_tables,
+                TableType.PARAMETER: parameter_tables}
     
     def _validate_schema(self):
         if self.request:
             try:
-                schema = { '$ref': 'https://schema.catalog.sd2e.org/schemas/structured_request.json'}
+                schema = {'$ref': 'https://schema.catalog.sd2e.org/schemas/structured_request.json'}
                 validate(self.request, schema)
             except ValidationError as err:
                 self.validation_errors.append(format(err).replace('\n', '&#13;&#10;'))

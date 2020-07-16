@@ -1,5 +1,6 @@
 from enum import Enum 
-from intent_parser.constants import intent_parser_constants
+import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.constants.google_doc_api_constants as doc_constants
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table import IntentParserTable
 import intent_parser.table.cell_parser as cell_parser
@@ -21,7 +22,10 @@ _CONTROLS_TABLE_HEADER = {intent_parser_constants.HEADER_CHANNEL_TYPE,
 _EXPERIMENT_STATUS_TABLE = {intent_parser_constants.HEADER_LAST_UPDATED_TYPE,
                             intent_parser_constants.HEADER_PATH_TYPE,
                             intent_parser_constants.HEADER_PIPELINE_STATUS_TYPE,
-                            intent_parser_constants.HEADER_STATE}
+                            intent_parser_constants.HEADER_STATE_TYPE}
+
+_EXPERIMENT_SPECIFICATION_TABLE = {intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE,
+                                   intent_parser_constants.HEADER_EXPERIMENT_STATUS_VALUE}
 
 class TableType(Enum):
     UNKNOWN = 1
@@ -30,6 +34,7 @@ class TableType(Enum):
     PARAMETER = 4
     CONTROL = 5
     EXPERIMENT_STATUS = 6
+    EXPERIMENT_SPECIFICATION = 7
 
 class IntentParserTableFactory(object):
         
@@ -42,7 +47,7 @@ class IntentParserTableFactory(object):
     def get_caption_row_index(self, intent_parser_table):
         for row_index in range(intent_parser_table.number_of_rows()):
             cell = intent_parser_table.get_cell(row_index, 0)
-            if cell_parser.PARSER.is_table_caption(cell):
+            if cell_parser.PARSER.is_table_caption(cell.get_text()):
                 return row_index
         return None 
         
@@ -71,7 +76,9 @@ class IntentParserTableFactory(object):
                 return TableType.PARAMETER
             elif _EXPERIMENT_STATUS_TABLE == header_values:
                 return TableType.EXPERIMENT_STATUS
-        
+            elif _EXPERIMENT_SPECIFICATION_TABLE== header_values:
+                return TableType.EXPERIMENT_SPECIFICATION
+
         if self._lab_table(intent_parser_table):
             return TableType.LAB
         return TableType.UNKNOWN
@@ -102,33 +109,37 @@ class GoogleTableParser(TableParser):
     
     def parse_table(self, table):
         intent_parser_table = IntentParserTable()
-        rows = table['tableRows']
+        rows = table[doc_constants.TABLE_ROWS]
         for row in rows:
             ip_row = [cell for cell in self._parse_row(row)]
             intent_parser_table.add_row(ip_row)
         return intent_parser_table
 
     def _parse_row(self, row):
-        columns = row['tableCells']
+        columns = row[doc_constants.TABLE_CELLS]
         for cell in columns:
             ip_cell = IntentParserCell()
+            start_index = cell[doc_constants.START_INDEX]
+            end_index = cell[doc_constants.END_INDEX]
+            ip_cell.set_start_index(start_index)
+            ip_cell.set_end_index(end_index)
             for content, link, bookmark_id in self._parse_cell(cell):
                 ip_cell.add_paragraph(content, link, bookmark_id)
-            yield ip_cell 
+            yield ip_cell
     
     def _parse_cell(self, cell):
-        contents = cell['content']
+        contents = cell[doc_constants.CONTENT]
         for content in contents:
-            paragraph = content['paragraph'] 
-            for element in paragraph['elements']:
+            paragraph = content[doc_constants.PARAGRAPH]
+            for element in paragraph[doc_constants.ELEMENTS]:
                 url = None
                 bookmark_id = None 
-                text_run = element['textRun']
-                if 'textStyle' in text_run and 'link' in text_run['textStyle']:
-                    link = text_run['textStyle']['link']
-                    if 'url' in link:
-                        url = link['url']
-                    if 'bookmarkId' in link:
-                        bookmark_id = link['bookmarkId']
-                result = text_run['content'].strip()
+                text_run = element[doc_constants.TEXT_RUN]
+                if doc_constants.TEXT_STYLE in text_run and doc_constants.LINK in text_run[doc_constants.TEXT_STYLE]:
+                    link = text_run[doc_constants.TEXT_STYLE][doc_constants.LINK]
+                    if doc_constants.URL in link:
+                        url = link[doc_constants.URL]
+                    if doc_constants.BOOKMARK_ID in link:
+                        bookmark_id = link[doc_constants.BOOKMARK_ID]
+                result = text_run[doc_constants.CONTENT].strip()
                 yield result, url, bookmark_id

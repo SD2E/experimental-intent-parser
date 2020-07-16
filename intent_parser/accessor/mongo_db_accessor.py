@@ -1,10 +1,12 @@
-from intent_parser.table.experiment_status_table import ExperimentStatusTable
+from intent_parser.intent_parser_exceptions import IntentParserException
+from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
 import intent_parser.utils.intent_parser_utils as ip_util
+import intent_parser.constants.intent_parser_constants as ip_constants
 import logging
 import os.path
 import pymongo
 
-class MongoDBAccessor(object):
+class TA4DBAccessor(object):
     """
     Retrieve information from MongoDB
     """
@@ -18,7 +20,7 @@ class MongoDBAccessor(object):
 
     def __new__(cls, *args, **kwargs):
         if not cls._MONGODB_ACCESSOR:
-            cls._MONGODB_ACCESSOR = super(MongoDBAccessor, cls).__new__(cls, *args, **kwargs)
+            cls._MONGODB_ACCESSOR = super(TA4DBAccessor, cls).__new__(cls, *args, **kwargs)
             cls._MONGODB_ACCESSOR._authenticate_credentials()
         return cls._MONGODB_ACCESSOR
 
@@ -28,18 +30,29 @@ class MongoDBAccessor(object):
         self.database = pymongo.MongoClient(credential).catalog_staging
 
 
-    def get_experiment_status(self, doc_id):
-        """Retrieve a list of Status for an experiment
-        """
-        structure_requests = self.database.structured_requests.find({"experiment_reference_url":"https://docs.google.com/document/d/%s" % doc_id,
-                                                                     "$where": "this.derived_from.length > 0"})
+    def get_experiment_status(self, doc_id, lab_name):
+        """Retrieve a list of Status for an experiment.
 
-        status_table = ExperimentStatusTable()
-        for sr in structure_requests:
-            for status_type, status_values in sr['status'].items():
-                status_table.add_status(status_type,
+        Args:
+            doc_id: id of Google Doc.
+            lab_name: name of lab
+        Returns:
+            A dictionary. The key represents the experiment_id. The value represents a ExperimentStatusTableParser.
+        """
+        experiment_ref = ip_constants.GOOGLE_DOC_URL_PREFIX + doc_id
+        db_response = self.database.structured_requests.find({"experiment_reference_url": experiment_ref,
+                                                                     "$where": "this.derived_from.length > 0"})
+        result = {}
+        status_table = ExperimentStatusTableParser()
+        for status in db_response:
+            if lab_name.lower() in status['lab'].lower():
+                for status_type, status_values in status['status'].items():
+                    status_table.add_status(status_type,
                                         status_values['last_updated'],
                                         status_values['state'],
                                         status_values['path'])
-        return status_table
+                result[status['experiment_id']] = status_table
 
+        if not result:
+            raise IntentParserException('TA4\'s pipeline has no information to report for %s under experiment %s.' % (lab_name, experiment_ref))
+        return result
