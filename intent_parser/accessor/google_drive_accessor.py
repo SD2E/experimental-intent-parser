@@ -14,7 +14,7 @@ class GoogleDriveAccessor(object):
     logger = logging.getLogger('intent_parser_google_drive_accessor')
 
     def __init__(self, credentials):
-        self._service = build('drive', 'v3', credentials=credentials)
+        self._service = build('drive', 'v2', credentials=credentials)
         self._authed_session = AuthorizedSession(credentials)
 
     def get_documents_from_folder(self, folder_id):

@@ -32,7 +32,7 @@ class GoogleSpreadsheetAccessor:
         return response['spreadsheetId']
 
 
-    def execute_requests(self, requests):
+    def execute_requests(self, requests, spreadsheet_id):
         """Executes a list of request
         Args:
             request: A list of requests
@@ -40,18 +40,18 @@ class GoogleSpreadsheetAccessor:
             Response of executing multiple requests in the form of a json object.
         """
         body = {'requests': requests}
-        batch_request = self._sheet_service.spreadsheets().batchUpdate(spreadsheetId=self._spreadsheet_id,
+        batch_request = self._sheet_service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id,
                                                                        body=body)
         time.sleep(len(requests) / self._REQUESTS_PER_SEC)
         return batch_request.execute()
 
-    def get_tab_data(self, tab):
+    def get_tab_data(self, tab, spreadsheet_id):
         """
         Retrieve data from a spreadsheet tab.
         """
-        return self._sheet_service.spreadsheets().values().get(spreadsheetId=self._spreadsheet_id, range=tab).execute()
+        return self._sheet_service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=tab).execute()
 
-    def set_tab_data(self, tab, values):
+    def set_tab_data(self, tab, values, spreadsheet_id):
         """
         Write data to a spreadsheet tab.
         """
@@ -59,7 +59,7 @@ class GoogleSpreadsheetAccessor:
                 'range': tab,
                 'majorDimension': "ROWS"}
 
-        update_request = self._sheet_service.spreadsheets().values().update(spreadsheetId=self._spreadsheet_id,
+        update_request = self._sheet_service.spreadsheets().values().update(spreadsheetId=spreadsheet_id,
                                                                             range=tab,
                                                                             body=body,
                                                                             valueInputOption='RAW')

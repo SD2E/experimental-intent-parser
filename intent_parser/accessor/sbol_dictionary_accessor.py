@@ -22,7 +22,7 @@ class SBOLDictionaryAccessor(object):
     SYNC_PERIOD = timedelta(minutes=30)
 
     def __init__(self, spreadsheet_id, sbh):
-        self.google_accessor = GoogleAccessor.get_google_spreadsheet_accessor()
+        self.google_accessor = GoogleAccessor().get_google_spreadsheet_accessor()
         self.sbh = sbh
         
         self.spreadsheet_lock = threading.Lock()
@@ -86,7 +86,7 @@ class SBOLDictionaryAccessor(object):
     def _periodically_fetch_spreadsheet(self):
         while True:
             time.sleep(self.SYNC_PERIOD.total_seconds())
-            self.fetch_spreadsheet_data()
+            self._fetch_spreadsheet_data()
 
     def _fetch_spreadsheet_data(self):
         self.logger.info('Fetching SBOL Dictionary spreadsheet')
@@ -213,17 +213,17 @@ class SBOLDictionaryAccessor(object):
         headers += list(map(lambda x: x + ' UID', self.labs))
 
         for tab in self.type_tabs.keys():
-            self._set_tab_data(tab=tab + '!2:2', values=[headers])
+            self._set_tab_data(tab + '!2:2', [headers])
 
-        self._set_tab_data(tab=self.MAPPING_FAILURES + '!2:2',
-                           values=[self.mapping_failures_headers])
+        self._set_tab_data(self.MAPPING_FAILURES + '!2:2',
+                           [self.mapping_failures_headers])
 
     def _cache_tab_headers(self, tab):
         """
         Cache the headers (and locations) in a tab
         returns a map that maps headers to column indexes
         """
-        tab_data = self.get_tab_data(tab + "!2:2")
+        tab_data = self.google_accessor.get_tab_data(tab + "!2:2", self._spreadsheet_id)
 
         if 'values' not in tab_data:
             raise Exception('No header values found in tab "' +
@@ -281,7 +281,7 @@ class SBOLDictionaryAccessor(object):
         else:
             value_range = tab + '!' + str(row) + ":" + str(row)
 
-        tab_data = self.get_tab_data(value_range)
+        tab_data = self.google_accessor.get_tab_data(value_range, self._spreadsheet_id)
         row_data = []
         if 'values' not in tab_data:
             return row_data
@@ -316,7 +316,7 @@ class SBOLDictionaryAccessor(object):
         row = entry['row']
         row_data = self.gen_row_data(entry=entry, tab=tab)
         row_range = '{}!{}:{}'.format(tab, row, row)
-        self.set_tab_data(tab=row_range, values=[row_data])
+        self.google_accessor.set_tab_data(row_range, [row_data], self._spreadsheet_id)
 
     def set_row_value(self, entry, column):
         """
@@ -341,7 +341,7 @@ class SBOLDictionaryAccessor(object):
 
         col = chr(ord('A') + headers[column])
         row_range = tab + '!' + col + str(row)
-        self.set_tab_data(tab=row_range, values=[[value]])
+        self.google_accessor.set_tab_data(row_range, [[value]], self._spreadsheet_id)
 
     def gen_row_data(self, entry, tab):
         """
