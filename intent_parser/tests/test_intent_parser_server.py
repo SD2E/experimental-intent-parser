@@ -1,8 +1,11 @@
+from datetime import datetime
+from http import HTTPStatus
 from intent_parser.server.http_message import HttpMessage
 from intent_parser.server.intent_parser_server import IntentParserServer
-from http import HTTPStatus
+from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
 from unittest.mock import Mock, patch
 import intent_parser.constants.intent_parser_constants as ip_constants
+import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.utils.intent_parser_view as intent_parser_view
 import json
 import unittest
@@ -12,7 +15,8 @@ class IntentParserServerTest(unittest.TestCase):
     Test IntentParserServer response for different requests made to the server. 
     """
 
-    @patch('intent_parser.accessor.tacc_go_accessor')
+    @patch('intent_parser.accessor.mongo_db_accessor.TA4DBAccessor')
+    @patch('intent_parser.accessor.tacc_go_accessor.TACCGoAccessor')
     @patch('intent_parser.intent_parser_factory.IntentParserFactory')
     @patch('intent_parser.accessor.strateos_accessor.StrateosAccessor')
     @patch('intent_parser.accessor.sbol_dictionary_accessor.SBOLDictionaryAccessor')
@@ -21,23 +25,45 @@ class IntentParserServerTest(unittest.TestCase):
               mock_sbol_dictionary_accessor,
               mock_strateos_accessor,
               mock_intent_parser_factory,
-              mock_tacc_go_accessor):
+              mock_tacc_go_accessor,
+              mock_ta4_db_accessor):
         self.mock_intent_parser_sbh = mock_intent_parser_sbh
         self.mock_sbol_dictionary_accessor = mock_sbol_dictionary_accessor
         self.mock_strateos_accessor = mock_strateos_accessor
         self.mock_intent_parser_factory = mock_intent_parser_factory
         self.mock_tacc_go_accessor = mock_tacc_go_accessor
+        self.mock_ta4_db_accessor = mock_ta4_db_accessor
         self.mock_intent_parser = Mock()
         self.mock_intent_parser_factory.create_intent_parser.return_value = self.mock_intent_parser
         self.ip_server = IntentParserServer(self.mock_intent_parser_sbh,
                                             self.mock_sbol_dictionary_accessor,
                                             self.mock_strateos_accessor,
                                             self.mock_intent_parser_factory,
-                                            self.mock_tacc_go_accessor,
                                             bind_ip='localhost', bind_port=8081)
     
     def tearDown(self):
         pass
+
+    def test_process_experiment_status_table(self):
+        http_body = {'documentId': '1fFcxyJyheMrzSsVoSsO6v7qHJKFf_0heIFtqEur02cg'}
+        http_message = HttpMessage()
+        http_message.set_body(json.dumps(http_body).encode('utf-8'))
+
+        expected_structured_request = {dc_constants.LAB: 'Transcriptic'}
+        self.mock_intent_parser.get_structured_request.return_value = expected_structured_request
+        self.mock_intent_parser.get_validation_errors.return_value = []
+        status_table = ExperimentStatusTableParser()
+        status_table.add_status('annotated',
+                                datetime.datetime(2020, 6, 6, 2, 7, 14),
+                                False,
+                                'agave://data-sd2e-community/uploads/transcriptic/202006/r1egb6rhggaqwt/metadata-74d1ab18139c-200606T0206.json')
+        self.mock_ta4_db_accessor.execute_experiment.return_value = {'experiment.transcriptic.r1egb6rhggaqwt': status_table}
+
+        response = self.ip_server.process_report_experiment_status(http_message)
+        expected_actions = {'actions': [intent_parser_view.create_table_template(warnings)]}
+        self._verify_response_status(response, HTTPStatus.OK)
+        self._verify_response_body(response, expected_actions)
+
 
     def test_process_execute_experiment(self):
         http_host = 'fake_host'
@@ -46,13 +72,11 @@ class IntentParserServerTest(unittest.TestCase):
         document_id = 'foo'
         expected_response = 'The request was successful'
         experiment_request = {'documentId': document_id}
-        warnings = []
-        errors = []
         expected_actions = {'actions': [intent_parser_view.message_dialog('Experiment Execution Status', expected_response)]}
-        self.mock_intent_parser.process_experiment_request.return_value = experiment_request
+        self.mock_intent_parser.process_experiment_run_request.return_value = experiment_request
         self.mock_intent_parser.get_experiment_request.return_value = experiment_request
-        self.mock_intent_parser.get_validation_warnings.return_value = warnings
-        self.mock_intent_parser.get_validation_errors.return_value = errors
+        self.mock_intent_parser.get_validation_warnings.return_value = []
+        self.mock_intent_parser.get_validation_errors.return_value = []
         self.mock_tacc_go_accessor.execute_experiment.return_value = "The request was successful"
         http_message.set_body(json.dumps(experiment_request).encode('utf-8'))
 
@@ -72,17 +96,18 @@ class IntentParserServerTest(unittest.TestCase):
                              ip_constants.PARAMETER_PROTOCOL_ID: 'pr1e5gw8bdekdxv',
                              ip_constants.PARAMETER_TEST_MODE: False,
                              ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: 'foo',
-                             ip_constants.DEFAULT_PARAMETERS: {'exp_info.sample_time": "8:hour'}}
+                             ip_constants.DEFAULT_PARAMETERS: {'exp_info.sample_time': '8:hour'}}
         self.mock_intent_parser.get_experiment_request.return_value = test_data
-        expected_response = 'The request was successful'
-        self.mock_tacc_go_accessor.execute_experiment.return_value = expected_response
+        expected_message = 'The request was successful'
+        self.mock_tacc_go_accessor.execute_experiment.return_value = expected_message
+        self.mock_intent_parser.get_validation_warnings.return_value = []
         self.mock_intent_parser.get_validation_errors.return_value = []
 
         http_message = HttpMessage()
         http_message.resource = '/run_experiment?foo'
         response = self.ip_server.process_run_experiment(http_message)
         self._verify_response_status(response, HTTPStatus.OK)
-        self._verify_response_body(response, expected_response)
+        self._verify_response_body(response, {'result': expected_message})
 
     def test_process_document_report(self):
         expected_report = {'challenge_problem_id': 'undefined',
@@ -150,7 +175,7 @@ class IntentParserServerTest(unittest.TestCase):
         errors = []
         
         expected_actions = {'actions': [intent_parser_view.valid_request_model_dialog(warnings)]}
-        self.mock_intent_parser.process.return_value = structured_request
+        self.mock_intent_parser.process_structure_request.return_value = structured_request
         self.mock_intent_parser.get_validation_warnings.return_value = warnings
         self.mock_intent_parser.get_validation_errors.return_value = errors 
         http_message = HttpMessage()
@@ -168,7 +193,7 @@ class IntentParserServerTest(unittest.TestCase):
         errors = []
         
         expected_actions = {'actions': [intent_parser_view.valid_request_model_dialog(warnings, intent_parser_view.get_download_link(http_host, document_id))]}
-        self.mock_intent_parser.process.return_value = structured_request
+        self.mock_intent_parser.process_structure_request.return_value = structured_request
         self.mock_intent_parser.get_validation_warnings.return_value = warnings
         self.mock_intent_parser.get_validation_errors.return_value = errors 
         http_message = HttpMessage()

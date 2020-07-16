@@ -30,7 +30,7 @@ def create_controls_table_dialog(cursor_index):
     dialog_action = modal_dialog(html, 'Create Controls Table', 600, 600)
     return dialog_action
     
-def create_parameter_table_template(cursor_child_index, protocol_options):
+def create_parameter_table_dialog(cursor_child_index, protocol_options):
     html_protocols = generate_html_options(protocol_options)
     builder = ParameterTableHtmlBuilder()
     builder.cursor_child_index_html(cursor_child_index)
@@ -39,7 +39,7 @@ def create_parameter_table_template(cursor_child_index, protocol_options):
     dialog_action = modal_dialog(html_parameter, 'Create Parameters Table', 600, 600)
     return dialog_action
 
-def create_measurement_table_template(cursor_child_index):
+def create_measurement_table_dialog(cursor_child_index):
     catalog_accessor = CatalogAccessor()
     local_file_types = catalog_accessor.get_file_types().copy()
     local_file_types.insert(0, '---------------')
@@ -131,10 +131,10 @@ def create_add_to_synbiohub_dialog(selection,
     dialog_action = modal_dialog(html, 'Add to SynBioHub', 600, 600)
     return dialog_action
     
-def invalid_request_model_dialog(messages):
+def invalid_request_model_dialog(title, messages):
     text_area_rows = 33
     height = 600
-    title = 'Structured request validation: Failed!'
+    # title = 'Structured request validation: Failed!'
     buttons = [('Ok', 'process_nop')]
     validation_message = '\n'.join(messages)
     msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, validation_message)
@@ -306,9 +306,9 @@ def open_new_window(link=None):
 
 def message_dialog(title, message):
     text_area_rows = 15
-    height = 300
+    height = 150
     buttons = [('Ok', 'process_nop')]
-    return simple_modal_dialog(message, buttons, title, 500, height)
+    return simple_modal_dialog(message, buttons, title, 200, height)
 
 def valid_request_model_dialog(warnings, link=None):
     text_area_rows = 15

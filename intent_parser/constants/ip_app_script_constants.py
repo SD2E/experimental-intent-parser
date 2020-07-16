@@ -1,6 +1,7 @@
 """
 List of constants used in intent parser's Google App Script Add-on
 """
+CHILD_INDEX = 'childIndex'
 CURSOR_CHILD_INDEX = 'cursorChildIndex'
 
 HTML_BATCH = 'batch'
@@ -23,6 +24,8 @@ HTML_TIMEPOINT = 'timepoint'
 TABLE_DATA = 'tableData'
 TABLE_TYPE = 'tableType'
 TABLE_TYPE_CONTROLS = 'controls'
+TABLE_TYPE_EXPERIMENT_SPECIFICATION = 'experimentSpecification'
+TABLE_TYPE_STATUS = 'tableStatus'
 TABLE_TYPE_LAB = 'tableLab'
 TABLE_TYPE_MEASUREMENTS = 'measurements'
 TABLE_TYPE_PARAMETERS = 'parameters'

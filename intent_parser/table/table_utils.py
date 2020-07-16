@@ -18,22 +18,6 @@ _abbreviated_unit_dict = {'fluid' : _fluid_units,
                           'timepoints' : _timepoint_units
                           }
 
-def parse_cell(cell):
-    content = cell['content']
-    for paragraph_index in range(len(content)):
-        paragraph = content[paragraph_index]['paragraph']
-        url = None
-        
-        if 'link' in paragraph and 'url' in paragraph['link']:
-            url = paragraph['link']['url']
-            
-        list_of_contents = []
-        for element in paragraph['elements']: 
-            result = element['textRun']['content']
-            list_of_contents.append(result)
-        flatten_content = ''.join(list_of_contents)
-        yield flatten_content, url
-
 def detect_new_measurement_table(table):
     """
     Scan the header row to see if it contains what we expect in a new-style measurements table.

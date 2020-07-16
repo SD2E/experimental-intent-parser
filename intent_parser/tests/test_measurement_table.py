@@ -385,7 +385,7 @@ class MeasurementTableTest(unittest.TestCase):
         meas_result = meas_table.process_table()
         self.assertEqual(1, len(meas_result))
         
-        exp_res1 = {'name': {'label' : reagent_name, 'sbh_uri': reagent_uri}, 'value': '11', 'unit': '%'}
+        exp_res1 = {'name': {'label': reagent_name, 'sbh_uri': reagent_uri}, 'value': '11', 'unit': '%'}
         self.assertEqual(1, len(meas_result[0]['contents'][0]))
         self.assertEqual(exp_res1, meas_result[0]['contents'][0][0])
         
@@ -407,7 +407,7 @@ class MeasurementTableTest(unittest.TestCase):
         meas_result = meas_table.process_table()
         self.assertEqual(1, len(meas_result))
         
-        exp_res1 = {'name' : {'label' : reagent_name, 'sbh_uri' : reagent_uri}, 'value' : '11', 'unit' : 'g/L'}
+        exp_res1 = {'name': {'label': reagent_name, 'sbh_uri': reagent_uri}, 'value': '11', 'unit' : 'g/L'}
         self.assertEquals(1, len(meas_result[0]['contents'][0]))
         self.assertEquals(exp_res1, meas_result[0]['contents'][0][0])
         
@@ -429,8 +429,10 @@ class MeasurementTableTest(unittest.TestCase):
         meas_result = meas_table.process_table()
         self.assertEqual(1, len(meas_result))
         
-        exp_res1 = {'name' : {'label' : 'SC_Media', 'sbh_uri' : 'NO PROGRAM DICTIONARY ENTRY'}, 'value' : '0', 'unit' : 'M', 
-                    'timepoint' : {'value' : 18.0, 'unit' : 'hour'}}
+        exp_res1 = {'name': {'label' : 'SC_Media', 'sbh_uri' : 'NO PROGRAM DICTIONARY ENTRY'},
+                    'value': '0',
+                    'unit': 'M',
+                    'timepoint': {'value': 18.0, 'unit' : 'hour'}}
         self.assertEqual(1, len(meas_result[0]['contents'][0]))
         self.assertEqual(exp_res1, meas_result[0]['contents'][0][0])
 
@@ -465,7 +467,7 @@ class MeasurementTableTest(unittest.TestCase):
                 'content': 'Media','textStyle': {'link': {'url': media_uri}, 'bold': True}}},
                     {'textRun': {
                         'content': '\n'}}
-                  ]}}]}]} ,
+                  ]}}]}]},
             {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
                 'content': 'sc_media\n'}}]}}]}]}]
         } 
@@ -638,8 +640,8 @@ class MeasurementTableTest(unittest.TestCase):
         control2_result = control2_parser.process_table()
         
         measurement_parser = MeasurementTable(ip_measurement_table)
-        meas_result = measurement_parser.process_table(control_tables={control1_parser.get_table_caption(): control1_result,
-                                                                       control2_parser.get_table_caption(): control2_result})
+        meas_result = measurement_parser.process_table(control_tables={1: control1_result,
+                                                                       2: control2_result})
         self.assertEqual(1, len(meas_result))
         self.assertEqual(2, len(meas_result[0]['controls']))
         
@@ -697,8 +699,8 @@ class MeasurementTableTest(unittest.TestCase):
         control2_result = control2_parser.process_table()
         
         measurement_parser = MeasurementTable(ip_measurement_table)
-        meas_result = measurement_parser.process_table(control_tables={control1_parser.get_table_caption(): control1_result,
-                                                                       control2_parser.get_table_caption(): control2_result})
+        meas_result = measurement_parser.process_table(control_tables={1: control1_result,
+                                                                       2: control2_result})
         self.assertEquals(2, len(meas_result))
         self.assertEquals(1, len(meas_result[0]['controls']))
         

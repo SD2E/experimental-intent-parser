@@ -5,6 +5,7 @@ class GoogleAccessorTest(unittest.TestCase):
 
     def setUp(self):
         self.spreadsheet_accessor = GoogleAccessor().get_google_spreadsheet_accessor()
+        self.doc_accessor = GoogleAccessor().get_google_doc_accessor()
         self.drive_accessor = GoogleAccessor().get_google_drive_accessor()
 
     def tearDown(self):
@@ -21,6 +22,12 @@ class GoogleAccessorTest(unittest.TestCase):
         self.drive_accessor.move_file_to_folder(folder_id, spreadsheet_id)
         self.assertTrue(spreadsheet_id)
         self.assertTrue(self.drive_accessor.delete_file(spreadsheet_id))
+
+    @unittest.skip('ignore creating table from google doc api.')
+    def test_create_table(self):
+        doc_id = '12khWlq-dMirONgTnWidLak0VWx83jZlUdAprdlIG_CQ'
+        self.doc_accessor.create_table(doc_id)
+
 
 if __name__ == "__main__":
     unittest.main()

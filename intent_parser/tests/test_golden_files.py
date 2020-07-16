@@ -250,7 +250,7 @@ class GoldenFileTest(unittest.TestCase):
         print('%s upload doc %s' % (datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.uploaded_file_id))
         
         intent_parser = self.intentparser_factory.create_intent_parser(self.uploaded_file_id)
-        intent_parser.process()
+        intent_parser.process_structure_request()
         generated_structured_request = intent_parser.get_structured_request()
         
         # Skip data that are modified from external resources:

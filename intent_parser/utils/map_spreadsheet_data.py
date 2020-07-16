@@ -10,7 +10,31 @@ logger = logging.getLogger('intent_parser')
 curr_path = os.path.dirname(os.path.realpath(__file__))
 ITEM_MAP_FILE = os.path.join(curr_path, 'item-map.json')
 
-def get_common_names_to_transcriptic_id(attribute_tab):
+def map_common_names_and_tacc_id(spreadsheet_tab_data):
+    result = {}
+    for row in spreadsheet_tab_data:
+        if dictionary_constants.COLUMN_COMMON_NAME in row and dictionary_constants.COLUMN_TACC_UID in row:
+            common_name = row[dictionary_constants.COLUMN_COMMON_NAME]
+            tacc_id = row[dictionary_constants.COLUMN_TACC_UID]
+            if tacc_id:
+                result[common_name] = tacc_id
+    return result
+
+def get_common_name_from_tacc_id(tacc_id, attribute_tab):
+    mappings = map_common_names_and_tacc_id(attribute_tab)
+    for key, value in mappings.items():
+        if tacc_id == value:
+            return key
+    return None
+
+def get_common_name_from_trascriptic_id(transcriptic_id, attribute_tab):
+    mappings = map_common_names_and_transcriptic_id(attribute_tab)
+    for key, value in mappings.items():
+        if transcriptic_id == value:
+            return key
+    return None
+
+def map_common_names_and_transcriptic_id(attribute_tab):
     result = {}
     for row in attribute_tab:
         if dictionary_constants.COLUMN_COMMON_NAME in row and dictionary_constants.COLUMN_TRANSCRIPT_UID in row:
