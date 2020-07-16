@@ -878,8 +878,8 @@ class IntentParserServer:
                     logger.info('Loaded dictionary for userId, path: %s' % dict_path)
                     self.spellCheckers[userId].word_frequency.load_dictionary(dict_path)
 
-            lab_experiment = self.intent_parser_factory.create_lab_experiment() 
-            doc = lab_experiment.load_from_google_doc(document_id)
+            lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
+            doc = lab_experiment.load_from_google_doc()
             paragraphs = lab_experiment.paragraphs() 
             if 'data' in json_body:
                 data = json_body['data']
@@ -1214,8 +1214,8 @@ class IntentParserServer:
         json_body = intent_parser_utils.get_json_body(httpMessage)
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
         
-        lab_experiment = self.intent_parser_factory.create_lab_experiment()
-        doc = lab_experiment.load_from_google_doc(document_id)
+        lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
+        doc = lab_experiment.load_from_google_doc()
          
         self.analyze_processing_lock[document_id] = threading.Lock()
         self.analyze_processing_lock[document_id].acquire()
@@ -1267,8 +1267,8 @@ class IntentParserServer:
         self.analyze_processing_map_lock.release()
 
         doc_id = client_state['document_id']
-        lab_experiment = self.intent_parser_factory.create_lab_experiment()
-        lab_experiment.load_from_google_doc(doc_id)
+        lab_experiment = self.intent_parser_factory.create_lab_experiment(doc_id)
+        lab_experiment.load_from_google_doc()
         paragraphs = lab_experiment.paragraphs() 
 
         self.item_map_lock.acquire()
@@ -1483,27 +1483,6 @@ def setup_logging(
     logger.addHandler(logging.FileHandler('intent_parser_server.log'))
     logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.CRITICAL)
     logging.getLogger("googleapiclient.discovery").setLevel(logging.CRITICAL)
-
-def signal_int_handler(sig, frame, intent_parser_server):
-    '''  Handling SIG_INT: shutdown intent table server and wait for it to finish.
-    '''
-    global sbhPlugin
-    global sigIntCount
-
-    sigIntCount += 1
-    sig # Remove unused warning
-    frame # Remove unused warning
-
-    # Try to cleanly exit on the first try
-    if sigIntCount == 1:
-        print('\nStopping intent table server...')
-        intent_parser_server.stop()
-    # If we receive enough SIGINTs, die
-    if sigIntCount > 3:
-        sys.exit(0)
-
-signal.signal(signal.SIGINT, signal_int_handler)
-sigIntCount = 0
 
 def main():
     parser = argparse.ArgumentParser(description='Processes an experimental design.')

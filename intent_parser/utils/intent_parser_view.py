@@ -112,7 +112,7 @@ def create_add_to_synbiohub_dialog(selection,
                                    lab_ids_html, 
                                    document_id, 
                                    isSpellcheck):
-    
+
     html_builder = AddHtmlBuilder().common_name(selection) \
                                    .display_id(display_id) \
                                    .start_paragraph(str(start_paragraph)) \
@@ -121,9 +121,9 @@ def create_add_to_synbiohub_dialog(selection,
                                    .end_offset(str(end_offset)) \
                                    .item_types_html(item_types_html) \
                                    .lab_ids_html(lab_ids_html) \
-                                   .selection(selection) \
+                                   .selected_term(selection) \
                                    .document_id(document_id) \
-                                   .isSpellcheck(str(isSpellcheck)) 
+                                   .is_spell_check(str(isSpellcheck))
     submit_button_html = '        <input type="button" value="Submit" id="submitButton" onclick="submitToSynBioHub()">'
     if isSpellcheck:
         submit_button_html = """
@@ -250,16 +250,23 @@ def create_search_result_dialog(term, uri, content_term, document_id, paragraph_
 
     buttonHTML += '<input id=EnterLinkButton value="Manually Enter Link" type="button" title="Enter a link for this term manually." onclick="EnterLinkClick()" />'
     # Script for the EnterLinkButton is already in the HTML
+    html_builder = AnalyzeHtmlBuilder()
+    if term:
+        html_builder.selected_term(term)
+    if uri:
+        html_builder.selected_uri(uri)
+        html_builder.term_uri(uri)
+    if content_term:
+        html_builder.content_term(content_term)
+    if document_id:
+        html_builder.document_id(document_id)
+    if buttonHTML:
+        html_builder.button_html(buttonHTML)
+    if buttonScript:
+        html_builder.button_script(buttonScript)
 
-    html = AnalyzeHtmlBuilder().selected_term(term) \
-                               .selected_uri(uri) \
-                               .content_term(content_term) \
-                               .term_uri(uri) \
-                               .document_id(document_id) \
-                               .button(buttonHTML) \
-                               .buttonScript(buttonScript).build()
-
-    dialogAction = sidebar_dialog(html)
+    html_builder.build()
+    dialogAction = sidebar_dialog(html_builder.build())
     actions.append(dialogAction)
     return actions
 
