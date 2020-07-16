@@ -30,8 +30,8 @@ class IntentParserServerTest(unittest.TestCase):
         pass
 
     def test_process_document_report(self):
-        expected_report = {'challenge_problem_id' : 'undefined',
-                            'experiment_reference_url' : 'foo',
+        expected_report = {'challenge_problem_id': 'undefined',
+                            'experiment_reference_url': 'foo',
                             'labs' : [],
                             'mapped_names': {'label': 'iptg', 'sbh_url': 'url'}}
         self.mock_intent_parser.generate_report.return_value = expected_report
@@ -123,7 +123,19 @@ class IntentParserServerTest(unittest.TestCase):
         response = self.ip_server.process_generate_structured_request(http_message)
         self._verify_response_status(response, HTTPStatus.OK)
         self._verify_response_body(response, expected_actions)
-       
+
+    def test_process_analyze_document(self):
+        http_host = 'fake_host'
+        json_body = {'documentId': 'foo'}
+        http_message = HttpMessage()
+        http_message.process_header('Host:%s' % http_host)
+        http_message.set_body(json.dumps(json_body).encode('utf-8'))
+
+        expected_actions = {'actions': [intent_parser_view.progress_sidebar_dialog()]}
+        response = self.ip_server.process_analyze_document(http_message)
+        self._verify_response_status(response, HTTPStatus.OK)
+        self._verify_response_body(response, expected_actions)
+
     def _verify_response_status(self, response, expected_status):
         header_from_status = 'HTTP/1.1 %s %s' % (expected_status.value, expected_status.name)
         assert response.requestLine == header_from_status

@@ -180,7 +180,7 @@ class IntentParser(object):
 
         # Search SBH to get data
         target_collection = '%s/user/%s/experiment_test/experiment_test_collection/1' % (self.sbh.get_sbh_url(), self.sbh.get_sbh_collection_user())
-        exp_collection = self.sbh.query_experiments(self.sbh, target_collection)
+        exp_collection = self.sbh.query_experiments(target_collection)
         data = {}
         for exp in exp_collection:
             exp_uri = exp['uri']
