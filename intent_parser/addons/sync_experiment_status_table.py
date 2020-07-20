@@ -14,34 +14,48 @@ logger = logging.getLogger('experiment_status_script')
 SYNC_PERIOD = timedelta(minutes=10)
 
 def perform_automatic_run(documents):
+    try:
+        documents = _get_documents_from_ip()
+        while len(documents) > 0:
+            document_id = documents.pop(0)
+            _process_document(document_id)
+
+    except HTTPError as http_err:
+        logger.warning(f'HTTP error occurred: {http_err}')
+
+def _process_document(document_id):
+
     mongodb_accessor = TA4DBAccessor()
-    documents = execute_request('experiment_request_documents')['docId']
-    while len(documents) > 0:
-        doc = documents.pop(0)
-        document_id = doc
-        experiment_statuses = execute_request('experiment_status?%s' % document_id)
+    try:
+        experiment_statuses = _get_experiment_status_tables(document_id)
         lab_name = experiment_statuses[dc_constants.LAB]
-        exp_id_to_statuses = experiment_statuses[dc_constants.STATUS_ELEMENT]
+        exp_id_to_table_id = experiment_statuses[dc_constants.EXPERIMENT_ID]
+        table_id_to_statuses = experiment_statuses[dc_constants.STATUS_ELEMENT]
         db_exp_id_to_statuses = mongodb_accessor.get_experiment_status(document_id, lab_name)
         for db_exp_id, db_status_table in db_exp_id_to_statuses:
-            if db_exp_id in exp_id_to_statuses:
-                set_statuses = set(exp_id_to_statuses[db_exp_id])
-                if not db_status_table.compare_statuses(set_statuses):
+            if db_exp_id in exp_id_to_table_id:
+                table_id = set(exp_id_to_table_id[db_exp_id])
+                if db_status_table != table_id_to_statuses(table_id):
                     logger.warning('Updating experiment status for document id: %s' % document_id)
                     execute_request('update_experiment_status?%s' % document_id)
                 else:
                     logger.warning('Experiment Status are up to date for document ID: %s' % document_id)
 
+    except HTTPError as http_err:
+        logger.warning(f'HTTP error occurred: {http_err}')
+
+def _get_documents_from_ip():
+    response = execute_request('experiment_request_documents')
+    return response['docId']
+
+def _get_experiment_status_tables(document_id):
+    experiment_statuses = execute_request('experiment_status?%s' % document_id)
+
 def execute_request(request_type):
     request_url = 'http://intentparser.sd2e.org/%s' % (request_type)
-    try:
-        response = requests.get(request_url)
-        response.raise_for_status()
-    except HTTPError as http_err:
-        print(f'HTTP error occurred: {http_err}')
-    except Exception as err:
-        print(f'Other error occurred: {err}')
-    return response.json()
+    response = requests.get(request_url)
+    response.raise_for_status()
+    return response
 
 def setup_logging(
         default_path='logging.json',

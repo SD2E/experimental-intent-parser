@@ -25,7 +25,7 @@ class MeasurementTable(object):
         measurements = []
         self._table_caption = self._intent_parser_table.caption()
         control_mappings = self._process_control_mapping(control_tables, bookmarks) 
-        for row_index in range(self._intent_parser_table.data_row_index(), self._intent_parser_table.number_of_rows()):
+        for row_index in range(self._intent_parser_table.data_row_start_index(), self._intent_parser_table.number_of_rows()):
             measurement_data = self._process_row(row_index, control_mappings)
             if measurement_data:
                 measurements.append(measurement_data)

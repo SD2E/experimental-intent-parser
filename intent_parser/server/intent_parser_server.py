@@ -7,6 +7,7 @@ from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
 from intent_parser.intent_parser_exceptions import ConnectionException, DictionaryMaintainerException, IntentParserException
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.intent_parser_sbh import IntentParserSBH
+from intent_parser.table.table_creator import TableCreator
 from intent_parser.server.socket_manager import SocketManager
 from multiprocessing import Pool
 from operator import itemgetter
@@ -18,7 +19,6 @@ import intent_parser.constants.intent_parser_constants as intent_parser_constant
 import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
-import intent_parser.utils.map_spreadsheet_data as spreadsheet_data_util
 import argparse
 import inspect
 import json
@@ -386,9 +386,7 @@ class IntentParserServer(object):
     
     def report_search_results(self, client_state):
         search_results = client_state['search_results']
-
-        spreadsheet_data = self.sbol_dictionary.get_spreadsheet_data()
-        item_map = spreadsheet_data_util.get_common_names_to_uri(spreadsheet_data)
+        item_map = self.sbol_dictionary.get_common_names_to_uri()
 
         for search_result in search_results:
             term = search_result['term']
@@ -1155,40 +1153,75 @@ class IntentParserServer(object):
             intent_parser.process_experiment_status_request()
             experiment_status = intent_parser.get_experiment_status_request()
             lab_name = experiment_status[dc_constants.LAB]
-            list_of_exp_id_to_statuses = experiment_status[dc_constants.STATUS_ELEMENT]
+            exp_id_to_ref_table = experiment_status[dc_constants.EXPERIMENT_ID]
+            ref_table_to_statuses = experiment_status[dc_constants.STATUS_ELEMENT]
 
             db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(document_id, lab_name)
             for db_experiment_id, db_statuses_table in db_exp_id_to_statuses.items():
-                set_of_statuses = None
-                for id_to_status_dict in list_of_exp_id_to_statuses:
-                    if db_experiment_id in id_to_status_dict:
-                        set_of_statuses = id_to_status_dict[db_experiment_id]
-                        break
-                if set_of_statuses:
-                    # Locate which status to update
-                    diff_statuses = db_statuses_table.diff_status(set_of_statuses)
-                    # Update Status table
+                intent_parser.process_table_indices()
+
+                if db_experiment_id in exp_id_to_ref_table:
+                    table_caption_index = exp_id_to_ref_table[db_experiment_id]
+                    doc_status_table = ref_table_to_statuses[table_caption_index]
+                    if db_statuses_table != doc_status_table:
+                        # Update Status table
+                        self._update_experiment_status_table(document_id, doc_status_table, db_statuses_table)
                 else:
                     # Create new Status Table and link to Specification table
-                    pass
+                    new_table = intent_parser.create_experiment_status_table(db_statuses_table.get_statuses())
+                    self._add_experiment_status_table(document_id, new_table)
+
+                    spec_table = intent_parser.get_experiment_specification_table()
+                    if spec_table is None:
+                        new_spec_table = intent_parser.create_experiment_specification_table({db_experiment_id: new_table.get_table_caption()})
+                        self._create_experiment_specification_table(document_id, new_spec_table)
+                    else:
+                        new_exp_id_with_indices = spec_table.experiment_id_to_status_table()
+                        new_exp_id_with_indices[db_experiment_id] = new_table.get_table_caption()
+                        new_spec_table = intent_parser.create_experiment_specification_table(experiment_id_with_indices=new_exp_id_with_indices,
+                                                                                             table_index=spec_table.get_table_caption())
+                        self._update_experiment_specification_table(document_id,
+                                                                    spec_table,
+                                                                    new_spec_table)
+
         except IntentParserException as err:
             all_errors = [err.get_message()]
+            return self._create_http_response(HTTPStatus.BAD_REQUEST,
+                                              json.dumps({'errors': all_errors}),
+                                              'application/json')
+
+        return self._create_http_response(HTTPStatus.OK, json.dumps({'status': 'updated'}),
+                                              'application/json')
+
+    def _create_experiment_specification_table(self, document_id, experiment_specification_table):
+        table_creator = TableCreator()
+        table_creator.create_experiment_specification_table(document_id, experiment_specification_table)
+
+    def _update_experiment_specification_table(self, document_id, experiment_specification_table, new_spec_table):
+        table_creator = TableCreator()
+        table_creator.update_experiment_specification_table(document_id, experiment_specification_table, new_spec_table)
+
+    def _update_experiment_status_table(self, document_id, experiment_status_table, db_statuses_table):
+        table_creator = TableCreator()
+        table_creator.update_experiment_status_table(document_id, experiment_status_table, db_statuses_table)
+
+    def _add_experiment_status_table(self, document_id, new_table):
+        table_creator = TableCreator()
+        table_creator.create_experiment_status_table(document_id, new_table)
 
     def process_report_experiment_status(self, http_message):
         """Report the status of an experiment by inserting experiment specification and status tables."""
         json_body = intent_parser_utils.get_json_body(http_message)
         data = json_body['data']
-        # document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-        document_id = '1fFcxyJyheMrzSsVoSsO6v7qHJKFf_0heIFtqEur02cg'
-        # logger.warning('Processing document id: %s' % document_id)
-        #
+        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+        logger.warning('Processing document id: %s' % document_id)
+
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         action_list = []
         try:
-            # intent_parser.process_structure_request()
-            # sr = intent_parser.get_structured_request()
-            # lab_name = sr[dc_constants.LAB]
-            lab_name = 'Transcriptic'
+            intent_parser.process_structure_request()
+            sr = intent_parser.get_structured_request()
+            lab_name = sr[dc_constants.LAB]
             db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(document_id, lab_name)
             status_tables = {}
             new_table_index = intent_parser.get_largest_table_index() + 1
@@ -1277,9 +1310,8 @@ class IntentParserServer(object):
 
         table_template.append([intent_parser_constants.PARAMETER_PROTOCOL, strateos_protocol])
         protocol_default_value = self.strateos_accessor.get_protocol(strateos_protocol)
-        attribute_tab = self.sbol_dictionary.get_tab_sheet(dictionary_constants.ATTRIBUTE_TAB)
         for protocol_key, protocol_value in protocol_default_value.items():
-            common_name = spreadsheet_data_util.get_common_name_from_trascriptic_id(protocol_key, attribute_tab)
+            common_name = self.sbol_dictionary.get_common_name_from_trascriptic_id(protocol_key)
             if common_name:
                 table_template.append([common_name, protocol_value])
             else:
@@ -1388,8 +1420,7 @@ class IntentParserServer(object):
         lab_experiment.load_from_google_doc(doc_id)
         paragraphs = lab_experiment.paragraphs()
 
-        spreadsheet_data = self.sbol_dictionary.get_spreadsheet_data()
-        item_map = spreadsheet_data_util.get_common_names_to_uri(spreadsheet_data)
+        item_map = self.sbol_dictionary.get_common_names_to_uri()
 
         analyze_inputs = []
         progress_per_term = 1.0 / len(item_map)

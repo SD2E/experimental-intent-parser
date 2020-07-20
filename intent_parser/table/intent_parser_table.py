@@ -29,9 +29,14 @@ class IntentParserTable(object):
         return None
     
     def caption_row_index(self):
+        """
+        Retrieves the row index where the caption appears in this table.
+        Returns:
+            An integer.
+        """
         return self._caption_index
     
-    def data_row_index(self):
+    def data_row_start_index(self):
         header_index = self.header_row_index()
         if header_index is None:
             return None

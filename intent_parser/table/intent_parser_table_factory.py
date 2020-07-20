@@ -1,4 +1,4 @@
-from enum import Enum 
+from enum import Enum
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.constants.google_doc_api_constants as doc_constants
 from intent_parser.table.intent_parser_cell import IntentParserCell
@@ -24,8 +24,8 @@ _EXPERIMENT_STATUS_TABLE = {intent_parser_constants.HEADER_LAST_UPDATED_TYPE,
                             intent_parser_constants.HEADER_PIPELINE_STATUS_TYPE,
                             intent_parser_constants.HEADER_STATE_TYPE}
 
-_EXPERIMENT_SPECIFICATION_TABLE = {intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE,
-                                   intent_parser_constants.HEADER_EXPERIMENT_STATUS_VALUE}
+_EXPERIMENT_SPECIFICATION_TABLE = {intent_parser_constants.HEADER_EXPERIMENT_ID_TYPE,
+                                   intent_parser_constants.HEADER_EXPERIMENT_STATUS_TYPE}
 
 class TableType(Enum):
     UNKNOWN = 1
@@ -42,23 +42,38 @@ class IntentParserTableFactory(object):
         self._google_table_parser = GoogleTableParser()
         
     def from_google_doc(self, table):
-        return self._google_table_parser.parse_table(table)
+        ip_table = self._google_table_parser.parse_table(table)
+        caption_index = self.get_caption_row_index(ip_table)
+        header_index = self.get_header_row_index(ip_table)
+        if caption_index is not None:
+            ip_table.set_caption_row_index(caption_index)
+        if header_index is not None:
+            ip_table.set_header_row_index(header_index)
+        return ip_table
     
     def get_caption_row_index(self, intent_parser_table):
         for row_index in range(intent_parser_table.number_of_rows()):
-            cell = intent_parser_table.get_cell(row_index, 0)
-            if cell_parser.PARSER.is_table_caption(cell.get_text()):
-                return row_index
+            for cell_index in range(len(intent_parser_table.get_row(row_index))):
+                cell = intent_parser_table.get_cell(row_index, cell_index)
+                if cell_parser.PARSER.is_table_caption(cell.get_text()):
+                    return row_index
         return None 
         
     def get_header_row_index(self, intent_parser_table):
         for row_index in range(intent_parser_table.number_of_rows()):
             row = intent_parser_table.get_row(row_index)
-            header_values = {cell_parser.PARSER.get_header_type(column) for column in row}
+            header_values = []
+            for col_index in range(len(row)):
+                cell = intent_parser_table.get_cell(row_index, col_index)
+                header = cell_parser.PARSER.get_header_type(cell.get_text())
+                header_values.append(header)
+            # header_values = {cell_parser.PARSER.get_header_type(column) for column in row}
             
-            if _CONTROLS_TABLE_HEADER.issubset(header_values) \
-                or _MEASUREMENT_TABLE_HEADER.issubset(header_values) \
-                or _PARAMETER_TABLE_HEADER.issubset(header_values):
+            if _CONTROLS_TABLE_HEADER.issubset(set(header_values)) \
+                or _MEASUREMENT_TABLE_HEADER.issubset(set(header_values)) \
+                or _PARAMETER_TABLE_HEADER.issubset(set(header_values)) \
+                or _EXPERIMENT_STATUS_TABLE.issubset(set(header_values))\
+                or _EXPERIMENT_SPECIFICATION_TABLE.issubset(set(header_values)):
                 return row_index
         return None  
     
@@ -66,17 +81,21 @@ class IntentParserTableFactory(object):
         header_row_index = self.get_header_row_index(intent_parser_table)
         if header_row_index is not None:
             row = intent_parser_table.get_row(header_row_index)
-            header_values = {cell_parser.PARSER.get_header_type(column) for column in row}
-            
+            header_values = set()
+            for cell_index in range(len(intent_parser_table.get_row(header_row_index))):
+                cell = intent_parser_table.get_cell(header_row_index, cell_index)
+                header = cell_parser.PARSER.get_header_type(cell.get_text())
+                header_values.add(header)
+
             if _CONTROLS_TABLE_HEADER.issubset(header_values):
                 return TableType.CONTROL
             elif _MEASUREMENT_TABLE_HEADER.issubset(header_values):
                 return TableType.MEASUREMENT 
-            elif _PARAMETER_TABLE_HEADER == header_values:
+            elif _PARAMETER_TABLE_HEADER.issubset(header_values):
                 return TableType.PARAMETER
-            elif _EXPERIMENT_STATUS_TABLE == header_values:
+            elif _EXPERIMENT_STATUS_TABLE.issubset(header_values):
                 return TableType.EXPERIMENT_STATUS
-            elif _EXPERIMENT_SPECIFICATION_TABLE== header_values:
+            elif _EXPERIMENT_SPECIFICATION_TABLE.issubset(header_values):
                 return TableType.EXPERIMENT_SPECIFICATION
 
         if self._lab_table(intent_parser_table):
@@ -109,7 +128,10 @@ class GoogleTableParser(TableParser):
     
     def parse_table(self, table):
         intent_parser_table = IntentParserTable()
-        rows = table[doc_constants.TABLE_ROWS]
+        table_properties = table[doc_constants.TABLE]
+        intent_parser_table.set_table_start_index(table[doc_constants.START_INDEX])
+        intent_parser_table.set_table_end_index(table[doc_constants.END_INDEX])
+        rows = table_properties[doc_constants.TABLE_ROWS]
         for row in rows:
             ip_row = [cell for cell in self._parse_row(row)]
             intent_parser_table.add_row(ip_row)
@@ -119,10 +141,14 @@ class GoogleTableParser(TableParser):
         columns = row[doc_constants.TABLE_CELLS]
         for cell in columns:
             ip_cell = IntentParserCell()
-            start_index = cell[doc_constants.START_INDEX]
-            end_index = cell[doc_constants.END_INDEX]
-            ip_cell.set_start_index(start_index)
-            ip_cell.set_end_index(end_index)
+            if doc_constants.START_INDEX in cell:
+                start_index = cell[doc_constants.START_INDEX]
+                ip_cell.set_start_index(start_index)
+
+            if doc_constants.END_INDEX in cell:
+                end_index = cell[doc_constants.END_INDEX]
+                ip_cell.set_end_index(end_index)
+
             for content, link, bookmark_id in self._parse_cell(cell):
                 ip_cell.add_paragraph(content, link, bookmark_id)
             yield ip_cell

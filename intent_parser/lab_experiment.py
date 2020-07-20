@@ -25,7 +25,7 @@ class LabExperiment(object):
             self._links_info = self._get_links_from_doc(document)
             self._paragraphs = self._get_paragraph_from_doc(document)
             self._parents = drive_accessor.get_document_parents(document_id=self._document_id)
-            self._tables = self._get_tables_from_doc(document, 'table')
+            self._tables = self._get_tables_from_doc(document)
             self._title = intent_parser_utils.get_element_type(document, 'title')
             return document
         except Exception:
@@ -87,3 +87,4 @@ class LabExperiment(object):
         for content in list_of_contents:
             if doc_constants.TABLE in content:
                 processed_tables.append(content)
+        return processed_tables

@@ -57,7 +57,7 @@ class ParameterTable(object):
 
     def process_table(self):
         self._table_caption = self._intent_parser_table.caption()
-        for row_index in range(self._intent_parser_table.data_row_index(), self._intent_parser_table.number_of_rows()):
+        for row_index in range(self._intent_parser_table.data_row_start_index(), self._intent_parser_table.number_of_rows()):
             self._process_row(row_index)
 
     def get_experiment(self):

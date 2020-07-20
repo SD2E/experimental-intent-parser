@@ -1,8 +1,9 @@
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
-from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, TableException
+from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, IntentParserException, TableException
 from intent_parser.lab_experiment import LabExperiment
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory, TableType
 from intent_parser.table.controls_table import ControlsTable
+from intent_parser.table.intent_parser_table import IntentParserTable
 from intent_parser.table.lab_table import LabTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.parameter_table import ParameterTable
@@ -13,10 +14,8 @@ from jsonschema import validate
 from jsonschema import ValidationError
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
 import intent_parser.table.table_utils as table_utils
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
-import intent_parser.utils.map_spreadsheet_data as spreadsheet_data_util
 import logging
 import numpy as np
 
@@ -51,34 +50,65 @@ class IntentParser(object):
         self.validation_warnings = []
         self.ip_table_factory = IntentParserTableFactory()
 
-        self.lab_tables = []
-        self.parameter_tables = []
-        self.measurement_tables = []
-        self.control_tables = []
-        self.experiment_status_tables = []
-        self.experiment_specification_tables = []
+        self.tables_with_captions = {}
+        self.experiment_status_tables = {}
+        self.experiment_specification_tables = None
 
-    def load_from_lab_experiment(self, lab_experiment):
-        pass
+    def create_experiment_status_table(self, list_of_status):
+        status_table = ExperimentStatusTableParser(status_mappings=self.sbol_dictionary.map_common_names_and_tacc_id())
+        for status in list_of_status:
+            status_table.add_status(status.status_type,
+                                    status.last_updated,
+                                    status.state,
+                                    status.path)
+        table_index = self.get_largest_table_index() + 1
+        status_table.set_table_caption(table_index)
+        self.tables_with_captions[table_index] = status_table.get_intent_parser_table()
+        self.experiment_status_tables[table_index] = status_table
+        return status_table
+
+    def create_experiment_specification_table(self, experiment_id_with_indices={}, table_index=None):
+        spec_table = ExperimentSpecificationTable()
+        for experiment_id, table_index in experiment_id_with_indices.items():
+            spec_table.add_experiment_status_table_ref(experiment_id, table_index)
+        table_index = self.get_largest_table_index() + 1
+        spec_table.set_table_caption(table_index)
+        return spec_table
+
+    def get_experiment_specification_table(self):
+        return self.experiment_specification_tables
+
+    def get_table_from_index(self, index):
+        """
+        Get a table from its table caption index. Example: To get Table 1 in the document, provide index as 1.
+        Args:
+            index: an integer value of the table caption.
+        Returns:
+            An instance of a table.
+        """
+        if index not in self.tables_with_captions:
+            raise IntentParserException('Table %d does not exist within this document.' % index)
+        return self.tables_with_captions[index]
 
     def get_largest_table_index(self):
-        table_indices = self.process_table_indices()
+        """
+        Retrieve the largest table index in the document.
+        """
+        table_indices = self.tables_with_captions.keys()
         if table_indices:
             return max(table_indices)
         return 0
 
     def process_table_indices(self):
-        table_indices = []
-        list_of_tables = self.lab_experiment.tables()
-        for table in list_of_tables:
+        for table in self.lab_experiment.tables():
             ip_table = self.ip_table_factory.from_google_doc(table)
-            caption_index = self.ip_table_factory.get_caption_row_index(ip_table)
-            if caption_index is not None:
-                ip_table.set_caption_row_index(caption_index)
-                if ip_table.caption() in table_indices:
-                    raise TableException('There are more than one table with %d as a table caption index' % ip_table.caption())
-                table_indices.append(ip_table.caption())
-        return table_indices
+            table_index = ip_table.caption()
+            if table_index is None:
+                continue
+            if table_index in self.tables_with_captions:
+                message = 'There are more than one table with %d as a table caption index' % table_index
+                self.validation_errors.append(message)
+            self.tables_with_captions[table_index] = ip_table
 
     def process_structure_request(self):
         filtered_tables = self._filter_tables_by_type()
@@ -104,13 +134,8 @@ class IntentParser(object):
         exp_id_to_status_table = self._process_experiment_specification_tables(experiment_specification_tables)
         table_id_to_statuses = self._process_experiment_status_tables(experiment_status_tables)
         self.experiment_status[dc_constants.LAB] = lab_content[dc_constants.LAB]
-        statuses = []
-        for experiment_id, ref_status_table in exp_id_to_status_table.items():
-            if ref_status_table in table_id_to_statuses:
-                set_of_status = table_id_to_statuses[ref_status_table]
-                statuses.append({experiment_id: set_of_status})
-        self.experiment_status[dc_constants.STATUS_ELEMENT] = statuses
-
+        self.experiment_status[dc_constants.EXPERIMENT_ID] = exp_id_to_status_table
+        self.experiment_status[dc_constants.STATUS_ELEMENT] = table_id_to_statuses
 
     def calculate_samples(self):
         doc_tables = self.lab_experiment.tables()
@@ -230,6 +255,11 @@ class IntentParser(object):
         return self.experiment_request
 
     def get_experiment_status_request(self):
+        """
+        Retrieve experiment status from an experiment document.
+        Returns:
+            A dictionary containing a lab name and a list of status elements.
+        """
         return self.experiment_status
 
     def get_structured_request(self):
@@ -410,26 +440,29 @@ class IntentParser(object):
         result = {}
         if not exp_specification_tables:
             message = 'No experiment specification table to parse from document.'
-            self.get_validation_errors(message)
+            self.validation_errors.append(message)
             return result
+
         if len(exp_specification_tables) > 1:
             message = 'More than one experiment specification table found. Only the last table is used.'
             self.validation_warnings.append(message)
-            return result
+
         table = exp_specification_tables[-1]
-        spec_table_parser = ExperimentSpecificationTable(table)
+        spec_table_parser = ExperimentSpecificationTable(table, self.catalog_accessor.get_lab_ids())
         spec_table_parser.process_table()
-        return spec_table_parser.get_mappings_for_experiment_id_and_status_table()
+        self.experiment_specification_tables = spec_table_parser
+        return spec_table_parser.experiment_id_to_status_table()
 
     def _process_experiment_status_tables(self, status_tables):
         table_id_to_statuses = {}
         if not status_tables:
             message = 'No experiment status table to parse from document.'
-            self.get_validation_errors(message)
+            self.validation_errors.append(message)
         for table in status_tables:
-            status_table_parser = ExperimentStatusTableParser(table)
+            status_table_parser = ExperimentStatusTableParser(table, self.sbol_dictionary.map_common_names_and_tacc_id())
             status_table_parser.process_table()
-            table_id_to_statuses[status_table_parser.get_table_caption()] = status_table_parser.get_statuses()
+            table_id_to_statuses[status_table_parser.get_table_caption()] = status_table_parser
+            self.experiment_status_tables[table.caption()] = table
         return table_id_to_statuses
     
     def _process_lab_table(self, lab_tables):
@@ -479,8 +512,7 @@ class IntentParser(object):
             self.logger.warning(message)
         try:
             table = parameter_tables[-1]
-            attribute_tab = self.sbol_dictionary.get_tab_sheet(dictionary_constants.ATTRIBUTE_TAB)
-            strateos_dictionary_mapping = spreadsheet_data_util.map_common_names_and_transcriptic_id(attribute_tab)
+            strateos_dictionary_mapping = self.sbol_dictionary.map_common_names_and_transcriptic_id()
             parameter_table = ParameterTable(table, strateos_dictionary_mapping)
             parameter_table.process_table()
             self.validation_errors.extend(parameter_table.get_validation_errors())
@@ -500,14 +532,7 @@ class IntentParser(object):
         experiment_status_tables = []
         experiment_spec_tables = []
         for table in list_of_tables:
-            ip_table = self.ip_table_factory.from_google_doc(table) 
-            caption_index = self.ip_table_factory.get_caption_row_index(ip_table)
-            header_index = self.ip_table_factory.get_header_row_index(ip_table)
-            if caption_index is not None:
-                ip_table.set_caption_row_index(caption_index)
-            if header_index is not None:
-                ip_table.set_header_row_index(header_index)
-                    
+            ip_table = self.ip_table_factory.from_google_doc(table)
             table_type = self.ip_table_factory.get_table_type(ip_table)
             if table_type == TableType.CONTROL:
                 control_tables.append(ip_table)

@@ -22,4 +22,4 @@ class IntentParserFactory(object):
     def create_intent_parser(self, document_id, bookmarks={}, local_file_path=None):
         lab_experiment = self.create_lab_experiment(document_id, bookmarks, local_file_path)
         return IntentParser(lab_experiment, self.datacatalog_config, self.sbh, self.sbol_dictionary)
-        
+
