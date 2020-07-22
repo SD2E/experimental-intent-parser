@@ -10,6 +10,13 @@ class IntentParserCell(object):
         self.end_index = None
     
     def add_paragraph(self, content, link=None, bookmark_id=None):
+        """
+        Insert a paragraph to this cell.
+        Args:
+            content: A string
+            link: A string reprsenting a url. Default value set to None is no value is provided.
+            bookmark_id: A String representing a bookmark id.
+        """
         self.paragraphs.append(self.Paragraph(content, link, bookmark_id))
     
     def get_bookmark_ids(self):
