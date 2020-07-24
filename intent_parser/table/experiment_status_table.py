@@ -275,7 +275,7 @@ class ExperimentStatusTableParser(object):
 
         def to_dict(self):
             return {
-                    'last_updated': self.last_updated,
+                    'last_updated': self.get_last_updated(),
                     'state': self.state,
                     'path': self.path
             }

@@ -1,3 +1,4 @@
+from datetime import datetime
 from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
 from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
 from datetime import timedelta
@@ -50,7 +51,7 @@ def _create_status_tables(table_id_to_statuses):
     for table_id, status_dict in table_id_to_statuses.items():
         for status_type, status_prop in status_dict.items():
             status_table = ExperimentStatusTableParser()
-            last_updated = status_prop['last_updated']
+            last_updated = datetime.strptime(status_prop['last_updated'], '%Y/%m/%d %H:%M:%S')
             state = status_prop['state']
             path = status_prop['path']
             status_table.add_status(status_type, last_updated, state, path)
