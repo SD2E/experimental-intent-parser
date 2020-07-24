@@ -1149,49 +1149,16 @@ class IntentParserServer(object):
         resource = http_message.get_resource()
         document_id = resource.split('?')[1]
         try:
-            intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-            intent_parser.process_experiment_status_request()
-            experiment_status = intent_parser.get_experiment_status_request()
-            lab_name = experiment_status[dc_constants.LAB]
-            exp_id_to_ref_table = experiment_status[dc_constants.EXPERIMENT_ID]
-            ref_table_to_statuses = experiment_status[dc_constants.STATUS_ELEMENT]
-
-            db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(document_id, lab_name)
-            for db_experiment_id, db_statuses_table in db_exp_id_to_statuses.items():
-                intent_parser.process_table_indices()
-
-                if db_experiment_id in exp_id_to_ref_table:
-                    table_caption_index = exp_id_to_ref_table[db_experiment_id]
-                    doc_status_table = ref_table_to_statuses[table_caption_index]
-                    if db_statuses_table != doc_status_table:
-                        # Update Status table
-                        self._update_experiment_status_table(document_id, doc_status_table, db_statuses_table)
-                else:
-                    # Create new Status Table and link to Specification table
-                    new_table = intent_parser.create_experiment_status_table(db_statuses_table.get_statuses())
-                    self._add_experiment_status_table(document_id, new_table)
-
-                    spec_table = intent_parser.get_experiment_specification_table()
-                    if spec_table is None:
-                        new_spec_table = intent_parser.create_experiment_specification_table({db_experiment_id: new_table.get_table_caption()})
-                        self._create_experiment_specification_table(document_id, new_spec_table)
-                    else:
-                        new_exp_id_with_indices = spec_table.experiment_id_to_status_table()
-                        new_exp_id_with_indices[db_experiment_id] = new_table.get_table_caption()
-                        new_spec_table = intent_parser.create_experiment_specification_table(experiment_id_with_indices=new_exp_id_with_indices,
-                                                                                             table_index=spec_table.get_table_caption())
-                        self._update_experiment_specification_table(document_id,
-                                                                    spec_table,
-                                                                    new_spec_table)
-
+            self._report_experiment_status(document_id)
         except IntentParserException as err:
             all_errors = [err.get_message()]
             return self._create_http_response(HTTPStatus.BAD_REQUEST,
                                               json.dumps({'errors': all_errors}),
                                               'application/json')
 
-        return self._create_http_response(HTTPStatus.OK, json.dumps({'status': 'updated'}),
-                                              'application/json')
+        return self._create_http_response(HTTPStatus.OK,
+                                          json.dumps({'status': 'updated'}),
+                                          'application/json')
 
     def _create_experiment_specification_table(self, document_id, experiment_specification_table):
         table_creator = TableCreator()
@@ -1209,7 +1176,61 @@ class IntentParserServer(object):
         table_creator = TableCreator()
         table_creator.create_experiment_status_table(document_id, new_table)
 
+    def _report_experiment_status(self, document_id):
+        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+        intent_parser.process_experiment_status_request()
+        experiment_status = intent_parser.get_experiment_status_request()
+        lab_name = experiment_status[dc_constants.LAB]
+        exp_id_to_ref_table = experiment_status[dc_constants.EXPERIMENT_ID]
+        ref_table_to_statuses = experiment_status[dc_constants.STATUS_ELEMENT]
+        db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(db_id, lab_name)
+        for db_experiment_id, db_statuses_table in db_exp_id_to_statuses.items():
+            intent_parser.process_table_indices()
+
+            if db_experiment_id in exp_id_to_ref_table:
+                table_caption_index = exp_id_to_ref_table[db_experiment_id]
+                doc_status_table = ref_table_to_statuses[table_caption_index]
+                if db_statuses_table != doc_status_table:
+                    # Update Status table
+                    self._update_experiment_status_table(document_id, doc_status_table, db_statuses_table)
+            else:
+                # Create new Status Table and link to Specification table
+                new_table = intent_parser.create_experiment_status_table(db_statuses_table.get_statuses())
+                self._add_experiment_status_table(document_id, new_table)
+
+                spec_table = intent_parser.get_experiment_specification_table()
+                if spec_table is None:
+                    new_spec_table = intent_parser.create_experiment_specification_table({db_experiment_id: new_table.get_table_caption()})
+                    self._create_experiment_specification_table(document_id, new_spec_table)
+                else:
+                    new_exp_id_with_indices = spec_table.experiment_id_to_status_table()
+                    new_exp_id_with_indices[db_experiment_id] = new_table.get_table_caption()
+                    new_spec_table = intent_parser.create_experiment_specification_table(experiment_id_with_indices=new_exp_id_with_indices,
+                                                                                         table_index=spec_table.get_table_caption())
+                    self._update_experiment_specification_table(document_id,
+                                                                spec_table,
+                                                                new_spec_table)
+
     def process_report_experiment_status(self, http_message):
+        """Report the status of an experiment by inserting experiment specification and status tables."""
+        json_body = intent_parser_utils.get_json_body(http_message)
+        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+        logger.warning('Processing document id: %s' % document_id)
+
+        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+        action_list = []
+        try:
+            self._report_experiment_status(document_id)
+            action_list.append(intent_parser_view.message_dialog('Report Experiment Status', 'Complete'))
+        except IntentParserException as err:
+            all_errors = [err.get_message()]
+            dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to report experiment status',
+                                                                            all_errors)
+            action_list = [dialog_action]
+        actions = {'actions': action_list}
+        return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
+
+    def process_report_experiment_status_old(self, http_message):
         """Report the status of an experiment by inserting experiment specification and status tables."""
         json_body = intent_parser_utils.get_json_body(http_message)
         data = json_body['data']
