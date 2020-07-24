@@ -289,6 +289,7 @@ class SBOLDictionaryAccessor(object):
             value_range = tab + '!' + str(row) + ":" + str(row)
 
         tab_data = self.google_accessor.get_tab_data(value_range, self._spreadsheet_id)
+
         row_data = []
         if 'values' not in tab_data:
             return row_data

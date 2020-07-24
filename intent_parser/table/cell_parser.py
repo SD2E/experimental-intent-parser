@@ -9,10 +9,15 @@ class CellParser(object):
     Parses the contents of a cell
     """
     _Token = collections.namedtuple('Token', ['type', 'value'])
-    _fluid_units = {'fold': 'X',
+    _fluid_units = {'x': 'X',
+                    'fold': 'X',
                     'mmol': 'mM',
-                    'um': 'micromole'}
-    _temperature_units = {'c': 'celsius',
+                    'uM': 'micromole'}
+    _temperature_units = {'Celsius': 'celsius',
+                          'celsius': 'celsius',
+                          'c': 'celsius',
+                          'Fahrenheit': 'fahrenheit',
+                          'fahrenheit': 'fahrenheit',
                           'f': 'fahrenheit'}
     _timepoint_units = {'hours': 'hour',
                         'hr': 'hour',
@@ -223,10 +228,13 @@ class CellParser(object):
         return result
 
     def process_name_with_uri(self, label, uri_dictionary):
-        uri = 'NO PROGRAM DICTIONARY ENTRY'
         if label in uri_dictionary and uri_dictionary[label]:
-            uri = uri_dictionary[label]
-        return {'label': label, 'sbh_uri': uri}
+            return {'label': label, 'sbh_uri': uri_dictionary[label]}
+
+        if label.strip() in uri_dictionary and uri_dictionary[label.strip()]:
+            return {'label': label.strip(), 'sbh_uri': uri_dictionary[label.strip()]}
+
+        return {'label': label, 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}
 
     def process_numbers(self, text):
         """
@@ -257,7 +265,7 @@ class CellParser(object):
             timepoint['value'] = float(timepoint_value)
             timepoint['unit'] = unit
         elif cell_type == 'NAME':
-            name = self.process_name_with_uri(self._get_token_value(tokens[0]), text_with_uri)
+            name = self.process_name_with_uri(text.strip(), text_with_uri)
 
         return name, timepoint
 
@@ -296,15 +304,13 @@ class CellParser(object):
         abbrev_units = self._abbreviated_unit_dict[unit_type] if unit_type is not None else {}
         if cell_type == 'VALUES_UNIT':
             values, unit = self._get_values_unit(tokens)
-            validated_unit = self._determine_unit(unit, 
-                                        units, abbrev_units)
+            validated_unit = self._determine_unit(unit, units, abbrev_units)
             if units and validated_unit in units:
                 for value in values:
                     result.append({'value': value, 'unit': validated_unit})
         elif cell_type == 'VALUE_UNIT_PAIRS':
             for value, unit in self._get_values_unit_pairs(tokens, units, unit_type):
-                validated_unit = self._determine_unit(unit, 
-                                        units, abbrev_units)
+                validated_unit = self._determine_unit(unit, units, abbrev_units)
                 if units and validated_unit in units:
                     result.append({'value': value, 'unit': unit})
         return result
@@ -344,8 +350,8 @@ class CellParser(object):
             TableException for invalid units
         """
         determined_unit = unit 
-        if unit.lower() in abbrev_units:
-            determined_unit = abbrev_units[unit.lower()]
+        if unit in abbrev_units:
+            determined_unit = abbrev_units[unit]
         
         if determined_unit not in units:
             raise TableException('%s is an invalid unit' % unit)

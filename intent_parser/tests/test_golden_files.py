@@ -64,7 +64,7 @@ class GoldenFileTest(unittest.TestCase):
     def test_ER_NovelChassis_mCherryControlStrains_GBW_Cycle0_24hour(self):  
         file = 'ER-NovelChassis-mCherryControlStrains-GBW-Cycle0-24hour.json'
         file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path) 
+        self._compare_structured_requests(file_path) #TODO: 0.25 (on normalized at Strateos) is not a number
          
     def test_ER_NovelChassis_mCherryControlStrains_GBW_Cycle0_8hour(self):  
         file = 'ER-NovelChassis-mCherryControlStrains-GBW-Cycle0-8hour.json'
@@ -94,7 +94,7 @@ class GoldenFileTest(unittest.TestCase):
     def test_YeastSTATES_CRISPR_Growth_Curves_with_Plate_Reader_Optimization_Request(self):  
         file = 'YeastSTATES CRISPR Growth Curves with Plate Reader Optimization Request.json'
         file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path)
+        self._compare_structured_requests(file_path) #TODO: remove [] to specify list of gains
          
     def test_YeastSTATES_Beta_Estradiol_OR_Gate_Plant_TF_Growth_Curves_Request_30C(self):  
         file = 'YeastSTATES-Beta-Estradiol-OR-Gate-Plant-TF-Growth-Curves-30C.json'
