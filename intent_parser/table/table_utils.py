@@ -27,7 +27,7 @@ def detect_new_measurement_table(table):
     found_measurement_type = False
     found_file_type = False
 
-    rows = table['tableRows']
+    rows = table['table']['tableRows']
     headerRow = rows[1]
     for cell in headerRow['tableCells']:
         cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()

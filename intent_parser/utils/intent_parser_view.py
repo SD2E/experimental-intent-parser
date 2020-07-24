@@ -118,9 +118,9 @@ def create_add_to_synbiohub_dialog(selection,
                                    .end_offset(str(end_offset)) \
                                    .item_types_html(item_types_html) \
                                    .lab_ids_html(lab_ids_html) \
-                                   .selection(selection) \
+                                   .selected_term(selection) \
                                    .document_id(document_id) \
-                                   .isSpellcheck(str(is_spellcheck))
+                                   .is_spell_check(str(is_spellcheck))
     submit_button_html = '        <input type="button" value="Submit" id="submitButton" onclick="submitToSynBioHub()">'
     if is_spellcheck:
         submit_button_html = """
@@ -231,15 +231,22 @@ def create_search_result_dialog(term, uri, content_term, document_id, paragraph_
     button_HTML += '<input id=EnterLinkButton value="Manually Enter Link" type="button" title="Enter a link for this term manually." onclick="EnterLinkClick()" />'
     # Script for the EnterLinkButton is already in the HTML
 
-    html = AnalyzeHtmlBuilder().selected_term(term) \
-                               .selected_uri(uri) \
-                               .content_term(content_term) \
-                               .term_uri(uri) \
-                               .document_id(document_id) \
-                               .button(button_HTML) \
-                               .buttonScript(button_script).build()
+    html_builder = AnalyzeHtmlBuilder()
+    if term:
+        html_builder.selected_term(term)
+    if uri:
+        html_builder.selected_uri(uri)
+        html_builder.term_uri(uri)
+    if content_term:
+        html_builder.content_term(content_term)
+    if document_id:
+        html_builder.document_id(document_id)
+    if button_HTML:
+        html_builder.button_html(button_HTML)
+    if button_script:
+        html_builder.button_script(button_script)
 
-    dialog_action = sidebar_dialog(html)
+    dialog_action = sidebar_dialog(html_builder.build())
     actions.append(dialog_action)
     return actions
 
