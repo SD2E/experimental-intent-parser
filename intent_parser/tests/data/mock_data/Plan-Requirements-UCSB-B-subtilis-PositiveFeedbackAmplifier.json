@@ -1,0 +1,3705 @@
+{
+    "name": "CP_Plan_Requirements_UCSB_B_subtilis_PositiveFeedbackAmplifier",
+    "experiment_id": "experiment.ginkgo.2020-01-22-Plan-Requirements-UCSB-B-subtilis-PositiveFeedbackAmplifier",
+    "challenge_problem": "NOVEL_CHASSIS",
+    "experiment_reference": "Plan-Requirements-UCSB-B-subtilis-PositiveFeedbackAmplifier",
+    "experiment_reference_url": "https://docs.google.com/document/d/1eMxFcAWA24fXrRAeKp9WeOvy8Woil7FriO3xf3p7mac",
+    "experiment_version": 1,
+    "lab": "Ginkgo",
+    "runs": [
+        {
+            "measurements": [
+                {
+                    "measurement_type": "PLATE_READER",
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "replicates": 1,
+                    "strains": [
+                        "B. subtilis Marburg 168"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 0.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 0.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 13.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 13.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 13.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 13.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 14.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 14.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 14.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 14.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 15.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 15.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 15.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 15.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 16.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 16.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 16.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 16.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 17.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 17.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 17.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 17.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 18.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 18.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 18.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 18.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 19.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 19.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 19.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 19.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 20.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 20.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 20.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 20.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 21.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 21.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 21.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 21.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 22.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 22.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 22.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 22.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 23.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 23.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 23.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 23.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 25.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 25.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 25.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 25.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 26.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 26.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 26.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 26.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 27.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 27.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 27.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 27.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 28.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 28.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 28.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 28.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 29.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 29.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 29.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 29.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 30.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 30.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 30.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 30.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 31.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 31.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 31.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 31.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 32.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 32.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 32.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 32.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 33.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 33.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 33.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 33.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 34.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 34.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 34.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 34.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 35.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 35.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 35.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 36.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 36.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 36.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 36.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 37.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 37.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 37.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 37.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 38.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 38.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 38.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 38.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 39.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 39.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 39.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 39.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 40.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 40.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 40.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 40.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 41.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 41.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 41.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 41.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 42.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 42.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 42.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 42.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 43.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 43.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 43.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 43.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 44.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 44.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 44.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 44.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 45.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 45.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 45.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 45.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 46.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 46.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 46.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 46.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 47.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 47.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 47.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 47.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 48.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 48.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 48.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 48.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 49.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 49.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 49.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 49.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 50.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 50.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 50.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 50.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 51.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 51.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 51.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 51.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 52.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 52.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 52.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 52.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 53.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 53.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 53.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 53.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 54.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 54.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 54.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 54.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 55.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 55.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 55.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 55.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 56.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 56.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 56.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 56.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 57.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 57.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 57.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 57.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 58.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 58.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 58.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 58.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 59.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 59.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 59.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 59.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 60.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 60.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 60.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 60.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 61.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 61.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 61.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 61.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 62.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 62.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 62.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 62.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 63.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 63.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 63.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 63.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 64.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 64.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 64.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 64.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 65.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 65.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 65.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 65.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 66.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 66.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 66.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 66.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 67.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 67.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 67.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 67.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 68.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 68.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 68.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 68.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 69.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 69.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 69.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 69.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 70.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 70.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 70.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 70.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 71.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 71.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 71.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 71.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 72.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 72.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 72.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 72.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 73.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 73.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 73.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 73.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 74.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 74.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 74.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 74.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 75.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 75.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 75.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 75.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 76.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 76.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 76.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 76.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 77.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 77.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 77.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 77.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 78.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 78.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 78.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 78.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 79.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 79.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 79.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 79.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 80.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 80.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 80.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 80.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 81.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 81.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 81.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 81.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 82.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 82.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 82.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 82.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 83.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 83.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 83.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 83.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 84.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 84.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 84.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 84.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 85.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 85.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 85.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 85.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 86.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 86.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 86.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 86.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 87.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 87.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 87.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 87.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 88.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 88.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 88.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 88.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 89.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 89.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 89.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 89.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 90.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 90.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 90.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 90.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 91.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 91.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 91.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 91.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 92.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 92.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 92.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 92.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 93.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 93.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 93.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 93.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 94.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 94.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 94.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 94.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 95.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 95.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 95.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 95.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 96.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 31.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 32.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 33.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 34.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.5",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.25",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.125",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.061",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.031",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.01",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.005",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.5",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.25",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.125",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.061",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.031",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.01",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.005",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "B. subtilis M9",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "1",
+                                "unit": "X"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "FLOW",
+                    "file_type": [
+                        "FCS"
+                    ],
+                    "replicates": 1,
+                    "strains": [
+                        "B. subtilis Marburg 168"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 0.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 0.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 0.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 1.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 2.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 3.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 4.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 5.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 6.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 7.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 8.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 9.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 10.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 11.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 12.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 13.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 13.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 13.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 13.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 14.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 14.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 14.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 14.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 15.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 15.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 15.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 15.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 16.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 16.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 16.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 16.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 17.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 17.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 17.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 17.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 18.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 18.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 18.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 18.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 19.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 19.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 19.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 19.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 20.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 20.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 20.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 20.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 21.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 21.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 21.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 21.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 22.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 22.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 22.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 22.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 23.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 23.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 23.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 23.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 25.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 25.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 25.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 25.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 26.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 26.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 26.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 26.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 27.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 27.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 27.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 27.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 28.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 28.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 28.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 28.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 29.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 29.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 29.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 29.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 30.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 30.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 30.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 30.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 31.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 31.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 31.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 31.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 32.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 32.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 32.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 32.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 33.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 33.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 33.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 33.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 34.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 34.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 34.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 34.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 35.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 35.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 35.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 36.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 36.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 36.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 36.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 37.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 37.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 37.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 37.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 38.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 38.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 38.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 38.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 39.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 39.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 39.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 39.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 40.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 40.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 40.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 40.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 41.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 41.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 41.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 41.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 42.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 42.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 42.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 42.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 43.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 43.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 43.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 43.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 44.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 44.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 44.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 44.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 45.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 45.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 45.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 45.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 46.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 46.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 46.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 46.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 47.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 47.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 47.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 47.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 48.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 48.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 48.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 48.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 49.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 49.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 49.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 49.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 50.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 50.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 50.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 50.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 51.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 51.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 51.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 51.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 52.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 52.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 52.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 52.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 53.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 53.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 53.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 53.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 54.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 54.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 54.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 54.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 55.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 55.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 55.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 55.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 56.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 56.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 56.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 56.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 57.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 57.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 57.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 57.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 58.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 58.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 58.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 58.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 59.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 59.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 59.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 59.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 60.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 60.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 60.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 60.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 61.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 61.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 61.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 61.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 62.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 62.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 62.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 62.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 63.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 63.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 63.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 63.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 64.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 64.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 64.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 64.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 65.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 65.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 65.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 65.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 66.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 66.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 66.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 66.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 67.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 67.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 67.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 67.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 68.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 68.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 68.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 68.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 69.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 69.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 69.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 69.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 70.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 70.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 70.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 70.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 71.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 71.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 71.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 71.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 72.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 72.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 72.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 72.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 73.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 73.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 73.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 73.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 74.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 74.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 74.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 74.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 75.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 75.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 75.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 75.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 76.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 76.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 76.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 76.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 77.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 77.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 77.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 77.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 78.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 78.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 78.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 78.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 79.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 79.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 79.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 79.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 80.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 80.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 80.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 80.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 81.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 81.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 81.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 81.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 82.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 82.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 82.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 82.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 83.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 83.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 83.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 83.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 84.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 84.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 84.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 84.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 85.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 85.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 85.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 85.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 86.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 86.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 86.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 86.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 87.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 87.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 87.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 87.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 88.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 88.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 88.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 88.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 89.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 89.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 89.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 89.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 90.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 90.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 90.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 90.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 91.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 91.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 91.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 91.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 92.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 92.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 92.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 92.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 93.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 93.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 93.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 93.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 94.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 94.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 94.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 94.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 95.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 95.25,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 95.5,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 95.75,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 96.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 31.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 32.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 33.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 34.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.5",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.25",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.125",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.061",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.031",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.01",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.005",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.5",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.25",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.125",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.061",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.031",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.01",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0.005",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "B. subtilis M9",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "1",
+                                "unit": "X"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "DNA_SEQ",
+                    "file_type": [
+                        "FASTQ"
+                    ],
+                    "replicates": 1,
+                    "strains": [
+                        "B. subtilis Marburg 168"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 48.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 72.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 96.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 31.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 32.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 33.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 34.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "B. subtilis M9",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "1",
+                                "unit": "X"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "measurement_type": "RNA_SEQ",
+                    "file_type": [
+                        "FASTQ"
+                    ],
+                    "replicates": 1,
+                    "strains": [
+                        "B. subtilis Marburg 168"
+                    ],
+                    "timepoints": [
+                        {
+                            "value": 0.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 24.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 48.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 72.0,
+                            "unit": "hour"
+                        },
+                        {
+                            "value": 96.0,
+                            "unit": "hour"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "value": 30.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 31.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 32.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 33.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 34.0,
+                            "unit": "celsius"
+                        },
+                        {
+                            "value": 35.0,
+                            "unit": "celsius"
+                        }
+                    ],
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Bacitracin",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "0",
+                                "unit": "mM"
+                            },
+                            {
+                                "name": {
+                                    "label": "Xylose",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "1",
+                                "unit": "mM"
+                            }
+                        ],
+                        [
+                            {
+                                "name": {
+                                    "label": "B. subtilis M9",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "1",
+                                "unit": "X"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        }
+    ],
+    "doc_revision_id": "1769",
+    "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/Plan-Requirements-UCSB-B-subtilis-PositiveFeedbackAmplifier.json"
+}

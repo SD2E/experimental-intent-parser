@@ -1,6 +1,7 @@
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.intent_parser_exceptions import ConnectionException
 from http import HTTPStatus
+import intent_parser.constants.google_doc_api_constants as doc_constants
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 
 class LabExperiment(object):
@@ -16,13 +17,15 @@ class LabExperiment(object):
     
     def load_from_google_doc(self):
         try:
-            google_accessor = GoogleAccessor.create()
-            document = google_accessor.get_document(document_id=self._document_id)
-            self._head_revision = google_accessor.get_head_revision(self._document_id)
+
+            doc_accessor = GoogleAccessor().get_google_doc_accessor()
+            drive_accessor = GoogleAccessor().get_google_drive_accessor()
+            document = doc_accessor.get_document(document_id=self._document_id)
+            self._head_revision = drive_accessor.get_head_revision(self._document_id)
             self._links_info = self._get_links_from_doc(document)
             self._paragraphs = self._get_paragraph_from_doc(document)
-            self._parents = google_accessor.get_document_parents(document_id=self._document_id)
-            self._tables = intent_parser_utils.get_element_type(document, 'table')
+            self._parents = drive_accessor.get_document_parents(document_id=self._document_id)
+            self._tables = self._get_tables_from_doc(document)
             self._title = intent_parser_utils.get_element_type(document, 'title')
             return document
         except Exception:
@@ -30,8 +33,8 @@ class LabExperiment(object):
 
     def load_metadata_from_google_doc(self):
         try:
-            google_accessor = GoogleAccessor.create()
-            self._metadata = google_accessor.get_document_metadata(document_id=self._document_id) 
+            google_accessor = GoogleAccessor().get_google_drive_accessor()
+            self._metadata = google_accessor.get_document_metadata(document_id=self._document_id)
             return self._metadata
         except Exception:
             raise ConnectionException(HTTPStatus.NOT_FOUND,'Failed to access document ' + self._document_id)
@@ -77,3 +80,11 @@ class LabExperiment(object):
         return list(map(lambda x: (x['content'],
                                          x['textStyle']['link']),
                               links))
+
+    def _get_tables_from_doc(self, document):
+        processed_tables = []
+        list_of_contents = document[doc_constants.BODY][doc_constants.CONTENT]
+        for content in list_of_contents:
+            if doc_constants.TABLE in content:
+                processed_tables.append(content)
+        return processed_tables

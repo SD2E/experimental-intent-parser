@@ -19,7 +19,6 @@ class AppScriptUtilTest(unittest.TestCase):
         function_names = script_util.get_function_names_from_js_file(local_code_path)
         self.assertEqual(len(function_names['values']), 36)
         
-   
-
 if __name__ == "__main__":
     unittest.main()
+

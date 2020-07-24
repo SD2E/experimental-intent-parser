@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from intent_parser.accessor.sbh_accessor import SBHAccessor
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.utils.intent_parser_view as intent_parser_view
@@ -296,7 +297,6 @@ class IntentParserSBH(object):
         }
         """ %(target_collection)
         response = self.sbh.sparqlQuery(query).json()
-    
         experiments = []
         for m in response['results']['bindings']:
             uri = m['entity']['value']

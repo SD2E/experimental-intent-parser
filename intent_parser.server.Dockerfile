@@ -25,5 +25,5 @@ ENV SBH_URL https://hub.sd2e.org
 EXPOSE $PORT
 
 # Run app.py when the container launches
-CMD echo "Port: ${PORT}" && echo "SBH URL: ${SBH_URL}" && echo "COLLECTION: ${COLLECTION}" && intent_parser_server --username sd2e -p $SBH_PASSWORD -s $SBH_URL -l $PORT -c $COLLECTION -i $DICT_ID -a $AUTHN 
+CMD echo "Port: ${PORT}" && echo "SBH URL: ${SBH_URL}" && echo "COLLECTION: ${COLLECTION}" && intent_parser_server --username sd2e -p $SBH_PASSWORD -s $SBH_URL -l $PORT -c $COLLECTION -i $DICT_ID -a $AUTHN
 

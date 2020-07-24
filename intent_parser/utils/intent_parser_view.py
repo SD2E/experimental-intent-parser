@@ -1,19 +1,22 @@
 """
-Contains functionalities for generating views related to intent parser
+Functions for generating views related to intent parser
 """
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
 from intent_parser.utils.html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, ControlsTableHtmlBuilder, MeasurementTableHtmlBuilder, ParameterTableHtmlBuilder
+import intent_parser.constants.ip_app_script_constants as addon_constants
 import logging
 
 logger = logging.getLogger('intent_parser_server')
 
-def create_table_template(position_in_document, table_data, table_type, col_sizes):
-    create_table = {}
-    create_table['action'] = 'addTable'
-    create_table['cursorChildIndex'] = position_in_document
-    create_table['tableData'] = table_data
-    create_table['tableType'] = table_type
-    create_table['colSizes'] = col_sizes
+def create_table_template(position_in_document, table_data, table_type, col_sizes, additional_info={}):
+    create_table = {'action': 'addTable',
+                    addon_constants.CURSOR_CHILD_INDEX: position_in_document,
+                    addon_constants.TABLE_DATA: table_data,
+                    addon_constants.TABLE_TYPE: table_type,
+                    'colSizes': col_sizes}
+    if additional_info:
+        for k, v in additional_info.items():
+            create_table[k] = v
     return [create_table]
 
 def create_controls_table_dialog(cursor_index):
@@ -27,29 +30,27 @@ def create_controls_table_dialog(cursor_index):
     dialog_action = modal_dialog(html, 'Create Controls Table', 600, 600)
     return dialog_action
     
-def create_parameter_table_template(cursor_child_index, protocol_options):
+def create_parameter_table_dialog(cursor_child_index, protocol_options):
     html_protocols = generate_html_options(protocol_options)
     builder = ParameterTableHtmlBuilder()
     builder.cursor_child_index_html(cursor_child_index)
     builder.protocol_options_html(html_protocols)
     html_parameter = builder.build() 
-    
-    dialog_action = modal_dialog(html_parameter, 'Create Parameter Table', 600, 600)
+    dialog_action = modal_dialog(html_parameter, 'Create Parameters Table', 600, 600)
     return dialog_action
 
-def create_measurement_table_template(cursor_child_index):
+def create_measurement_table_dialog(cursor_child_index):
     catalog_accessor = CatalogAccessor()
     local_file_types = catalog_accessor.get_file_types().copy()
-    local_file_types.insert(0,'---------------')
-    local_file_types.insert(0,'CSV')
-    local_file_types.insert(0,'PLAIN')
-    local_file_types.insert(0,'FASTQ')
-    local_file_types.insert(0,'FCS')
+    local_file_types.insert(0, '---------------')
+    local_file_types.insert(0, 'CSV')
+    local_file_types.insert(0, 'PLAIN')
+    local_file_types.insert(0, 'FASTQ')
+    local_file_types.insert(0, 'FCS')
 
     lab_ids_html = generate_html_options(catalog_accessor.get_lab_ids())
     measurement_types_html = generate_html_options(catalog_accessor.get_measurement_types())
     file_types_html = generate_html_options(local_file_types)
-
     measurement_types_html = measurement_types_html.replace('\n', ' ')
     file_types_html = file_types_html.replace('\n', ' ')
     
@@ -59,35 +60,32 @@ def create_measurement_table_template(cursor_child_index):
     builder.measurement_types_html(measurement_types_html) 
     builder.file_types_html(file_types_html)
     html = builder.build()
-
     dialog_action = modal_dialog(html, 'Create Measurements Table', 600, 600)
     return dialog_action
 
-
 def generate_existing_link_html(title, target, two_col = False):
-        if two_col:
-            width = 175
-        else:
-            width = 350
+    if two_col:
+        width = 175
+    else:
+        width = 350
 
-        html  = '<tr>\n'
-        html += '  <td style="max-width: %dpx; word-wrap: break-word; padding:5px">\n' % width
-        html += '    <a href=' + target + ' target=_blank name="theLink">' + title + '</a>\n'
+    html = '<tr>\n'
+    html += '  <td style="max-width: %dpx; word-wrap: break-word; padding:5px">\n' % width
+    html += '    <a href=' + target + ' target=_blank name="theLink">' + title + '</a>\n'
+    html += '  </td>\n'
+    html += '  <td>\n'
+    html += '    <input type="button" name=' + target + ' value="Link"\n'
+    html += '    title="Create a link with this URL." onclick="linkItem(thisForm, this.name)">\n'
+    if not two_col:
         html += '  </td>\n'
         html += '  <td>\n'
-        html += '    <input type="button" name=' + target + ' value="Link"\n'
-        html += '    title="Create a link with this URL." onclick="linkItem(thisForm, this.name)">\n'
-        if not two_col:
-            html += '  </td>\n'
-            html += '  <td>\n'
-        else:
-            html += '  <br/>'
-        html += '    <input type="button" name=' + target + ' value="Link All"\n'
-        html += '    title="Create a link with this URL and apply it to all matching terms." onclick="linkAll(thisForm, this.name)">\n'
-        html += '  </td>\n'
-        html += '</tr>\n'
-
-        return html
+    else:
+        html += '  <br/>'
+    html += '    <input type="button" name=' + target + ' value="Link All"\n'
+    html += '    title="Create a link with this URL and apply it to all matching terms." onclick="linkAll(thisForm, this.name)">\n'
+    html += '  </td>\n'
+    html += '</tr>\n'
+    return html
            
 def generate_html_options(options):
     options_html = ''
@@ -96,23 +94,22 @@ def generate_html_options(options):
         options_html += '<option>'
         options_html += item_type
         options_html += '</option>\n'
-
     return options_html
     
 def get_download_link(host, document_id):
     return '<a href=http://' + host + '/document_request?' + document_id + ' target=_blank>here</a> \n\n'
 
-def create_add_to_synbiohub_dialog(selection, 
-                                   display_id, 
-                                   start_paragraph, 
-                                   start_offset, 
-                                   end_paragraph, 
-                                   end_offset, 
+def create_add_to_synbiohub_dialog(selection,
+                                   display_id,
+                                   start_paragraph,
+                                   start_offset,
+                                   end_paragraph,
+                                   end_offset,
                                    item_types_html,
-                                   lab_ids_html, 
-                                   document_id, 
-                                   isSpellcheck):
-
+                                   lab_ids_html,
+                                   document_id,
+                                   is_spellcheck):
+    
     html_builder = AddHtmlBuilder().common_name(selection) \
                                    .display_id(display_id) \
                                    .start_paragraph(str(start_paragraph)) \
@@ -121,59 +118,47 @@ def create_add_to_synbiohub_dialog(selection,
                                    .end_offset(str(end_offset)) \
                                    .item_types_html(item_types_html) \
                                    .lab_ids_html(lab_ids_html) \
-                                   .selected_term(selection) \
+                                   .selection(selection) \
                                    .document_id(document_id) \
-                                   .is_spell_check(str(isSpellcheck))
+                                   .isSpellcheck(str(is_spellcheck))
     submit_button_html = '        <input type="button" value="Submit" id="submitButton" onclick="submitToSynBioHub()">'
-    if isSpellcheck:
+    if is_spellcheck:
         submit_button_html = """
             <input type="button" value="Submit" id="submitButton" onclick="submitToSynBioHub()">
             <input type="button" value="Submit, Link All" id="submitButtonLinkAll" onclick="submitToSynBioHubAndLinkAll()">
         """
-    
     html = html_builder.submit_button(submit_button_html).build()
-
     dialog_action = modal_dialog(html, 'Add to SynBioHub', 600, 600)
     return dialog_action
     
-def invalid_request_model_dialog(messages):
+def invalid_request_model_dialog(title, messages):
     text_area_rows = 33
     height = 600
-    title = 'Structured request validation: Failed!'
+    # title = 'Structured request validation: Failed!'
     buttons = [('Ok', 'process_nop')]
     validation_message = '\n'.join(messages)
     msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, validation_message)
     return simple_modal_dialog(msg, buttons, title, 500, height)
 
-
 def highlight_text(paragraph_index, offset, end_offset):
-    highlight_text = {}
-    highlight_text['action'] = 'highlightText'
-    highlight_text['paragraph_index'] = paragraph_index
-    highlight_text['offset'] = offset
-    highlight_text['end_offset'] = end_offset
-
-    return highlight_text
+    return {'action': 'highlightText',
+            'paragraph_index': paragraph_index,
+            'offset': offset,
+            'end_offset': end_offset}
 
 def link_text(paragraph_index, offset, end_offset, url):
-    link_text = {}
-    link_text['action'] = 'linkText'
-    link_text['paragraph_index'] = paragraph_index
-    link_text['offset'] = offset
-    link_text['end_offset'] = end_offset
-    link_text['url'] = url
-
-    return link_text
+    return {'action': 'linkText',
+            'paragraph_index': paragraph_index,
+            'offset': offset,
+            'end_offset': end_offset,
+            'url': url}
 
 def modal_dialog(html, title, width, height):
-    action = {}
-    action['action'] = 'showModalDialog'
-    action['html'] = html
-    action['title'] = title
-    action['width'] = width
-    action['height'] = height
-
-    return action
+    return {'action': 'showModalDialog',
+            'html': html,
+            'title': title,
+            'width': width,
+            'height': height}
 
 def operation_failed(message):
     return {'results': {'operationSucceeded': False,
@@ -184,7 +169,7 @@ def progress_sidebar_dialog():
     """
     Generate the HTML to display analyze progress in a sidebar.
     """
-    htmlMessage  = '''
+    html_message = '''
     <script>
     var interval = 1250; // ms
     var expected = Date.now() + interval;
@@ -216,85 +201,69 @@ def progress_sidebar_dialog():
       </table>
     </center>
         '''
-
-    action = {}
-    action['action'] = 'showProgressbar'
-    action['html'] = htmlMessage
-
+    action = {'action': 'showProgressbar',
+              'html': html_message}
     return action
 
-
 def create_search_result_dialog(term, uri, content_term, document_id, paragraph_index, offset, end_offset):
-    actions = []
-    actions.append(highlight_text(paragraph_index, offset, end_offset))
-    
+    actions = [highlight_text(paragraph_index, offset, end_offset)]
+
     buttons = [('Yes', 'process_analyze_yes', 'Creates a hyperlink for the highlighted text, using the suggested URL.'),
                ('No', 'process_analyze_no', 'Skips this term without creating a link.'),
                ('Yes to All', 'process_link_all', 'Creates a hyperlink for the highilghted text and every instance of it in the document, using the suggested URL.'),
                ('No to All', 'process_no_to_all', 'Skips this term and every other instance of it in the document.'),
                ('Never Link', 'process_never_link', 'Never suggest links to this term, in this document or any other.')]
 
-    buttonHTML = ''
-    buttonScript = ''
+    button_HTML = ''
+    button_script = ''
     for button in buttons:
-        buttonHTML += '<input id=' + button[1] + 'Button value="'
-        buttonHTML += button[0] + '" type="button" title="'
-        buttonHTML += button[2] + '" onclick="'
-        buttonHTML += button[1] + 'Click()" />\n'
+        button_HTML += '<input id=' + button[1] + 'Button value="'
+        button_HTML += button[0] + '" type="button" title="'
+        button_HTML += button[2] + '" onclick="'
+        button_HTML += button[1] + 'Click()" />\n'
 
-        buttonScript += 'function ' + button[1] + 'Click() {\n'
-        buttonScript += '  google.script.run.withSuccessHandler'
-        buttonScript += '(onSuccess).buttonClick(\''
-        buttonScript += button[1]  + '\')\n'
-        buttonScript += '}\n\n'
+        button_script += 'function ' + button[1] + 'Click() {\n'
+        button_script += '  google.script.run.withSuccessHandler'
+        button_script += '(onSuccess).buttonClick(\''
+        button_script += button[1]  + '\')\n'
+        button_script += '}\n\n'
 
-    buttonHTML += '<input id=EnterLinkButton value="Manually Enter Link" type="button" title="Enter a link for this term manually." onclick="EnterLinkClick()" />'
+    button_HTML += '<input id=EnterLinkButton value="Manually Enter Link" type="button" title="Enter a link for this term manually." onclick="EnterLinkClick()" />'
     # Script for the EnterLinkButton is already in the HTML
-    html_builder = AnalyzeHtmlBuilder()
-    if term:
-        html_builder.selected_term(term)
-    if uri:
-        html_builder.selected_uri(uri)
-        html_builder.term_uri(uri)
-    if content_term:
-        html_builder.content_term(content_term)
-    if document_id:
-        html_builder.document_id(document_id)
-    if buttonHTML:
-        html_builder.button_html(buttonHTML)
-    if buttonScript:
-        html_builder.button_script(buttonScript)
 
-    html_builder.build()
-    dialogAction = sidebar_dialog(html_builder.build())
-    actions.append(dialogAction)
+    html = AnalyzeHtmlBuilder().selected_term(term) \
+                               .selected_uri(uri) \
+                               .content_term(content_term) \
+                               .term_uri(uri) \
+                               .document_id(document_id) \
+                               .button(button_HTML) \
+                               .buttonScript(button_script).build()
+
+    dialog_action = sidebar_dialog(html)
+    actions.append(dialog_action)
     return actions
 
 def report_spelling_results(client_state):
     """Generate actions for client, given the current spelling results index
     """
-    spellCheckResults = client_state['spelling_results']
-    resultIdx = client_state['spelling_index']
+    spell_check_results = client_state['spelling_results']
+    result_idx = client_state['spelling_index']
+    action_list = []
 
-    actionList = []
-
-    start_par = spellCheckResults[resultIdx]['select_start']['paragraph_index']
-    start_cursor = spellCheckResults[resultIdx]['select_start']['cursor_index']
-    end_par = spellCheckResults[resultIdx]['select_end']['paragraph_index']
-    end_cursor = spellCheckResults[resultIdx]['select_end']['cursor_index']
+    start_par = spell_check_results[result_idx]['select_start']['paragraph_index']
+    start_cursor = spell_check_results[result_idx]['select_start']['cursor_index']
+    end_par = spell_check_results[result_idx]['select_end']['paragraph_index']
+    end_cursor = spell_check_results[result_idx]['select_end']['cursor_index']
     
     if not start_par == end_par:
         logger.error('Received a highlight request across paragraphs, which is currently unsupported!')
-    
-    highlightTextAction = highlight_text(start_par, start_cursor, end_cursor)
-    actionList.append(highlightTextAction)
+    highlight_text_action = highlight_text(start_par, start_cursor, end_cursor)
+    action_list.append(highlight_text_action)
 
     html = '<center>'
-    html += 'Term %s not found in dictionary, potential addition?' % spellCheckResults[resultIdx]['term']
+    html += 'Term %s not found in dictionary, potential addition?' % spell_check_results[result_idx]['term']
     html += '</center>'
-
-    manualLinkScript = """
-
+    manual_link_script = """
     function EnterLinkClick() {
         google.script.run.withSuccessHandler(enterLinkHandler).enterLinkPrompt('Manually enter a SynbioHub link for this term.', 'Enter URI:');
     }
@@ -308,38 +277,39 @@ def report_spelling_results(client_state):
             google.script.run.withSuccessHandler(onSuccess).buttonClick(data)
         }
     }
-
         """
 
     buttons = [{'value': 'Ignore', 'id': 'spellcheck_add_ignore', 'title' : 'Skip the current term.'},
                {'value': 'Ignore All', 'id': 'spellcheck_add_ignore_all', 'title' : 'Skip the current term and any other instances of it.'},
                {'value': 'Add to Spellchecker Dictionary', 'id': 'spellcheck_add_dictionary', 'title' : 'Add term to the spellchecking dictionary, so it won\'t be considered again.'},
                {'value': 'Add to SynBioHub', 'id': 'spellcheck_add_synbiohub', 'title' : 'Bring up dialog to add current term to SynbioHub.'},
-               {'value': 'Manually Enter Link', 'id': 'EnterLink', 'click_script' : manualLinkScript, 'title' : 'Manually enter URL to link for this term.'},
+               {'value': 'Manually Enter Link', 'id': 'EnterLink', 'click_script' : manual_link_script, 'title' : 'Manually enter URL to link for this term.'},
                {'value': 'Include Previous Word', 'id': 'spellcheck_add_select_previous', 'title' : 'Move highlighting to include the word before the highlighted word(s).'},
                {'value': 'Include Next Word', 'id': 'spellcheck_add_select_next', 'title' : 'Move highlighting to include the word after the highlighted word(s).'},
                {'value': 'Remove First Word', 'id': 'spellcheck_add_drop_first', 'title' : 'Move highlighting to remove the word at the beggining of the highlighted words.'},
                {'value': 'Remove Last Word', 'id': 'spellcheck_add_drop_last', 'title' : 'Move highlighting to remove the word at the end of the highlighted words.'}]
 
     # If this entry was previously linked, add a button to reuse that link
-    if 'prev_link' in spellCheckResults[resultIdx]:
-        buttons.insert(4, {'value' : 'Reuse previous link', 'id': 'spellcheck_reuse_link', 'title' : 'Reuse the previous link: %s' % spellCheckResults[resultIdx]['prev_link']})
+    if 'prev_link' in spell_check_results[result_idx]:
+        buttons.insert(4, {'value' : 'Reuse previous link', 'id': 'spellcheck_reuse_link', 'title' : 'Reuse the previous link: %s' % spell_check_results[result_idx]['prev_link']})
+    dialog_action = simple_sidebar_dialog(html, buttons)
+    action_list.append(dialog_action)
+    return action_list
 
-    dialogAction = simple_sidebar_dialog(html, buttons)
-    actionList.append(dialogAction)
-    return actionList
-
-def sidebar_dialog(htmlMessage):
-    action = {}
-    action['action'] = 'showSidebar'
-    action['html'] = htmlMessage
-
-    return action
+def sidebar_dialog(html_message):
+    return {'action': 'showSidebar',
+            'html': html_message}
 
 def open_new_window(link=None):
     html = "<script>window.open('" + link + "');google.script.host.close();</script>"
     return modal_dialog(html, 'Validation Passed', 500, 300)
-    
+
+def message_dialog(title, message):
+    text_area_rows = 15
+    height = 150
+    buttons = [('Ok', 'process_nop')]
+    return simple_modal_dialog(message, buttons, title, 200, height)
+
 def valid_request_model_dialog(warnings, link=None):
     text_area_rows = 15
     height = 300
@@ -347,69 +317,62 @@ def valid_request_model_dialog(warnings, link=None):
     msg = ''
     if link:
         msg = 'Download Structured Request ' + link
-    
     msg += "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, '\n'.join(warnings))
     buttons = [('Ok', 'process_nop')] 
     return simple_modal_dialog(msg, buttons, title, 500, height)
 
 def simple_modal_dialog(message, buttons, title, width, height):
-    htmlMessage = '<script>\n\n'
-    htmlMessage += 'function onSuccess() { \n\
+    html_message = '<script>\n\n'
+    html_message += 'function onSuccess() { \n\
                      google.script.host.close()\n\
                   }\n\n'
     for button in buttons:
-        htmlMessage += 'function ' + button[1] + 'Click() {\n'
-        htmlMessage += '  google.script.run.withSuccessHandler'
-        htmlMessage += '(onSuccess).buttonClick(\''
-        htmlMessage += button[1]  + '\')\n'
-        htmlMessage += '}\n\n'
-    htmlMessage += '</script>\n\n'
-
-    htmlMessage += '<p>' + message + '</p>\n'
-    htmlMessage += '<center>'
+        html_message += 'function ' + button[1] + 'Click() {\n'
+        html_message += '  google.script.run.withSuccessHandler'
+        html_message += '(onSuccess).buttonClick(\''
+        html_message += button[1]  + '\')\n'
+        html_message += '}\n\n'
+    html_message += '</script>\n\n'
+    html_message += '<p>' + message + '</p>\n'
+    html_message += '<center>'
     for button in buttons:
-        htmlMessage += '<input id=' + button[1] + 'Button value="'
-        htmlMessage += button[0] + '" type="button" onclick="'
-        htmlMessage += button[1] + 'Click()" />\n'
-    htmlMessage += '</center>'
-
-    return modal_dialog(htmlMessage, title, width, height)
+        html_message += '<input id=' + button[1] + 'Button value="'
+        html_message += button[0] + '" type="button" onclick="'
+        html_message += button[1] + 'Click()" />\n'
+    html_message += '</center>'
+    return modal_dialog(html_message, title, width, height)
 
 def simple_sidebar_dialog(message, buttons):
-    htmlMessage  = '<script>\n\n'
-    htmlMessage += 'function onSuccess() { \n\
+    html_message = '<script>\n\n'
+    html_message += 'function onSuccess() { \n\
                      google.script.host.close()\n\
                   }\n\n'
     for button in buttons:
         if 'click_script' in button: # Special buttons, define own script
-            htmlMessage += button['click_script']
+            html_message += button['click_script']
         else: # Regular buttons, generate script automatically
-            htmlMessage += 'function ' + button['id'] + 'Click() {\n'
-            htmlMessage += '  google.script.run.withSuccessHandler'
-            htmlMessage += '(onSuccess).buttonClick(\''
-            htmlMessage += button['id']  + '\')\n'
-            htmlMessage += '}\n\n'
-    htmlMessage += '</script>\n\n'
-
-    htmlMessage += '<p>' + message + '<p>\n'
-    htmlMessage += '<center>'
+            html_message += 'function ' + button['id'] + 'Click() {\n'
+            html_message += '  google.script.run.withSuccessHandler'
+            html_message += '(onSuccess).buttonClick(\''
+            html_message += button['id']  + '\')\n'
+            html_message += '}\n\n'
+    html_message += '</script>\n\n'
+    html_message += '<p>' + message + '<p>\n'
+    html_message += '<center>'
     for button in buttons:
         if 'click_script' in button: # Special buttons, define own script
-            htmlMessage += '<input id=' + button['id'] + 'Button value="'
-            htmlMessage += button['value'] + '" type="button"'
+            html_message += '<input id=' + button['id'] + 'Button value="'
+            html_message += button['value'] + '" type="button"'
             if 'title' in button:
-                htmlMessage += 'title="' + button['title'] + '"'
-            htmlMessage += ' onclick="' + button['id'] + 'Click()" />\n'
+                html_message += 'title="' + button['title'] + '"'
+            html_message += ' onclick="' + button['id'] + 'Click()" />\n'
         else:
-            htmlMessage += '<input id=' + button['id'] + 'Button value="'
-            htmlMessage += button['value'] + '" type="button"'
+            html_message += '<input id=' + button['id'] + 'Button value="'
+            html_message += button['value'] + '" type="button"'
             if 'title' in button:
-                htmlMessage += 'title="' + button['title'] + '"'
-            htmlMessage += 'onclick="' + button['id'] + 'Click()" />\n'
-    htmlMessage += '</center>'
-
-    action = {}
-    action['action'] = 'showSidebar'
-    action['html'] = htmlMessage
-
+                html_message += 'title="' + button['title'] + '"'
+            html_message += 'onclick="' + button['id'] + 'Click()" />\n'
+    html_message += '</center>'
+    action = {'action': 'showSidebar',
+              'html': html_message}
     return action

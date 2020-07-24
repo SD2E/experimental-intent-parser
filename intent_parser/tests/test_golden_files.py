@@ -5,7 +5,6 @@ from datetime import datetime
 from unittest.mock import patch
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
-import git
 import os
 import json 
 import unittest
@@ -19,31 +18,27 @@ class GoldenFileTest(unittest.TestCase):
     Once the document has been retrieved, it is passed into intent parser to generate a structured request. 
     The structured request is then compared with the structured_request result for equivalency.
     """
-    
+
     @classmethod
-    def setUpClass(self):
-        curr_path = os.path.dirname(os.path.realpath(__file__))
-        self.data_dir = os.path.join(curr_path, 'data')
-        self.mock_data_dir = os.path.join(self.data_dir, 'mock_data')
-        
-        cp_request_dir = os.path.join(curr_path, 'data', 'cp-request')
-#         git_accessor = git.cmd.Git(cp_request_dir)
-#         git_accessor.pull()
-        self.structured_request_dir = os.path.join(cp_request_dir, 'input', 'structured_requests')
-        
-        with open(os.path.join(self.data_dir, 'authn.json'), 'r') as file:
-            self.authn = json.load(file)['authn']
-             
-        self.google_accessor = GoogleAccessor.create()
-        self.maxDiff = None  
+    def setUpClass(cls):
+        pass
     
     @patch('intent_parser.intent_parser_sbh.IntentParserSBH')
     def setUp(self, mock_intent_parser_sbh):
+        curr_path = os.path.dirname(os.path.realpath(__file__))
+        self.data_dir = os.path.join(curr_path, 'data')
+        self.mock_data_dir = os.path.join(self.data_dir, 'mock_data')
+        with open(os.path.join(self.data_dir, 'authn.json'), 'r') as file:
+            self.authn = json.load(file)['authn']
+
+        self.drive_accessor = GoogleAccessor().get_google_drive_accessor()
+        self.maxDiff = None
+
         self.mock_intent_parser_sbh = mock_intent_parser_sbh
-        
-        sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, self.mock_intent_parser_sbh) 
-        datacatalog_config = { "mongodb" : { "database" : "catalog_staging", "authn" : self.authn} }
-        self.intentparser_factory = IntentParserFactory(datacatalog_config, self.mock_intent_parser_sbh, sbol_dictionary)
+        self.sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, self.mock_intent_parser_sbh)
+        self.sbol_dictionary.initial_fetch()
+        datacatalog_config = {"mongodb": {"database": "catalog_staging", "authn": self.authn}}
+        self.intentparser_factory = IntentParserFactory(datacatalog_config, self.mock_intent_parser_sbh, self.sbol_dictionary)
         self.uploaded_file_id = ''
         
     def test_intent_parsers_test_document(self):
@@ -64,17 +59,17 @@ class GoldenFileTest(unittest.TestCase):
     def test_CP_Experimental_Request_NovelChassis_OR_circuit_GrowthCurve(self):  
         file = 'CP Experimental Request - NovelChassis_OR_circuit_GrowthCurve.json'
         file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path) 
+        self._compare_structured_requests(file_path) #TODO: 0.274 (?) is not a number
          
     def test_ER_NovelChassis_mCherryControlStrains_GBW_Cycle0_24hour(self):  
         file = 'ER-NovelChassis-mCherryControlStrains-GBW-Cycle0-24hour.json'
         file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path) 
+        self._compare_structured_requests(file_path) #TODO: 0.25 (on normalized at Strateos) is not a number
          
     def test_ER_NovelChassis_mCherryControlStrains_GBW_Cycle0_8hour(self):  
         file = 'ER-NovelChassis-mCherryControlStrains-GBW-Cycle0-8hour.json'
         file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path) 
+        self._compare_structured_requests(file_path) #TODO: 0.25 (on normalized at Strateos) is not a number
          
     def test_NovelChassis_Ginkgo_Strain_Inducer_Characterization(self):  
         file = 'NovelChassis_Ginkgo_Strain_GrowthCurve.json'
@@ -99,7 +94,7 @@ class GoldenFileTest(unittest.TestCase):
     def test_YeastSTATES_CRISPR_Growth_Curves_with_Plate_Reader_Optimization_Request(self):  
         file = 'YeastSTATES CRISPR Growth Curves with Plate Reader Optimization Request.json'
         file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path)
+        self._compare_structured_requests(file_path) #TODO: remove [] to specify list of gains
          
     def test_YeastSTATES_Beta_Estradiol_OR_Gate_Plant_TF_Growth_Curves_Request_30C(self):  
         file = 'YeastSTATES-Beta-Estradiol-OR-Gate-Plant-TF-Growth-Curves-30C.json'
@@ -224,12 +219,12 @@ class GoldenFileTest(unittest.TestCase):
     def test_NovelChassis_OR_Circuit_Cycle0_8hour(self):  
         file = 'NovelChassis-OR-Circuit-Cycle0-8hour.json' 
         file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path)
+        self._compare_structured_requests(file_path) #TODO: 0.274 (?) is not a number
         
     def test_NovelChassis_OR_Circuit_Cycle0_24hour(self):  
         file = 'NovelChassis-OR-Circuit-Cycle0-24hour.json' 
         file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path)
+        self._compare_structured_requests(file_path) #TODO: 0.274 (?) is not a number
 
     def _compare_structured_requests(self, document):
         golden_structured_request = intent_parser_utils.load_json_file(document)
@@ -243,20 +238,24 @@ class GoldenFileTest(unittest.TestCase):
         
         upload_mimetype = intent_parser_constants.GOOGLE_DOC_MIMETYPE
         download_mimetype = intent_parser_constants.WORD_DOC_MIMETYPE
-        response = self.google_accessor.get_file_with_revision(doc_id, doc_revision_id, download_mimetype)
+
+        response = self.drive_accessor.get_file_with_revision(doc_id, doc_revision_id, download_mimetype)
 
         drive_folder_test_dir = '1693MJT1Up54_aDUp1s3mPH_DRw1_GS5G'
-        self.uploaded_file_id = self.google_accessor.upload_revision(golden_structured_request['name'], response.content, drive_folder_test_dir, download_mimetype, title=golden_structured_request['name'], target_format=upload_mimetype)
+        self.uploaded_file_id = self.drive_accessor.upload_revision(golden_structured_request['name'],
+                                                                    response.content, drive_folder_test_dir,
+                                                                    download_mimetype,
+                                                                    title=golden_structured_request['name'],
+                                                                    target_format=upload_mimetype)
         print('%s upload doc %s' % (datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.uploaded_file_id))
         
         intent_parser = self.intentparser_factory.create_intent_parser(self.uploaded_file_id)
-        intent_parser.process()
+        intent_parser.process_structure_request()
         generated_structured_request = intent_parser.get_structured_request()
         
         # Skip data that are modified from external resources:
         # experiment_reference, challenge_problem, doc_revision_id, and experiment_id.
         self.assertEqual('https://docs.google.com/document/d/%s' % self.uploaded_file_id, generated_structured_request['experiment_reference_url'])
-        # self.assertEqual(golden_structured_request['experiment_id'], generated_structured_request['experiment_id'])
         self.assertEqual(golden_structured_request['lab'], generated_structured_request['lab'])
         self.assertEqual(golden_structured_request['name'], generated_structured_request['name'])
         self._compare_runs(golden_structured_request['runs'], generated_structured_request['runs'])
@@ -268,7 +267,7 @@ class GoldenFileTest(unittest.TestCase):
         for run_index in range(len(golden)):
             run = golden[run_index]
             list_of_measurements = run['measurements']
-            for measurement_index in range(len(list_of_measurements)) :
+            for measurement_index in range(len(list_of_measurements)):
                 measurement = list_of_measurements[measurement_index]
                 if 'controls' in measurement:
                     del measurement['controls']
@@ -276,12 +275,12 @@ class GoldenFileTest(unittest.TestCase):
             
     def tearDown(self):
         if self.uploaded_file_id:
-            self.google_accessor.delete_file(self.uploaded_file_id)
+            self.drive_accessor.delete_file(self.uploaded_file_id)
             print('%s delete doc %s' % (datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.uploaded_file_id))
            
     @classmethod
-    def tearDownClass(self):
-        pass 
-        
+    def tearDownClass(cls):
+        pass
+
 if __name__ == "__main__":
     unittest.main()

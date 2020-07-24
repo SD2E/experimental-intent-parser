@@ -16,7 +16,8 @@ from googleapiclient import errors
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from intent_parser.accessor.google_app_script_accessor import GoogleAppScriptAccessor
-from intent_parser.accessor.google_drive_accessor import GoogleDriveAccessor
+from intent_parser.accessor.google_drive_accessor import GoogleDriveV3Accessor
+import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.utils.intent_parser_utils as util
 import json
 import logging 
@@ -101,12 +102,12 @@ def setup_logging(
 
 def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'):
     creds = authenticate_credentials()
-    drive_access = GoogleDriveAccessor(creds)
+    drive_access = GoogleDriveV3Accessor(creds)
     app_script_access = GoogleAppScriptAccessor(creds) 
     
     local_docs = util.load_json_file(ADDON_FILE)
     remote_docs = drive_access.get_all_docs(drive_id)
-    while len(remote_docs) > 0 :
+    while len(remote_docs) > 0:
         doc = remote_docs.pop(0)
         r_id = doc
         logger.info('Processing doc: ' + r_id)
@@ -118,7 +119,10 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                     script_id = metadata['scriptId']
                     
                     remote_metadata = app_script_access.get_project_metadata(script_id)
-                    app_script_access.update_project_metadata(script_id, remote_metadata, INTENT_PARSER_ADDON_CODE_FILE, INTENT_PARSER_MANIFEST_FILE)
+                    app_script_access.update_project_metadata(script_id,
+                                                              remote_metadata,
+                                                              INTENT_PARSER_ADDON_CODE_FILE,
+                                                              INTENT_PARSER_MANIFEST_FILE)
                     
                     new_version = app_script_access.get_head_version(script_id) + 1
                     publish_message = current_release + ' Release'
@@ -133,14 +137,14 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
         else:
             try:
                 logger.info('Creating add-on for doc: %s' % r_id)
-                script_proj_title='IPProject Release'
+                script_proj_title = 'IPProject Release'
                 response = app_script_access.create_project(script_proj_title, r_id)
                 script_id = response['scriptId']
                 
                 remote_metadata = app_script_access.get_project_metadata(script_id)
                 app_script_access.set_project_metadata(script_id, remote_metadata, USER_ACCOUNT, INTENT_PARSER_ADDON_CODE_FILE, INTENT_PARSER_MANIFEST_FILE, 'Code')
                 
-                local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
+                local_docs[r_id] = {'scriptId': script_id, 'releaseVersion': current_release}
                 util.write_json_to_file(local_docs, ADDON_FILE)
             except errors.HttpError:
                 logger.info('Reached create quota limit!')
@@ -148,7 +152,7 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                 time.sleep(60)  
 
 def main():
-    current_release = '2.6'
+    current_release = ip_constants.RELEASE_VERSION
     setup_logging()
     logger.info('Running IP addon script for release %s' % current_release)
     try:

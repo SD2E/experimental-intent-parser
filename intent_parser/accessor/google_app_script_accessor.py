@@ -2,13 +2,15 @@ from googleapiclient.discovery import build
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.script_addon_utils as script_addon_utils
 import datetime
+import logging
 
 class GoogleAppScriptAccessor:
     """ 
     A list of APIs to access a Google Add-on Script Project.
     Refer to https://developers.google.com/apps-script/api/reference/rest to get information on how this class is set up.
     """
- 
+    logger = logging.getLogger('intent_parser_google_app_script_accessor')
+
     def __init__(self, creds):
         self._service = build('script', 'v1', credentials=creds)
     
@@ -187,7 +189,6 @@ class GoogleAppScriptAccessor:
             body=request).execute()
         return project_obj
             
-        
     def create_version(self, script_id, number, description):
         """
         Create a new version assigned to the script project. 
@@ -211,7 +212,7 @@ class GoogleAppScriptAccessor:
         version_obj = self._service.projects().versions().create(
             scriptId=script_id,
             body=request).execute()
-        
+
         return version_obj
     
     def get_deployment(self, script_id, deployment_id):
@@ -263,4 +264,3 @@ class GoogleAppScriptAccessor:
             scriptId=script_id,
             deploymentId=deploy_id,
             body=request).execute()
-        
