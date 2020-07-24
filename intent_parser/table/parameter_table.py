@@ -102,8 +102,9 @@ class ParameterTable(object):
         if cell_param_field is None and cell_param_value:
             self._validation_errors.append('Parameter table cannot assign %s as a parameter value to an empty parameter.' % cell_param_value.get_text())
             return
-        if cell_param_field and cell_param_value is None:
-            return
+        if cell_param_field:
+            if (cell_param_value is None) or (not cell_param_value.get_text()):
+                return
         self._parse_parameter_field_value(self._get_parameter_field(cell_param_field), cell_param_value.get_text())
                   
     def _parse_parameter_field_value(self, parameter_field, parameter_value):

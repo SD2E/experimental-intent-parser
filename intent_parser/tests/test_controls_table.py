@@ -17,7 +17,7 @@ class ControlsTableTest(unittest.TestCase):
         pass
 
     def test_table_with_control_type(self):
-        ip_table = test_utils.create_fake_controls_table(1)
+        ip_table = test_utils.create_fake_controls_table()
         control_type = IntentParserCell()
         control_type.add_paragraph('HIGH_FITC')
         data_row = test_utils.create_control_table_row(control_type_cell=control_type)
@@ -29,7 +29,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(control_result[0][dc_constants.TYPE], 'HIGH_FITC')
         
     def test_table_with_1_channel(self):
-        ip_table = test_utils.create_fake_controls_table(1)
+        ip_table = test_utils.create_fake_controls_table()
         channel = IntentParserCell()
         channel.add_paragraph('BL1-A')
         data_row = test_utils.create_control_table_row(channel_cell=channel)
@@ -41,7 +41,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(control_result[0][dc_constants.CHANNEL], 'BL1-A')
     
     def test_table_with_multiple_channels(self):
-        ip_table = test_utils.create_fake_controls_table(1)
+        ip_table = test_utils.create_fake_controls_table()
         channel = IntentParserCell()
         channel.add_paragraph('BL1-A, BL2-A')
         data_row = test_utils.create_control_table_row(channel_cell=channel)
@@ -53,7 +53,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(control_result[0][dc_constants.CHANNEL], 'BL1-A')
         
     def test_table_with_1_strain(self):
-        ip_table = test_utils.create_fake_controls_table(1)
+        ip_table = test_utils.create_fake_controls_table()
         strains = IntentParserCell()
         strains.add_paragraph('UWBF_25784')
         data_row = test_utils.create_control_table_row(strains_cell=strains)
@@ -67,7 +67,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(actual_strains[0], 'UWBF_25784')
     
     def test_table_with_1_timepoint(self):
-        ip_table = test_utils.create_fake_controls_table(1)
+        ip_table = test_utils.create_fake_controls_table()
         content = IntentParserCell()
         content.add_paragraph('8 hour')
         data_row = test_utils.create_control_table_row(timepoint_cell=content)
@@ -82,7 +82,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(timepoint_list[0], expected_timepoint)
 
     def test_strains_with_uris(self):
-        ip_table = test_utils.create_fake_controls_table(1)
+        ip_table = test_utils.create_fake_controls_table()
         strains = IntentParserCell()
         strains.add_paragraph('UWBF_7376', link='https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1')
         data_row = test_utils.create_control_table_row(strains_cell=strains)
@@ -95,7 +95,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual('UWBF_7376', control_result[0][dc_constants.STRAINS][0])
     
     def test_strains_with_uri_and_trailing_strings(self):
-        ip_table = test_utils.create_fake_controls_table(1)
+        ip_table = test_utils.create_fake_controls_table()
         strains = IntentParserCell()
         strains.add_paragraph('MG1655', link='https://hub.sd2e.org/user/sd2e/design/MG1655/1')
         strains.add_paragraph(', MG1655_LPV3,MG1655_RPU_Standard')
@@ -110,7 +110,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertListEqual(exp_res, control_result[0]['strains'])
         
     def test_strains_with_string_and_trailing_uris(self):
-        ip_table = test_utils.create_fake_controls_table(1)
+        ip_table = test_utils.create_fake_controls_table()
         strains = IntentParserCell()
         strains.add_paragraph('MG1655_RPU_Standard,')
         strains.add_paragraph('MG1655,', link='https://hub.sd2e.org/user/sd2e/design/MG1655/1')
@@ -128,7 +128,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertListEqual(exp_res, control_result[0][dc_constants.STRAINS])
     
     def test_strains_with_mix_string_and_uri(self):
-        ip_table = test_utils.create_fake_controls_table(1)
+        ip_table = test_utils.create_fake_controls_table()
         strains = IntentParserCell()
         strains.add_paragraph('MG1655', link='https://hub.sd2e.org/user/sd2e/design/MG1655/1')
         strains.add_paragraph(',')
@@ -146,7 +146,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertListEqual(exp_res, control_result[0]['strains'])
     
     def test_table_with_contents(self):
-        ip_table = test_utils.create_fake_controls_table(1)
+        ip_table = test_utils.create_fake_controls_table()
         content = IntentParserCell()
         content.add_paragraph('beta_estradiol', link='https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1')
         data_row = test_utils.create_control_table_row(contents_cell=content)

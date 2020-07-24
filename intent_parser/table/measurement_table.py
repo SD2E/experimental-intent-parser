@@ -1,6 +1,7 @@
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
 
 class MeasurementTable(object):
@@ -66,45 +67,45 @@ class MeasurementTable(object):
             elif intent_parser_constants.HEADER_MEASUREMENT_TYPE_TYPE == cell_type:
                 measurement_type = self._process_measurement_type(cell)
                 if measurement_type:
-                    measurement['measurement_type'] = measurement_type
+                    measurement[dc_constants.MEASUREMENT_TYPE] = measurement_type
             elif intent_parser_constants.HEADER_FILE_TYPE_TYPE == cell_type:
                 file_type = self._process_file_type(cell) 
                 if file_type:
-                    measurement['file_type'] = file_type  
+                    measurement[dc_constants.FILE_TYPE] = file_type
             elif intent_parser_constants.HEADER_REPLICATE_TYPE == cell_type:
                 replicates = self._process_replicate(cell)
                 if replicates:
-                    measurement['replicates'] = replicates
+                    measurement[dc_constants.REPLICATES] = replicates
             elif intent_parser_constants.HEADER_STRAINS_TYPE == cell_type:
                 strains = self._process_strains(cell)
                 if strains:
-                    measurement['strains'] = strains
+                    measurement[dc_constants.STRAINS] = strains
             elif intent_parser_constants.HEADER_ODS_TYPE == cell_type:
                 ods = self._process_ods(cell)
                 if ods:
-                    measurement['ods'] =ods
+                    measurement[dc_constants.ODS] =ods
             elif intent_parser_constants.HEADER_TEMPERATURE_TYPE == cell_type:
                 temperatures = self._process_temperature(cell)
                 if temperatures:
-                    measurement['temperatures'] = temperatures
+                    measurement[dc_constants.TEMPERATURES] = temperatures
             elif intent_parser_constants.HEADER_TIMEPOINT_TYPE == cell_type:
                 timepoints = self._process_timepoints(cell)
                 if timepoints:
-                    measurement['timepoints'] = timepoints
+                    measurement[dc_constants.TIMEPOINTS] = timepoints
             elif intent_parser_constants.HEADER_BATCH_TYPE == cell_type:
                 batch = self._process_batch(cell)
                 if batch:
-                    measurement['batch'] = batch
+                    measurement[dc_constants.BATCH] = batch
             elif intent_parser_constants.HEADER_CONTROL_TYPE == cell_type:
                 controls = self._process_control(cell, control_data)
                 if controls:
-                    measurement['controls'] = controls
+                    measurement[dc_constants.CONTROLS] = controls
             else:
                 reagents = self._process_reagent_media(cell, header_cell)
                 if reagents:
                     content.append(reagents)
         if content:
-            measurement['contents'] = content
+            measurement[dc_constants.CONTENTS] = content
         return measurement 
     
     def _process_reagent_media(self, cell, header_cell):
@@ -119,11 +120,11 @@ class MeasurementTable(object):
             try:
                 list_value_unit = cell_parser.PARSER.process_values_unit(text, units=self._fluid_units, unit_type='fluid')
                 for value_unit_dict in list_value_unit:
-                    numerical_dict = {'name': name_dict,
-                                      'value': value_unit_dict['value'],
-                                      'unit': value_unit_dict['unit']}
+                    numerical_dict = {dc_constants.NAME: name_dict,
+                                      dc_constants.VALUE: value_unit_dict['value'],
+                                      dc_constants.UNIT: value_unit_dict['unit']}
                     if timepoint_dict:
-                        numerical_dict['timepoint'] = timepoint_dict
+                        numerical_dict[dc_constants.TIMEPOINT] = timepoint_dict
                     reagents_media.append(numerical_dict)
             except TableException as err:
                 message = err.get_message()
@@ -135,9 +136,9 @@ class MeasurementTable(object):
             return []
         else:
             for name in cell_parser.PARSER.extract_name_value(text):
-                named_dict = {'name': name_dict, 'value': name}
+                named_dict = {dc_constants.NAME: name_dict, dc_constants.VALUE: name}
                 if timepoint_dict:
-                    named_dict['timepoint'] = timepoint_dict
+                    named_dict[dc_constants.TIMEPOINT] = timepoint_dict
                 reagents_media.append(named_dict)
         return reagents_media
 
@@ -227,8 +228,8 @@ class MeasurementTable(object):
             result = []
             for value_unit in cell_parser.PARSER.process_values_unit(text, units=self._temperature_units,
                                                                      unit_type='temperature'):
-                temperature = {'value': float(value_unit['value']),
-                               'unit': value_unit['unit']}
+                temperature = {dc_constants.VALUE: float(value_unit['value']),
+                               dc_constants.UNIT: value_unit['unit']}
                 result.append(temperature)
             return result
         except TableException as err:
@@ -241,8 +242,8 @@ class MeasurementTable(object):
         try:
             result = []
             for value_unit in cell_parser.PARSER.process_values_unit(text, units=self._timepoint_units, unit_type='timepoints'):
-                timepoint = {'value': float(value_unit['value']),
-                             'unit': value_unit['unit']}
+                timepoint = {dc_constants.VALUE: float(value_unit['value']),
+                             dc_constants.UNIT: value_unit['unit']}
                 result.append(timepoint)
             return result
         except TableException as err:

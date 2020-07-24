@@ -108,7 +108,7 @@ class TableCreator(object):
     def _write_experiment_status_header_row(self, ip_table_template):
         return [self.update_cell_text(ip_table_template, 'Processed', 1, 3),
                 self.update_cell_text(ip_table_template, 'Output From Pipeline', 1, 2),
-                self.update_cell_text(ip_table_template, 'Last update', 1, 1),
+                self.update_cell_text(ip_table_template, 'Last Update', 1, 1),
                 self.update_cell_text(ip_table_template, 'Pipeline Status', 1, 0)]
 
     def _write_experiment_status_table_caption(self, ip_table_template, table_index):

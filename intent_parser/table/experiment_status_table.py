@@ -1,4 +1,4 @@
-from intent_parser.intent_parser_exceptions import IntentParserException
+from datetime import datetime
 from intent_parser.table.intent_parser_table import IntentParserTable
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.constants.ta4_db_constants as ta4_constants
@@ -61,12 +61,25 @@ class ExperimentStatusTableParser(object):
         """
         Retrieve statuses parsed form the table.
         Returns:
-            A list of _Status objects. Information available to access from a _Status object are:
-            _Status.status_type: A string indicating the type of job performed on an experiment.
-            _Status.last_updated: A datetime object indicating when the type of job was last performed.
-            _Status.state: A boolean indicating whether the job has been processed.
-            _Status.path: A String to reference where the output data for the executed job was generated.
+            A list of _Status objects.
         """
+        if self.status_xplan_request_submitted is None:
+            self.status_xplan_request_submitted = self._create_default_status(ta4_constants.XPLAN_REQUEST_SUBMITTED)
+        if self.status_uploaded is None:
+            self.status_uploaded = self._create_default_status(ta4_constants.UPLOADED)
+        if self.status_converted is None:
+            self.status_converted = self._create_default_status(ta4_constants.CONVERTED)
+        if self.status_mtypes is None:
+            self.status_mtypes = self._create_default_status(ta4_constants.MTYPES)
+        if self.status_comparison_passed is None:
+            self.status_comparison_passed = self._create_default_status(ta4_constants.COMPARISON_PASSED)
+        if self.status_annotated is None:
+            self.status_annotated = self._create_default_status(ta4_constants.ANNOTATED)
+        if self.status_ingested is None:
+            self.status_ingested = self._create_default_status(ta4_constants.INGESTED)
+        if self.status_obs_load is None:
+            self.status_obs_load = self._create_default_status(ta4_constants.OBS_LOAD)
+
         return [self.status_xplan_request_submitted,
                 self.status_uploaded,
                 self.status_converted,
@@ -75,6 +88,11 @@ class ExperimentStatusTableParser(object):
                 self.status_annotated,
                 self.status_ingested,
                 self.status_obs_load]
+
+    def _create_default_status(self, tacc_id):
+        status_type = self.status_mappings[tacc_id]
+        default_status = self._Status(self.status_mappings, tacc_id, datetime.now(), 'unspecified', 'no data')
+        return default_status
 
     def process_table(self):
         self._table_caption = self._intent_parser_table.caption()
@@ -131,16 +149,18 @@ class ExperimentStatusTableParser(object):
             self.status_ingested = status
         elif status.status_type == ta4_constants.OBS_LOAD:
             self.status_obs_load = status
+        else:
+            self._logger('%s is not a experiment status supported in Intent Parser' % status.status_type)
 
     def _process_status_type(self, cell, status):
         cell_text = cell.get_text()
-        for tacc_id, common_name in self.status_mappings.items():
-            if cell_text == common_name:
-                status.status_type = tacc_id
+        type = [tacc_id for tacc_id, common_name in self.status_mappings.items() if cell_text == common_name]
+        if len(type) == 0:
+            status.status_type = 'Unknown'
         else:
-            message = 'Experiment status table has invalid %s value: unable to translate %s to a TACC UID' % (
-            intent_parser_constants.HEADER_PIPELINE_STATUS_TYPE, cell.get_text())
-            self._validation_errors.append(message)
+            if len(type) != 1:
+                self._logger.warning('More than one status TACC UID are assigned to Common Name %s' % cell_text)
+            status.status_type = type[0]
 
     def _process_last_updated(self, cell, status):
         try:

@@ -481,7 +481,7 @@ class _TableHeaderTokenizer(_Tokenizer):
             (constants.HEADER_CONTENTS_TYPE, r'(Contents|contents)'),
             (constants.HEADER_CONTROL_TYPE_TYPE, r'(Control|control)[ \t\n]*(Type|type)'),
             (constants.HEADER_CONTROL_TYPE, r'(Control|control)'),
-            (constants.HEADER_EXPERIMENT_ID_TYPE, r'([Ee]xperiment)[ \t\n]*(ID|id)'),
+            (constants.HEADER_EXPERIMENT_ID_TYPE, r'([Ee]xperiment)[ \t\n]*([Ii][Dd])'),
             (constants.HEADER_EXPERIMENT_STATUS_TYPE, r'([Ee]xperiment)[ \t\n]*([Ss]tatus)'),
             (constants.HEADER_FILE_TYPE_TYPE, r'(File|file)[ \t\n]*-[ \t\n]*(Type|type)'),
             (constants.HEADER_LAST_UPDATED_TYPE, r'(Last|last)[ \t\n]*(Update|update)'),

@@ -1,11 +1,8 @@
-from datetime import datetime
 from http import HTTPStatus
 from intent_parser.server.http_message import HttpMessage
 from intent_parser.server.intent_parser_server import IntentParserServer
-from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
 from unittest.mock import Mock, patch
 import intent_parser.constants.intent_parser_constants as ip_constants
-import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.utils.intent_parser_view as intent_parser_view
 import json
 import unittest
@@ -44,27 +41,6 @@ class IntentParserServerTest(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_process_experiment_status_table(self):
-        http_body = {'documentId': '1fFcxyJyheMrzSsVoSsO6v7qHJKFf_0heIFtqEur02cg'}
-        http_message = HttpMessage()
-        http_message.set_body(json.dumps(http_body).encode('utf-8'))
-
-        expected_structured_request = {dc_constants.LAB: 'Transcriptic'}
-        self.mock_intent_parser.get_structured_request.return_value = expected_structured_request
-        self.mock_intent_parser.get_validation_errors.return_value = []
-        status_table = ExperimentStatusTableParser()
-        status_table.add_status('annotated',
-                                datetime.datetime(2020, 6, 6, 2, 7, 14),
-                                False,
-                                'agave://data-sd2e-community/uploads/transcriptic/202006/r1egb6rhggaqwt/metadata-74d1ab18139c-200606T0206.json')
-        self.mock_ta4_db_accessor.execute_experiment.return_value = {'experiment.transcriptic.r1egb6rhggaqwt': status_table}
-
-        response = self.ip_server.process_report_experiment_status(http_message)
-        expected_actions = {'actions': [intent_parser_view.create_table_template(warnings)]}
-        self._verify_response_status(response, HTTPStatus.OK)
-        self._verify_response_body(response, expected_actions)
-
-
     def test_process_execute_experiment(self):
         http_host = 'fake_host'
         http_message = HttpMessage()
@@ -73,7 +49,6 @@ class IntentParserServerTest(unittest.TestCase):
         expected_response = 'The request was successful'
         experiment_request = {'documentId': document_id}
         expected_actions = {'actions': [intent_parser_view.message_dialog('Experiment Execution Status', expected_response)]}
-        self.mock_intent_parser.process_experiment_run_request.return_value = experiment_request
         self.mock_intent_parser.get_experiment_request.return_value = experiment_request
         self.mock_intent_parser.get_validation_warnings.return_value = []
         self.mock_intent_parser.get_validation_errors.return_value = []
@@ -133,7 +108,7 @@ class IntentParserServerTest(unittest.TestCase):
         response = self.ip_server.process_document_request(http_message)
         self._verify_response_status(response, HTTPStatus.OK)
         self._verify_response_body(response, expected_structured_request)
-    
+
     def test_process_document_request_validation_errors(self):
         expected_validation_errors = {'errors': ['error1', 'error2', 'error3']}
         self.mock_intent_parser.get_validation_errors.return_value = expected_validation_errors['errors']

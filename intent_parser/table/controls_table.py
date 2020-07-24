@@ -1,6 +1,7 @@
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.table.cell_parser as cell_parser
+import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
 
 class ControlsTable(object):
@@ -44,22 +45,22 @@ class ControlsTable(object):
             if intent_parser_constants.HEADER_CONTROL_TYPE_TYPE == cell_type:
                 control_type = self._process_control_type(cell)
                 if control_type:
-                    control_data['type'] = control_type
+                    control_data[dc_constants.TYPE] = control_type
             elif intent_parser_constants.HEADER_STRAINS_TYPE == cell_type:
                 strains = self._process_control_strains(cell)    
                 if strains:
-                    control_data['strains'] = strains
+                    control_data[dc_constants.STRAINS] = strains
             elif intent_parser_constants.HEADER_CHANNEL_TYPE == cell_type:
                 channel = self._process_channels(cell)
                 if channel:
-                    control_data['channel'] = channel
+                    control_data[dc_constants.CHANNEL] = channel
             elif intent_parser_constants.HEADER_CONTENTS_TYPE == cell_type:
                 contents = self._process_contents(cell)
                 if contents:
-                    control_data['contents'] = contents
+                    control_data[dc_constants.CONTENTS] = contents
             elif intent_parser_constants.HEADER_TIMEPOINT_TYPE == cell_type:
                 timepoint = self._process_timepoint(cell)
-                control_data['timepoints'] = timepoint 
+                control_data[dc_constants.TIMEPOINTS] = timepoint
                 
         return control_data 
     
@@ -110,8 +111,8 @@ class ControlsTable(object):
             for value_unit in cell_parser.PARSER.process_values_unit(cell.get_text(),
                                                                      units=self._timepoint_units,
                                                                      unit_type='timepoints'):
-                timepoint = {'value': float(value_unit['value']),
-                             'unit': value_unit['unit']}
+                timepoint = {dc_constants.VALUE: float(value_unit[dc_constants.VALUE]),
+                             dc_constants.UNIT: value_unit[dc_constants.UNIT]}
                 result.append(timepoint)
             return result
         except TableException as err:

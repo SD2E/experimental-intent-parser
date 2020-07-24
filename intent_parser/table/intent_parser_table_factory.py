@@ -67,8 +67,7 @@ class IntentParserTableFactory(object):
                 cell = intent_parser_table.get_cell(row_index, col_index)
                 header = cell_parser.PARSER.get_header_type(cell.get_text())
                 header_values.append(header)
-            # header_values = {cell_parser.PARSER.get_header_type(column) for column in row}
-            
+
             if _CONTROLS_TABLE_HEADER.issubset(set(header_values)) \
                 or _MEASUREMENT_TABLE_HEADER.issubset(set(header_values)) \
                 or _PARAMETER_TABLE_HEADER.issubset(set(header_values)) \
