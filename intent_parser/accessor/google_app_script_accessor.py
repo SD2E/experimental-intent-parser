@@ -1,18 +1,20 @@
+from google.auth.transport.requests import AuthorizedSession
 from googleapiclient.discovery import build
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.script_addon_utils as script_addon_utils
 import datetime
 import logging
 
-class GoogleAppScriptAccessor:
+class GoogleAppScriptAccessor(object):
     """ 
     A list of APIs to access a Google Add-on Script Project.
     Refer to https://developers.google.com/apps-script/api/reference/rest to get information on how this class is set up.
     """
     logger = logging.getLogger('intent_parser_google_app_script_accessor')
 
-    def __init__(self, creds):
-        self._service = build('script', 'v1', credentials=creds)
+    def __init__(self, credentials):
+        self._service = build('script', 'v1', credentials=credentials)
+        self._authed_session = AuthorizedSession(credentials)
     
     def get_project_metadata(self, script_id, version_number=None):
         """

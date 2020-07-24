@@ -1,10 +1,13 @@
 from intent_parser.intent_parser import IntentParser
 from intent_parser.lab_experiment import LabExperiment
+import logging
 
 class IntentParserFactory(object):
     """
     Creator for Intent Parser
     """
+
+    logger = logging.getLogger('intent_parser')
 
     def __init__(self, datacatalog_config, sbh, sbol_dictionary):
         self.datacatalog_config = datacatalog_config 

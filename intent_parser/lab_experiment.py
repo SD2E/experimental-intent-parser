@@ -3,6 +3,8 @@ from intent_parser.intent_parser_exceptions import ConnectionException
 from http import HTTPStatus
 import intent_parser.constants.google_doc_api_constants as doc_constants
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
+import logging
+import traceback
 
 class LabExperiment(object):
     """
@@ -10,14 +12,15 @@ class LabExperiment(object):
         - Google Doc 
         - Microsoft Word Document 
     """
-    
+
+    logger = logging.getLogger('intent_parser')
+
     def __init__(self, document_id, bookmarks={}):
         self._document_id = document_id
         self._bookmarks = bookmarks
     
     def load_from_google_doc(self):
         try:
-
             doc_accessor = GoogleAccessor().get_google_doc_accessor()
             drive_accessor = GoogleAccessor().get_google_drive_accessor()
             document = doc_accessor.get_document(document_id=self._document_id)
@@ -28,7 +31,8 @@ class LabExperiment(object):
             self._tables = self._get_tables_from_doc(document)
             self._title = intent_parser_utils.get_element_type(document, 'title')
             return document
-        except Exception:
+        except Exception as ex:
+            self.logger.warning(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
             raise ConnectionException(HTTPStatus.NOT_FOUND, 'Failed to access document ' + self._document_id)
 
     def load_metadata_from_google_doc(self):

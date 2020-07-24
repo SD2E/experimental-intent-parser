@@ -7,6 +7,7 @@ class GoogleAccessorTest(unittest.TestCase):
         self.spreadsheet_accessor = GoogleAccessor().get_google_spreadsheet_accessor()
         self.doc_accessor = GoogleAccessor().get_google_doc_accessor()
         self.drive_accessor = GoogleAccessor().get_google_drive_accessor()
+        self.app_script_acccessor = GoogleAccessor().get_google_app_script_accessor()
 
     def tearDown(self):
         pass
@@ -22,6 +23,10 @@ class GoogleAccessorTest(unittest.TestCase):
         self.drive_accessor.move_file_to_folder(folder_id, spreadsheet_id)
         self.assertTrue(spreadsheet_id)
         self.assertTrue(self.drive_accessor.delete_file(spreadsheet_id))
+
+    def test_app_script(self):
+        pass
+
 
 if __name__ == "__main__":
     unittest.main()

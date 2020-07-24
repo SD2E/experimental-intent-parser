@@ -68,7 +68,7 @@ class IntentParserServer(object):
         self.shutdownThread = False
         self.event = threading.Event()
         self.curr_running_threads = {}
-        self.client_thread_lock = threading.Lock() 
+        self.client_thread_lock = threading.Lock()
         self.sparql_similar_count_cache = {}
         self.spellCheckers = {}
         # Dictionary per-user that stores analyze associations to ignore
@@ -1188,8 +1188,7 @@ class IntentParserServer(object):
         lab_name = experiment_status[dc_constants.LAB]
         exp_id_to_ref_table = experiment_status[dc_constants.EXPERIMENT_ID]
         ref_table_to_statuses = experiment_status[dc_constants.STATUS_ELEMENT]
-        db_id = '1fFcxyJyheMrzSsVoSsO6v7qHJKFf_0heIFtqEur02cg'
-        db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(db_id, lab_name)
+        db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(document_id, lab_name)
         for db_experiment_id, db_statuses_table in db_exp_id_to_statuses.items():
             intent_parser.process_table_indices()
 
@@ -1558,9 +1557,9 @@ class IntentParserServer(object):
                 self.socket.close()
             except OSError:
                 return
-            for key in self.curr_running_threads:
+            for key in self.curr_running_threads.keys():
                 client_thread = self.curr_running_threads[key]
-                if client_thread.isAlive():
+                if client_thread.is_alive():
                     client_thread.join()
                     
         logger.info('Shutdown complete')
