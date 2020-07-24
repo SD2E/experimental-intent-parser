@@ -2,7 +2,6 @@ from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
 from datetime import timedelta
 from requests.exceptions import HTTPError
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-import argparse
 import json
 import logging
 import os.path
@@ -13,7 +12,7 @@ import traceback
 logger = logging.getLogger('experiment_status_script')
 SYNC_PERIOD = timedelta(minutes=10)
 
-def perform_automatic_run(documents):
+def perform_automatic_run():
     try:
         documents = _get_documents_from_ip()
         while len(documents) > 0:
@@ -86,11 +85,6 @@ def setup_logging(
     logging.getLogger("googleapiclient.discovery").setLevel(logging.CRITICAL)
 
 def main():
-    parser = argparse.ArgumentParser(description='Script to synchronize experiment status tables across Experiment Docs.')
-    parser.add_argument('-f', '--folder_id', nargs='?',
-                        required=True, help='Google Drive folder id.')
-
-    input_args = parser.parse_args()
     setup_logging()
 
     try:

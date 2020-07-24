@@ -1,5 +1,5 @@
 var serverURL = 'http://intentparser.sd2e.org';
-var versionString = '2.6';
+var versionString = '2.7';
 
 function onOpen() {
 	const ui = DocumentApp.getUi();
@@ -19,7 +19,7 @@ function onOpen() {
 	menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling');
 	menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor');
 	menu.addItem('Update experimental results', 'updateExperimentalResults');
-	menu.addItem('Execute Experiment', 'executeExperiment');
+	menu.addItem('Request Experiment Execution', 'executeExperiment');
 	menu.addItem('Report Experiment Status', 'reportExperimentStatus');
 	menu.addSubMenu(tablesMenu);
 	menu.addItem('File Issues', 'reportIssues');

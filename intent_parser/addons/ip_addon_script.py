@@ -137,7 +137,7 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
         else:
             try:
                 logger.info('Creating add-on for doc: %s' % r_id)
-                script_proj_title='IPProject Release'
+                script_proj_title = 'IPProject Release'
                 response = app_script_access.create_project(script_proj_title, r_id)
                 script_id = response['scriptId']
                 
