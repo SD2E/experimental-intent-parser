@@ -296,13 +296,9 @@ class IntentParserSBH(object):
                 ?entity dcterms:title ?title
         }
         """ %(target_collection)
-        response = self.sbh.sparqlQuery(query)
+        response = self.sbh.sparqlQuery(query).json()
         experiments = []
-        if response.status_code() != HTTPStatus.OK:
-            self.logger.warning('Unable to query from SynBioHub. HTTP %s' % response.status_code)
-            return experiments
-        sbh_query = response.json()
-        for m in sbh_query['results']['bindings']:
+        for m in response['results']['bindings']:
             uri = m['entity']['value']
             timestamp = m['timestamp']['value']
             title = m['title']['value']

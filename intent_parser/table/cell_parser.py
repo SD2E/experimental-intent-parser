@@ -15,9 +15,11 @@ class CellParser(object):
                     'uM': 'micromole'}
     _temperature_units = {'Celsius': 'celsius',
                           'celsius': 'celsius',
+                          'C': 'celsius',
                           'c': 'celsius',
                           'Fahrenheit': 'fahrenheit',
                           'fahrenheit': 'fahrenheit',
+                          'F': 'fahrenheit',
                           'f': 'fahrenheit'}
     _timepoint_units = {'hours': 'hour',
                         'hr': 'hour',

@@ -2,7 +2,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from intent_parser.accessor.google_app_script_accessor import GoogleAppScriptAccessor
 from intent_parser.accessor.google_doc_accessor import GoogleDocAccessor
-from intent_parser.accessor.google_drive_accessor import GoogleDriveAccessor
+from intent_parser.accessor.google_drive_accessor import GoogleDriveV2Accessor, GoogleDriveV3Accessor
 from intent_parser.accessor.google_spreadsheet_accessor import GoogleSpreadsheetAccessor
 import os.path
 import logging
@@ -35,7 +35,8 @@ class GoogleAccessor(object):
     _GOOGLE_ACCESSOR = None
     _GOOGLE_APP_SCRIPT_ACCESSOR = None
     _GOOGLE_DOC_ACCESSOR = None
-    _GOOGLE_DRIVE_ACCESSOR = None
+    _GOOGLE_DRIVE_V2_ACCESSOR = None
+    _GOOGLE_DRIVE_V3_ACCESSOR = None
     _GOOGLE_SPREADSHEET_ACCESSOR = None
 
     def __init__(self):
@@ -83,11 +84,16 @@ class GoogleAccessor(object):
         self._GOOGLE_DOC_ACCESSOR = GoogleDocAccessor(self._CREDENTIALS)
         return self._GOOGLE_DOC_ACCESSOR
 
-    def get_google_drive_accessor(self):
-        if self._GOOGLE_DRIVE_ACCESSOR:
-            return self._GOOGLE_DRIVE_ACCESSOR
-        self._GOOGLE_DRIVE_ACCESSOR = GoogleDriveAccessor(self._CREDENTIALS)
-        return self._GOOGLE_DRIVE_ACCESSOR
+    def get_google_drive_accessor(self, version=2):
+        if version == 3:
+            if not self._GOOGLE_DRIVE_V3_ACCESSOR:
+                self._GOOGLE_DRIVE_V3_ACCESSOR = GoogleDriveV3Accessor(self._CREDENTIALS)
+            return self._GOOGLE_DRIVE_V3_ACCESSOR
+
+        if not self._GOOGLE_DRIVE_V2_ACCESSOR:
+            self._GOOGLE_DRIVE_V2_ACCESSOR = GoogleDriveV2Accessor(self._CREDENTIALS)
+
+        return self._GOOGLE_DRIVE_V2_ACCESSOR
 
     def get_google_spreadsheet_accessor(self):
         if self._GOOGLE_SPREADSHEET_ACCESSOR:

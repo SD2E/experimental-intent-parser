@@ -236,7 +236,7 @@ class IntentParserServer(object):
         """
         Retrieve experiment request documents.
         """
-        drive_accessor = GoogleAccessor.get_google_drive_accessor()
+        drive_accessor = GoogleAccessor().get_google_drive_accessor(version=3)
         er_docs = drive_accessor.get_all_docs(intent_parser_constants.GOOGLE_DRIVE_EXPERIMENT_REQUEST_FOLDER)
         return self._create_http_response(HTTPStatus.OK,
                                           json.dumps({'docId': er_docs}),
@@ -254,8 +254,13 @@ class IntentParserServer(object):
             return self._create_http_response(HTTPStatus.BAD_REQUEST,
                                               json.dumps({'errors': intent_parser.get_validation_errors()}),
                                               'application/json')
+        experiment_status = intent_parser.get_experiment_status_request()
+        result = {dc_constants.LAB: experiment_status[dc_constants.LAB],
+                  dc_constants.EXPERIMENT_ID: experiment_status[dc_constants.EXPERIMENT_ID]}
+        for status in experiment_status[dc_constants.STATUS_ELEMENT]:
+            pass
         return self._create_http_response(HTTPStatus.OK,
-                                          json.dumps(intent_parser.get_experiment_status_request()),
+                                          json.dumps(result),
                                           'application/json')
 
     def process_run_experiment(self, http_message):
@@ -947,8 +952,8 @@ class IntentParserServer(object):
                     logger.info('Loaded dictionary for userId, path: %s' % dict_path)
                     self.spellCheckers[userId].word_frequency.load_dictionary(dict_path)
 
-            lab_experiment = self.intent_parser_factory.create_lab_experiment() 
-            doc = lab_experiment.load_from_google_doc(document_id)
+            lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
+            doc = lab_experiment.load_from_google_doc()
             paragraphs = lab_experiment.paragraphs() 
             if 'data' in json_body:
                 data = json_body['data']
@@ -1183,6 +1188,7 @@ class IntentParserServer(object):
         lab_name = experiment_status[dc_constants.LAB]
         exp_id_to_ref_table = experiment_status[dc_constants.EXPERIMENT_ID]
         ref_table_to_statuses = experiment_status[dc_constants.STATUS_ELEMENT]
+        db_id = '1fFcxyJyheMrzSsVoSsO6v7qHJKFf_0heIFtqEur02cg'
         db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(db_id, lab_name)
         for db_experiment_id, db_statuses_table in db_exp_id_to_statuses.items():
             intent_parser.process_table_indices()
@@ -1384,8 +1390,8 @@ class IntentParserServer(object):
         json_body = intent_parser_utils.get_json_body(http_message)
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
         
-        lab_experiment = self.intent_parser_factory.create_lab_experiment()
-        doc = lab_experiment.load_from_google_doc(document_id)
+        lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
+        doc = lab_experiment.load_from_google_doc()
          
         self.analyze_processing_lock[document_id] = threading.Lock()
         self.analyze_processing_lock[document_id].acquire()
@@ -1437,8 +1443,8 @@ class IntentParserServer(object):
         self.analyze_processing_map_lock.release()
 
         doc_id = client_state['document_id']
-        lab_experiment = self.intent_parser_factory.create_lab_experiment()
-        lab_experiment.load_from_google_doc(doc_id)
+        lab_experiment = self.intent_parser_factory.create_lab_experiment(doc_id)
+        lab_experiment.load_from_google_doc()
         paragraphs = lab_experiment.paragraphs()
 
         item_map = self.sbol_dictionary.get_common_names_to_uri()

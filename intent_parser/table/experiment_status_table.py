@@ -150,7 +150,7 @@ class ExperimentStatusTableParser(object):
         elif status.status_type == ta4_constants.OBS_LOAD:
             self.status_obs_load = status
         else:
-            self._logger('%s is not a experiment status supported in Intent Parser' % status.status_type)
+            self._logger.warning('%s is not a experiment status supported in Intent Parser' % status.status_type)
 
     def _process_status_type(self, cell, status):
         cell_text = cell.get_text()

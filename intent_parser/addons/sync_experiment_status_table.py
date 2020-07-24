@@ -23,7 +23,6 @@ def perform_automatic_run():
         logger.warning(f'HTTP error occurred: {http_err}')
 
 def _process_document(document_id):
-
     mongodb_accessor = TA4DBAccessor()
     try:
         experiment_statuses = _get_experiment_status_tables(document_id)

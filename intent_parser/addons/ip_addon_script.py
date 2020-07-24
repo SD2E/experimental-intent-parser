@@ -16,7 +16,7 @@ from googleapiclient import errors
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from intent_parser.accessor.google_app_script_accessor import GoogleAppScriptAccessor
-from intent_parser.accessor.google_drive_accessor import GoogleDriveAccessor
+from intent_parser.accessor.google_drive_accessor import GoogleDriveV3Accessor
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.utils.intent_parser_utils as util
 import json
@@ -102,7 +102,7 @@ def setup_logging(
 
 def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'):
     creds = authenticate_credentials()
-    drive_access = GoogleDriveAccessor(creds)
+    drive_access = GoogleDriveV3Accessor(creds)
     app_script_access = GoogleAppScriptAccessor(creds) 
     
     local_docs = util.load_json_file(ADDON_FILE)

@@ -462,7 +462,7 @@ class IntentParser(object):
             status_table_parser = ExperimentStatusTableParser(table, self.sbol_dictionary.map_common_names_and_tacc_id())
             status_table_parser.process_table()
             table_id_to_statuses[status_table_parser.get_table_caption()] = status_table_parser
-            self.experiment_status_tables[table.caption()] = table
+            self.experiment_status_tables[table.caption()] = status_table_parser
         return table_id_to_statuses
     
     def _process_lab_table(self, lab_tables):
@@ -520,8 +520,8 @@ class IntentParser(object):
                 parameter_table.set_experiment_ref(self._get_experiment_reference_url())
                 return parameter_table.get_experiment()
             return [parameter_table.get_structured_request()]
-        except DictionaryMaintainerException as err:
-            self.validation_errors.extend(err.get_message())
+        except (DictionaryMaintainerException, TableException) as err:
+            self.validation_errors.extend([err.get_message()])
 
     def _filter_tables_by_type(self):
         list_of_tables = self.lab_experiment.tables()
