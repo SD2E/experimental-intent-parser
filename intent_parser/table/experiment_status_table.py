@@ -57,6 +57,27 @@ class ExperimentStatusTableParser(object):
     def num_of_rows(self):
         return 10
 
+    def to_dict(self):
+        result = {}
+        if self.status_xplan_request_submitted:
+           result[self.status_xplan_request_submitted.status_type] = self.status_xplan_request_submitted.to_dict()
+        if self.status_uploaded:
+            result[self.status_uploaded.status_type] = self.status_uploaded.to_dict()
+        if self.status_converted:
+            result[self.status_converted.status_type] = self.status_converted.to_dict()
+        if self.status_mtypes:
+            result[self.status_mtypes.status_type] = self.status_mtypes.to_dict()
+        if self.status_comparison_passed:
+            result[self.status_comparison_passed.status_type] = self.status_comparison_passed.to_dict()
+        if self.status_annotated:
+            result[self.status_annotated.status_type] = self.status_annotated.to_dict()
+        if self.status_ingested:
+            result[self.status_ingested.status_type] = self.status_ingested.to_dict()
+        if self.status_obs_load:
+            result[self.status_obs_load.status_type] = self.status_obs_load.to_dict()
+
+        return result
+
     def get_statuses(self):
         """
         Retrieve statuses parsed form the table.
@@ -251,3 +272,10 @@ class ExperimentStatusTableParser(object):
 
         def get_path(self):
             return self.path
+
+        def to_dict(self):
+            return {
+                    'last_updated': self.last_updated,
+                    'state': self.state,
+                    'path': self.path
+            }

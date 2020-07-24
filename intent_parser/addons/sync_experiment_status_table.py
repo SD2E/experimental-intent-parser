@@ -1,4 +1,5 @@
 from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
+from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
 from datetime import timedelta
 from requests.exceptions import HTTPError
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
@@ -29,11 +30,13 @@ def _process_document(document_id):
         lab_name = experiment_statuses[dc_constants.LAB]
         exp_id_to_table_id = experiment_statuses[dc_constants.EXPERIMENT_ID]
         table_id_to_statuses = experiment_statuses[dc_constants.STATUS_ELEMENT]
+        table_id_to_status_tables = _create_status_tables(table_id_to_statuses)
+
         db_exp_id_to_statuses = mongodb_accessor.get_experiment_status(document_id, lab_name)
         for db_exp_id, db_status_table in db_exp_id_to_statuses:
             if db_exp_id in exp_id_to_table_id:
                 table_id = set(exp_id_to_table_id[db_exp_id])
-                if db_status_table != table_id_to_statuses(table_id):
+                if db_status_table != table_id_to_status_tables(table_id):
                     logger.warning('Updating experiment status for document id: %s' % document_id)
                     execute_request('update_experiment_status?%s' % document_id)
                 else:
@@ -41,6 +44,18 @@ def _process_document(document_id):
 
     except HTTPError as http_err:
         logger.warning(f'HTTP error occurred: {http_err}')
+
+def _create_status_tables(table_id_to_statuses):
+    table_id_to_status_table = {}
+    for table_id, status_dict in table_id_to_statuses.items():
+        for status_type, status_prop in status_dict.items():
+            status_table = ExperimentStatusTableParser()
+            last_updated = status_prop['last_updated']
+            state = status_prop['state']
+            path = status_prop['path']
+            status_table.add_status(status_type, last_updated, state, path)
+        table_id_to_status_table[table_id] = status_table
+    return table_id_to_status_table
 
 def _get_documents_from_ip():
     response = execute_request('experiment_request_documents')

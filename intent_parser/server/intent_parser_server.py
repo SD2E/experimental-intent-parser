@@ -257,10 +257,10 @@ class IntentParserServer(object):
         experiment_status = intent_parser.get_experiment_status_request()
         result = {dc_constants.LAB: experiment_status[dc_constants.LAB],
                   dc_constants.EXPERIMENT_ID: experiment_status[dc_constants.EXPERIMENT_ID]}
-        for status in experiment_status[dc_constants.STATUS_ELEMENT]:
-            pass
+        for table_id, status_table in experiment_status[dc_constants.STATUS_ELEMENT].items():
+            result[table_id] = status_table.to_dict()
         return self._create_http_response(HTTPStatus.OK,
-                                          json.dumps(result),
+                                          json.dumps(experiment_status),
                                           'application/json')
 
     def process_run_experiment(self, http_message):
@@ -1188,8 +1188,7 @@ class IntentParserServer(object):
         lab_name = experiment_status[dc_constants.LAB]
         exp_id_to_ref_table = experiment_status[dc_constants.EXPERIMENT_ID]
         ref_table_to_statuses = experiment_status[dc_constants.STATUS_ELEMENT]
-        db_id = '1fFcxyJyheMrzSsVoSsO6v7qHJKFf_0heIFtqEur02cg'
-        db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(db_id, lab_name)
+        db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(document_id, lab_name)
         for db_experiment_id, db_statuses_table in db_exp_id_to_statuses.items():
             intent_parser.process_table_indices()
 
