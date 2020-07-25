@@ -18,22 +18,6 @@ _abbreviated_unit_dict = {'fluid' : _fluid_units,
                           'timepoints' : _timepoint_units
                           }
 
-def parse_cell(cell):
-    content = cell['content']
-    for paragraph_index in range(len(content)):
-        paragraph = content[paragraph_index]['paragraph']
-        url = None
-        
-        if 'link' in paragraph and 'url' in paragraph['link']:
-            url = paragraph['link']['url']
-            
-        list_of_contents = []
-        for element in paragraph['elements']: 
-            result = element['textRun']['content']
-            list_of_contents.append(result)
-        flatten_content = ''.join(list_of_contents)
-        yield flatten_content, url
-
 def detect_new_measurement_table(table):
     """
     Scan the header row to see if it contains what we expect in a new-style measurements table.
@@ -43,15 +27,14 @@ def detect_new_measurement_table(table):
     found_measurement_type = False
     found_file_type = False
 
-    rows = table['tableRows']
+    rows = table['table']['tableRows']
     headerRow = rows[1]
     for cell in headerRow['tableCells']:
         cellTxt = intent_parser_utils.get_paragraph_text(cell['content'][0]['paragraph']).strip()
-        found_replicates |= cellTxt == intent_parser_constants.COL_HEADER_REPLICATE 
-        found_strain |= cellTxt == intent_parser_constants.COL_HEADER_STRAIN 
-        found_measurement_type |= cellTxt == intent_parser_constants.COL_HEADER_MEASUREMENT_TYPE
-        found_file_type |= cellTxt == intent_parser_constants.COL_HEADER_FILE_TYPE 
-
+        found_replicates |= cellTxt == intent_parser_constants.HEADER_REPLICATE_VALUE
+        found_strain |= cellTxt == intent_parser_constants.HEADER_STRAINS_VALUE
+        found_measurement_type |= cellTxt == intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE
+        found_file_type |= cellTxt == intent_parser_constants.HEADER_FILE_TYPE_VALUE
     return found_replicates and found_strain and found_measurement_type and found_file_type
 
 def is_number(cell):

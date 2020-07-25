@@ -371,7 +371,7 @@
             ]
         }
     ],
-    "doc_revision_id": "264",
+    "doc_revision_id": "274",
     "parameters": [
         {
             "inoc_info.inoc_vol": "10:microliter",
@@ -397,5 +397,6 @@
         "value": 16.0,
         "unit": "hour"
     },
-    "recovery_loops": []
+    "recovery_loops": [],
+    "protocol": "TimeSeriesHTP"
 }

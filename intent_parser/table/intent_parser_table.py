@@ -8,24 +8,35 @@ class IntentParserTable(object):
         self._rows = [] 
         self._caption_index = None  
         self._header_index = None
+        self._table_start_index = None
+        self._table_end_index = None
 
     def add_row(self, row):
         self._rows.append(row)
     
     def caption(self):
-        if self._caption_index is None:
-            return ''
-        row = self.get_row(self._caption_index)
-        for col_index in range(len(row)):
-            cell = self.get_cell(self._caption_index, col_index)
-            if cell_parser.PARSER.is_table_caption(cell):
-                return cell_parser.PARSER.process_table_caption(cell)
-        return ''
+        """
+        Process table caption.
+        Returns:
+            An integer value representing the table index. If no caption exist, then None is returned.
+        """
+        if self._caption_index is not None:
+            row = self.get_row(self._caption_index)
+            for col_index in range(len(row)):
+                cell = self.get_cell(self._caption_index, col_index)
+                if cell_parser.PARSER.is_table_caption(cell.get_text()):
+                    return cell_parser.PARSER.process_table_caption_index(cell.get_text())
+        return None
     
     def caption_row_index(self):
+        """
+        Retrieves the row index where the caption appears in this table.
+        Returns:
+            An integer.
+        """
         return self._caption_index
     
-    def data_row_index(self):
+    def data_row_start_index(self):
         header_index = self.header_row_index()
         if header_index is None:
             return None
@@ -37,7 +48,13 @@ class IntentParserTable(object):
         row = self.get_row(row_index)
         if col_index < 0 or col_index >= len(row):
             raise IndexError('Cannot access cell (%s, %s)' % (row_index, col_index))
-        return self._rows[row_index][col_index] 
+        return self._rows[row_index][col_index]
+
+    def get_table_start_index(self):
+        return self._table_start_index
+
+    def get_table_end_index(self):
+        return self._table_end_index
     
     def header_row_index(self):
         if self._header_index is None:
@@ -62,6 +79,9 @@ class IntentParserTable(object):
         
     def set_header_row_index(self, index):
         self._header_index = index
-    
-        
-        
+
+    def set_table_start_index(self, index):
+        self._table_start_index = index
+
+    def set_table_end_index(self, index):
+        self._table_end_index = index

@@ -407,7 +407,7 @@
             ]
         }
     ],
-    "doc_revision_id": "440",
+    "doc_revision_id": "495",
     "parameters": [
         {
             "inoc_info.inoc_vol": "5:microliter",
@@ -431,5 +431,6 @@
         "value": 16.0,
         "unit": "hour"
     },
-    "recovery_loops": []
+    "recovery_loops": [],
+    "protocol": "GrowthCurve"
 }

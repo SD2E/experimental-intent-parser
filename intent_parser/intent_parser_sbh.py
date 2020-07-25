@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from intent_parser.accessor.sbh_accessor import SBHAccessor
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.utils.intent_parser_view as intent_parser_view
@@ -295,8 +296,7 @@ class IntentParserSBH(object):
                 ?entity dcterms:title ?title
         }
         """ %(target_collection)
-        response = self.sbh.sparqlQuery(query)
-    
+        response = self.sbh.sparqlQuery(query).json()
         experiments = []
         for m in response['results']['bindings']:
             uri = m['entity']['value']
@@ -306,7 +306,7 @@ class IntentParserSBH(object):
             if self.sbh_spoofing_prefix is not None: # We need to re-spoof the URL
                 uri = uri.replace(self.sbh_spoofing_prefix, self.sbh_url)
             
-            experiments.append({'uri': uri, 'timestamp': timestamp, 'title' : title})
+            experiments.append({'uri': uri, 'timestamp': timestamp, 'title': title})
         
         return experiments
     
@@ -337,8 +337,8 @@ class IntentParserSBH(object):
                 <%s> sd2:experimentReferenceURL ?request_url .
         }
         """ %(experiment_uri)
-        response = self.sbh.sparqlQuery(query)
-        request_url = [ m['request_url']['value'] for m in response['results']['bindings']]
+        response = self.sbh.sparqlQuery(query).json()
+        request_url = [m['request_url']['value'] for m in response['results']['bindings']]
         
         if request_url:
             return request_url[0]
@@ -372,7 +372,7 @@ class IntentParserSBH(object):
                 <%s> prov:wasDerivedFrom ?source .
         }
         """ %(experiment_uri)
-        response = self.sbh.sparqlQuery(query)
+        response = self.sbh.sparqlQuery(query).json()
         source = [ m['source']['value'] for m in response['results']['bindings']]
         return source
 

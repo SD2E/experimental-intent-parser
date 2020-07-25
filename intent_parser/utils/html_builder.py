@@ -1,7 +1,7 @@
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import os
 
-class AddHtmlBuilder(): 
+class AddHtmlBuilder(object):
     def __init__(self):
         _curr_path = os.path.dirname(os.path.realpath(__file__))
         html_file = intent_parser_utils.load_file(os.path.join(_curr_path, 'add.html'))
@@ -46,7 +46,7 @@ class AddHtmlBuilder():
     def build(self):
         return self.html
 
-class AnalyzeHtmlBuilder():
+class AnalyzeHtmlBuilder(object):
     def __init__(self):
         _curr_path = os.path.dirname(os.path.realpath(__file__))
         html_file = intent_parser_utils.load_file(os.path.join(_curr_path, 'analyze_sidebar.html'))
@@ -66,9 +66,9 @@ class AnalyzeHtmlBuilder():
     def button_script(self, button_script):
         self.html = self.html.replace('${BUTTONS_SCRIPT}', button_script)
     def build(self):
-        return self.htm
+        return self.html
 
-class ControlsTableHtmlBuilder():
+class ControlsTableHtmlBuilder(object):
     def __init__(self):
         _curr_path = os.path.dirname(os.path.realpath(__file__))
         html_file = intent_parser_utils.load_file(os.path.join(_curr_path, 'create_controls_table.html'))
@@ -80,7 +80,7 @@ class ControlsTableHtmlBuilder():
     def build(self):
         return self.html
 
-class MeasurementTableHtmlBuilder():
+class MeasurementTableHtmlBuilder(object):
     def __init__(self):
         _curr_path = os.path.dirname(os.path.realpath(__file__))
         html_file = intent_parser_utils.load_file(os.path.join(_curr_path, 'create_measurements_table.html'))
@@ -96,7 +96,7 @@ class MeasurementTableHtmlBuilder():
     def build(self):
         return self.html
     
-class ParameterTableHtmlBuilder():
+class ParameterTableHtmlBuilder(object):
     def __init__(self):
         _curr_path = os.path.dirname(os.path.realpath(__file__))
         html_file = intent_parser_utils.load_file(os.path.join(_curr_path, 'create_parameter_table.html'))
@@ -107,6 +107,3 @@ class ParameterTableHtmlBuilder():
         self.html = self.html.replace('${PROTOCOLOPTIONS}', html_protocols)
     def build(self):
         return self.html
-    
-    
-    
