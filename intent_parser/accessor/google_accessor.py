@@ -73,31 +73,17 @@ class GoogleAccessor(object):
                 pickle.dump(self._CREDENTIALS, token)
 
     def get_google_app_script_accessor(self):
-        if self._GOOGLE_APP_SCRIPT_ACCESSOR:
-            return self._GOOGLE_APP_SCRIPT_ACCESSOR
-        self._GOOGLE_APP_SCRIPT_ACCESSOR = GoogleAppScriptAccessor(self._CREDENTIALS)
-        return self._GOOGLE_APP_SCRIPT_ACCESSOR
+        return GoogleAppScriptAccessor(self._CREDENTIALS)
 
     def get_google_doc_accessor(self):
-        if self._GOOGLE_DOC_ACCESSOR:
-            return self._GOOGLE_DOC_ACCESSOR
-        self._GOOGLE_DOC_ACCESSOR = GoogleDocAccessor(self._CREDENTIALS)
-        return self._GOOGLE_DOC_ACCESSOR
+        return GoogleDocAccessor(self._CREDENTIALS)
 
     def get_google_drive_accessor(self, version=2):
         if version == 3:
-            if not self._GOOGLE_DRIVE_V3_ACCESSOR:
-                self._GOOGLE_DRIVE_V3_ACCESSOR = GoogleDriveV3Accessor(self._CREDENTIALS)
-            return self._GOOGLE_DRIVE_V3_ACCESSOR
+            return GoogleDriveV3Accessor(self._CREDENTIALS)
 
-        if not self._GOOGLE_DRIVE_V2_ACCESSOR:
-            self._GOOGLE_DRIVE_V2_ACCESSOR = GoogleDriveV2Accessor(self._CREDENTIALS)
-
-        return self._GOOGLE_DRIVE_V2_ACCESSOR
+        return GoogleDriveV2Accessor(self._CREDENTIALS)
 
     def get_google_spreadsheet_accessor(self):
-        if self._GOOGLE_SPREADSHEET_ACCESSOR:
-            return self._GOOGLE_SPREADSHEET_ACCESSOR
-        self._GOOGLE_SPREADSHEET_ACCESSOR = GoogleSpreadsheetAccessor(self._CREDENTIALS)
-        return self._GOOGLE_SPREADSHEET_ACCESSOR
+        return GoogleSpreadsheetAccessor(self._CREDENTIALS)
 
