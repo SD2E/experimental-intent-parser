@@ -440,7 +440,7 @@ class IntentParser(object):
         result = {}
         if not exp_specification_tables:
             message = 'No experiment specification table to parse from document.'
-            self.validation_errors.append(message)
+            self.validation_warnings.append(message)
             return result
 
         if len(exp_specification_tables) > 1:
@@ -457,7 +457,9 @@ class IntentParser(object):
         table_id_to_statuses = {}
         if not status_tables:
             message = 'No experiment status table to parse from document.'
-            self.validation_errors.append(message)
+            self.validation_warnings.append(message)
+            return table_id_to_statuses
+
         for table in status_tables:
             status_table_parser = ExperimentStatusTableParser(table, self.sbol_dictionary.map_common_names_and_tacc_id())
             status_table_parser.process_table()

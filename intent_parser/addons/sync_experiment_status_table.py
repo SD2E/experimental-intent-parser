@@ -28,6 +28,9 @@ def _process_document(document_id):
     mongodb_accessor = TA4DBAccessor()
     try:
         experiment_statuses = _get_experiment_status_tables(document_id)
+        if experiment_statuses is None:
+            logger.warning('document %s has no experiment status information to run on.' % document_id)
+            return
         lab_name = experiment_statuses[dc_constants.LAB]
         exp_id_to_table_id = experiment_statuses[dc_constants.EXPERIMENT_ID]
         table_id_to_statuses = experiment_statuses[dc_constants.STATUS_ELEMENT]
@@ -60,13 +63,15 @@ def _create_status_tables(table_id_to_statuses):
 
 def _get_documents_from_ip():
     response = execute_request('experiment_request_documents')
-    return response['docId']
+    doc_dict = response.json()
+    return doc_dict['docId']
 
 def _get_experiment_status_tables(document_id):
-    experiment_statuses = execute_request('experiment_status?%s' % document_id)
+    response = execute_request('experiment_status?%s' % document_id)
+    experiment_statuses = response.json()
 
 def execute_request(request_type):
-    request_url = 'http://intentparser.sd2e.org/%s' % (request_type)
+    request_url = 'http://intentparser2.sd2e.org/%s' % (request_type)
     response = requests.get(request_url)
     response.raise_for_status()
     return response
