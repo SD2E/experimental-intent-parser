@@ -49,9 +49,12 @@ def create_measurement_table_dialog(cursor_child_index):
     local_file_types.insert(0, 'FCS')
 
     lab_ids_html = generate_html_options(catalog_accessor.get_lab_ids())
+    time_unit_html = generate_html_options(catalog_accessor.get_time_units())
+
     measurement_types_html = generate_html_options(catalog_accessor.get_measurement_types())
-    file_types_html = generate_html_options(local_file_types)
     measurement_types_html = measurement_types_html.replace('\n', ' ')
+
+    file_types_html = generate_html_options(local_file_types)
     file_types_html = file_types_html.replace('\n', ' ')
     
     builder = MeasurementTableHtmlBuilder()
@@ -59,6 +62,7 @@ def create_measurement_table_dialog(cursor_child_index):
     builder.lab_ids_html(lab_ids_html) 
     builder.measurement_types_html(measurement_types_html) 
     builder.file_types_html(file_types_html)
+    builder.time_unit_html(time_unit_html)
     html = builder.build()
     dialog_action = modal_dialog(html, 'Create Measurements Table', 600, 600)
     return dialog_action
