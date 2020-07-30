@@ -380,8 +380,9 @@ class IntentParser(object):
                 map_experiment_reference(self.datacatalog_config, experiment_ref)
                 return experiment_ref[dc_constants.CHALLENGE_PROBLEM]
         except Exception as err:
-            self.logger.info('WARNING: Data catalog failed to map challenge problem for doc id %s!' % self.lab_experiment.document_id())
-        return self._create_default_challenge_problem()
+            message = 'Failed to map challenge problem for doc id %s! Check that this document is in the Challenge Problem folder under DARPA SD2E Shared > CP Working Groups > ExperimentalRequests' % self.lab_experiment.document_id()
+            self.validation_errors.append(message)
+            return dc_constants.UNDEFINED
 
     def _generate_request(self, control_tables, lab_tables, measurement_tables, parameter_tables):
         """Generates a structured request for a given doc id
