@@ -26,7 +26,8 @@ class LabTableTest(unittest.TestCase):
         ip_table.add_row([experiment_id_cell])
 
         table_parser = LabTable(ip_table)
-        table_content = table_parser.process_table()
+        table_parser.process_table()
+        table_content = table_parser.get_structured_request()
         self.assertEqual(table_content[dc_constants.LAB], 'abc')
         self.assertEqual(table_content[dc_constants.EXPERIMENT_ID], 'experiment.abc.defg')
         
@@ -41,7 +42,8 @@ class LabTableTest(unittest.TestCase):
         ip_table.add_row([experiment_id_cell])
 
         table_parser = LabTable(ip_table)
-        table_content = table_parser.process_table()
+        table_parser.process_table()
+        table_content = table_parser.get_structured_request()
         self.assertEqual(table_content[dc_constants.LAB], 'abc')
         self.assertEqual(table_content[dc_constants.EXPERIMENT_ID], 'experiment.abc.TBD')
     
@@ -56,7 +58,8 @@ class LabTableTest(unittest.TestCase):
         ip_table.add_row([experiment_id_cell])
 
         table_parser = LabTable(ip_table)
-        table_content = table_parser.process_table()
+        table_parser.process_table()
+        table_content = table_parser.get_structured_request()
         self.assertEqual(table_content[dc_constants.LAB], 'abc')
         self.assertEqual(table_content[dc_constants.EXPERIMENT_ID], 'experiment.abc.TBD')
         
@@ -67,8 +70,9 @@ class LabTableTest(unittest.TestCase):
         ip_table.add_row([experiment_id_cell])
 
         table_parser = LabTable(ip_table)
-        table_content = table_parser.process_table()
-        self.assertEqual(table_content[dc_constants.LAB], 'tacc')
+        table_parser.process_table()
+        table_content = table_parser.get_structured_request()
+        self.assertEqual(table_content[dc_constants.LAB], 'TACC')
         self.assertEqual(table_content[dc_constants.EXPERIMENT_ID], 'experiment.tacc.29422')
 
 if __name__ == "__main__":

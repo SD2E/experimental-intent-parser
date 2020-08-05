@@ -3,7 +3,6 @@ from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
 from intent_parser.lab_experiment import LabExperiment
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory, TableType
 from intent_parser.table.controls_table import ControlsTable
-from intent_parser.table.intent_parser_table import IntentParserTable
 from intent_parser.table.lab_table import LabTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.parameter_table import ParameterTable
@@ -322,46 +321,9 @@ class IntentParser(object):
         experimental_result['expData'] = exp_data
         experimental_result['expLinks'] = exp_links
         return experimental_result
-   
-    def _get_challenge_problem_id(self, text):
-        """
-        Find the closest matching measurement type to the given type, and return that as a string
-        """
-        # challenge problem ids have underscores, so replace spaces with underscores to make the inputs match better
-        text = text.replace(' ', '_')
-        best_match_type = None
-        best_match_size = 0
-        for cid in self.catalog_accessor.get_challenge_problem_ids():
-            matches = intent_parser_utils.find_common_substrings(text.lower(), cid.lower(), 1, 0)
-            for m in matches:
-                if m.size > best_match_size and m.size > int(0.25 * len(cid)):
-                    best_match_type = cid
-                    best_match_size = m.size
-        return best_match_type
-
-    def _create_default_challenge_problem(self):
-        cp_id = 'Unknown'
-        # This will return a parent list, which should have one or more Ids of parent directories
-        # We want to navigate those and see if they are a close match to a challenge problem ID
-        parent_list = self.lab_experiment.parents()
-        for parent_ref in parent_list['items']:
-            if not parent_ref['kind'] == 'drive#parentReference':
-                continue
-            parent_experiment = LabExperiment(parent_ref['id'])
-            parent_meta = parent_experiment.load_metadata_from_google_doc()
-            new_cp_id = self._get_challenge_problem_id(parent_meta['title'])
-            if new_cp_id:
-                cp_id = new_cp_id
-        return cp_id
 
     def _get_experiment_reference_url(self):
-        return 'https://docs.google.com/document/d/' + self.lab_experiment.document_id()
-
-    def _create_default_experiment_reference(self):
-        title = self.lab_experiment.title()[0]
-        title_toks = title.split(sep='-')
-        experiment_reference = title.split(sep='-')[1].strip() if len(title_toks) > 1 else title
-        return experiment_reference
+        return ip_constants.GOOGLE_DOC_URL_PREFIX + self.lab_experiment.document_id()
 
     def _get_experiment_reference(self):
         try:
@@ -370,8 +332,9 @@ class IntentParser(object):
                 map_experiment_reference(self.datacatalog_config, experiment_ref)
                 return experiment_ref[dc_constants.EXPERIMENT_REFERENCE]
         except Exception as err:
-            self.logger.info('WARNING: Data catalog failed to map experiment reference for doc id %s!' % self.lab_experiment.document_id())
-        return self._create_default_experiment_reference()
+            message = 'Failed to map experiment reference for doc id %s!' % self.lab_experiment.document_id()
+            self.validation_errors.append(message)
+            return dc_constants.UNKOWN
 
     def _get_challenge_problem(self):
         try:
@@ -384,13 +347,16 @@ class IntentParser(object):
             self.validation_errors.append(message)
             return dc_constants.UNDEFINED
 
+    def _get_request_name(self):
+        return self.lab_experiment.title()
+
     def _generate_request(self, control_tables, lab_tables, measurement_tables, parameter_tables):
         """Generates a structured request for a given doc id
         """
         experiment_ref = self._get_experiment_reference()
         experiment_ref_url = self._get_experiment_reference_url()
         cp_id = self._get_challenge_problem()
-        title = self.lab_experiment.title()[0]
+        title = self._get_request_name()
 
         ref_controls = self._process_control_tables(control_tables)
         lab_content = self._process_lab_table(lab_tables)
@@ -469,16 +435,17 @@ class IntentParser(object):
     def _process_lab_table(self, lab_tables):
         if not lab_tables:
             message = ('No lab table specified in this experiment. Generated default values for lab contents.')
-            self.validation_warnings.extend(message)
-            return {dc_constants.LAB: ip_constants.TACC_SERVER,
-                    dc_constants.EXPERIMENT_ID: 'experiment.%s.TBD' % ip_constants.TACC_SERVER}
-        if len(lab_tables) > 1:
-            message = ('There is more than one lab table specified in this experiment.' 
-                       'Only the last lab table identified in the document will be used for generating a request.')
-            self.validation_warnings.extend(message)
-        table = lab_tables[-1]
-        lab_table = LabTable(table)
-        lab_content = lab_table.process_table()
+            self.logger.warning(message)
+            lab_table = LabTable()
+        else:
+            if len(lab_tables) > 1:
+                message = ('There is more than one lab table specified in this experiment.' 
+                           'Only the last lab table identified in the document will be used for generating a request.')
+                self.validation_warnings.extend(message)
+            table = lab_tables[-1]
+            lab_table = LabTable(intent_parser_table=table, lab_names=self.catalog_accessor.get_lab_ids())
+            lab_table.process_table()
+        lab_content = lab_table.get_structured_request()
         self.validation_errors.extend(lab_table.get_validation_errors())
         self.validation_warnings.extend(lab_table.get_validation_warnings())
         return lab_content 
