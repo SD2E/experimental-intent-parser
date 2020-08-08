@@ -1099,7 +1099,8 @@ class IntentParserServer(object):
            data[ip_addon_constants.HTML_REAGENT_TIMEPOINT_UNIT]:
             timepoint_value = data[ip_addon_constants.HTML_REAGENT_TIMEPOINT_VALUE]
             timepoint_unit = data[ip_addon_constants.HTML_REAGENT_TIMEPOINT_UNIT]
-            header_row.extend(['Reagent %d @ %d %d' % (reagent_index+1, timepoint_value, timepoint_unit) for reagent_index in range(int(data[ip_addon_constants.HTML_NUM_OF_REAGENTS]))])
+            num_of_reagent = data[ip_addon_constants.HTML_NUM_OF_REAGENTS]
+            header_row.extend(['Reagent %d @ %s %s' % (reagent_index+1, timepoint_value, timepoint_unit) for reagent_index in range(int(num_of_reagent))])
         table_template.append(header_row)
 
         measurement_types = data[ip_addon_constants.HTML_MEASUREMENT_TYPES]

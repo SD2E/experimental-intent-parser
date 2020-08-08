@@ -2,10 +2,10 @@
 <html>
 <style>
   #labSelector {
-        width: 370px;
+        width: 250px;
     }
    #labSelector option {
-        width: 370px;
+        width: 250px;
     }
 
   #timeunitSelector {
@@ -80,8 +80,6 @@
             var row = table.insertRow(table.rows.length);
             var measureCell = row.insertCell(0);
             var fileCell = row.insertCell(1);
-            measureCell.align = "center"
-            fileCell.align = "center"
             measureCell.innerHTML = "Measurement type <select>" + this.measurement_options + " </select>";
             fileCell.innerHTML = "File type <select style=\"width:200px\">" + this.filetype_options + " </select>";
         }
@@ -152,6 +150,10 @@
           <td>
           <table>
             <tr>
+              <th align="right">Optical Density: </th>
+              <td><input type="checkbox" name="ods" title="Check to add a column for optical density configuration.  Comma separated lists are accepted. No units are expected."></td>
+            </tr>
+            <tr>
               <th align="right">Temperature: </th>
               <td><input type="checkbox" name="temperature" title="Check to add a column for temperature configuration.  Comma separated lists are accepted."></td>
             </tr>
@@ -159,25 +161,20 @@
               <th align="right">Timepoint: </th>
               <td><input type="checkbox" name="timepoint" title="Check to add a column for time configuration.  Comma separated lists are accepted."></td>
             </tr>
-            <tr>
-              <th align="right">Optical Density: </th>
-              <td><input type="checkbox" name="ods" title="Check to add a column for optical density configuration.  Comma separated lists are accepted. No units are expected."></td>
-            </tr>
           </table>
           </td>
         </tr></table></td></tr>
 
-        <tr><td><table><tr><td>
-          <th align="right">Number of rows/measurements: </th>
-          <td>
+        <tr>
+          <td align="left" colspan="2">
+            Number of rows/measurements:
             <input type="number" min="1" max="15" step="1" value="0" name="num_rows" oninput="numMeasurementsUpdate()">
           </td>
-          </td></tr></table></td></tr>
+        </tr>
 
-        <tr stle="width:200px">
-          <td>
-            <table stype="width:100%" id="measurementTypesTable">
-            </table>
+        <tr style="width:250px">
+          <td colspan="2">
+            <table id="measurementTypesTable" stype="width:100%"></table>
           </td>
         </tr>
 
