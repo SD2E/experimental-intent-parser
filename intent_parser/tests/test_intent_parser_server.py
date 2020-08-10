@@ -181,7 +181,7 @@ class IntentParserServerTest(unittest.TestCase):
 
     def test_process_analyze_document(self):
         http_host = 'fake_host'
-        json_body = {'documentId': 'foo'}
+        json_body = {'documentId': 'foo', 'user':{}, 'userEmail': {}}
         http_message = HttpMessage()
         http_message.process_header('Host:%s' % http_host)
         http_message.set_body(json.dumps(json_body).encode('utf-8'))
