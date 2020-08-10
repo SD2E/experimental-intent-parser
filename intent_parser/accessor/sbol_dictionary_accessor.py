@@ -378,7 +378,19 @@ class SBOLDictionaryAccessor(object):
                     result[tacc_id] = common_name
         return result
 
-    def get_common_name_from_trascriptic_id(self, transcriptic_id):
+    def has_sbh_link_for_strain(self, target_sbh_link):
+        """Check if the given sbh link exist in the Strain tab.
+        Returns:
+            True if the link exist in the Strain tab. Otherwise, False is returned.
+        """
+        strain_tab = self.get_tab_sheet(dictionary_constants.STRAIN_TAB)
+        for row in strain_tab:
+            if dictionary_constants.COLUMN_SYNBIOHUB_URI in row:
+                if target_sbh_link == row[dictionary_constants.COLUMN_SYNBIOHUB_URI]:
+                    return True
+        return False
+
+    def get_common_name_from_transcriptic_id(self, transcriptic_id):
         mappings = self.map_common_names_and_transcriptic_id()
         for key, value in mappings.items():
             if transcriptic_id == value:

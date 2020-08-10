@@ -1337,7 +1337,7 @@ class IntentParserServer(object):
         table_template.append([intent_parser_constants.PARAMETER_PROTOCOL, strateos_protocol])
         protocol_default_value = self.strateos_accessor.get_protocol(strateos_protocol)
         for protocol_key, protocol_value in protocol_default_value.items():
-            common_name = self.sbol_dictionary.get_common_name_from_trascriptic_id(protocol_key)
+            common_name = self.sbol_dictionary.get_common_name_from_transcriptic_id(protocol_key)
             if common_name:
                 table_template.append([common_name, protocol_value])
             else:

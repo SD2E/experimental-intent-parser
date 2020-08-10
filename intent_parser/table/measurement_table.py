@@ -214,14 +214,18 @@ class MeasurementTable(object):
         return int(list_of_replicates[0])
         
     def _process_strains(self, cell):
-        if cell_parser.PARSER.is_valued_cell(cell.get_text()):
-            message = ('Measurement table has invalid %s value: %s' 
-                       'Identified %s as a numerical value when '
-                       'expecting alpha-numeric values.') % (intent_parser_constants.HEADER_STRAINS_VALUE, cell.get_text())
-            self._validation_errors.append(message)
-            return []
-        return cell_parser.PARSER.process_names(cell.get_text())
-    
+        result = []
+        for strain, link in cell_parser.PARSER.process_names_with_uri(cell.get_text(), text_with_uri=cell.get_text_with_url()):
+            if link is None:
+                message = ('Measurement table has invalid %s value: %s is missing a hyperlink that points to a SBH URI.' % (intent_parser_constants.HEADER_STRAINS_VALUE, strain))
+                self._validation_errors.append(message)
+                return result
+            strain_obj = {dc_constants.SBH_URI: link,
+                          dc_constants.LABEL: None,
+                          dc_constants.LAB_ID: 'name.%s.%s' % (None, strain)}
+            result.append(strain_obj)
+        return result
+
     def _process_temperature(self, cell):
         text = cell.get_text()
         try:
