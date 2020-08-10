@@ -194,11 +194,17 @@ class CellParser(object):
     def process_datetime_format(self, text):
         return datetime.strptime(text, '%Y/%m/%d %H:%M:%S')
 
-    def process_lab_name(self, text):
+    def process_lab_name(self, text, accepted_lab_names={}):
         tokens = self._lab_tokenizer.tokenize(text, keep_skip=False)
         if self._get_token_type(tokens[0]) != 'KEYWORD':
             return None
-        return self._get_token_value(tokens[-1])
+
+        for lab in accepted_lab_names:
+            canonicalize_lab_name = lab.lower()
+            processed_lab_name = self._get_token_value(tokens[-1]).lower()
+            if canonicalize_lab_name == processed_lab_name:
+                return lab
+        return None
 
     def process_lab_table_value(self, text):
         tokens = self._lab_tokenizer.tokenize(text, keep_skip=False)

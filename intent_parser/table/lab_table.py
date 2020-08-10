@@ -7,7 +7,7 @@ import logging
 
 class LabTable(object):
     """
-    Class for parsing Lab table
+    Process contents from a lab table.
     """
 
     _logger = logging.getLogger('intent_parser')
@@ -18,6 +18,7 @@ class LabTable(object):
         else:
             self._intent_parser_table = intent_parser_table
         self.lab_intent = _LabIntent()
+        self._lab_names = lab_names
         self._validation_errors = []
         self._validation_warnings = []
         self._table_caption = None
@@ -49,9 +50,13 @@ class LabTable(object):
                     'Lab table has invalid value: %s is not supported in this table' % cell.get_text())
 
     def _process_lab_name(self, cell):
-        lab_name = cell_parser.PARSER.process_lab_name(cell.get_text())
+        lab_name = cell_parser.PARSER.process_lab_name(cell.get_text(), accepted_lab_names=self._lab_names)
         if lab_name:
             self.lab_intent.set_field(dc_constants.LAB, lab_name)
+        else:
+            err = '%s does not match one of the following lab names: \n %s' % (cell.get_text(), ' ,'.join((map(str, self._lab_names))))
+            message = 'Lab table has invalid %s value: %s' % (ip_constants.HEADER_LAB_VALUE, err)
+            self._validation_errors.append(message)
 
     def _process_experiment_id(self, cell):
         experiment_id = cell_parser.PARSER.process_lab_table_value(cell.get_text())
