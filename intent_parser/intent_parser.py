@@ -13,6 +13,7 @@ from jsonschema import validate
 from jsonschema import ValidationError
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
+import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
 import intent_parser.table.table_utils as table_utils
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import logging
@@ -361,7 +362,7 @@ class IntentParser(object):
         ref_controls = self._process_control_tables(control_tables)
         lab_content = self._process_lab_table(lab_tables)
         parameter_sr = self._process_parameter_table(parameter_tables)
-        measurements = self._process_measurement_table(measurement_tables, ref_controls)
+        measurements = self._process_measurement_table(measurement_tables, ref_controls, lab_content[dc_constants.LAB])
         
         self.request[dc_constants.EXPERIMENT_REQUEST_NAME] = title
         self.request[dc_constants.EXPERIMENT_ID] = lab_content[dc_constants.EXPERIMENT_ID]
@@ -450,26 +451,34 @@ class IntentParser(object):
         self.validation_warnings.extend(lab_table.get_validation_warnings())
         return lab_content 
     
-    def _process_measurement_table(self, measurement_tables, ref_controls):
+    def _process_measurement_table(self, measurement_tables, ref_controls, lab_name):
         measurements = []
         if not measurement_tables:
             return measurements 
-        if len(measurement_tables) > 1: 
+
+        if len(measurement_tables) > 1:
                 message = ('There are more than one measurement table specified in this experiment.'
-                       'Only the last measurement table identified in the document will be used for generating a request.')
+                           'Only the last measurement table identified in the document will be used for generating a request.')
                 self.validation_warnings.extend(message)
-        table = measurement_tables[-1]
-        meas_table = MeasurementTable(table, 
-                                      self.catalog_accessor.get_temperature_units(), 
-                                      self.catalog_accessor.get_time_units(), 
-                                      self.catalog_accessor.get_fluid_units(), 
-                                      self.catalog_accessor.get_measurement_types(), 
-                                      self.catalog_accessor.get_file_types())
-        measurement_data = meas_table.process_table(control_tables=ref_controls, bookmarks=self.lab_experiment.bookmarks())
-        measurements.append({'measurements': measurement_data})
-        self.validation_errors.extend(meas_table.get_validation_errors())
-        self.validation_warnings.extend(meas_table.get_validation_warnings())
-        return measurements
+        try:
+            table = measurement_tables[-1]
+
+            strain_mapping = self.sbol_dictionary.get_mapped_strain(lab_name)
+            meas_table = MeasurementTable(table,
+                                          temperature_units=self.catalog_accessor.get_temperature_units(),
+                                          timepoint_units=self.catalog_accessor.get_time_units(),
+                                          fluid_units=self.catalog_accessor.get_fluid_units(),
+                                          measurement_types=self.catalog_accessor.get_measurement_types(),
+                                          file_type=self.catalog_accessor.get_file_types(),
+                                          strain_mapping=strain_mapping)
+
+            meas_table.process_table(control_tables=ref_controls, bookmarks=self.lab_experiment.bookmarks())
+            measurements.append({dc_constants.MEASUREMENTS: meas_table.get_structured_request()})
+            self.validation_errors.extend(meas_table.get_validation_errors())
+            self.validation_warnings.extend(meas_table.get_validation_warnings())
+            return measurements
+        except (DictionaryMaintainerException) as err:
+            self.validation_errors.extend([err.get_message()])
     
     def _process_parameter_table(self, parameter_tables, generate_experiment_request=False):
         if not parameter_tables:

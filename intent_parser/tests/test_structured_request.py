@@ -107,5 +107,6 @@ class StructureRequestTest(unittest.TestCase):
         actual_sr = ip.get_structured_request()
         self.assertEqual('IntentParserCopy-of-TEST-Playing-with-Intent-Parser', actual_sr[dc_constants.EXPERIMENT_REFERENCE])
 
+
 if __name__ == '__main__':
     unittest.main()
