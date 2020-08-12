@@ -346,6 +346,13 @@ class CellParserTest(unittest.TestCase):
         self.assertTrue(self.parser.is_table_caption(cell_text))
         self.assertEqual(123, self.parser.process_table_caption_index(cell_text))
 
+    def test_table_with_newline(self):
+        self.assertEqual(['AND_00', 'AND_01', 'AND_10'], self.parser.process_names('AND_00, \n\nAND_01,\n AND_10\n'))
+        self.assertEqual(['AND_00', 'AND_01'], self.parser.process_names('AND_00 \n \n \n ,AND_01'))
+        self.assertEqual(['AND_00', 'AND_01'], self.parser.process_names('AND_0\n0,AND_01'))
+        self.assertEqual(['1', '10', '15'], self.parser.process_numbers('1, 1\n0, 15'))
+
+
 
 
 if __name__ == "__main__":

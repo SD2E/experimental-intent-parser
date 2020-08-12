@@ -220,6 +220,8 @@ class CellParser(object):
         links = text_with_uri
         for name in self.extract_name_value(text):
             stripped_name = name.strip()
+            if '\n' in stripped_name:
+                raise TableException('A newline was detected in %s' % stripped_name)
             if check_name_in_url:
                 if stripped_name in links and links[stripped_name] is not None:
                     result.append(links[stripped_name])

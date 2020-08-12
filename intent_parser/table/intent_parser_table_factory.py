@@ -164,7 +164,9 @@ class GoogleTableParser(TableParser):
                     link = text_run[doc_constants.TEXT_STYLE][doc_constants.LINK]
                     if doc_constants.URL in link:
                         url = link[doc_constants.URL]
+
                     if doc_constants.BOOKMARK_ID in link:
                         bookmark_id = link[doc_constants.BOOKMARK_ID]
-                result = text_run[doc_constants.CONTENT].strip()
+
+                result = text_run[doc_constants.CONTENT]
                 yield result, url, bookmark_id
