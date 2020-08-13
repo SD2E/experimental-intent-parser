@@ -1,7 +1,5 @@
 from http import HTTPStatus
 from intent_parser.accessor.sbh_accessor import SBHAccessor
-from intent_parser.intent_parser_sbh import IntentParserSBH
-import intent_parser.constants.intent_parser_constants as ip_constants
 import json
 import unittest
 import os

@@ -104,7 +104,7 @@ class CellParserTest(unittest.TestCase):
         cell = IntentParserCell()
         cell.add_paragraph('name1, name2, name3')
         results = self.parser.parse_content_item(cell.get_text(), cell.get_text_with_url())
-        self.assertEqual(len(results), 3)
+        self.assertEqual(3, len(results))
         name1 = results[0]['name']
         name2 = results[1]['name']
         name3 = results[2]['name']
@@ -282,7 +282,7 @@ class CellParserTest(unittest.TestCase):
                            'B_subtilis_WT_JH642_Colony_3']
         self.assertListEqual(expected_values, self.parser.extract_name_value(cell_str))
     
-    def test_false_table_caption(self):
+    def test_is_table_caption(self):
         self.assertFalse(self.parser.is_table_caption('foo 1: a table caption'))
         self.assertTrue(self.parser.is_table_caption('table 1:'))
         self.assertTrue(self.parser.is_table_caption('Table1'))
@@ -291,6 +291,7 @@ class CellParserTest(unittest.TestCase):
 
     def test_parsing_number(self):
         self.assertEqual(self.parser.process_numbers('7'), ['7'])
+        self.assertEqual(self.parser.process_numbers('7'), [' 7 '])
 
     def test_boolean_values(self):
         self.assertTrue(self.parser.process_boolean_flag('true'))
@@ -300,7 +301,7 @@ class CellParserTest(unittest.TestCase):
         self.assertEqual(self.parser.process_boolean_flag('neither'), None)
 
     def test_lab_name(self):
-        self.assertEqual('foo', self.parser.process_lab_name('Lab: foo'))
+        self.assertEqual('foo', self.parser.process_lab_name('Lab: foo', accepted_lab_names={'foo'}))
 
     def test_lab_experiment_id(self):
         cell_text = 'Experiment_id: foo'
@@ -310,21 +311,21 @@ class CellParserTest(unittest.TestCase):
     def test_text_with_underscore(self):
         cell_text = 'xplan_request_submitted'
         self.assertTrue(self.parser.is_name(cell_text))
-        names = self.parser.process_names(cell_text)
+        names = [name for name, _ in self.parser.process_names_with_uri(cell_text)]
         self.assertEqual(len(names), 1)
         self.assertEqual(names[0], 'xplan_request_submitted')
 
     def test_text_with_url(self):
         cell_text = 'agave://data-sd2e-community/uploads/transcriptic/202006/r1egb6rhggaqwt/samples.json'
         self.assertTrue(self.parser.is_name(cell_text))
-        names = self.parser.process_names(cell_text)
+        names = [name for name, _ in self.parser.process_names_with_uri(cell_text)]
         self.assertEqual(len(names), 1)
         self.assertEqual(names[0], cell_text)
 
     def test_text_with_dash(self):
         cell_text = 'P---'
         self.assertTrue(self.parser.is_name(cell_text))
-        names = self.parser.process_names(cell_text)
+        names = [name for name, _ in self.parser.process_names_with_uri(cell_text)]
         self.assertEqual(len(names), 1)
         self.assertEqual(names[0], cell_text)
 
@@ -336,21 +337,28 @@ class CellParserTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.assertEqual(self.parser.process_datetime_format('20/6/4 18:52:47'))
 
-    def test_table_caption_index(self):
-        cell_text = 'Table 1'
-        self.assertTrue(self.parser.is_table_caption(cell_text))
+    def test_processing_table_caption_index(self):
         self.assertEqual(1, self.parser.process_table_caption_index('Table 1'))
+        self.assertEqual(123, self.parser.process_table_caption_index('Table123'))
+        self.assertEqual(123, self.parser.process_table_caption_index('Table123:'))
 
-    def test_table_caption_index_with_no_spacing(self):
-        cell_text = 'Table123'
-        self.assertTrue(self.parser.is_table_caption(cell_text))
-        self.assertEqual(123, self.parser.process_table_caption_index(cell_text))
-
-    def test_table_with_newline(self):
-        self.assertEqual(['AND_00', 'AND_01', 'AND_10'], self.parser.process_names('AND_00, \n\nAND_01,\n AND_10\n'))
-        self.assertEqual(['AND_00', 'AND_01'], self.parser.process_names('AND_00 \n \n \n ,AND_01'))
-        self.assertEqual(['AND_00', 'AND_01'], self.parser.process_names('AND_0\n0,AND_01'))
+    def test_cell_with_newline(self):
+        self.assertEqual(['AND_00', 'AND_01', 'AND_10'], [value for value, _ in self.parser.process_names_with_uri('AND_00, \n\nAND_01,\n AND_10\n')])
+        self.assertEqual(['AND_00', 'AND_01'], [value for value, _ in self.parser.process_names_with_uri('AND_00 \n \n \n ,AND_01')])
+        self.assertEqual(['AND_00', 'AND_01'], [value for value, _ in self.parser.process_names_with_uri('AND_0\n0,AND_01')])
         self.assertEqual(['1', '10', '15'], self.parser.process_numbers('1, 1\n0, 15'))
+
+    def test_cell_without_delimiter(self):
+        self.assertTrue(self.parser.is_number('1 2 3'))
+        with self.assertRaises(TableException):
+            self.parser.process_numbers('1 2 3')
+        with self.assertRaises(TableException):
+            self.parser.process_numbers('1 2')
+        with self.assertRaises(TableException):
+            self.parser.process_numbers('1 2 3 4')
+        with self.assertRaises(TableException):
+            self.parser.process_numbers('1 2 3 4 5')
+
 
 
 

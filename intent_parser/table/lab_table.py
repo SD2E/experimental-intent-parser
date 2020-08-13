@@ -41,7 +41,7 @@ class LabTable(object):
         row = self._intent_parser_table.get_row(row_index)
         for cell_index in range(len(row)):
             cell = self._intent_parser_table.get_cell(row_index, cell_index)
-            if cell_parser.PARSER.is_lab_table(cell.get_text()):
+            if cell_parser.PARSER.is_table_caption(cell.get_text()):
                 self._process_lab_name(cell)
             elif cell_parser.PARSER.has_lab_table_keyword(cell.get_text(), dc_constants.EXPERIMENT_ID):
                 self._process_experiment_id(cell)

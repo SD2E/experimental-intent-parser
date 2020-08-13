@@ -68,16 +68,19 @@ class ControlsTable(object):
         cell_content = cell.get_text()
         if not cell_parser.PARSER.is_name(cell_content):
             message = ('Controls table has invalid %s value: '
-                       'Identified %s as a numerical value when ' 
-                       'expecting alpha-numeric values.') % (intent_parser_constants.HEADER_CHANNEL_VALUE, cell_content)
+                       '%s are not alpha-numeric values.') % (intent_parser_constants.HEADER_CHANNEL_VALUE, cell_content)
             self._validation_errors.append(message)
-            return None  
-        list_of_channels = cell_parser.PARSER.process_names(cell_content)
-        if len(list_of_channels) > 1:
-            message = ('Controls table for %s has more than one channel provided. '
-                       'Only the first channel will be used from %s.') % (intent_parser_constants.HEADER_CHANNEL_VALUE, cell_content)
-            self._logger.warning(message)
-        return list_of_channels[0]
+            return None
+
+        try:
+            list_of_channels = cell_parser.PARSER.extract_name_value(cell_content)
+            if len(list_of_channels) > 1:
+                message = ('Controls table for %s has more than one channel provided. '
+                           'Only the first channel will be used from %s.') % (intent_parser_constants.HEADER_CHANNEL_VALUE, cell_content)
+                self._logger.warning(message)
+            return list_of_channels[0]
+        except TableException as err:
+            self._validation_errors.append(message)
     
     def _process_contents(self, cell):
         try:
@@ -94,7 +97,7 @@ class ControlsTable(object):
                        'expecting alpha-numeric values.') % (intent_parser_constants.HEADER_STRAINS_VALUE, cell.get_text())
             self._validation_errors.append(message)
             return []
-        return cell_parser.PARSER.process_names(cell.get_text())
+        return [strain for strain,_ in cell_parser.PARSER.process_names_with_uri(cell.get_text())]
                 
     def _process_control_type(self, cell):
         control_type = cell.get_text()
