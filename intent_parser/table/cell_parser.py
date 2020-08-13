@@ -68,12 +68,26 @@ class CellParser(object):
         return result
 
     def get_header_type(self, text):
+        """Process the name of a table header supported by Intent Parser.
+        Args:
+            text: name of header
+        Returns:
+            A string processed by Intent Parser for identifying a table header.
+        """
         tokens = self._table_header_tokenizer.tokenize(text, keep_skip=False)
         if len(tokens) != 1:
             return 'UNKNOWN'
         return self._get_token_type(tokens[0])
 
     def has_lab_table_keyword(self, text, keyword):
+        """
+        Deterimine if the text has keywords supported in Intent Parser's Lab table.
+        Args:
+            text: a string used for searching a keyword.
+            keyword: a string
+        Returns:
+            A boolean value to indicate if the text contain the given keyword.
+        """
         tokens = self._lab_tokenizer.tokenize(text)
         return len(tokens) > 0 and self._get_token_value(tokens[0]).lower() == keyword.lower()
 
@@ -94,6 +108,10 @@ class CellParser(object):
     def is_name(self, text):
         """
         Check if the content of a cell is alpha-numeric.
+        Args:
+            text: a string containing NAMED values.
+        Returns:
+            A boolean value to indicate if the text follows a NAMED pattern.
         """
         tokens = self._cell_tokenizer.tokenize(text)
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
@@ -103,14 +121,27 @@ class CellParser(object):
 
     def is_number(self, text):
         """
-        Check if the content of a cell only has numbers.
+        Determine if the text contain a number or a list of numbers.
+        Args:
+            text: a string of numbers.
+        Returns:
+            A boolean value to indicate if the text is a number or a string of numbers. x
         """
-        tokens = self._cell_tokenizer.tokenize(text, keep_skip=False)
+        tokens = self._cell_tokenizer.tokenize(text, keep_separator=True, keep_skip=False)
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
-        return cell_type == 'NUMBER'
+        return cell_type == 'NUMBER' or cell_type == 'NUMBER_LIST'
 
 
     def is_table_caption(self, text):
+        """
+        Determine if the text is a table caption. 
+        A table caption must follow the format "Table" followed by some numerical value. 
+        
+        Args:
+            text: A string.
+        Returns:
+            A boolean value to indicate if the text is a table caption. 
+        """
         tokens = self._table_tokenizer.tokenize(text)
         return len(tokens) > 0 and self._get_token_type(tokens[0]) == 'KEYWORD'
 
@@ -137,7 +168,6 @@ class CellParser(object):
         if len(tokens) < 1:
             raise TableException('Invalid value: %s does not contain a name' % text.get_text())
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
-        label, value, unit, timepoint_value, timepoint_unit = (None, None, None, None, None)
         if cell_type == 'NAME_VALUE_UNIT_TIMEPOINT':
             label, value, unit, timepoint_value, timepoint_unit = self._get_name_values_unit_timepoint(tokens)
             content = {dc_constants.NAME: self.create_name_with_uri(label, text_with_uri),
@@ -189,17 +219,18 @@ class CellParser(object):
     def process_datetime_format(self, text):
         return datetime.strptime(text, '%Y/%m/%d %H:%M:%S')
 
-    def process_lab_name(self, text, accepted_lab_names={}):
+    def process_lab_name(self, text):
+        """
+        Get lab name from a text
+        Args:
+            text: A string that follow this format: Lab: abc.
+        Returns:
+            A string for representing the name of a lab.
+        """
         tokens = self._lab_tokenizer.tokenize(text, keep_skip=False)
         if self._get_token_type(tokens[0]) != 'KEYWORD':
             return None
-        if accepted_lab_names:
-            for lab in accepted_lab_names:
-                canonicalize_lab_name = lab.lower()
-                processed_lab_name = self._get_token_value(tokens[-1]).lower()
-                if canonicalize_lab_name == processed_lab_name:
-                    return lab
-        return None
+        return self._get_token_value(tokens[-1])
 
     def process_lab_table_value(self, text):
         tokens = self._lab_tokenizer.tokenize(text, keep_skip=False)
@@ -223,9 +254,6 @@ class CellParser(object):
 
         for token in self.extract_name_value(text):
             name = token.strip()
-            if '\n' in name:
-                raise TableException('A newline was detected in %s.' % name)
-
             if text_with_uri and name in text_with_uri:
                 yield name, text_with_uri[name]
             else:
@@ -236,7 +264,8 @@ class CellParser(object):
         if stripped_label in uri_dictionary and uri_dictionary[stripped_label]:
             return {dc_constants.LABEL: stripped_label, dc_constants.SBH_URI: uri_dictionary[stripped_label]}
 
-        return {dc_constants.LABEL: stripped_label, dc_constants.SBH_URI: 'NO PROGRAM DICTIONARY ENTRY'}
+        return {dc_constants.LABEL: stripped_label,
+                dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY}
 
     def process_numbers(self, text):
         """
@@ -246,33 +275,15 @@ class CellParser(object):
         Returns:
             A list of strings
         """
-        result = []
-        tokens = self._cell_tokenizer.tokenize(text, keep_separator=False, keep_skip=False)
+        tokens = self._cell_tokenizer.tokenize(text, keep_separator=True, keep_skip=False)
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
-        if len(tokens) == 0:
-            if self._get_token_type(tokens[0]) != 'NUMBER':
-                raise TableException('%s is not a number' % text)
-            return [self._get_token_value(0)]
-
-        if len(tokens) == 2:
-            if self._get_token_type(tokens[0]) == 'NUMBER':
-                if self._get_token_type(tokens[1]) == 'NUMBER':
-                    raise TableException('Commas must be used to provide a list of values for %s' % text)
-                else:
-                    raise TableException('%s does not follow correct format to specify a number or a list of number' % text)
-        index = 0
-        while index < len(tokens) - 2:
-            if self._get_token_type(tokens[index]) == 'NUMBER':
-                if self._get_token_type(tokens[index+1]) == 'SEPARATOR':
-                    result.append(self._get_token_value(tokens[index]))
-                    index += 2
-                elif self._get_token_type(tokens[index+1]) == 'NUMBER':
-                    raise TableException('Commas must be used to provide a list of values for %s' % text)
-                else:
-                    raise TableException('%s does not follow correct format to specify a number or a list of number' % text)
-            else:
-                raise TableException('%s does not follow correct format to specify a number or a list of number' % text)
-        return result
+        if cell_type == 'NUMBER':
+            return [self._get_token_value(token) for token in tokens]
+        elif cell_type == 'NUMBER_LIST':
+            number_tokens = filter(lambda x: self._get_token_type(x) == 'NUMBER', tokens)
+            return [self._get_token_value(token) for token in number_tokens]
+        else:
+            raise TableException('%s does not follow correct format to specify a number or a list of number' % text)
 
     def process_reagent_header(self, text, text_with_uri, units, unit_type):
         tokens = self._cell_tokenizer.tokenize(text, keep_skip=False)
@@ -421,10 +432,6 @@ class CellParser(object):
     def _get_token_value(self, token):
         return token[1]
     
-
-    
-
-
 class _Tokenizer(object):
     
     _Token = collections.namedtuple('Token', ['type', 'value'])
@@ -531,7 +538,21 @@ class _TableHeaderTokenizer(_Tokenizer):
     
     def __init__(self):
         super().__init__(self.token_specification)
-        
+
+class _CollectionTokenMatcher(object):
+    def __init__(self, token_pairs, qualifier=''):
+        self._token_pairs = token_pairs
+        self._default_value = '[^»]+'
+        self._qualifier = qualifier
+
+    def __str__(self):
+        tokens = []
+        for token_type, token_value in self._token_pairs:
+            if not token_value:
+                token_value = self._default_value
+            tokens.append('(«%s,%s»)' % (token_type, token_value))
+        return '(%s)%s' % (''.join(tokens), self._qualifier)
+
 class _TokenMatcher(object):
     def __init__(self, token_type, value='[^»]+', qualifier='', group=None):
         self._type = token_type
@@ -583,9 +604,11 @@ class _Parser(_Tokenizer):
                                                _TokenMatcher('NAME')], qualifier='+')
             ),
             ('NAME', _make_regex([_TokenMatcher('(NAME|SEPARATOR|SKIP)', qualifier='+')])),
-            # ('NUMBER_LIST', _make_regex([_TokenMatcher('NUMBER'),
-            #                              _TokenMatcher(_TokenMatcher('SEPARATOR') + '|' + _TokenMatcher('NUMBER'), qualifier='*')])),
-            ('NUMBER', _make_regex([_TokenMatcher('NUMBER', qualifier='+')])),
+            ('NUMBER_LIST', _make_regex([_TokenMatcher('NUMBER'),
+                                         _CollectionTokenMatcher([('SEPARATOR', ','),
+                                                                  ('NUMBER', None)],
+                                                                 qualifier='*')])),
+            ('NUMBER', _make_regex([_TokenMatcher('NUMBER')])),
             ('TABLE', _make_regex([_TokenMatcher('KEYWORD', qualifier='+')])),
             # Fall through if none match
             ('NOT_DEFINED', _make_regex([_AnyMatcher()], qualifier='+'))

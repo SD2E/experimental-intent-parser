@@ -154,11 +154,11 @@ class ParameterTable(object):
             self._validation_errors.append(message)
 
     def process_numbered_parameter(self, parameter_field, parameter_value, number_convert):
-        if cell_parser.PARSER.is_number(parameter_value):
+        try:
             computed_value = [number_convert(value) for value in cell_parser.PARSER.process_numbers(parameter_value)]
             self._flatten_parameter_values(parameter_field, computed_value)
-        else:
-            message = 'Parameter table has invalid %s value: %s should only contain numbers' % (parameter_field, parameter_value)
+        except TableException as err:
+            message = 'Parameter table has invalid %s value: %s' % (parameter_field, err)
             self._validation_errors.append(message)
 
 class _ParameterIntent(object):

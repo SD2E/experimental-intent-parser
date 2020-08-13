@@ -290,8 +290,8 @@ class CellParserTest(unittest.TestCase):
         self.assertTrue(self.parser.is_table_caption('Table1:Controls'))
 
     def test_parsing_number(self):
-        self.assertEqual(self.parser.process_numbers('7'), ['7'])
-        self.assertEqual(self.parser.process_numbers('7'), [' 7 '])
+        self.assertEqual(['7'], self.parser.process_numbers('7'))
+        self.assertEqual(['7'], self.parser.process_numbers(' 7 '))
 
     def test_boolean_values(self):
         self.assertTrue(self.parser.process_boolean_flag('true'))
@@ -301,7 +301,7 @@ class CellParserTest(unittest.TestCase):
         self.assertEqual(self.parser.process_boolean_flag('neither'), None)
 
     def test_lab_name(self):
-        self.assertEqual('foo', self.parser.process_lab_name('Lab: foo', accepted_lab_names={'foo'}))
+        self.assertEqual('foo', self.parser.process_lab_name('Lab: foo'))
 
     def test_lab_experiment_id(self):
         cell_text = 'Experiment_id: foo'
@@ -349,15 +349,9 @@ class CellParserTest(unittest.TestCase):
         self.assertEqual(['1', '10', '15'], self.parser.process_numbers('1, 1\n0, 15'))
 
     def test_cell_without_delimiter(self):
-        self.assertTrue(self.parser.is_number('1 2 3'))
+        self.assertFalse(self.parser.is_number('1 2 3'))
         with self.assertRaises(TableException):
             self.parser.process_numbers('1 2 3')
-        with self.assertRaises(TableException):
-            self.parser.process_numbers('1 2')
-        with self.assertRaises(TableException):
-            self.parser.process_numbers('1 2 3 4')
-        with self.assertRaises(TableException):
-            self.parser.process_numbers('1 2 3 4 5')
 
 
 

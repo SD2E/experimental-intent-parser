@@ -50,11 +50,19 @@ class LabTable(object):
                     'Lab table has invalid value: %s is not supported in this table' % cell.get_text())
 
     def _process_lab_name(self, cell):
-        lab_name = cell_parser.PARSER.process_lab_name(cell.get_text(), accepted_lab_names=self._lab_names)
+        lab_name = cell_parser.PARSER.process_lab_name(cell.get_text())
         if lab_name:
-            self.lab_intent.set_field(dc_constants.LAB, lab_name)
+            for lab in self._lab_names:
+                canonicalize_lab_name = lab.lower()
+                processed_lab_name = lab_name.lower()
+                if canonicalize_lab_name == processed_lab_name:
+                    self.lab_intent.set_field(dc_constants.LAB, lab)
+                else:
+                    err = '%s does not match one of the following lab names: \n %s' % (cell.get_text(), ' ,'.join((map(str, self._lab_names))))
+                    message = 'Lab table has invalid %s value: %s' % (ip_constants.HEADER_LAB_VALUE, err)
+                    self._validation_errors.append(message)
         else:
-            err = '%s does not match one of the following lab names: \n %s' % (cell.get_text(), ' ,'.join((map(str, self._lab_names))))
+            err = '%s does not follow the correct format for specifying a lab name.' % (cell.get_text())
             message = 'Lab table has invalid %s value: %s' % (ip_constants.HEADER_LAB_VALUE, err)
             self._validation_errors.append(message)
 
