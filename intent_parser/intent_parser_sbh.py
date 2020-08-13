@@ -265,7 +265,11 @@ class IntentParserSBH(object):
                                            item_lab_id)
                 else:
                     tp.add(item_lab_id)
-     
+
+    def query(self, query):
+        response = self.sbh.sparqlQuery(query)
+        return response.json()
+
     def query_experiments(self, target_collection):
         """
         Search the target collection and return references to all Experiment objects
