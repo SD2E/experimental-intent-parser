@@ -1435,12 +1435,14 @@ class IntentParserServer(object):
             self._report_experiment_status(document_id)
         except IntentParserException as err:
             all_errors = [err.get_message()]
-            return self._create_http_response(HTTPStatus.BAD_REQUEST,
-                                              json.dumps({'errors': all_errors}),
+            return self._create_http_response(HTTPStatus.OK,
+                                              json.dumps({'status': 'updated',
+                                                          'messages': all_errors}),
                                               'application/json')
 
         return self._create_http_response(HTTPStatus.OK,
-                                          json.dumps({'status': 'updated'}),
+                                          json.dumps({'status': 'updated',
+                                                      'messages': []}),
                                           'application/json')
 
     def _create_experiment_specification_table(self, document_id, experiment_specification_table):
@@ -1467,6 +1469,10 @@ class IntentParserServer(object):
         exp_id_to_ref_table = experiment_status[dc_constants.EXPERIMENT_ID]
         ref_table_to_statuses = experiment_status[dc_constants.STATUS_ELEMENT]
         db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(document_id, lab_name)
+        if not db_exp_id_to_statuses:
+            experiment_ref = intent_parser_constants.GOOGLE_DOC_URL_PREFIX + document_id
+            raise IntentParserException(
+                'TA4\'s pipeline has no information to report for %s under experiment %s.' % (lab_name, experiment_ref))
         for db_experiment_id, db_statuses_table in db_exp_id_to_statuses.items():
             intent_parser.process_table_indices()
 
@@ -1500,7 +1506,6 @@ class IntentParserServer(object):
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
         logger.warning('Processing document id: %s' % document_id)
 
-        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         action_list = []
         try:
             self._report_experiment_status(document_id)
@@ -1509,46 +1514,6 @@ class IntentParserServer(object):
             all_errors = [err.get_message()]
             dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to report experiment status',
                                                                             all_errors)
-            action_list = [dialog_action]
-        actions = {'actions': action_list}
-        return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-
-    def process_report_experiment_status_old(self, http_message):
-        """Report the status of an experiment by inserting experiment specification and status tables."""
-        json_body = intent_parser_utils.get_json_body(http_message)
-        data = json_body['data']
-        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-        logger.warning('Processing document id: %s' % document_id)
-
-        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-        action_list = []
-        try:
-            intent_parser.process_structure_request()
-            sr = intent_parser.get_structured_request()
-            lab_name = sr[dc_constants.LAB]
-            db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(document_id, lab_name)
-            status_tables = {}
-            new_table_index = intent_parser.get_largest_table_index() + 1
-            ref_tables = []
-            for experiment_id, statuses_table in db_exp_id_to_statuses.items():
-                table_template, column_widths = self.process_create_experiment_status_table(statuses_table.get_statuses(), new_table_index)
-                action = intent_parser_view.create_table_template(data[ip_addon_constants.CHILD_INDEX],
-                                                         table_template,
-                                                         ip_addon_constants.TABLE_TYPE_STATUS,
-                                                         column_widths)
-                ref_tables.extend(action)
-                status_tables[experiment_id] = new_table_index
-                new_table_index = new_table_index + 1
-
-            table_template, column_widths = self.process_create_experiment_specification_table(status_tables, new_table_index)
-            action_list.extend(intent_parser_view.create_table_template(data[ip_addon_constants.CHILD_INDEX],
-                                                            table_template,
-                                                            ip_addon_constants.TABLE_TYPE_EXPERIMENT_SPECIFICATION,
-                                                            column_widths))
-            action_list.extend(ref_tables)
-        except IntentParserException as err:
-            all_errors = [err.get_message()]
-            dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to report experiment status', all_errors)
             action_list = [dialog_action]
         actions = {'actions': action_list}
         return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
