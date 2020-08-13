@@ -2,6 +2,7 @@ from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
+from intent_parser.accessor.sbol_dictionary_accessor import StrainMapping
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.tests.test_util as test_utils
 import unittest
@@ -24,17 +25,21 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         self.assertEqual(meas_result[0][dc_constants.MEASUREMENT_TYPE], 'FLOW')
 
     def test_table_with_empty_file_type(self):
         ip_table = test_utils.create_fake_measurement_table()
-        data_row = test_utils.create_measurement_table_row()
+        file_type = IntentParserCell()
+        file_type.add_paragraph('')
+        data_row = test_utils.create_measurement_table_row(file_type_cell=file_type)
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(0, len(meas_result))
     
     def test_table_with_file_type(self):
@@ -44,8 +49,9 @@ class MeasurementTableTest(unittest.TestCase):
         data_row = test_utils.create_measurement_table_row(file_type_cell=file_type)
         ip_table.add_row(data_row)
 
-        meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        meas_table = MeasurementTable(ip_table, file_type={'FASTQ'})
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         self.assertEqual(1, len(meas_result[0][dc_constants.FILE_TYPE]))
         self.assertEqual(meas_result[0][dc_constants.FILE_TYPE][0], 'FASTQ')
@@ -58,7 +64,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         self.assertEqual(meas_result[0][dc_constants.REPLICATES], 3)
         
@@ -70,36 +77,94 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         self.assertEqual(meas_result[0][dc_constants.REPLICATES], 1)
     
     def test_table_with_1_strain(self):
         ip_table = test_utils.create_fake_measurement_table()
         strains = IntentParserCell()
-        strains.add_paragraph('AND_00')
+        strains.add_paragraph('test_strain', link='https://foo.com')
         data_row = test_utils.create_measurement_table_row(strain_cell=strains)
         ip_table.add_row(data_row)
 
-        meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        strain_obj = StrainMapping('https://foo.com', 'myLab', 'AND_00', lab_names={'test_strain', 'foo-strain'})
+        strain_mapping = {'https://foo.com': strain_obj}
+
+        meas_table = MeasurementTable(ip_table, strain_mapping=strain_mapping)
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         self.assertEqual(1, len(meas_result[0][dc_constants.STRAINS]))
-        self.assertEqual('AND_00', meas_result[0][dc_constants.STRAINS][0])
-    
-    def test_strains_using_uri_as_string(self):
+        expected_strain = {dc_constants.SBH_URI: 'https://foo.com',
+                           dc_constants.LABEL: 'AND_00',
+                           dc_constants.LAB_ID: 'name.mylab.test_strain'}
+        self.assertEqual(expected_strain, meas_result[0][dc_constants.STRAINS][0])
+
+    def test_strain_with_unknown_links(self):
         ip_table = test_utils.create_fake_measurement_table()
         strains = IntentParserCell()
-        strains.add_paragraph('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1')
+        strains.add_paragraph('test_strain', link='https://foo.com')
         data_row = test_utils.create_measurement_table_row(strain_cell=strains)
         ip_table.add_row(data_row)
 
-        meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        strain_obj = StrainMapping('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'myLab', 'AND_00', lab_names={'test_strain', 'foo-strain'})
+        strain_mapping = {'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1': strain_obj}
+
+        meas_table = MeasurementTable(ip_table, strain_mapping=strain_mapping)
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
+        self.assertEqual(0, len(meas_result))
+
+    def test_strain_not_supported_in_lab_name(self):
+        ip_table = test_utils.create_fake_measurement_table()
+        strains = IntentParserCell()
+        strains.add_paragraph('test_strain', link='https://foo.com')
+        data_row = test_utils.create_measurement_table_row(strain_cell=strains)
+        ip_table.add_row(data_row)
+
+        strain_obj = StrainMapping('https://foo.com', 'myLab', 'AND_00', lab_names={'UWBF_7376'})
+        strain_mapping = {'https://foo.com': strain_obj}
+
+        meas_table = MeasurementTable(ip_table, strain_mapping=strain_mapping)
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
+        self.assertEqual(0, len(meas_result))
+
+    def test_strains_with_inconsistent_links(self):
+        ip_table = test_utils.create_fake_measurement_table()
+        lab_strain1 = 'UWBF_7376'
+        lab_strain2 = 'UWBF_7378'
+        strain_link1 = 'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1'
+        strain_link2 = 'https://hub.sd2e.org/user/sd2e/design/UWBF_7378/1'
+        strains = IntentParserCell()
+        strains.add_paragraph(lab_strain1, link=strain_link1)
+        strains.add_paragraph(',test_strain,')
+        strains.add_paragraph(lab_strain2, link=strain_link2)
+        data_row = test_utils.create_measurement_table_row(strain_cell=strains)
+        ip_table.add_row(data_row)
+
+        strain1_obj = StrainMapping(strain_link1, 'myLab', 'AND_00', lab_names={lab_strain1})
+        strain2_obj = StrainMapping(strain_link2, 'myLab', 'AND_01', lab_names={lab_strain2})
+        strain_mapping = {strain_link1: strain1_obj,
+                          strain_link2: strain2_obj}
+
+        meas_table = MeasurementTable(ip_table, strain_mapping=strain_mapping)
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
-        self.assertEqual(1, len(meas_result[0][dc_constants.STRAINS]))
-        self.assertEqual('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', meas_result[0][dc_constants.STRAINS][0])
-        
+        actual_strains = meas_result[0][dc_constants.STRAINS]
+        self.assertEqual(2, len(actual_strains))
+        expected_strain1 = {dc_constants.SBH_URI: strain_link1,
+                           dc_constants.LABEL: 'AND_00',
+                           dc_constants.LAB_ID: 'name.mylab.%s' % lab_strain1}
+        expected_strain2 = {dc_constants.SBH_URI: strain_link2,
+                            dc_constants.LABEL: 'AND_01',
+                            dc_constants.LAB_ID: 'name.mylab.%s' % lab_strain2}
+        self.assertEqual(expected_strain1, actual_strains[0])
+        self.assertEqual(expected_strain2, actual_strains[1])
+
     def test_table_with_1_timepoint(self):
         ip_table = test_utils.create_fake_measurement_table()
         timepoint = IntentParserCell()
@@ -108,7 +173,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, timepoint_units={'hour'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.VALUE: 3.0, dc_constants.UNIT: 'hour'}
@@ -123,7 +189,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, timepoint_units={'hour'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.VALUE: 6.0, dc_constants.UNIT: 'hour'}
@@ -141,7 +208,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, temperature_units={'fahrenheit'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.VALUE: 1.0, dc_constants.UNIT: 'fahrenheit'}
@@ -156,7 +224,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, temperature_units={'celsius', 'fahrenheit'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(0, len(meas_result))
 
     def test_table_with_2_temperature_and_unit_abbreviation(self):
@@ -167,7 +236,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, temperature_units={'celsius'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.VALUE: 3.0, dc_constants.UNIT: 'celsius'}
@@ -185,7 +255,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, temperature_units={'celsius'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.VALUE: 3.0, dc_constants.UNIT: 'celsius'}
@@ -203,7 +274,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(0, len(meas_result))
     
     def test_table_with_notes(self):
@@ -214,7 +286,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(0, len(meas_result))
     
     def test_table_with_1_ods(self):
@@ -225,7 +298,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         self.assertEqual(1, len(meas_result[0]['ods']))
         self.assertListEqual([3.0], meas_result[0]['ods'])
@@ -238,7 +312,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         self.assertEqual(3, len(meas_result[0][dc_constants.ODS]))
         self.assertListEqual([33.0, 22.0, 11.0], meas_result[0][dc_constants.ODS])
@@ -257,7 +332,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
@@ -280,7 +356,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
@@ -310,7 +387,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
@@ -333,7 +411,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
@@ -355,7 +434,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
@@ -377,7 +457,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, timepoint_units={'hour'}, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'SC_Media', dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
@@ -401,7 +482,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, timepoint_units={'hour'}, fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
 
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'IPTG', dc_constants.SBH_URI: reagent_uri},
@@ -423,7 +505,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table, timepoint_units={'hour'})
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'Media', dc_constants.SBH_URI: media_uri},
@@ -443,7 +526,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'media', dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
@@ -463,7 +547,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'media', dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
@@ -483,7 +568,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'media', dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
@@ -499,7 +585,8 @@ class MeasurementTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         meas_table = MeasurementTable(ip_table)
-        meas_result = meas_table.process_table()
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
         self.assertEqual(meas_result[0][dc_constants.BATCH], [0,1])
         
@@ -522,7 +609,8 @@ class MeasurementTableTest(unittest.TestCase):
         control_result = control_parser.process_table()
         
         measurement_parser = MeasurementTable(ip_table_measurment)
-        meas_result = measurement_parser.process_table(control_tables={control_parser.get_table_caption(): control_result})
+        measurement_parser.process_table(control_tables={control_parser.get_table_caption(): control_result})
+        meas_result = measurement_parser.get_structured_request()
         self.assertEqual(1, len(meas_result))
         self.assertEqual(1, len(meas_result[0][dc_constants.CONTROLS]))
         control = meas_result[0][dc_constants.CONTROLS][0]
@@ -558,8 +646,9 @@ class MeasurementTableTest(unittest.TestCase):
         control2_result = control2_parser.process_table()
         
         measurement_parser = MeasurementTable(ip_measurement_table)
-        meas_result = measurement_parser.process_table(control_tables={1: control1_result,
-                                                                       2: control2_result})
+        measurement_parser.process_table(control_tables={1: control1_result, 2: control2_result})
+        meas_result = measurement_parser.get_structured_request()
+
         self.assertEqual(1, len(meas_result))
         self.assertEqual(2, len(meas_result[0]['controls']))
         
@@ -604,8 +693,9 @@ class MeasurementTableTest(unittest.TestCase):
         control2_result = control2_parser.process_table()
         
         measurement_parser = MeasurementTable(ip_measurement_table)
-        meas_result = measurement_parser.process_table(control_tables={1: control1_result,
-                                                                       2: control2_result})
+        measurement_parser.process_table(control_tables={1: control1_result, 2: control2_result})
+        meas_result = measurement_parser.get_structured_request()
+
         self.assertEquals(2, len(meas_result))
         self.assertEquals(1, len(meas_result[0][dc_constants.CONTROLS]))
         

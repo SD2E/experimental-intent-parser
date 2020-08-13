@@ -1,3 +1,4 @@
+from intent_parser.intent.measurement_intent import Measurement, MeasurementIntent
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
@@ -11,27 +12,38 @@ class MeasurementTable(object):
     _logger = logging.getLogger('intent_parser')
     IGNORE_COLUMNS = [intent_parser_constants.HEADER_SAMPLES_TYPE, intent_parser_constants.HEADER_NOTES_TYPE]
     
-    def __init__(self, intent_parser_table, temperature_units={}, timepoint_units={}, fluid_units={}, measurement_types={}, file_type={}):
+    def __init__(self,
+                 intent_parser_table,
+                 temperature_units={},
+                 timepoint_units={},
+                 fluid_units={},
+                 measurement_types={},
+                 file_type={},
+                 strain_mapping={}):
         self._temperature_units = temperature_units
         self._timepoint_units = timepoint_units
         self._fluid_units = fluid_units
         self._measurement_types = measurement_types
         self._file_type = file_type
+        self.strain_mapping = strain_mapping
+
         self._validation_errors = []
         self._validation_warnings = []
         self._intent_parser_table = intent_parser_table 
         self._table_caption = None
+        self.measurement_intent = MeasurementIntent()
+
+    def get_structured_request(self):
+        return self.measurement_intent.to_structured_request()
     
     def process_table(self, control_tables={}, bookmarks={}):
-        measurements = []
         self._table_caption = self._intent_parser_table.caption()
         control_mappings = self._process_control_mapping(control_tables, bookmarks) 
         for row_index in range(self._intent_parser_table.data_row_start_index(), self._intent_parser_table.number_of_rows()):
-            measurement_data = self._process_row(row_index, control_mappings)
-            if measurement_data:
-                measurements.append(measurement_data)
-        return measurements   
-    
+            measurement = self._process_row(row_index, control_mappings)
+            if measurement.to_structured_request():
+                self.measurement_intent.add_measurement(measurement)
+
     def _process_control_mapping(self, control_tables, bookmarks):
         if bookmarks:
             return self._map_bookmarks_to_captions(control_tables, bookmarks)
@@ -53,7 +65,7 @@ class MeasurementTable(object):
     
     def _process_row(self, row_index, control_data):
         row = self._intent_parser_table.get_row(row_index)
-        measurement = {}
+        measurement = Measurement()
         content = []
         for cell_index in range(len(row)):
             cell = self._intent_parser_table.get_cell(row_index, cell_index)
@@ -64,49 +76,32 @@ class MeasurementTable(object):
             if not cell.get_text() or cell_type in self.IGNORE_COLUMNS:
                 continue
             
-            elif intent_parser_constants.HEADER_MEASUREMENT_TYPE_TYPE == cell_type:
-                measurement_type = self._process_measurement_type(cell)
-                if measurement_type:
-                    measurement[dc_constants.MEASUREMENT_TYPE] = measurement_type
+            if intent_parser_constants.HEADER_MEASUREMENT_TYPE_TYPE == cell_type:
+                self._process_measurement_type(cell, measurement)
             elif intent_parser_constants.HEADER_FILE_TYPE_TYPE == cell_type:
-                file_type = self._process_file_type(cell) 
-                if file_type:
-                    measurement[dc_constants.FILE_TYPE] = file_type
+                self._process_file_type(cell, measurement)
             elif intent_parser_constants.HEADER_REPLICATE_TYPE == cell_type:
-                replicates = self._process_replicate(cell)
-                if replicates:
-                    measurement[dc_constants.REPLICATES] = replicates
+                self._process_replicate(cell, measurement)
             elif intent_parser_constants.HEADER_STRAINS_TYPE == cell_type:
-                strains = self._process_strains(cell)
-                if strains:
-                    measurement[dc_constants.STRAINS] = strains
+                self._process_strains(cell, measurement)
             elif intent_parser_constants.HEADER_ODS_TYPE == cell_type:
-                ods = self._process_ods(cell)
-                if ods:
-                    measurement[dc_constants.ODS] =ods
+                self._process_ods(cell, measurement)
             elif intent_parser_constants.HEADER_TEMPERATURE_TYPE == cell_type:
-                temperatures = self._process_temperature(cell)
-                if temperatures:
-                    measurement[dc_constants.TEMPERATURES] = temperatures
+                self._process_temperature(cell, measurement)
             elif intent_parser_constants.HEADER_TIMEPOINT_TYPE == cell_type:
-                timepoints = self._process_timepoints(cell)
-                if timepoints:
-                    measurement[dc_constants.TIMEPOINTS] = timepoints
+                self._process_timepoints(cell, measurement)
             elif intent_parser_constants.HEADER_BATCH_TYPE == cell_type:
-                batch = self._process_batch(cell)
-                if batch:
-                    measurement[dc_constants.BATCH] = batch
+                self._process_batch(cell, measurement)
             elif intent_parser_constants.HEADER_CONTROL_TYPE == cell_type:
-                controls = self._process_control(cell, control_data)
-                if controls:
-                    measurement[dc_constants.CONTROLS] = controls
+                self._process_control(cell, control_data, measurement)
             else:
                 reagents = self._process_reagent_media(cell, header_cell)
                 if reagents:
                     content.append(reagents)
         if content:
-            measurement[dc_constants.CONTENTS] = content
-        return measurement 
+            measurement.add_field(dc_constants.CONTENTS, content)
+
+        return measurement
     
     def _process_reagent_media(self, cell, header_cell):
         reagents_media = []
@@ -148,23 +143,25 @@ class MeasurementTable(object):
     def get_validation_warnings(self):
         return self._validation_warnings
     
-    def _process_batch(self, cell):
+    def _process_batch(self, cell, measurement):
         text = cell.get_text()
         if cell_parser.PARSER.is_name(text):
             err = '%s must contain a list of integer values.' % text
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_BATCH_VALUE, err)
             self._validation_errors.append(message)
-            return []
-        return [int(value) for value in cell_parser.PARSER.process_numbers(text)]
+        else:
+            batch = [int(value) for value in cell_parser.PARSER.process_numbers(text)]
+            measurement.add_field(dc_constants.BATCH, batch)
     
-    def _process_control(self, cell, control_tables):
+    def _process_control(self, cell, control_tables, measurement):
         result = [] 
         if cell.get_bookmark_ids():
             result = self._process_control_with_bookmarks(cell, control_tables)
+
         if not result:
-            return self._process_control_with_captions(cell, control_tables)
-        return result
-    
+            result = self._process_control_with_captions(cell, control_tables)
+        measurement.add_field(dc_constants.CONTROLS, result)
+
     def _process_control_with_bookmarks(self, cell, control_tables):
         controls = []
         for bookmark_id in cell.get_bookmark_ids():
@@ -182,62 +179,92 @@ class MeasurementTable(object):
                     controls.append(control)
         return controls       
            
-    def _process_file_type(self, cell):
+    def _process_file_type(self, cell, measurement):
         file_type = cell.get_text()
-        return [value for value in cell_parser.PARSER.process_names(file_type)]
-    
-    def _process_measurement_type(self, cell):
+        if file_type not in self._file_type:
+            err = '%s does not match one of the following file types: \n %s' % (file_type, ' ,'.join((map(str, self._file_type))))
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_FILE_TYPE_VALUE, err)
+            self._validation_errors.append(message)
+        else:
+            measurement.add_field(dc_constants.FILE_TYPE, [value for value in cell_parser.PARSER.process_names(file_type)])
+
+    def _process_measurement_type(self, cell, measurement):
         measurement_type = cell.get_text().strip()
         if measurement_type not in self._measurement_types:
             err = '%s does not match one of the following measurement types: \n %s' % (measurement_type, ' ,'.join((map(str, self._measurement_types))))
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE, err)
             self._validation_errors.append(message)
-            return []
-        return measurement_type
-    
-    def _process_ods(self, cell):
-        return [float(value) for value in cell_parser.PARSER.process_numbers(cell.get_text())]
-    
-    def _process_replicate(self, cell):
+        else:
+            measurement.add_field(dc_constants.MEASUREMENT_TYPE, measurement_type)
+
+    def _process_ods(self, cell, measurement):
+        if cell_parser.PARSER.is_name(cell.get_text()):
+            message = 'Measurement table has invalid %s value: %s must contain a list of numbers' % (intent_parser_constants.HEADER_ODS_VALUE, cell.get_text())
+        else:
+            ods = [float(value) for value in cell_parser.PARSER.process_numbers(cell.get_text())]
+            measurement.add_field(dc_constants.ODS, ods)
+
+    def _process_replicate(self, cell, measurement):
         text = cell.get_text()
         if not cell_parser.PARSER.is_number(text):
             err = '%s must be a numerical value' % text
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_REPLICATE_VALUE, err.get_message())
             self._validation_errors.append(message)
-            return None
+        else:
+            list_of_replicates = cell_parser.PARSER.process_numbers(text)
+            if len(list_of_replicates) > 1:
+                message = ('Measurement table for %s has more than one replicate provided.'
+                           'Only the first replicate will be used from %s.') % (intent_parser_constants.HEADER_REPLICATE_VALUE, text)
+                self._logger.warning(message)
+            measurement.add_field(dc_constants.REPLICATES, int(list_of_replicates[0]))
         
-        list_of_replicates = cell_parser.PARSER.process_numbers(text)
-        if len(list_of_replicates) > 1:
-            message = ('Measurement table for %s has more than one replicate provided.'
-                       'Only the first replicate will be used from %s.') % (intent_parser_constants.HEADER_REPLICATE_VALUE, text)
-            self._logger.warning(message)
-        return int(list_of_replicates[0])
-        
-    def _process_strains(self, cell):
-        if cell_parser.PARSER.is_valued_cell(cell.get_text()):
-            message = ('Measurement table has invalid %s value: %s' 
-                       'Identified %s as a numerical value when '
-                       'expecting alpha-numeric values.') % (intent_parser_constants.HEADER_STRAINS_VALUE, cell.get_text())
-            self._validation_errors.append(message)
-            return []
-        return cell_parser.PARSER.process_names(cell.get_text())
-    
-    def _process_temperature(self, cell):
+    def _process_strains(self, cell, measurement):
+        strains = []
+        for input_strain, link in cell_parser.PARSER.process_names_with_uri(cell.get_text(), text_with_uri=cell.get_text_with_url()):
+            parsed_strain = input_strain.strip()
+            if link is None:
+                message = ('Measurement table has invalid %s value: %s is missing a hyperlink that points to a SBH URI.' % (intent_parser_constants.HEADER_STRAINS_VALUE, parsed_strain))
+                self._validation_errors.append(message)
+                continue
+
+            if link not in self.strain_mapping:
+                message = ('Measurement table has invalid %s value: '
+                           '%s is an invalid link not supported in the SBOL Dictionary Strains tab.' % (intent_parser_constants.HEADER_STRAINS_VALUE, link))
+                self._validation_errors.append(message)
+                continue
+
+            strain = self.strain_mapping[link]
+            if not strain.has_lab_name(parsed_strain):
+                message = 'Measurement table has invalid %s value: %s does not map to %s in the SBOL Dictionary.' % (intent_parser_constants.HEADER_STRAINS_VALUE,
+                                                                                                                     parsed_strain,
+                                                                                                                     link)
+                self._validation_errors.append(message)
+                continue
+
+            strain_obj = {dc_constants.SBH_URI: link,
+                          dc_constants.LABEL: strain.get_common_name(),
+                          dc_constants.LAB_ID: 'name.%s.%s' % (strain.get_lab_id().lower(), parsed_strain)}
+            strains.append(strain_obj)
+
+        if strains:
+            measurement.add_field(dc_constants.STRAINS, strains)
+
+    def _process_temperature(self, cell, measurement):
         text = cell.get_text()
         try:
             result = []
-            for value_unit in cell_parser.PARSER.process_values_unit(text, units=self._temperature_units,
+            for value_unit in cell_parser.PARSER.process_values_unit(text,
+                                                                     units=self._temperature_units,
                                                                      unit_type='temperature'):
                 temperature = {dc_constants.VALUE: float(value_unit['value']),
                                dc_constants.UNIT: value_unit['unit']}
                 result.append(temperature)
-            return result
+            measurement.add_field(dc_constants.TEMPERATURES, result)
         except TableException as err:
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_TEMPERATURE_VALUE, err.get_message())
             self._validation_errors.append(message)
-            return []
-            
-    def _process_timepoints(self, cell):
+
+    def _process_timepoints(self, cell, measurement):
         text = cell.get_text()
         try:
             result = []
@@ -245,8 +272,8 @@ class MeasurementTable(object):
                 timepoint = {dc_constants.VALUE: float(value_unit['value']),
                              dc_constants.UNIT: value_unit['unit']}
                 result.append(timepoint)
-            return result
+            measurement.add_field(dc_constants.TIMEPOINTS, result)
         except TableException as err:
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_TIMEPOINT_VALUE, err.get_message())
             self._validation_errors.append(message)
-            return []
+

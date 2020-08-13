@@ -1337,7 +1337,7 @@ class IntentParserServer(object):
         table_template.append([intent_parser_constants.PARAMETER_PROTOCOL, strateos_protocol])
         protocol_default_value = self.strateos_accessor.get_protocol(strateos_protocol)
         for protocol_key, protocol_value in protocol_default_value.items():
-            common_name = self.sbol_dictionary.get_common_name_from_trascriptic_id(protocol_key)
+            common_name = self.sbol_dictionary.get_common_name_from_transcriptic_id(protocol_key)
             if common_name:
                 table_template.append([common_name, protocol_value])
             else:
@@ -1398,7 +1398,7 @@ class IntentParserServer(object):
         user = json_body['user']
         userEmail = json_body['userEmail']
 
-        if not userEmail is '':
+        if userEmail:
             userId = userEmail
         elif user:
             userId = user
@@ -1449,7 +1449,8 @@ class IntentParserServer(object):
         item_map = self.sbol_dictionary.get_common_names_to_uri()
 
         analyze_inputs = []
-        progress_per_term = 1.0 / len(item_map)
+        item_map_size = len(item_map) if len(item_map) > 0 else 1
+        progress_per_term = 1.0 / item_map_size
         if client_state['user_id'] in self.analyze_never_link:
             link_prefs = self.analyze_never_link[client_state['user_id']]
         else:
