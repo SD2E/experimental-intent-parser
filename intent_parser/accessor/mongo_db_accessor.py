@@ -1,4 +1,3 @@
-from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
 import intent_parser.utils.intent_parser_utils as ip_util
 import intent_parser.constants.intent_parser_constants as ip_constants
@@ -55,7 +54,4 @@ class TA4DBAccessor(object):
                                             status_values[ta4_constants.STATE],
                                             status_path)
                 result[status[ta4_constants.EXPERIMENT_ID]] = status_table
-
-        if not result:
-            raise IntentParserException('TA4\'s pipeline has no information to report for %s under experiment %s.' % (lab_name, experiment_ref))
         return result
