@@ -194,11 +194,11 @@ class ExperimentStatusTableParser(object):
     def _process_path(self, cell, status):
         cell_text = cell.get_text()
         if cell_parser.PARSER.is_name(cell_text):
-            status_type = cell_parser.PARSER.process_names(cell_text)
-            if len(status_type) != 1:
+            status_type = [status for status, _ in cell_parser.PARSER.process_names_with_uri(cell_text)]
+            if len(status_type) > 1:
                 message = 'More than one %s detected from %s. Only the first status will be used.' % (
                            intent_parser_constants.HEADER_PATH_VALUE, cell_text)
-                self._validation_warnings.append(message)
+                self._logger.warning(message)
             status.path = status_type[0]
         else:
             message = 'Experiment status table has invalid %s value: %s should be a file path.' % (

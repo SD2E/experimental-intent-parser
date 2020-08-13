@@ -477,7 +477,7 @@ class IntentParser(object):
             self.validation_errors.extend(meas_table.get_validation_errors())
             self.validation_warnings.extend(meas_table.get_validation_warnings())
             return measurements
-        except (DictionaryMaintainerException) as err:
+        except (DictionaryMaintainerException, TableException) as err:
             self.validation_errors.extend([err.get_message()])
     
     def _process_parameter_table(self, parameter_tables, generate_experiment_request=False):

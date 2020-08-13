@@ -127,22 +127,11 @@ class ParameterTable(object):
             self._flatten_parameter_values(parameter_field, computed_value)
     
     def _get_parameter_field(self, cell):
-        parameters = cell_parser.PARSER.process_names(cell.get_text())
-        if not parameters:
-            message = 'Parameter table has invalid %s value: field cannot be empty.' % (intent_parser_constants.HEADER_PARAMETER_VALUE_TYPE)
-            self._validation_errors.append(message)
-            return None
-        if len(parameters) != 1:
-            message = ('Parameter table for %s has more than one %s provided. '
-                       'Only the first %s will be used from %s.') % (
-                      intent_parser_constants.HEADER_PARAMETER_VALUE_TYPE,
-                      intent_parser_constants.HEADER_PARAMETER_VALUE_TYPE,
-                      cell.get_text())
-            self._validation_warnings.append(message)
-        parameter = parameters[0]
+        parameter = cell.get_text().strip()
         if parameter in self._parameter_fields:
-            return self._parameter_fields[parameter]
-        return parameter
+            error = 'Parameter table has invalid %s value: %s does not map to a TACC UID in the SBOL dictionary.' % (intent_parser_constants.HEADER_PARAMETER_VALUE, parameter)
+
+        return self._parameter_fields[parameter]
 
     def get_validation_errors(self):
         return self._validation_errors
@@ -158,18 +147,18 @@ class ParameterTable(object):
 
     def process_name_parameter(self, parameter_field, parameter_value):
         if cell_parser.PARSER.is_name(parameter_value):
-            computed_value = cell_parser.PARSER.process_names(parameter_value)
+            computed_value = [value for value, _ in cell_parser.PARSER.process_names_with_uri(parameter_value)]
             self._flatten_parameter_values(parameter_field, computed_value)
         else:
-            message = 'Parameter table has invalid %s value: %s should only contain a list names' % (parameter_field, parameter_value)
+            message = 'Parameter table has invalid %s value: %s should only contain a list of names' % (parameter_field, parameter_value)
             self._validation_errors.append(message)
 
     def process_numbered_parameter(self, parameter_field, parameter_value, number_convert):
-        if cell_parser.PARSER.is_number(parameter_value):
+        try:
             computed_value = [number_convert(value) for value in cell_parser.PARSER.process_numbers(parameter_value)]
             self._flatten_parameter_values(parameter_field, computed_value)
-        else:
-            message = 'Parameter table has invalid %s value: %s should only contain numbers' % (parameter_field, parameter_value)
+        except TableException as err:
+            message = 'Parameter table has invalid %s value: %s' % (parameter_field, err)
             self._validation_errors.append(message)
 
 class _ParameterIntent(object):

@@ -44,7 +44,16 @@ class IntentParserTable(object):
             return None 
         return header_index + 1 
     
-    def get_cell(self, row_index, col_index):  
+    def get_cell(self, row_index, col_index):
+        """Get a particular cell from the table.
+
+        Args:
+            row_index: an integer value to represent the index of a row in the table.
+            col_index: an integer value to represent the index of a column in the table.
+            Note that table is zero-indexed for rows and columns.
+        Returns:
+            A IntentParserCell object.
+        """
         row = self.get_row(row_index)
         if col_index < 0 or col_index >= len(row):
             raise IndexError('Cannot access cell (%s, %s)' % (row_index, col_index))
