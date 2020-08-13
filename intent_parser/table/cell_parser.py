@@ -194,18 +194,24 @@ class CellParser(object):
     def process_datetime_format(self, text):
         return datetime.strptime(text, '%Y/%m/%d %H:%M:%S')
 
-    def process_lab_name(self, text):
+    def process_lab_name(self, text, accepted_lab_names={}):
         tokens = self._lab_tokenizer.tokenize(text, keep_skip=False)
         if self._get_token_type(tokens[0]) != 'KEYWORD':
-            return constants.TACC_SERVER
-        return self._get_token_value(tokens[-1])
+            return None
+
+        for lab in accepted_lab_names:
+            canonicalize_lab_name = lab.lower()
+            processed_lab_name = self._get_token_value(tokens[-1]).lower()
+            if canonicalize_lab_name == processed_lab_name:
+                return lab
+        return None
 
     def process_lab_table_value(self, text):
         tokens = self._lab_tokenizer.tokenize(text, keep_skip=False)
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
         if cell_type == 'KEYWORD_SEPARATOR_NAME' or cell_type == 'KEYWORD_SEPARATOR_VALUE':
             return self._get_token_value(tokens[-1])
-        return 'TBD'
+        return None
 
     def process_names(self, text, text_with_uri={}, check_name_in_url=False):
         """
