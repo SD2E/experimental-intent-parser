@@ -5,7 +5,9 @@ from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table import IntentParserTable
 import intent_parser.table.cell_parser as cell_parser
 
-_MEASUREMENT_TABLE_HEADER = {intent_parser_constants.HEADER_MEASUREMENT_TYPE_TYPE,
+_MEASUREMENT_TABLE_HEADER = {intent_parser_constants.HEADER_REPLICATE_TYPE,
+                             intent_parser_constants.HEADER_STRAINS_TYPE,
+                             intent_parser_constants.HEADER_MEASUREMENT_TYPE_TYPE,
                              intent_parser_constants.HEADER_FILE_TYPE_TYPE}
 
 _PARAMETER_TABLE_HEADER = {intent_parser_constants.HEADER_PARAMETER_TYPE,
