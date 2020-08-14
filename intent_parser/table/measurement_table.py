@@ -73,7 +73,7 @@ class MeasurementTable(object):
             header_cell = self._intent_parser_table.get_cell(self._intent_parser_table.header_row_index(), cell_index)
             cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
             
-            if not cell.get_text() or cell_type in self.IGNORE_COLUMNS:
+            if not cell.get_text().strip() or cell_type in self.IGNORE_COLUMNS:
                 continue
             
             if intent_parser_constants.HEADER_MEASUREMENT_TYPE_TYPE == cell_type:
@@ -179,13 +179,23 @@ class MeasurementTable(object):
         return controls       
            
     def _process_file_type(self, cell, measurement):
-        file_type = cell.get_text().strip()
-        if file_type not in self._file_type:
-            err = '%s does not match one of the following file types: \n %s' % (file_type, ' ,'.join((map(str, self._file_type))))
-            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_FILE_TYPE_VALUE, err)
+        file_types = [value for value in cell_parser.PARSER.extract_name_value(cell.get_text())]
+        result = []
+        for file_type in file_types:
+            if file_type not in self._file_type:
+                err = '%s does not match one of the following file types: \n %s' % (file_type, ' ,'.join((map(str, self._file_type))))
+                message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_FILE_TYPE_VALUE, err)
+                self._validation_errors.append(message)
+            else:
+                result.append(file_type)
+
+        if not result:
+            err = '%s does not match one of the following file types: \n %s' % (cell.get_text(), ' ,'.join((map(str, self._file_type))))
+            message = 'Measurement table has invalid %s value: %s' % (
+            intent_parser_constants.HEADER_FILE_TYPE_VALUE, err)
             self._validation_errors.append(message)
         else:
-            measurement.add_field(dc_constants.FILE_TYPE, file_type)
+            measurement.add_field(dc_constants.FILE_TYPE, result)
 
     def _process_measurement_type(self, cell, measurement):
         measurement_type = cell.get_text().strip()

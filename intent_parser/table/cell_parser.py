@@ -247,11 +247,6 @@ class CellParser(object):
             text: a string
             text_with_uri: a dictionary of terms with
         """
-        tokens = self._cell_tokenizer.tokenize(text, keep_separator=True, keep_skip=False)
-        cell_type = self._get_token_type(self._cell_parser.parse(tokens))
-        if cell_type != 'NAME':
-            raise TableException('%s was not identified as an alpha numeric value.')
-
         for token in self.extract_name_value(text):
             name = token.strip()
             if text_with_uri and name in text_with_uri:
