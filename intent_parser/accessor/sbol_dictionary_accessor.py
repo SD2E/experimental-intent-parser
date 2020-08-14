@@ -401,7 +401,9 @@ class SBOLDictionaryAccessor(object):
                     and lab_uid in row:
                 sbh_uri = row[dictionary_constants.COLUMN_SYNBIOHUB_URI]
                 common_name = row[dictionary_constants.COLUMN_COMMON_NAME]
-                lab_strain_names = [name for name, _ in cell_parser.PARSER.process_names_with_uri(row[lab_uid])]
+                lab_strain_names = {}
+                if row[lab_uid]:
+                    lab_strain_names = [name for name in cell_parser.PARSER.extract_name_value(row[lab_uid])]
                 mapped_strains[sbh_uri] = StrainMapping(sbh_uri, lab_name, common_name, lab_names=lab_strain_names)
 
         return mapped_strains
