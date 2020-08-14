@@ -232,7 +232,7 @@ class MeasurementTable(object):
         for input_strain, link in cell_parser.PARSER.process_names_with_uri(cell.get_text(), text_with_uri=cell.get_text_with_url()):
             parsed_strain = input_strain.strip()
             if link is None:
-                message = ('Measurement table has invalid %s value: %s is missing a hyperlink that points to a SBH URI.' % (intent_parser_constants.HEADER_STRAINS_VALUE, parsed_strain))
+                message = ('Measurement table has invalid %s value: %s is missing a SBH URI.' % (intent_parser_constants.HEADER_STRAINS_VALUE, parsed_strain))
                 self._validation_errors.append(message)
                 continue
 
