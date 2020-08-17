@@ -160,6 +160,32 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(2, len(content[dc_constants.NAME]))
         self.assertEqual(content[dc_constants.NAME][dc_constants.LABEL], 'beta_estradiol')
         self.assertEqual(content[dc_constants.NAME][dc_constants.SBH_URI], 'https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1')
+
+    def test_(self):
+        ip_table = test_utils.create_fake_controls_table()
+        control_type = IntentParserCell()
+        control_type.add_paragraph('EMPTY_VECTOR')
+
+        strains = IntentParserCell()
+        strains.add_paragraph('https://hub.sd2e.org/user/sd2e/design/W303/1', link='https://hub.sd2e.org/user/sd2e/design/W303/1')
+        channel = IntentParserCell()
+        channel.add_paragraph('\n')
+
+        content = IntentParserCell()
+        content.add_paragraph('EMPTY_VECTOR', )
+
+        timepoint = IntentParserCell()
+        timepoint.add_paragraph('0 hours')
+
+        data_row = test_utils.create_control_table_row(control_type_cell=control_type,
+                                                       strains_cell=strains,
+                                                       channel_cell=channel,
+                                                       contents_cell=content,
+                                                       timepoint_cell=timepoint)
+        ip_table.add_row(data_row)
+
+        control_table_parser = ControlsTable(ip_table)
+        control_result = control_table_parser.process_table()
      
 if __name__ == "__main__":
     unittest.main()

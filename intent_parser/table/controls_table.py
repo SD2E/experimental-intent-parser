@@ -40,7 +40,7 @@ class ControlsTable(object):
             header_row_index = self._intent_parser_table.header_row_index()
             header_cell = self._intent_parser_table.get_cell(header_row_index, cell_index)
             cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
-            if not cell.get_text():
+            if not cell.get_text().strip():
                 continue
             if intent_parser_constants.HEADER_CONTROL_TYPE_TYPE == cell_type:
                 control_type = self._process_control_type(cell)
@@ -66,19 +66,20 @@ class ControlsTable(object):
     
     def _process_channels(self, cell):
         cell_content = cell.get_text()
-        if not cell_parser.PARSER.is_name(cell_content):
+
+        if cell_parser.PARSER.is_name(cell_content):
+            list_of_channels = cell_parser.PARSER.process_names(cell_content)
+            if len(list_of_channels) > 1:
+                message = ('Controls table for %s has more than one channel provided. '
+                           'Only the first channel will be used from %s.') % (intent_parser_constants.HEADER_CHANNEL_VALUE, cell_content)
+                self._logger.warning(message)
+            return list_of_channels[0]
+        else:
             message = ('Controls table has invalid %s value: '
-                       'Identified %s as a numerical value when ' 
-                       'expecting alpha-numeric values.') % (intent_parser_constants.HEADER_CHANNEL_VALUE, cell_content)
+                       '%s should have alpha-numeric values.') % (intent_parser_constants.HEADER_CHANNEL_VALUE, cell_content)
             self._validation_errors.append(message)
-            return None  
-        list_of_channels = cell_parser.PARSER.process_names(cell_content)
-        if len(list_of_channels) > 1:
-            message = ('Controls table for %s has more than one channel provided. '
-                       'Only the first channel will be used from %s.') % (intent_parser_constants.HEADER_CHANNEL_VALUE, cell_content)
-            self._logger.warning(message)
-        return list_of_channels[0]
-    
+            return None
+
     def _process_contents(self, cell):
         try:
             return cell_parser.PARSER.parse_content_item(cell.get_text(), cell.get_text_with_url(), fluid_units=self._fluid_units, timepoint_units=self._timepoint_units)
