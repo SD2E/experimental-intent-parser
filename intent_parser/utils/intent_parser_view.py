@@ -4,9 +4,33 @@ Functions for generating views related to intent parser
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
 from intent_parser.utils.html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, ControlsTableHtmlBuilder, MeasurementTableHtmlBuilder, ParameterTableHtmlBuilder
 import intent_parser.constants.ip_app_script_constants as addon_constants
+import intent_parser.constants.intent_parser_constants as ip_constants
 import logging
 
 logger = logging.getLogger('intent_parser_server')
+
+
+def generate_results_pagination_html(offset, count):
+    curr_set_str = '%d - %d' % (offset, offset + ip_constants.SPARQL_LIMIT)
+    firstHTML = '<a onclick="refreshList(%d)" href="#first" >First</a>' % 0
+    lastHTML = '<a onclick="refreshList(%d)" href="#last" >Last</a>' % (count - ip_constants.SPARQL_LIMIT)
+    prevHTML = '<a onclick="refreshList(%d)" href="#previous" >Previous</a>' % max(0, offset - ip_constants.SPARQL_LIMIT - 1)
+    nextHTML = '<a onclick="refreshList(%d)" href="#next" >Next</a>' % min(count - ip_constants.SPARQL_LIMIT,
+                                                                           offset + ip_constants.SPARQL_LIMIT + 1)
+
+    html = '<tr>\n'
+    html += '  <td align="center" colspan = 3 style="max-width: 250px; word-wrap: break-word;">\n'
+    html += '    Showing %s of %s\n' % (curr_set_str, count)
+    html += '  </td>\n'
+    html += '</tr>\n'
+    html += '<tr>\n'
+    html += '  <td align="center" colspan = 3 style="max-width: 250px; word-wrap: break-word;">\n'
+    html += '    %s, %s, %s, %s\n' % (firstHTML, prevHTML, nextHTML, lastHTML)
+    html += '  </td>\n'
+    html += '</tr>\n'
+
+    return html
+
 
 def create_table_template(position_in_document, table_data, table_type, col_sizes, additional_info={}):
     create_table = {'action': 'addTable',
@@ -49,9 +73,12 @@ def create_measurement_table_dialog(cursor_child_index):
     local_file_types.insert(0, 'FCS')
 
     lab_ids_html = generate_html_options(catalog_accessor.get_lab_ids())
+    time_unit_html = generate_html_options(catalog_accessor.get_time_units())
+
     measurement_types_html = generate_html_options(catalog_accessor.get_measurement_types())
-    file_types_html = generate_html_options(local_file_types)
     measurement_types_html = measurement_types_html.replace('\n', ' ')
+
+    file_types_html = generate_html_options(local_file_types)
     file_types_html = file_types_html.replace('\n', ' ')
     
     builder = MeasurementTableHtmlBuilder()
@@ -59,6 +86,7 @@ def create_measurement_table_dialog(cursor_child_index):
     builder.lab_ids_html(lab_ids_html) 
     builder.measurement_types_html(measurement_types_html) 
     builder.file_types_html(file_types_html)
+    builder.time_unit_html(time_unit_html)
     html = builder.build()
     dialog_action = modal_dialog(html, 'Create Measurements Table', 600, 600)
     return dialog_action

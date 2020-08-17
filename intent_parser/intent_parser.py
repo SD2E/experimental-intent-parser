@@ -1,19 +1,17 @@
+from datacatalog.formats.common import map_experiment_reference
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, IntentParserException, TableException
-from intent_parser.lab_experiment import LabExperiment
-from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory, TableType
 from intent_parser.table.controls_table import ControlsTable
+from intent_parser.table.experiment_specification_table import ExperimentSpecificationTable
+from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
+from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory, TableType
 from intent_parser.table.lab_table import LabTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.parameter_table import ParameterTable
-from intent_parser.table.experiment_specification_table import ExperimentSpecificationTable
-from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
-from datacatalog.formats.common import map_experiment_reference
 from jsonschema import validate
 from jsonschema import ValidationError
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
 import intent_parser.table.table_utils as table_utils
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import logging
@@ -349,7 +347,7 @@ class IntentParser(object):
             return dc_constants.UNDEFINED
 
     def _get_request_name(self):
-        return self.lab_experiment.title()
+        return self.lab_experiment.title()[0]
 
     def _generate_request(self, control_tables, lab_tables, measurement_tables, parameter_tables):
         """Generates a structured request for a given doc id
@@ -408,7 +406,7 @@ class IntentParser(object):
         result = {}
         if not exp_specification_tables:
             message = 'No experiment specification table to parse from document.'
-            self.validation_errors.append(message)
+            self.validation_warnings.append(message)
             return result
 
         if len(exp_specification_tables) > 1:
@@ -425,7 +423,9 @@ class IntentParser(object):
         table_id_to_statuses = {}
         if not status_tables:
             message = 'No experiment status table to parse from document.'
-            self.validation_errors.append(message)
+            self.validation_warnings.append(message)
+            return table_id_to_statuses
+
         for table in status_tables:
             status_table_parser = ExperimentStatusTableParser(table, self.sbol_dictionary.map_common_names_and_tacc_id())
             status_table_parser.process_table()
@@ -477,7 +477,7 @@ class IntentParser(object):
             self.validation_errors.extend(meas_table.get_validation_errors())
             self.validation_warnings.extend(meas_table.get_validation_warnings())
             return measurements
-        except (DictionaryMaintainerException) as err:
+        except (DictionaryMaintainerException, TableException) as err:
             self.validation_errors.extend([err.get_message()])
     
     def _process_parameter_table(self, parameter_tables, generate_experiment_request=False):

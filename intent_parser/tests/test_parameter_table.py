@@ -106,7 +106,7 @@ class ParameterTableTest(unittest.TestCase):
         param_table.process_table()
         param_result = param_table.get_structured_request()
         expected_result = {'inoc_info.inoculation_media.0': 'S750', 
-                           'inoc_info.inoculation_media.1' : 'Modified M9 Media'}
+                           'inoc_info.inoculation_media.1': 'Modified M9 Media'}
         self.assertEqual(2, len(param_result))
         self.assertDictEqual(expected_result, param_result)
     

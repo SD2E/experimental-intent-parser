@@ -67,19 +67,18 @@ class ControlsTable(object):
     def _process_channels(self, cell):
         cell_content = cell.get_text()
 
-        if cell_parser.PARSER.is_name(cell_content):
-            list_of_channels = cell_parser.PARSER.process_names(cell_content)
+        try:
+            list_of_channels = cell_parser.PARSER.extract_name_value(cell_content)
             if len(list_of_channels) > 1:
                 message = ('Controls table for %s has more than one channel provided. '
                            'Only the first channel will be used from %s.') % (intent_parser_constants.HEADER_CHANNEL_VALUE, cell_content)
                 self._logger.warning(message)
             return list_of_channels[0]
-        else:
-            message = ('Controls table has invalid %s value: '
-                       '%s should have alpha-numeric values.') % (intent_parser_constants.HEADER_CHANNEL_VALUE, cell_content)
+        except TableException as err:
+            message = ('Controls table has invalid %s value: %s') % (
+                        intent_parser_constants.HEADER_CHANNEL_VALUE, err.get_message())
             self._validation_errors.append(message)
-            return None
-
+    
     def _process_contents(self, cell):
         try:
             return cell_parser.PARSER.parse_content_item(cell.get_text(), cell.get_text_with_url(), fluid_units=self._fluid_units, timepoint_units=self._timepoint_units)
@@ -95,10 +94,10 @@ class ControlsTable(object):
                        'expecting alpha-numeric values.') % (intent_parser_constants.HEADER_STRAINS_VALUE, cell.get_text())
             self._validation_errors.append(message)
             return []
-        return cell_parser.PARSER.process_names(cell.get_text())
+        return [strain for strain,_ in cell_parser.PARSER.process_names_with_uri(cell.get_text())]
                 
     def _process_control_type(self, cell):
-        control_type = cell.get_text()
+        control_type = cell.get_text().strip()
         if control_type not in self._control_types:
             err = '%s does not match one of the following control types: \n %s' % (control_type, ' ,'.join((map(str, self._control_types))))
             message = 'Controls table has invalid %s value: %s' % (intent_parser_constants.HEADER_CONTROL_TYPE_VALUE, err)

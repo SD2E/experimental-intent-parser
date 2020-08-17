@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from intent_parser.utils.html_builder import AddHtmlBuilder
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
@@ -34,8 +35,10 @@ logger = logging.getLogger(__name__)
 
 class IntentParserServer(object):
 
-    DICT_PATH = 'dictionaries'
-    LINK_PREF_PATH = 'link_pref'
+    dict_path = 'dictionaries'
+    link_pref_path = 'link_pref'
+
+    _curr_path = os.path.dirname(os.path.realpath(__file__))
 
     # Defines a period of time to wait to send analyze progress updates, in seconds
     ANALYZE_PROGRESS_PERIOD = 2.5
@@ -69,7 +72,16 @@ class IntentParserServer(object):
         self.event = threading.Event()
         self.curr_running_threads = {}
         self.client_thread_lock = threading.Lock()
+
+        if not os.path.exists(self.dict_path):
+            os.makedirs(self.dict_path)
+        if not os.path.exists(self.link_pref_path):
+            os.makedirs(self.link_pref_path)
+
+        self.sparql_similar_query = intent_parser_utils.load_file(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'findSimilar.sparql'))
+        self.sparql_similar_count = intent_parser_utils.load_file(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'findSimilarCount.sparql'))
         self.sparql_similar_count_cache = {}
+
         self.spellCheckers = {}
         # Dictionary per-user that stores analyze associations to ignore
         self.analyze_never_link = {}
@@ -517,7 +529,267 @@ class IntentParserServer(object):
             return self._create_http_response(HTTPStatus.INTERNAL_SERVER_ERROR, json.dumps(result), 'application/json')
         finally:
             self.release_connection(client_state)
-            
+
+    def spellcheck_add_ignore(self, json_body, client_state):
+        """ Ignore button action for additions by spelling
+        """
+        json_body  # Remove unused warning
+        client_state['spelling_index'] += 1
+        if client_state['spelling_index'] >= client_state['spelling_size']:
+            # We are at the end, nothing else to do
+            return []
+        else:
+            return intent_parser_view.report_spelling_results(client_state)
+
+    def spellcheck_add_ignore_all(self, json_body, client_state):
+        """ Ignore All button action for additions by spelling
+        """
+        json_body  # Remove unused warning
+        if self.spellcheck_remove_term(client_state):
+            return intent_parser_view.report_spelling_results(client_state)
+
+    def spellcheck_add_dictionary(self, json_body, client_state):
+        """ Add to spelling dictionary button action for additions by spelling
+        """
+        json_body  # Remove unused warning
+        user_id = client_state['user_id']
+
+        spell_index = client_state['spelling_index']
+        spell_check_result = client_state['spelling_results'][spell_index]
+        new_word = spell_check_result['term']
+
+        # Add new word to frequency list
+        self.spellCheckers[user_id].word_frequency.add(new_word)
+
+        # Save updated frequency list for later loading
+        # We could probably do this later, but it ensures no updated state is lost
+        dict_path = os.path.join(self.dict_path, user_id + '.json')
+        self.spellCheckers[user_id].export(dict_path)
+
+        # Since we are adding this term to the spelling dict, we want to ignore any other results
+        self.spellcheck_remove_term(client_state)
+        # Removing the term automatically updates the spelling index
+        # client_state["spelling_index"] += 1
+        if client_state['spelling_index'] >= client_state['spelling_size']:
+            # We are at the end, nothing else to do
+            return []
+
+        return intent_parser_view.report_spelling_results(client_state)
+
+    def spellcheck_add_synbiohub(self, json_body, client_state):
+        """ Add to SBH button action for additions by spelling
+        """
+        json_body  # Remove unused warning
+
+        doc_id = client_state['document_id']
+        spell_index = client_state['spelling_index']
+        spell_check_result = client_state['spelling_results'][spell_index]
+        select_start = spell_check_result['select_start']
+        select_end = spell_check_result['select_end']
+
+        start_paragraph = select_start['paragraph_index']
+        start_offset = select_start['cursor_index']
+
+        end_paragraph = select_end['cursor_index']
+        end_offset = select_end['cursor_index'] + 1
+
+        dialog_action = self.internal_add_to_syn_bio_hub(doc_id, start_paragraph, end_paragraph,
+                                                         start_offset, end_offset)
+
+        actionList = [dialog_action]
+
+        client_state["spelling_index"] += 1
+        if client_state['spelling_index'] < client_state['spelling_size']:
+            for action in intent_parser_view.report_spelling_results(client_state):
+                actionList.append(action)
+
+        return actionList
+
+    def internal_add_to_syn_bio_hub(self, document_id, start_paragraph, end_paragraph, start_offset, end_offset):
+        try:
+
+            item_type_list = []
+            for sbol_type in intent_parser_constants.ITEM_TYPES:
+                item_type_list += intent_parser_constants.ITEM_TYPES[sbol_type].keys()
+
+            item_type_list = sorted(item_type_list)
+            item_types_html = intent_parser_view.generate_html_options(item_type_list)
+
+            lab_ids_html = intent_parser_view.generate_html_options(intent_parser_constants.LAB_IDS_LIST)
+
+            try:
+                lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
+                doc = lab_experiment.load_from_google_doc()
+            except Exception as ex:
+                errorMessage = (''.join(traceback.format_exception(etype=type(ex),
+                                                         value=ex,
+                                                         tb=ex.__traceback__)))
+                raise ConnectionException(HTTPStatus.NOT_FOUND, errorMessage)
+
+            body = doc.get('body');
+            doc_content = body.get('content')
+            paragraphs = self.get_paragraphs(doc_content)
+
+            paragraph_text = self.get_paragraph_text(
+                paragraphs[start_paragraph])
+
+            selection = paragraph_text[start_offset:end_offset]
+            # Remove leading/trailing space
+            selection = selection.strip()
+            display_id = self.sbh.sanitize_name_to_display_id(selection)
+            dialog_action = intent_parser_view.create_add_to_synbiohub_dialog(selection,
+                                   display_id,
+                                   start_paragraph,
+                                   start_offset,
+                                   end_paragraph,
+                                   end_offset,
+                                   item_types_html,
+                                   lab_ids_html,
+                                   document_id,
+                                   False)
+            return dialog_action
+        except Exception as e:
+            raise e
+
+    def get_paragraph_text(self, paragraph):
+        elements = paragraph['elements']
+        paragraph_text = '';
+
+        for element_index in range(len(elements)):
+            element = elements[element_index]
+
+            if 'textRun' not in element:
+                continue
+            text_run = element['textRun']
+
+            # end_index = element['endIndex']
+            # start_index = element['startIndex']
+
+            paragraph_text += text_run['content']
+
+        return paragraph_text
+
+    def char_is_not_wordpart(self, ch):
+        """ Determines if a character is part of a word or not
+        This is used when parsing the text to tokenize words.
+        """
+        return ch is not '\'' and not ch.isalnum()
+
+    def spellcheck_select_word_from_text(self, client_state, isPrev, isSelect):
+        """ Given a client state with a selection from a spell check result,
+        select or remove the selection on the next or previous word, based upon parameters.
+        """
+        if isPrev:
+            select_key = 'select_start'
+        else:
+            select_key = 'select_end'
+
+        spell_index = client_state['spelling_index']
+        spell_check_result = client_state['spelling_results'][spell_index]
+
+        starting_pos = spell_check_result[select_key]['cursor_index']
+        para_index = spell_check_result[select_key]['paragraph_index']
+        doc = client_state['doc']
+        body = doc.get('body');
+        doc_content = body.get('content')
+        paragraphs = self.get_paragraphs(doc_content)
+        # work on the paragraph text directly
+        paragraph_text = self.get_paragraph_text(paragraphs[para_index])
+        para_text_len = len(paragraph_text)
+
+        # Determine which directions to search in, based on selection or removal, prev/next
+        if isSelect:
+            if isPrev:
+                edge_check = lambda x: x > 0
+                increment = -1
+            else:
+                edge_check = lambda x: x < para_text_len
+                increment = 1
+            firstCheck = self.char_is_not_wordpart
+            secondCheck = lambda x: not self.char_is_not_wordpart(x)
+        else:
+            if isPrev:
+                edge_check = lambda x: x < para_text_len
+                increment = 1
+            else:
+                edge_check = lambda x: x > 0
+                increment = -1
+            secondCheck = self.char_is_not_wordpart
+            firstCheck = lambda x: not self.char_is_not_wordpart(x)
+
+        if starting_pos < 0:
+            print('Error: got request to select previous, but the starting_pos was negative!')
+            return
+
+        if para_text_len < starting_pos:
+            print('Error: got request to select previous, but the starting_pos was past the end!')
+            return
+
+        # Move past the end/start of the current word
+        currIdx = starting_pos + increment
+
+        # Skip over space/non-word parts to the next word
+        while edge_check(currIdx) and firstCheck(paragraph_text[currIdx]):
+            currIdx += increment
+        # Find the beginning/end of word
+        while edge_check(currIdx) and secondCheck(paragraph_text[currIdx]):
+            currIdx += increment
+
+        # If we don't hit the beginning, we need to cut off the last space
+        if currIdx > 0 and isPrev and isSelect:
+            currIdx += 1
+
+        if not isPrev and isSelect and paragraph_text[currIdx].isspace():
+            currIdx += -1
+
+        spell_check_result[select_key]['cursor_index'] = currIdx
+
+        return intent_parser_view.report_spelling_results(client_state)
+
+    def get_element_type(self, element, element_type):
+        elements = []
+        if type(element) is dict:
+            for key in element:
+                if key == element_type:
+                    elements.append(element[key])
+
+                elements += self.get_element_type(element[key],
+                                                  element_type)
+
+        elif type(element) is list:
+            for entry in element:
+                elements += self.get_element_type(entry,
+                                                  element_type)
+
+        return elements
+
+    def get_paragraphs(self, element):
+        return self.get_element_type(element, 'paragraph')
+
+    def spellcheck_add_select_previous(self, json_body, client_state):
+        """ Select previous word button action for additions by spelling
+        """
+        json_body  # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, True, True)
+
+    def spellcheck_add_select_next(self, json_body, client_state):
+        """ Select next word button action for additions by spelling
+        """
+        json_body  # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, False, True)
+
+    def spellcheck_add_drop_first(self, json_body, client_state):
+        """ Remove selection previous word button action for additions by spelling
+        """
+        json_body  # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, True, False)
+
+    def spellcheck_add_drop_last(self, json_body, client_state):
+        """ Remove selection next word button action for additions by spelling
+        """
+        json_body  # Remove unused warning
+        return self.spellcheck_select_word_from_text(client_state, False, False)
+
     def process_form_link_all(self, data):
         document_id = data['documentId']
         lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
@@ -715,7 +987,7 @@ class IntentParserServer(object):
 
         term_to_ignore = search_results[curr_idx]['term']
         # Generate results without term to ignore
-        new_search_results = [r for r in search_results if not r['term'] == term_to_ignore ]
+        new_search_results = [r for r in search_results if r['term'] != term_to_ignore]
 
         # Find out what term to point to
         new_idx = new_search_results.index(search_results[next_idx])
@@ -742,7 +1014,7 @@ class IntentParserServer(object):
 
         # Make sure we have a list of link preferences for this userId
         if not userId in self.analyze_never_link:
-            link_pref_file = os.path.join(self.LINK_PREF_PATH, userId + '.json')
+            link_pref_file = os.path.join(self.link_pref_path, userId + '.json')
             if os.path.exists(link_pref_file):
                 try:
                     with open(link_pref_file, 'r') as fin:
@@ -761,7 +1033,7 @@ class IntentParserServer(object):
             # If no prefs for this dict term, start a new list with the current text
             self.analyze_never_link[userId][dict_term] = [content_text]
 
-        link_pref_file = os.path.join(self.LINK_PREF_PATH, userId + '.json')
+        link_pref_file = os.path.join(self.link_pref_path, userId + '.json')
         try:
             with open(link_pref_file, 'w') as fout:
                 json.dump(self.analyze_never_link[userId], fout)
@@ -805,8 +1077,8 @@ class IntentParserServer(object):
                 offset = 0
             if data['term'] in self.sparql_similar_count_cache:
                 # Ensure offset isn't past the end of the results
-                if offset > int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit:
-                    offset = max(0, int(self.sparql_similar_count_cache[data['term']]) - self.sparql_limit)
+                if offset > int(self.sparql_similar_count_cache[data['term']]) - intent_parser_constants.SPARQL_LIMIT:
+                    offset = max(0, int(self.sparql_similar_count_cache[data['term']]) - intent_parser_constants.SPARQL_LIMIT)
             else:
                 # Don't allow a non-zero offset if we haven't cached the size of the query
                 if offset > 0:
@@ -826,7 +1098,7 @@ class IntentParserServer(object):
                 title = search_result['title']
                 target = search_result['target']
                 table_html += intent_parser_view.generate_existing_link_html(title, target, analyze)
-            table_html += self.generate_results_pagination_html(offset, int(results_count))
+            table_html += intent_parser_view.generate_results_pagination_html(offset, int(results_count))
 
             response = {'results':
                         {'operationSucceeded': True,
@@ -947,7 +1219,7 @@ class IntentParserServer(object):
 
             if not userId in self.spellCheckers:
                 self.spellCheckers[userId] = SpellChecker()
-                dict_path = os.path.join(self.DICT_PATH, userId + '.json')
+                dict_path = os.path.join(self.dict_path, userId + '.json')
                 if os.path.exists(dict_path):
                     logger.info('Loaded dictionary for userId, path: %s' % dict_path)
                     self.spellCheckers[userId].word_frequency.load_dictionary(dict_path)
@@ -1094,7 +1366,13 @@ class IntentParserServer(object):
             header_row.append(intent_parser_constants.HEADER_NOTES_VALUE)
         if data[ip_addon_constants.HTML_CONTROLS]:
             header_row.append(intent_parser_constants.HEADER_CONTROL_VALUE)
-        header_row.extend(['' for _ in range(int(data[ip_addon_constants.HTML_NUM_OF_REAGENTS]))])
+        if data[ip_addon_constants.HTML_NUM_OF_REAGENTS] and \
+           data[ip_addon_constants.HTML_REAGENT_TIMEPOINT_VALUE] and \
+           data[ip_addon_constants.HTML_REAGENT_TIMEPOINT_UNIT]:
+            timepoint_value = data[ip_addon_constants.HTML_REAGENT_TIMEPOINT_VALUE]
+            timepoint_unit = data[ip_addon_constants.HTML_REAGENT_TIMEPOINT_UNIT]
+            num_of_reagent = data[ip_addon_constants.HTML_NUM_OF_REAGENTS]
+            header_row.extend(['Reagent %d @ %s %s' % (reagent_index+1, timepoint_value, timepoint_unit) for reagent_index in range(int(num_of_reagent))])
         table_template.append(header_row)
 
         measurement_types = data[ip_addon_constants.HTML_MEASUREMENT_TYPES]
@@ -1157,12 +1435,14 @@ class IntentParserServer(object):
             self._report_experiment_status(document_id)
         except IntentParserException as err:
             all_errors = [err.get_message()]
-            return self._create_http_response(HTTPStatus.BAD_REQUEST,
-                                              json.dumps({'errors': all_errors}),
+            return self._create_http_response(HTTPStatus.OK,
+                                              json.dumps({'status': 'updated',
+                                                          'messages': all_errors}),
                                               'application/json')
 
         return self._create_http_response(HTTPStatus.OK,
-                                          json.dumps({'status': 'updated'}),
+                                          json.dumps({'status': 'updated',
+                                                      'messages': []}),
                                           'application/json')
 
     def _create_experiment_specification_table(self, document_id, experiment_specification_table):
@@ -1189,6 +1469,10 @@ class IntentParserServer(object):
         exp_id_to_ref_table = experiment_status[dc_constants.EXPERIMENT_ID]
         ref_table_to_statuses = experiment_status[dc_constants.STATUS_ELEMENT]
         db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(document_id, lab_name)
+        if not db_exp_id_to_statuses:
+            experiment_ref = intent_parser_constants.GOOGLE_DOC_URL_PREFIX + document_id
+            raise IntentParserException(
+                'TA4\'s pipeline has no information to report for %s under experiment %s.' % (lab_name, experiment_ref))
         for db_experiment_id, db_statuses_table in db_exp_id_to_statuses.items():
             intent_parser.process_table_indices()
 
@@ -1222,7 +1506,6 @@ class IntentParserServer(object):
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
         logger.warning('Processing document id: %s' % document_id)
 
-        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         action_list = []
         try:
             self._report_experiment_status(document_id)
@@ -1231,46 +1514,6 @@ class IntentParserServer(object):
             all_errors = [err.get_message()]
             dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to report experiment status',
                                                                             all_errors)
-            action_list = [dialog_action]
-        actions = {'actions': action_list}
-        return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-
-    def process_report_experiment_status_old(self, http_message):
-        """Report the status of an experiment by inserting experiment specification and status tables."""
-        json_body = intent_parser_utils.get_json_body(http_message)
-        data = json_body['data']
-        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-        logger.warning('Processing document id: %s' % document_id)
-
-        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-        action_list = []
-        try:
-            intent_parser.process_structure_request()
-            sr = intent_parser.get_structured_request()
-            lab_name = sr[dc_constants.LAB]
-            db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(document_id, lab_name)
-            status_tables = {}
-            new_table_index = intent_parser.get_largest_table_index() + 1
-            ref_tables = []
-            for experiment_id, statuses_table in db_exp_id_to_statuses.items():
-                table_template, column_widths = self.process_create_experiment_status_table(statuses_table.get_statuses(), new_table_index)
-                action = intent_parser_view.create_table_template(data[ip_addon_constants.CHILD_INDEX],
-                                                         table_template,
-                                                         ip_addon_constants.TABLE_TYPE_STATUS,
-                                                         column_widths)
-                ref_tables.extend(action)
-                status_tables[experiment_id] = new_table_index
-                new_table_index = new_table_index + 1
-
-            table_template, column_widths = self.process_create_experiment_specification_table(status_tables, new_table_index)
-            action_list.extend(intent_parser_view.create_table_template(data[ip_addon_constants.CHILD_INDEX],
-                                                            table_template,
-                                                            ip_addon_constants.TABLE_TYPE_EXPERIMENT_SPECIFICATION,
-                                                            column_widths))
-            action_list.extend(ref_tables)
-        except IntentParserException as err:
-            all_errors = [err.get_message()]
-            dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to report experiment status', all_errors)
             action_list = [dialog_action]
         actions = {'actions': action_list}
         return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
@@ -1602,21 +1845,21 @@ class IntentParserServer(object):
         else:
             extra_filter = 'FILTER( !regex(?member, "%s"))' % filter_uri
 
-        if offset == 0 or not term in self.sparql_similar_count_cache:
+        if offset == 0 or term not in self.sparql_similar_count_cache:
             sparql_count = self.sparql_similar_count.replace('${TERM}', term).replace('${EXTRA_FILTER}', extra_filter)
-            query_results = self.sbh.sparqlQuery(sparql_count)
+            query_results = self.sbh.query(sparql_count)
             bindings = query_results['results']['bindings']
             self.sparql_similar_count_cache[term] = bindings[0]['count']['value']
 
         sparql_query = self.sparql_similar_query.replace('${TERM}', term).replace('${LIMIT}', str(intent_parser_constants.SPARQL_LIMIT)).replace('${OFFSET}', str(offset)).replace('${EXTRA_FILTER}', extra_filter)
-        query_results = self.sbh.sparqlQuery(sparql_query)
+        query_results = self.sbh.query(sparql_query)
         bindings = query_results['results']['bindings']
         search_results = []
         for binding in bindings:
             title = binding['title']['value']
             target = binding['member']['value']
-            if self.sbh_spoofing_prefix is not None:
-                target = target.replace(self.sbh_spoofing_prefix, self.sbh_url)
+            if self.sbh.get_sbh_spoofing_prefix() is not None:
+                target = target.replace(self.sbh.get_sbh_spoofing_prefix(), self.sbh.get_sbh_url())
             search_results.append({'title': title, 'target': target})
 
         return search_results, self.sparql_similar_count_cache[term]

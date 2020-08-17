@@ -93,6 +93,8 @@ class MeasurementTableHtmlBuilder(object):
         self.html = self.html.replace('${MEASUREMENTOPTIONS}', measurement_types_html)
     def file_types_html(self, file_types_html):
         self.html = self.html.replace('${FILETYPEOPTIONS}', file_types_html)
+    def time_unit_html(self, time_unit_html):
+        self.html = self.html.replace('${TIMEUNITOPTION}', time_unit_html)
     def build(self):
         return self.html
     

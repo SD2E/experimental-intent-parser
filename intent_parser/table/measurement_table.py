@@ -2,6 +2,7 @@ from intent_parser.intent.measurement_intent import Measurement, MeasurementInte
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
 
@@ -73,7 +74,7 @@ class MeasurementTable(object):
             header_cell = self._intent_parser_table.get_cell(self._intent_parser_table.header_row_index(), cell_index)
             cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
             
-            if not cell.get_text() or cell_type in self.IGNORE_COLUMNS:
+            if not cell.get_text().strip() or cell_type in self.IGNORE_COLUMNS:
                 continue
             
             if intent_parser_constants.HEADER_MEASUREMENT_TYPE_TYPE == cell_type:
@@ -145,13 +146,12 @@ class MeasurementTable(object):
     
     def _process_batch(self, cell, measurement):
         text = cell.get_text()
-        if cell_parser.PARSER.is_name(text):
-            err = '%s must contain a list of integer values.' % text
-            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_BATCH_VALUE, err)
-            self._validation_errors.append(message)
-        else:
+        try:
             batch = [int(value) for value in cell_parser.PARSER.process_numbers(text)]
             measurement.add_field(dc_constants.BATCH, batch)
+        except TableException as err:
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_BATCH_VALUE, err)
+            self._validation_errors.append(message)
     
     def _process_control(self, cell, control_tables, measurement):
         result = [] 
@@ -172,7 +172,7 @@ class MeasurementTable(object):
     
     def _process_control_with_captions(self, cell, control_tables):
         controls = []
-        for table_caption in cell_parser.PARSER.process_names(cell.get_text()):
+        for table_caption in cell_parser.PARSER.extract_name_value(cell.get_text()):
             table_index = cell_parser.PARSER.process_table_caption_index(table_caption)
             if table_index in control_tables:
                 for control in control_tables[table_index]:
@@ -180,13 +180,23 @@ class MeasurementTable(object):
         return controls       
            
     def _process_file_type(self, cell, measurement):
-        file_type = cell.get_text()
-        if file_type not in self._file_type:
-            err = '%s does not match one of the following file types: \n %s' % (file_type, ' ,'.join((map(str, self._file_type))))
-            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_FILE_TYPE_VALUE, err)
+        file_types = [value for value in cell_parser.PARSER.extract_name_value(cell.get_text())]
+        result = []
+        for file_type in file_types:
+            if file_type not in self._file_type:
+                err = '%s does not match one of the following file types: \n %s' % (file_type, ' ,'.join((map(str, self._file_type))))
+                message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_FILE_TYPE_VALUE, err)
+                self._validation_errors.append(message)
+            else:
+                result.append(file_type)
+
+        if not result:
+            err = '%s does not match one of the following file types: \n %s' % (cell.get_text(), ' ,'.join((map(str, self._file_type))))
+            message = 'Measurement table has invalid %s value: %s' % (
+            intent_parser_constants.HEADER_FILE_TYPE_VALUE, err)
             self._validation_errors.append(message)
         else:
-            measurement.add_field(dc_constants.FILE_TYPE, [value for value in cell_parser.PARSER.process_names(file_type)])
+            measurement.add_field(dc_constants.FILE_TYPE, result)
 
     def _process_measurement_type(self, cell, measurement):
         measurement_type = cell.get_text().strip()
@@ -198,32 +208,32 @@ class MeasurementTable(object):
             measurement.add_field(dc_constants.MEASUREMENT_TYPE, measurement_type)
 
     def _process_ods(self, cell, measurement):
-        if cell_parser.PARSER.is_name(cell.get_text()):
-            message = 'Measurement table has invalid %s value: %s must contain a list of numbers' % (intent_parser_constants.HEADER_ODS_VALUE, cell.get_text())
-        else:
+        try:
             ods = [float(value) for value in cell_parser.PARSER.process_numbers(cell.get_text())]
             measurement.add_field(dc_constants.ODS, ods)
+        except TableException as err:
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_ODS_VALUE, err)
+            self._validation_errors.append(message)
 
     def _process_replicate(self, cell, measurement):
         text = cell.get_text()
-        if not cell_parser.PARSER.is_number(text):
-            err = '%s must be a numerical value' % text
-            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_REPLICATE_VALUE, err.get_message())
-            self._validation_errors.append(message)
-        else:
+        try:
             list_of_replicates = cell_parser.PARSER.process_numbers(text)
             if len(list_of_replicates) > 1:
                 message = ('Measurement table for %s has more than one replicate provided.'
                            'Only the first replicate will be used from %s.') % (intent_parser_constants.HEADER_REPLICATE_VALUE, text)
                 self._logger.warning(message)
             measurement.add_field(dc_constants.REPLICATES, int(list_of_replicates[0]))
+        except TableException as err:
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_REPLICATE_VALUE, err)
+            self._validation_errors.append(message)
         
     def _process_strains(self, cell, measurement):
         strains = []
         for input_strain, link in cell_parser.PARSER.process_names_with_uri(cell.get_text(), text_with_uri=cell.get_text_with_url()):
             parsed_strain = input_strain.strip()
             if link is None:
-                message = ('Measurement table has invalid %s value: %s is missing a hyperlink that points to a SBH URI.' % (intent_parser_constants.HEADER_STRAINS_VALUE, parsed_strain))
+                message = ('Measurement table has invalid %s value: %s is missing a SBH URI.' % (intent_parser_constants.HEADER_STRAINS_VALUE, parsed_strain))
                 self._validation_errors.append(message)
                 continue
 
@@ -235,9 +245,10 @@ class MeasurementTable(object):
 
             strain = self.strain_mapping[link]
             if not strain.has_lab_name(parsed_strain):
-                message = 'Measurement table has invalid %s value: %s does not map to %s in the SBOL Dictionary.' % (intent_parser_constants.HEADER_STRAINS_VALUE,
-                                                                                                                     parsed_strain,
-                                                                                                                     link)
+                lab_name = dictionary_constants.MAPPED_LAB_UID[strain.get_lab_id()]
+                message = 'Measurement table has invalid %s value: %s is not listed under %s in the SBOL Dictionary.' % (intent_parser_constants.HEADER_STRAINS_VALUE,
+                                                                                                                         parsed_strain,
+                                                                                                                         lab_name)
                 self._validation_errors.append(message)
                 continue
 

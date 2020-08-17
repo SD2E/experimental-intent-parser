@@ -40,17 +40,7 @@ class GoldenFileTest(unittest.TestCase):
         datacatalog_config = {"mongodb": {"database": "catalog_staging", "authn": self.authn}}
         self.intentparser_factory = IntentParserFactory(datacatalog_config, self.mock_intent_parser_sbh, self.sbol_dictionary)
         self.uploaded_file_id = ''
-        
-    def test_intent_parsers_test_document(self):
-        file = '1TMNRf0CB_7wCQEq7Rq4_gfpcnRke7B-Px4c3ZFr7a4o_expected.json'
-        file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path)
-    
-    def test_nick_NovelChassisYeastStates_TimeSeries_document(self):
-        file = '1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoTA_expected.json'
-        file_path = os.path.join(self.mock_data_dir, file)
-        self._compare_structured_requests(file_path) 
-    
+
     def test_CEN_PK_Inducible_CRISPR_4_Day_Obstacle_Course(self):  
         file = 'CEN-PK-Inducible-CRISPR-4-Day-Obstacle-Course.json'
         file_path = os.path.join(self.mock_data_dir, file)

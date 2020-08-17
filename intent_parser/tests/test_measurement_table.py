@@ -53,8 +53,8 @@ class MeasurementTableTest(unittest.TestCase):
         meas_table.process_table()
         meas_result = meas_table.get_structured_request()
         self.assertEqual(1, len(meas_result))
-        self.assertEqual(1, len(meas_result[0][dc_constants.FILE_TYPE]))
-        self.assertEqual(meas_result[0][dc_constants.FILE_TYPE][0], 'FASTQ')
+        self.assertTrue(dc_constants.FILE_TYPE in meas_result[0])
+        self.assertEqual(['FASTQ'], meas_result[0][dc_constants.FILE_TYPE])
     
     def test_table_with_1_replicate(self):
         ip_table = test_utils.create_fake_measurement_table()
