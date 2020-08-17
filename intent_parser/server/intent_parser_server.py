@@ -1,11 +1,10 @@
 from http import HTTPStatus
-from intent_parser.utils.html_builder import AddHtmlBuilder
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
-from intent_parser.intent_parser_exceptions import ConnectionException, DictionaryMaintainerException, IntentParserException
+from intent_parser.intent_parser_exceptions import ConnectionException, DictionaryMaintainerException, IntentParserException, TableException
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.intent_parser_sbh import IntentParserSBH
 from intent_parser.table.table_creator import TableCreator
@@ -1433,7 +1432,7 @@ class IntentParserServer(object):
         document_id = resource.split('?')[1]
         try:
             self._report_experiment_status(document_id)
-        except IntentParserException as err:
+        except (IntentParserException, TableException) as err:
             all_errors = [err.get_message()]
             return self._create_http_response(HTTPStatus.OK,
                                               json.dumps({'status': 'updated',
@@ -1468,37 +1467,60 @@ class IntentParserServer(object):
         lab_name = experiment_status[dc_constants.LAB]
         exp_id_to_ref_table = experiment_status[dc_constants.EXPERIMENT_ID]
         ref_table_to_statuses = experiment_status[dc_constants.STATUS_ELEMENT]
+
         db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(document_id, lab_name)
         if not db_exp_id_to_statuses:
             experiment_ref = intent_parser_constants.GOOGLE_DOC_URL_PREFIX + document_id
             raise IntentParserException(
                 'TA4\'s pipeline has no information to report for %s under experiment %s.' % (lab_name, experiment_ref))
-        for db_experiment_id, db_statuses_table in db_exp_id_to_statuses.items():
-            intent_parser.process_table_indices()
 
-            if db_experiment_id in exp_id_to_ref_table:
-                table_caption_index = exp_id_to_ref_table[db_experiment_id]
-                doc_status_table = ref_table_to_statuses[table_caption_index]
-                if db_statuses_table != doc_status_table:
-                    # Update Status table
-                    self._update_experiment_status_table(document_id, doc_status_table, db_statuses_table)
-            else:
-                # Create new Status Table and link to Specification table
+        existing_status = [db_experiment_id for db_experiment_id in db_exp_id_to_statuses.keys() if db_experiment_id in exp_id_to_ref_table]
+        new_status = [db_experiment_id for db_experiment_id in db_exp_id_to_statuses.keys() if db_experiment_id not in exp_id_to_ref_table]
+
+        if existing_status:
+            self._process_existing_status(existing_status, db_exp_id_to_statuses, exp_id_to_ref_table, ref_table_to_statuses, intent_parser, document_id)
+        if new_status:
+            self._process_new_experiment_status(new_status, db_exp_id_to_statuses, intent_parser, document_id)
+
+    def _process_existing_status(self, existing_status_ids, db_exp_id_to_statuses, exp_id_to_ref_table, ref_table_to_statuses, intent_parser, document_id):
+        for db_experiment_id in existing_status_ids:
+            db_statuses_table = db_exp_id_to_statuses[db_experiment_id]
+            table_caption_index = exp_id_to_ref_table[db_experiment_id]
+            if table_caption_index not in ref_table_to_statuses:
+                raise TableException('Table %d does not exist in document id: %s' % (table_caption_index, document_id))
+            doc_status_table = ref_table_to_statuses[table_caption_index]
+            if db_statuses_table != doc_status_table:
+                # Update Status table
                 new_table = intent_parser.create_experiment_status_table(db_statuses_table.get_statuses())
-                self._add_experiment_status_table(document_id, new_table)
+                self._update_experiment_status_table(document_id, doc_status_table, new_table)
 
-                spec_table = intent_parser.get_experiment_specification_table()
-                if spec_table is None:
-                    new_spec_table = intent_parser.create_experiment_specification_table({db_experiment_id: new_table.get_table_caption()})
-                    self._create_experiment_specification_table(document_id, new_spec_table)
-                else:
-                    new_exp_id_with_indices = spec_table.experiment_id_to_status_table()
-                    new_exp_id_with_indices[db_experiment_id] = new_table.get_table_caption()
-                    new_spec_table = intent_parser.create_experiment_specification_table(experiment_id_with_indices=new_exp_id_with_indices,
-                                                                                         table_index=spec_table.get_table_caption())
-                    self._update_experiment_specification_table(document_id,
-                                                                spec_table,
-                                                                new_spec_table)
+    def _process_new_experiment_status(self, new_status_experiment_ids, db_exp_id_to_statuses, intent_parser, document_id):
+        created_statuses = {}
+        for db_experiment_id in new_status_experiment_ids:
+            db_statuses_table = db_exp_id_to_statuses[db_experiment_id]
+            # Create new Status Table and link to Specification table
+            new_table = intent_parser.create_experiment_status_table(db_statuses_table.get_statuses())
+            self._add_experiment_status_table(document_id, new_table)
+            created_statuses[db_experiment_id] = new_table.get_table_caption()
+
+        spec_table = intent_parser.get_experiment_specification_table()
+        if spec_table is None:
+            self._process_new_experiment_specification(created_statuses, intent_parser, document_id)
+        else:
+            self._process_existing_experiment_specification(spec_table, created_statuses, intent_parser, document_id)
+
+    def _process_new_experiment_specification(self, created_statuses, intent_parser, document_id):
+        new_spec_table = intent_parser.create_experiment_specification_table(experiment_id_with_indices=created_statuses)
+        self._create_experiment_specification_table(document_id, new_spec_table)
+
+    def _process_existing_experiment_specification(self, spec_table, created_statuses, intent_parser, document_id):
+        new_exp_id_with_indices = spec_table.experiment_id_to_status_table()
+        new_exp_id_with_indices.update(created_statuses)
+        new_spec_table = intent_parser.create_experiment_specification_table(experiment_id_with_indices=new_exp_id_with_indices,
+                                                                             spec_table_index=spec_table.get_table_caption())
+        self._update_experiment_specification_table(document_id,
+                                                    spec_table,
+                                                    new_spec_table)
 
     def process_report_experiment_status(self, http_message):
         """Report the status of an experiment by inserting experiment specification and status tables."""
@@ -1510,7 +1532,7 @@ class IntentParserServer(object):
         try:
             self._report_experiment_status(document_id)
             action_list.append(intent_parser_view.message_dialog('Report Experiment Status', 'Complete'))
-        except IntentParserException as err:
+        except (IntentParserException, TableException) as err:
             all_errors = [err.get_message()]
             dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to report experiment status',
                                                                             all_errors)
@@ -1528,41 +1550,6 @@ class IntentParserServer(object):
 
         for experiment_id, status_table_index in status_tables.items():
             table_template.append([experiment_id, 'Table %d' % status_table_index])
-        column_width = [len(header) for header in header_row]
-        return table_template, column_width
-
-    def process_create_experiment_status_table(self, experiment_statuses, table_index=None):
-        table_template = []
-        if table_index:
-            table_caption = ['Table %d: Experiment Status' % table_index]
-            table_caption.extend(['' for _ in range(3)])
-            table_template.append(table_caption)
-
-        header_row = [intent_parser_constants.HEADER_PIPELINE_STATUS_VALUE,
-                      intent_parser_constants.HEADER_LAST_UPDATED_VALUE,
-                      intent_parser_constants.HEADER_PATH_VALUE,
-                      intent_parser_constants.HEADER_STATE_VALUE]
-        table_template.append(header_row)
-
-        attribute_tab = self.sbol_dictionary.get_tab_sheet(dictionary_constants.ATTRIBUTE_TAB)
-        for status in experiment_statuses:
-            # status_type = spreadsheet_data_util.get_common_name_from_tacc_id(status.status_type, attribute_tab)
-            status_type = status.status_type
-            if status_type is None:
-                logger.warning('Unable to locate %s as a TACC UID in SBOL Dictionary.' % status.status_type)
-                continue
-            last_updated = '%s/%s/%s %s:%s:%s' % (status.last_updated.year, status.last_updated.month, status.last_updated.day,
-                                                  status.last_updated.hour, status.last_updated.minute, status.last_updated.second)
-            state = 'Not Complete'
-            if status.state is True:
-                state = 'Succeeded'
-            elif status.state is False:
-                state = 'Failed'
-            elif status.state is 'File loaded':
-                state = 'Succeeded'
-
-            current_row = [status_type, last_updated, status.path, state]
-            table_template.append(current_row)
         column_width = [len(header) for header in header_row]
         return table_template, column_width
 

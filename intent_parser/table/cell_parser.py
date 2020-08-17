@@ -93,7 +93,6 @@ class CellParser(object):
 
     def is_experiment_id(self, text, lab_names={}):
         tokens = self._experiment_id_tokenizer.tokenize(text)
-
         if len(tokens) != 5:
             return False
 
@@ -102,8 +101,8 @@ class CellParser(object):
 
         if self._get_token_value(tokens[2]) not in lab_names:
             return False
-
         return True
+
 
     def is_name(self, text):
         """
@@ -497,7 +496,7 @@ class _ExperimentIdTokenizer(_Tokenizer):
     token_specification = [
         ('KEYWORD', r'experiment|Experiment'),
         ('NAME', r'[^\t \n.]+'),
-        ('SKIP', r'([ \t]|\u000b)+'),
+        ('SKIP', r'([ \t]|\u000b\n)+'),
         ('SEPARATOR', r'[.]')]
 
     def __init__(self):

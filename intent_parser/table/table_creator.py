@@ -53,7 +53,6 @@ class TableCreator(object):
         delete_content = self.doc_accessor.delete_content(intent_parser_table.get_table_start_index(),
                                                           intent_parser_table.get_table_end_index())
         self.doc_accessor.execute_batch_request([delete_content], document_id)
-        location = self.doc_accessor.create_location(intent_parser_table.get_table_start_index())
         new_spec_table.set_table_caption(experiment_specification_table.get_table_caption())
         return self.create_experiment_specification_table(document_id, new_spec_table)
 
@@ -62,7 +61,6 @@ class TableCreator(object):
         delete_content = self.doc_accessor.delete_content(intent_parser_table.get_table_start_index(),
                                                           intent_parser_table.get_table_end_index())
         self.doc_accessor.execute_batch_request([delete_content], document_id)
-        location = self.doc_accessor.create_location(intent_parser_table.get_table_start_index())
         db_statuses_table.set_table_caption(experiment_status_table.get_table_caption())
         return self.create_experiment_status_table(document_id, db_statuses_table)
 

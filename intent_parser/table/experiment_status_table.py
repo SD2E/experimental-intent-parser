@@ -111,7 +111,6 @@ class ExperimentStatusTableParser(object):
                 self.status_obs_load]
 
     def _create_default_status(self, tacc_id):
-        status_type = self.status_mappings[tacc_id]
         default_status = self._Status(self.status_mappings, tacc_id, datetime.now(), 'unspecified', 'no data')
         return default_status
 
@@ -174,7 +173,7 @@ class ExperimentStatusTableParser(object):
             self._logger.warning('%s is not a experiment status supported in Intent Parser' % status.status_type)
 
     def _process_status_type(self, cell, status):
-        cell_text = cell.get_text()
+        cell_text = cell.get_text().strip()
         type = [tacc_id for tacc_id, common_name in self.status_mappings.items() if cell_text == common_name]
         if len(type) == 0:
             status.status_type = 'Unknown'
@@ -185,14 +184,14 @@ class ExperimentStatusTableParser(object):
 
     def _process_last_updated(self, cell, status):
         try:
-            status.last_updated = cell_parser.PARSER.process_datetime_format(cell.get_text())
+            status.last_updated = cell_parser.PARSER.process_datetime_format(cell.get_text().strip())
         except ValueError as err:
             message = 'Experiment status table has invalid %s value: %s' % (
                        intent_parser_constants.HEADER_PIPELINE_STATUS_TYPE, str(err))
             self._validation_errors.append(message)
 
     def _process_path(self, cell, status):
-        cell_text = cell.get_text()
+        cell_text = cell.get_text().strip()
         if cell_parser.PARSER.is_name(cell_text):
             status_type = [status for status, _ in cell_parser.PARSER.process_names_with_uri(cell_text)]
             if len(status_type) > 1:
@@ -206,12 +205,12 @@ class ExperimentStatusTableParser(object):
             self._validation_errors.append(message)
 
     def _process_state(self, cell, status):
-        cell_text = cell.get_text()
-        if cell_text == 'Succeeded':
+        cell_text = cell.get_text().strip().lower()
+        if cell_text == 'succeeded':
             status.state = True
-        elif cell_text == 'Failed':
+        elif cell_text == 'failed':
             status.state = False
-        elif cell_text == 'Not Complete':
+        elif cell_text == 'not complete':
             status.state = False
 
     def __eq__(self, other):

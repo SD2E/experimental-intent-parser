@@ -67,7 +67,7 @@ class ExperimentSpecificationTable(object):
     def _process_experiment_id(self, cell):
         canonicalized_lab_name = [lab.lower() for lab in self._lab_names]
         if cell_parser.PARSER.is_experiment_id(cell.get_text(), canonicalized_lab_name):
-            return cell.get_text()
+            return cell.get_text().strip()
         else:
             message = 'Experiment Status Table has invalid %s value: %s must follow experiment.lab_name.experiment_id' \
                       % (intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE, cell.get_text())

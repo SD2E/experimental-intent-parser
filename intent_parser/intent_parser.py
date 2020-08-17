@@ -65,12 +65,13 @@ class IntentParser(object):
         self.experiment_status_tables[table_index] = status_table
         return status_table
 
-    def create_experiment_specification_table(self, experiment_id_with_indices={}, table_index=None):
+    def create_experiment_specification_table(self, experiment_id_with_indices={}, spec_table_index=None):
         spec_table = ExperimentSpecificationTable()
         for experiment_id, table_index in experiment_id_with_indices.items():
             spec_table.add_experiment_status_table_ref(experiment_id, table_index)
-        table_index = self.get_largest_table_index() + 1
-        spec_table.set_table_caption(table_index)
+        if spec_table_index is None:
+            spec_table_index = self.get_largest_table_index() + 1
+        spec_table.set_table_caption(spec_table_index)
         return spec_table
 
     def get_experiment_specification_table(self):

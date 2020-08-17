@@ -71,8 +71,8 @@ def main():
         logger.info('Running synchronizing experiment status script')
         while True:
             perform_automatic_run()
-            time.sleep(SYNC_PERIOD.total_seconds())
             logger.info('Scheduling next run.')
+            time.sleep(SYNC_PERIOD.total_seconds())
 
     except (KeyboardInterrupt, SystemExit, Exception) as ex:
         logger.info('Script stopped!')
