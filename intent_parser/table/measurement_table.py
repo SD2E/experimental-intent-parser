@@ -2,6 +2,7 @@ from intent_parser.intent.measurement_intent import Measurement, MeasurementInte
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
 
@@ -244,9 +245,10 @@ class MeasurementTable(object):
 
             strain = self.strain_mapping[link]
             if not strain.has_lab_name(parsed_strain):
-                message = 'Measurement table has invalid %s value: %s does not map to %s in the SBOL Dictionary.' % (intent_parser_constants.HEADER_STRAINS_VALUE,
-                                                                                                                     parsed_strain,
-                                                                                                                     link)
+                lab_name = dictionary_constants.MAPPED_LAB_UID[strain.get_lab_id()]
+                message = 'Measurement table has invalid %s value: %s is not listed under %s in the SBOL Dictionary.' % (intent_parser_constants.HEADER_STRAINS_VALUE,
+                                                                                                                         parsed_strain,
+                                                                                                                         lab_name)
                 self._validation_errors.append(message)
                 continue
 
