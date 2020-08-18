@@ -1,9 +1,9 @@
-from enum import Enum
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.constants.google_doc_api_constants as doc_constants
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table import IntentParserTable
 import intent_parser.table.cell_parser as cell_parser
+from intent_parser.table.intent_parser_table_type import TableType
 
 _MEASUREMENT_TABLE_HEADER = {intent_parser_constants.HEADER_MEASUREMENT_TYPE_TYPE,
                              intent_parser_constants.HEADER_FILE_TYPE_TYPE}
@@ -25,14 +25,6 @@ _EXPERIMENT_STATUS_TABLE = {intent_parser_constants.HEADER_LAST_UPDATED_TYPE,
 _EXPERIMENT_SPECIFICATION_TABLE = {intent_parser_constants.HEADER_EXPERIMENT_ID_TYPE,
                                    intent_parser_constants.HEADER_EXPERIMENT_STATUS_TYPE}
 
-class TableType(Enum):
-    UNKNOWN = 1
-    LAB = 2
-    MEASUREMENT = 3
-    PARAMETER = 4
-    CONTROL = 5
-    EXPERIMENT_STATUS = 6
-    EXPERIMENT_SPECIFICATION = 7
 
 class IntentParserTableFactory(object):
         
@@ -47,6 +39,8 @@ class IntentParserTableFactory(object):
             ip_table.set_caption_row_index(caption_index)
         if header_index is not None:
             ip_table.set_header_row_index(header_index)
+
+        ip_table.set_table_type(self.get_table_type(ip_table))
         return ip_table
     
     def get_caption_row_index(self, intent_parser_table):
@@ -94,7 +88,6 @@ class IntentParserTableFactory(object):
                 return TableType.EXPERIMENT_STATUS
             elif _EXPERIMENT_SPECIFICATION_TABLE.issubset(header_values):
                 return TableType.EXPERIMENT_SPECIFICATION
-
         if self._lab_table(intent_parser_table):
             return TableType.LAB
         return TableType.UNKNOWN
