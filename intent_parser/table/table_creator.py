@@ -122,24 +122,19 @@ class TableCreator(object):
         new_text = self.doc_accessor.insert_text(text, start_pos, end_pos)
         return new_text
 
+    def delete_tables(self, ip_tables, document_id):
+        order_to_delete = []
+        sort_table_start_indices = [ip_table.get_table_start_index() for ip_table in ip_tables]
+        sort_table_start_indices.sort()
+        sort_table_start_indices.reverse()
+        for table_start_index in sort_table_start_indices:
+            for ip_table_index in range(len(ip_tables)):
+                ip_table = ip_tables[ip_table_index]
+                if ip_table.get_table_start_index() == table_start_index:
+                    delete_cell_content = self.doc_accessor.delete_content(ip_table.get_table_start_index(),
+                                                                           ip_table.get_table_end_index())
+                    order_to_delete.append(delete_cell_content)
+                    ip_tables.pop(ip_table_index)
+                    break
 
-    def delete_content(self, document_id, start_index, end_index):
-        delete_cell_content = self.doc_accessor.delete_content(start_index, end_index)
-        self.doc_accessor.execute_batch_request([delete_cell_content], document_id)
-
-    def delete_table_row(self, row_index, table_start_index, document_id):
-        response = self.doc_accessor.delete_table_row(row_index, 0, table_start_index, document_id)
-
-    def insert_table_row(self, row_index, table_start_index, document_id):
-        lab_experiment = LabExperiment(document_id)
-        document = lab_experiment.load_from_google_doc()
-        doc_table = lab_experiment.tables()[-1]
-        ip_table = self.ip_table_factory.from_google_doc(doc_table)
-        table_start_index = ip_table.get_table_start_index()
-        response = self.doc_accessor.insert_table_row(row_index, 0, table_start_index, document_id)
-
-    def delete_table(self, document_id, table_start_index, table_end_index):
-        delete_cell_content = self.doc_accessor.delete_content(table_start_index, table_end_index)
-        self.doc_accessor.execute_batch_request([delete_cell_content], document_id)
-
-
+        self.doc_accessor.execute_batch_request(order_to_delete, document_id)

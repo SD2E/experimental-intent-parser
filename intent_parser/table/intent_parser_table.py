@@ -1,3 +1,4 @@
+from intent_parser.table.intent_parser_table_type import TableType
 import intent_parser.table.cell_parser as cell_parser
 
 class IntentParserTable(object):
@@ -10,6 +11,7 @@ class IntentParserTable(object):
         self._header_index = None
         self._table_start_index = None
         self._table_end_index = None
+        self._table_type = TableType.UNKNOWN
 
     def add_row(self, row):
         self._rows.append(row)
@@ -64,6 +66,9 @@ class IntentParserTable(object):
 
     def get_table_end_index(self):
         return self._table_end_index
+
+    def get_table_type(self):
+        return self._table_type
     
     def header_row_index(self):
         if self._header_index is None:
@@ -94,3 +99,6 @@ class IntentParserTable(object):
 
     def set_table_end_index(self, index):
         self._table_end_index = index
+
+    def set_table_type(self, table_type):
+        self._table_type = table_type

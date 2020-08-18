@@ -7,6 +7,7 @@ from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
 from intent_parser.intent_parser_exceptions import ConnectionException, DictionaryMaintainerException, IntentParserException, TableException
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.intent_parser_sbh import IntentParserSBH
+from intent_parser.table.intent_parser_table_type import TableType
 from intent_parser.table.table_creator import TableCreator
 from intent_parser.server.socket_manager import SocketManager
 from multiprocessing import Pool
@@ -16,7 +17,6 @@ import intent_parser.server.http_message as http_message
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.ip_app_script_constants as ip_addon_constants
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
-import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
 import argparse
@@ -1474,53 +1474,28 @@ class IntentParserServer(object):
             raise IntentParserException(
                 'TA4\'s pipeline has no information to report for %s under experiment %s.' % (lab_name, experiment_ref))
 
-        existing_status = [db_experiment_id for db_experiment_id in db_exp_id_to_statuses.keys() if db_experiment_id in exp_id_to_ref_table]
-        new_status = [db_experiment_id for db_experiment_id in db_exp_id_to_statuses.keys() if db_experiment_id not in exp_id_to_ref_table]
+        if exp_id_to_ref_table:
+            self._delete_experiment_status_from_document(intent_parser, document_id)
+        self._process_new_experiment_status(db_exp_id_to_statuses, intent_parser, document_id)
 
-        if existing_status:
-            self._process_existing_status(existing_status, db_exp_id_to_statuses, exp_id_to_ref_table, ref_table_to_statuses, intent_parser, document_id)
-        if new_status:
-            self._process_new_experiment_status(new_status, db_exp_id_to_statuses, intent_parser, document_id)
+    def _delete_experiment_status_from_document(self, intent_parser, document_id):
+        ip_tables = intent_parser.get_tables_by_type()
+        tables_to_delete = ip_tables[TableType.EXPERIMENT_SPECIFICATION]
+        tables_to_delete.extend(ip_tables[TableType.EXPERIMENT_STATUS])
+        table_creator = TableCreator()
+        table_creator.delete_tables(tables_to_delete, document_id)
 
-    def _process_existing_status(self, existing_status_ids, db_exp_id_to_statuses, exp_id_to_ref_table, ref_table_to_statuses, intent_parser, document_id):
-        for db_experiment_id in existing_status_ids:
-            db_statuses_table = db_exp_id_to_statuses[db_experiment_id]
-            table_caption_index = exp_id_to_ref_table[db_experiment_id]
-            if table_caption_index not in ref_table_to_statuses:
-                raise TableException('Table %d does not exist in document id: %s' % (table_caption_index, document_id))
-            doc_status_table = ref_table_to_statuses[table_caption_index]
-            if db_statuses_table != doc_status_table:
-                # Update Status table
-                new_table = intent_parser.create_experiment_status_table(db_statuses_table.get_statuses())
-                self._update_experiment_status_table(document_id, doc_status_table, new_table)
-
-    def _process_new_experiment_status(self, new_status_experiment_ids, db_exp_id_to_statuses, intent_parser, document_id):
+    def _process_new_experiment_status(self, db_exp_id_to_statuses, intent_parser, document_id):
         created_statuses = {}
-        for db_experiment_id in new_status_experiment_ids:
-            db_statuses_table = db_exp_id_to_statuses[db_experiment_id]
-            # Create new Status Table and link to Specification table
+        for db_experiment_id, db_statuses_table in db_exp_id_to_statuses.items():
             new_table = intent_parser.create_experiment_status_table(db_statuses_table.get_statuses())
             self._add_experiment_status_table(document_id, new_table)
             created_statuses[db_experiment_id] = new_table.get_table_caption()
-
-        spec_table = intent_parser.get_experiment_specification_table()
-        if spec_table is None:
-            self._process_new_experiment_specification(created_statuses, intent_parser, document_id)
-        else:
-            self._process_existing_experiment_specification(spec_table, created_statuses, intent_parser, document_id)
+        self._process_new_experiment_specification(created_statuses, intent_parser, document_id)
 
     def _process_new_experiment_specification(self, created_statuses, intent_parser, document_id):
         new_spec_table = intent_parser.create_experiment_specification_table(experiment_id_with_indices=created_statuses)
         self._create_experiment_specification_table(document_id, new_spec_table)
-
-    def _process_existing_experiment_specification(self, spec_table, created_statuses, intent_parser, document_id):
-        new_exp_id_with_indices = spec_table.experiment_id_to_status_table()
-        new_exp_id_with_indices.update(created_statuses)
-        new_spec_table = intent_parser.create_experiment_specification_table(experiment_id_with_indices=new_exp_id_with_indices,
-                                                                             spec_table_index=spec_table.get_table_caption())
-        self._update_experiment_specification_table(document_id,
-                                                    spec_table,
-                                                    new_spec_table)
 
     def process_report_experiment_status(self, http_message):
         """Report the status of an experiment by inserting experiment specification and status tables."""

@@ -4,7 +4,8 @@ from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
 from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.experiment_specification_table import ExperimentSpecificationTable
 from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
-from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory, TableType
+from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
+from intent_parser.table.intent_parser_table_type import TableType
 from intent_parser.table.lab_table import LabTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.parameter_table import ParameterTable
@@ -48,9 +49,10 @@ class IntentParser(object):
         self.validation_warnings = []
         self.ip_table_factory = IntentParserTableFactory()
 
+        self.ip_tables = None
         self.tables_with_captions = {}
         self.experiment_status_tables = {}
-        self.experiment_specification_tables = None
+        self.experiment_specification_tables = None\
 
     def create_experiment_status_table(self, list_of_status):
         status_table = ExperimentStatusTableParser(status_mappings=self.sbol_dictionary.map_common_names_and_tacc_id())
@@ -76,6 +78,10 @@ class IntentParser(object):
 
     def get_experiment_specification_table(self):
         return self.experiment_specification_tables
+
+    def get_tables_by_type(self):
+        self.process_tables()
+        return self._filter_tables_by_type()
 
     def get_table_from_index(self, index):
         """
@@ -110,6 +116,7 @@ class IntentParser(object):
             self.tables_with_captions[table_index] = ip_table
 
     def process_structure_request(self):
+        self.process_tables()
         filtered_tables = self._filter_tables_by_type()
         self._generate_request(filtered_tables[TableType.CONTROL],
                                filtered_tables[TableType.LAB],
@@ -118,15 +125,24 @@ class IntentParser(object):
         self._validate_schema()
 
     def process_experiment_run_request(self):
+        self.process_tables()
         filtered_tables = self._filter_tables_by_type()
         self._generate_experiment_request(filtered_tables[TableType.PARAMETER])
 
     def process_experiment_status_request(self):
+        self.process_tables()
         filtered_tables = self._filter_tables_by_type()
         self._generate_experiment_status_request(filtered_tables[TableType.LAB],
                                                  filtered_tables[TableType.EXPERIMENT_SPECIFICATION],
                                                  filtered_tables[TableType.EXPERIMENT_STATUS])
 
+    def process_tables(self):
+        if self.ip_tables is None:
+            tables = []
+            list_of_tables = self.lab_experiment.tables()
+            for table in list_of_tables:
+                tables.append(self.ip_table_factory.from_google_doc(table))
+            self.ip_tables = tables
 
     def _generate_experiment_status_request(self, lab_tables, experiment_specification_tables, experiment_status_tables):
         lab_content = self._process_lab_table(lab_tables)
@@ -502,28 +518,26 @@ class IntentParser(object):
             self.validation_errors.extend([err.get_message()])
 
     def _filter_tables_by_type(self):
-        list_of_tables = self.lab_experiment.tables()
         measurement_tables = []
         lab_tables = []
         parameter_tables = []
         control_tables = []
         experiment_status_tables = []
         experiment_spec_tables = []
-        for table in list_of_tables:
-            ip_table = self.ip_table_factory.from_google_doc(table)
-            table_type = self.ip_table_factory.get_table_type(ip_table)
+        for table in self.ip_tables:
+            table_type = table.get_table_type()
             if table_type == TableType.CONTROL:
-                control_tables.append(ip_table)
+                control_tables.append(table)
             elif table_type == TableType.EXPERIMENT_STATUS:
-                experiment_status_tables.append(ip_table)
+                experiment_status_tables.append(table)
             elif table_type == TableType.EXPERIMENT_SPECIFICATION:
-                experiment_spec_tables.append(ip_table)
+                experiment_spec_tables.append(table)
             elif table_type == TableType.LAB:
-                lab_tables.append(ip_table)
+                lab_tables.append(table)
             elif table_type == TableType.MEASUREMENT:
-                measurement_tables.append(ip_table)
+                measurement_tables.append(table)
             elif table_type == TableType.PARAMETER:
-                parameter_tables.append(ip_table)
+                parameter_tables.append(table)
 
         return {TableType.CONTROL: control_tables,
                 TableType.EXPERIMENT_SPECIFICATION: experiment_spec_tables,
