@@ -124,7 +124,7 @@ class MeasurementTableTest(unittest.TestCase):
         data_row = test_utils.create_measurement_table_row(strain_cell=strains)
         ip_table.add_row(data_row)
 
-        strain_obj = StrainMapping('https://foo.com', 'myLab', 'AND_00', lab_names={'UWBF_7376'})
+        strain_obj = StrainMapping('https://foo.com', dc_constants.LAB_TACC, 'AND_00', lab_names={'UWBF_7376'})
         strain_mapping = {'https://foo.com': strain_obj}
 
         meas_table = MeasurementTable(ip_table, strain_mapping=strain_mapping)
