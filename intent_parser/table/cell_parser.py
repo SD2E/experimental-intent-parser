@@ -460,7 +460,7 @@ class _CellContentTokenizer(_Tokenizer):
     token_specification = [
             ('BOOLEAN_TRUE', r'True|true'),
             ('BOOLEAN_FALSE', r'False|false'),
-            ('NUMBER',   r'\d+(\.\d*)?([eE]([-+])?\d+)?'),
+            ('NUMBER',   r'(\d+(\.\d*)?([eE]([-+])?\d+)?)|((-)?(\.)?(\d+))'),
             ('NAME',       r'[^\t \d\n,:@][^ \t\n,@]*'),
             ('SKIP',     r'([ \t\u000b\n])+'),
             ('SEPARATOR',     r'[,@]')]

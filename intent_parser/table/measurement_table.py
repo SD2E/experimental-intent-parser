@@ -117,7 +117,7 @@ class MeasurementTable(object):
                 list_value_unit = cell_parser.PARSER.process_values_unit(text, units=self._fluid_units, unit_type='fluid')
                 for value_unit_dict in list_value_unit:
                     numerical_dict = {dc_constants.NAME: name_dict,
-                                      dc_constants.VALUE: value_unit_dict['value'],
+                                      dc_constants.VALUE: str(float(value_unit_dict['value'])),
                                       dc_constants.UNIT: value_unit_dict['unit']}
                     if timepoint_dict:
                         numerical_dict[dc_constants.TIMEPOINT] = timepoint_dict

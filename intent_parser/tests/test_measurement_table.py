@@ -468,6 +468,37 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEqual(1, len(meas_result[0][dc_constants.CONTENTS][0]))
         self.assertEqual(exp_res1, meas_result[0][dc_constants.CONTENTS][0][0])
 
+    def test_reagent_values_with_floating_points(self):
+        reagent_uri = 'https://hub.sd2e.org/user/sd2e/design/Xylose/1'
+        reagent_header = IntentParserCell()
+        reagent_header.add_paragraph('Xylose', link=reagent_uri)
+        ip_table = test_utils.create_fake_measurement_table(reagent_media_cells=[reagent_header])
+
+        reagent = IntentParserCell()
+        reagent.add_paragraph('26, 13, 6.5, 3.25, 1.625, .8125, .40625, .203125, .1015625, 0.05078125 mM')
+        data_row = test_utils.create_measurement_table_row(reagent)
+        data_row.append(reagent)
+        ip_table.add_row(data_row)
+
+        meas_table = MeasurementTable(ip_table, timepoint_units={'hour'},
+                                      fluid_units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'})
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
+        self.assertEqual(1, len(meas_result))
+
+        exp_res1 = [{dc_constants.NAME: {dc_constants.LABEL: 'Xylose', dc_constants.SBH_URI: reagent_uri}, dc_constants.VALUE: '26.0', dc_constants.UNIT: 'mM'},
+                    {dc_constants.NAME: {dc_constants.LABEL: 'Xylose', dc_constants.SBH_URI: reagent_uri}, dc_constants.VALUE: '13.0', dc_constants.UNIT: 'mM'},
+                    {dc_constants.NAME: {dc_constants.LABEL: 'Xylose', dc_constants.SBH_URI: reagent_uri}, dc_constants.VALUE: '6.5', dc_constants.UNIT: 'mM'},
+                    {dc_constants.NAME: {dc_constants.LABEL: 'Xylose', dc_constants.SBH_URI: reagent_uri}, dc_constants.VALUE: '3.25', dc_constants.UNIT: 'mM'},
+                    {dc_constants.NAME: {dc_constants.LABEL: 'Xylose', dc_constants.SBH_URI: reagent_uri}, dc_constants.VALUE: '1.625', dc_constants.UNIT: 'mM'},
+                    {dc_constants.NAME: {dc_constants.LABEL: 'Xylose', dc_constants.SBH_URI: reagent_uri}, dc_constants.VALUE: '0.8125', dc_constants.UNIT: 'mM'},
+                    {dc_constants.NAME: {dc_constants.LABEL: 'Xylose', dc_constants.SBH_URI: reagent_uri}, dc_constants.VALUE: '0.40625', dc_constants.UNIT: 'mM'},
+                    {dc_constants.NAME: {dc_constants.LABEL: 'Xylose', dc_constants.SBH_URI: reagent_uri}, dc_constants.VALUE: '0.203125', dc_constants.UNIT: 'mM'},
+                    {dc_constants.NAME: {dc_constants.LABEL: 'Xylose', dc_constants.SBH_URI: reagent_uri}, dc_constants.VALUE: '0.1015625', dc_constants.UNIT: 'mM'},
+                    {dc_constants.NAME: {dc_constants.LABEL: 'Xylose', dc_constants.SBH_URI: reagent_uri}, dc_constants.VALUE: '0.05078125', dc_constants.UNIT: 'mM'}]
+        self.assertEqual(10, len(meas_result[0][dc_constants.CONTENTS][0]))
+        self.assertEqual(exp_res1, meas_result[0][dc_constants.CONTENTS][0])
+
     def test_table_text_with_reagent_and_timepoint(self):
         reagent_uri = 'https://hub.sd2e.org/user/sd2e/design/IPTG/1'
         reagent_header = IntentParserCell()
