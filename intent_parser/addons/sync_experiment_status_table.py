@@ -8,7 +8,7 @@ import time
 import traceback
 
 logger = logging.getLogger('experiment_status_script')
-SYNC_PERIOD = timedelta(minutes=5)
+SYNC_PERIOD = timedelta(minutes=180)
 
 def perform_automatic_run():
     try:
