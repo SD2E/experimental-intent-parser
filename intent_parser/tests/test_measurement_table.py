@@ -337,7 +337,7 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
-                    dc_constants.VALUE: '9',
+                    dc_constants.VALUE: '9.0',
                     dc_constants.UNIT: 'mM'}
         self.assertEqual(1, len(meas_result[0][dc_constants.CONTENTS][0]))
         self.assertEqual(exp_res1, meas_result[0][dc_constants.CONTENTS][0][0])
@@ -361,13 +361,13 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
-                    dc_constants.VALUE: '0',
+                    dc_constants.VALUE: '0.0',
                     dc_constants.UNIT: 'micromole'}
         exp_res2 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
-                    dc_constants.VALUE: '1',
+                    dc_constants.VALUE: '1.0',
                     dc_constants.UNIT: 'micromole'}
         exp_res3 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
-                    dc_constants.VALUE: '2',
+                    dc_constants.VALUE: '2.0',
                     dc_constants.UNIT: 'micromole'}
         self.assertEqual(3, len(meas_result[0][dc_constants.CONTENTS][0]))
         for act_res in meas_result[0][dc_constants.CONTENTS][0]:
@@ -392,7 +392,7 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
-                    dc_constants.VALUE: '1',
+                    dc_constants.VALUE: '1.0',
                     dc_constants.UNIT: 'X'}
         self.assertEqual(1, len(meas_result[0][dc_constants.CONTENTS][0]))
         self.assertEqual(exp_res1, meas_result[0][dc_constants.CONTENTS][0][0])
@@ -416,7 +416,7 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
-                    dc_constants.VALUE: '11', dc_constants.UNIT: '%'}
+                    dc_constants.VALUE: '11.0', dc_constants.UNIT: '%'}
         self.assertEqual(1, len(meas_result[0][dc_constants.CONTENTS][0]))
         self.assertEqual(exp_res1, meas_result[0][dc_constants.CONTENTS][0][0])
         
@@ -439,7 +439,7 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
-                    dc_constants.VALUE: '11',
+                    dc_constants.VALUE: '11.0',
                     dc_constants.UNIT: 'g/L'}
         self.assertEquals(1, len(meas_result[0][dc_constants.CONTENTS][0]))
         self.assertEquals(exp_res1, meas_result[0][dc_constants.CONTENTS][0][0])
@@ -462,7 +462,7 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'SC_Media', dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
-                    dc_constants.VALUE: '0',
+                    dc_constants.VALUE: '0.0',
                     dc_constants.UNIT: 'M',
                     dc_constants.TIMEPOINT: {dc_constants.VALUE: 18.0, dc_constants.UNIT: 'hour'}}
         self.assertEqual(1, len(meas_result[0][dc_constants.CONTENTS][0]))
