@@ -1,3 +1,4 @@
+from intent_parser.table.intent_parser_table_type import TableType
 import intent_parser.table.cell_parser as cell_parser
 
 class IntentParserTable(object):
@@ -10,6 +11,7 @@ class IntentParserTable(object):
         self._header_index = None
         self._table_start_index = None
         self._table_end_index = None
+        self._table_type = TableType.UNKNOWN
 
     def add_row(self, row):
         self._rows.append(row)
@@ -44,7 +46,16 @@ class IntentParserTable(object):
             return None 
         return header_index + 1 
     
-    def get_cell(self, row_index, col_index):  
+    def get_cell(self, row_index, col_index):
+        """Get a particular cell from the table.
+
+        Args:
+            row_index: an integer value to represent the index of a row in the table.
+            col_index: an integer value to represent the index of a column in the table.
+            Note that table is zero-indexed for rows and columns.
+        Returns:
+            A IntentParserCell object.
+        """
         row = self.get_row(row_index)
         if col_index < 0 or col_index >= len(row):
             raise IndexError('Cannot access cell (%s, %s)' % (row_index, col_index))
@@ -55,6 +66,9 @@ class IntentParserTable(object):
 
     def get_table_end_index(self):
         return self._table_end_index
+
+    def get_table_type(self):
+        return self._table_type
     
     def header_row_index(self):
         if self._header_index is None:
@@ -85,3 +99,6 @@ class IntentParserTable(object):
 
     def set_table_end_index(self, index):
         self._table_end_index = index
+
+    def set_table_type(self, table_type):
+        self._table_type = table_type

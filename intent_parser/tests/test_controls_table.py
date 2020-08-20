@@ -160,7 +160,8 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(2, len(content[dc_constants.NAME]))
         self.assertEqual(content[dc_constants.NAME][dc_constants.LABEL], 'beta_estradiol')
         self.assertEqual(content[dc_constants.NAME][dc_constants.SBH_URI], 'https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1')
-     
+
+
 if __name__ == "__main__":
     unittest.main()
 

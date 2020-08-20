@@ -1,4 +1,4 @@
-from intent_parser.intent_parser_exceptions import IntentParserException
+from datetime import datetime
 from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
 import intent_parser.utils.intent_parser_utils as ip_util
 import intent_parser.constants.intent_parser_constants as ip_constants
@@ -46,16 +46,19 @@ class TA4DBAccessor(object):
         status_table = ExperimentStatusTableParser()
         for status in db_response:
             if lab_name.lower() in status[ta4_constants.LAB].lower():
+                if ta4_constants.STATUS not in status:
+                    return {}
                 for status_type, status_values in status[ta4_constants.STATUS].items():
-                    status_path = status_values[ta4_constants.PATH]
+                    status_last_updated = status_values[ta4_constants.LAST_UPDATED] if ta4_constants.LAST_UPDATED in status_values else datetime.now()
+                    status_state = status_values[ta4_constants.STATE] if ta4_constants.STATE in status_values else False
+                    status_path = status_values[ta4_constants.PATH] if ta4_constants.PATH in status_values else 'no data'
                     if status_type == ta4_constants.XPLAN_REQUEST_SUBMITTED:
                         status_path = status[ta4_constants.PARENT_GIT_PATH]
-                    status_table.add_status(status_type,
-                                            status_values[ta4_constants.LAST_UPDATED],
-                                            status_values[ta4_constants.STATE],
-                                            status_path)
-                result[status[ta4_constants.EXPERIMENT_ID]] = status_table
 
-        if not result:
-            raise IntentParserException('TA4\'s pipeline has no information to report for %s under experiment %s.' % (lab_name, experiment_ref))
+                    status_table.add_status(status_type,
+                                            status_last_updated,
+                                            status_state,
+                                            status_path)
+
+                result[status[ta4_constants.EXPERIMENT_ID]] = status_table
         return result

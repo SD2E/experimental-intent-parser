@@ -1,6 +1,7 @@
 from datetime import datetime
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.constants.intent_parser_constants as constants
+import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import collections
 import re
 
@@ -67,18 +68,31 @@ class CellParser(object):
         return result
 
     def get_header_type(self, text):
+        """Process the name of a table header supported by Intent Parser.
+        Args:
+            text: name of header
+        Returns:
+            A string processed by Intent Parser for identifying a table header.
+        """
         tokens = self._table_header_tokenizer.tokenize(text, keep_skip=False)
         if len(tokens) != 1:
             return 'UNKNOWN'
         return self._get_token_type(tokens[0])
 
     def has_lab_table_keyword(self, text, keyword):
+        """
+        Deterimine if the text has keywords supported in Intent Parser's Lab table.
+        Args:
+            text: a string used for searching a keyword.
+            keyword: a string
+        Returns:
+            A boolean value to indicate if the text contain the given keyword.
+        """
         tokens = self._lab_tokenizer.tokenize(text)
         return len(tokens) > 0 and self._get_token_value(tokens[0]).lower() == keyword.lower()
 
     def is_experiment_id(self, text, lab_names={}):
         tokens = self._experiment_id_tokenizer.tokenize(text)
-
         if len(tokens) != 5:
             return False
 
@@ -87,16 +101,16 @@ class CellParser(object):
 
         if self._get_token_value(tokens[2]) not in lab_names:
             return False
-
         return True
 
-    def is_lab_table(self, text):
-        tokens = self._lab_tokenizer.tokenize(text)
-        return len(tokens) > 0 and self._get_token_type(tokens[0]) == 'KEYWORD'
 
     def is_name(self, text):
         """
         Check if the content of a cell is alpha-numeric.
+        Args:
+            text: a string containing NAMED values.
+        Returns:
+            A boolean value to indicate if the text follows a NAMED pattern.
         """
         tokens = self._cell_tokenizer.tokenize(text)
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
@@ -106,14 +120,27 @@ class CellParser(object):
 
     def is_number(self, text):
         """
-        Check if the content of a cell only has numbers.
+        Determine if the text contain a number or a list of numbers.
+        Args:
+            text: a string of numbers.
+        Returns:
+            A boolean value to indicate if the text is a number or a string of numbers. x
         """
-        for token in self._cell_tokenizer.tokenize(text):
-            if self._get_token_type(token) == 'NAME':
-                return False
-        return True
+        tokens = self._cell_tokenizer.tokenize(text, keep_separator=True, keep_skip=False)
+        cell_type = self._get_token_type(self._cell_parser.parse(tokens))
+        return cell_type == 'NUMBER' or cell_type == 'NUMBER_LIST'
+
 
     def is_table_caption(self, text):
+        """
+        Determine if the text is a table caption. 
+        A table caption must follow the format "Table" followed by some numerical value. 
+        
+        Args:
+            text: A string.
+        Returns:
+            A boolean value to indicate if the text is a table caption. 
+        """
         tokens = self._table_tokenizer.tokenize(text)
         return len(tokens) > 0 and self._get_token_type(tokens[0]) == 'KEYWORD'
 
@@ -130,7 +157,7 @@ class CellParser(object):
             True if tokens follows a valued-cell pattern.
             Otherwise, False is returned.
         """
-        tokens = self._cell_tokenizer.tokenize(text, keep_space=False, keep_skip=False)
+        tokens = self._cell_tokenizer.tokenize(text, keep_separator=False, keep_skip=False)
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
         return cell_type == 'VALUES_UNIT' or cell_type == 'VALUE_UNIT_PAIRS'
 
@@ -140,34 +167,31 @@ class CellParser(object):
         if len(tokens) < 1:
             raise TableException('Invalid value: %s does not contain a name' % text.get_text())
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
-        label, value, unit, timepoint_value, timepoint_unit = (None, None, None, None, None)
         if cell_type == 'NAME_VALUE_UNIT_TIMEPOINT':
             label, value, unit, timepoint_value, timepoint_unit = self._get_name_values_unit_timepoint(tokens)
-            content = {}
-            content['name'] = self.process_name_with_uri(label, text_with_uri)
-            content['value'] = value
-            content['unit'] = self.process_content_item_unit(unit, fluid_units, timepoint_units)
-            content['timepoints'] = self.process_timepoint(timepoint_value, timepoint_unit, timepoint_units)
+            content = {dc_constants.NAME: self.create_name_with_uri(label, text_with_uri),
+                       dc_constants.VALUE: value,
+                       dc_constants.UNIT: self.process_content_item_unit(unit, fluid_units, timepoint_units),
+                       dc_constants.TIMEPOINTS: self.process_timepoint(timepoint_value,
+                                                                       timepoint_unit,
+                                                                       timepoint_units)}
             list_of_contents.append(content)
         elif cell_type == 'NAME_VALUE_UNIT':
             label, value, unit = self._get_name_values_unit(tokens)
-            content = {}
-            content['name'] = self.process_name_with_uri(label, text_with_uri)
-            content['value'] = value
-            content['unit'] = self.process_content_item_unit(unit, fluid_units, timepoint_units)
+            content = {dc_constants.NAME: self.create_name_with_uri(label, text_with_uri),
+                       dc_constants.VALUE: value,
+                       dc_constants.UNIT: self.process_content_item_unit(unit, fluid_units, timepoint_units)}
             list_of_contents.append(content)
         elif cell_type == 'NAME':
-            labels = self.process_names(text)
-            for label in labels:
-                content = {}
-                content['name'] = self.process_name_with_uri(label, text_with_uri)
+            for label in self.extract_name_value(text):
+                content = {dc_constants.NAME: self.create_name_with_uri(label, text_with_uri)}
                 list_of_contents.append(content)
         else:
             raise TableException('Unable to parse %s' % text)
         return list_of_contents
 
     def process_boolean_flag(self, text):
-        tokens = self._cell_tokenizer.tokenize(text, keep_space=False, keep_skip=False)
+        tokens = self._cell_tokenizer.tokenize(text, keep_separator=False, keep_skip=False)
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
         if cell_type == 'BOOLEAN_FLAG':
             token_type = self._get_token_type(tokens[0])
@@ -195,9 +219,16 @@ class CellParser(object):
         return datetime.strptime(text, '%Y/%m/%d %H:%M:%S')
 
     def process_lab_name(self, text):
+        """
+        Get lab name from a text
+        Args:
+            text: A string that follow this format: Lab: abc.
+        Returns:
+            A string for representing the name of a lab.
+        """
         tokens = self._lab_tokenizer.tokenize(text, keep_skip=False)
         if self._get_token_type(tokens[0]) != 'KEYWORD':
-            return constants.TACC_SERVER
+            return None
         return self._get_token_value(tokens[-1])
 
     def process_lab_table_value(self, text):
@@ -205,38 +236,30 @@ class CellParser(object):
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
         if cell_type == 'KEYWORD_SEPARATOR_NAME' or cell_type == 'KEYWORD_SEPARATOR_VALUE':
             return self._get_token_value(tokens[-1])
-        return 'TBD'
+        return None
 
-    def process_names(self, text, text_with_uri={}, check_name_in_url=False):
-        """
-        Parses a NAME cell.
+    def process_names_with_uri(self, text, text_with_uri={}):
+        """Process the given text for a list of string and its attached URL.
+        Note that commas are used as delimators for specifying a list of words in a given text.
+
         Args:
-            text: An IntentParserCell
-            check_name_in_url: a boolean flag default to False. Set flag to True in order to use linked URLs when present.
-        Returns:
-            a list of NAME strings.
+            text: a string
+            text_with_uri: a dictionary of terms with
         """
-        result = []
-        links = text_with_uri
-        for name in self.extract_name_value(text):
-            stripped_name = name.strip()
-            if check_name_in_url:
-                if stripped_name in links and links[stripped_name] is not None:
-                    result.append(links[stripped_name])
-                else:
-                    result.append(stripped_name)
+        for token in self.extract_name_value(text):
+            name = token.strip()
+            if text_with_uri and name in text_with_uri:
+                yield name, text_with_uri[name]
             else:
-                result.append(stripped_name)
-        return result
+                yield name, None
 
-    def process_name_with_uri(self, label, uri_dictionary):
-        if label in uri_dictionary and uri_dictionary[label]:
-            return {'label': label, 'sbh_uri': uri_dictionary[label]}
+    def create_name_with_uri(self, label, uri_dictionary):
+        stripped_label = label.strip()
+        if stripped_label in uri_dictionary and uri_dictionary[stripped_label]:
+            return {dc_constants.LABEL: stripped_label, dc_constants.SBH_URI: uri_dictionary[stripped_label]}
 
-        if label.strip() in uri_dictionary and uri_dictionary[label.strip()]:
-            return {'label': label.strip(), 'sbh_uri': uri_dictionary[label.strip()]}
-
-        return {'label': label, 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}
+        return {dc_constants.LABEL: stripped_label,
+                dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY}
 
     def process_numbers(self, text):
         """
@@ -246,13 +269,15 @@ class CellParser(object):
         Returns:
             A list of strings
         """
-        result = []
-        tokens = self._cell_tokenizer.tokenize(text, keep_space=False, keep_skip=False)
+        tokens = self._cell_tokenizer.tokenize(text, keep_separator=True, keep_skip=False)
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
         if cell_type == 'NUMBER':
-            for token in tokens:
-                result.append(self._get_token_value(token))
-        return result
+            return [self._get_token_value(token) for token in tokens]
+        elif cell_type == 'NUMBER_LIST':
+            number_tokens = filter(lambda x: self._get_token_type(x) == 'NUMBER', tokens)
+            return [self._get_token_value(token) for token in number_tokens]
+        else:
+            raise TableException('%s does not follow correct format to specify a number or a list of number' % text)
 
     def process_reagent_header(self, text, text_with_uri, units, unit_type):
         tokens = self._cell_tokenizer.tokenize(text, keep_skip=False)
@@ -261,13 +286,13 @@ class CellParser(object):
         timepoint = {}
         if cell_type == 'NAME_SEPARATOR_VALUE_UNIT':
             label, timepoint_value, timepoint_unit = self._get_name_timepoint(tokens)
-            name = self.process_name_with_uri(label, text_with_uri)
+            name = self.create_name_with_uri(label, text_with_uri)
             abbrev_units = self._abbreviated_unit_dict[unit_type] if unit_type is not None else {}
             unit = self._determine_unit(timepoint_unit, units, abbrev_units)
             timepoint['value'] = float(timepoint_value)
             timepoint['unit'] = unit
         elif cell_type == 'NAME':
-            name = self.process_name_with_uri(text.strip(), text_with_uri)
+            name = self.create_name_with_uri(text.strip(), text_with_uri)
 
         return name, timepoint
 
@@ -277,7 +302,7 @@ class CellParser(object):
         return [{'value': float(timepoint_value), 'unit': validated_unit}] 
         
     def process_table_caption_index(self, text):
-        tokens = self._table_tokenizer.tokenize(text, keep_space=False, keep_skip=False)
+        tokens = self._table_tokenizer.tokenize(text, keep_separator=False, keep_skip=False)
         table_value = self._get_token_value(tokens[1])
         return int(table_value)
         
@@ -296,7 +321,7 @@ class CellParser(object):
             A TableException is thrown for a cell that has no unit. 
         """
         result = []
-        tokens = self._cell_tokenizer.tokenize(text, keep_space=False, keep_skip=False)
+        tokens = self._cell_tokenizer.tokenize(text, keep_separator=False, keep_skip=False)
         if not self.is_valued_cell(text):
             raise TableException('%s does not contain a unit' % text)
         if len(tokens) < 1:
@@ -329,13 +354,12 @@ class CellParser(object):
         Return:
             Array containing the result of the identified pattern for a cell.
         """
-        tokens = self._cell_tokenizer.tokenize(text, keep_space=False, keep_skip=False)
-        cell_type = self._get_token_type(self._cell_parser.parse(tokens))
+        tokens = self._cell_tokenizer.tokenize(text, keep_separator=False, keep_skip=False)
         if self.is_valued_cell(text):
             if len(tokens) == 2:
                 if self._get_token_type(tokens[0]) == 'NUMBER' and self._get_token_type(tokens[1]) == 'NAME':
                     return [self._get_token_value(tokens[0]) + ':' + self._get_token_value(tokens[1])]
-        return self.process_names(text)
+        return self.extract_name_value(text)
 
     def _determine_unit(self, unit, units, abbrev_units):
         """
@@ -402,35 +426,32 @@ class CellParser(object):
     def _get_token_value(self, token):
         return token[1]
     
-
-    
-
-
 class _Tokenizer(object):
     
     _Token = collections.namedtuple('Token', ['type', 'value'])
     
     def __init__(self, specification):
         self.token_specification = specification
-        
-    def tokenize(self, text, keep_skip=True, keep_space=True):
+
+    def _preprocess_text(self, text):
+       return text.replace('\n', '')
+
+    def tokenize(self, text, keep_skip=True, keep_separator=True):
         tokens = []
-        ignore_tokens = self._ignore_tokens(keep_skip, keep_space)
+        ignore_tokens = self._ignore_tokens(keep_skip, keep_separator)
         tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in self.token_specification)
-        for mo in re.finditer(tok_regex, text):
+        for mo in re.finditer(tok_regex, self._preprocess_text(text)):
             kind = mo.lastgroup
             value = mo.group()
             if kind not in ignore_tokens: 
                 tokens.append(self._Token(kind, value))
-            if value.startswith('\u000b'):
-                value = value.replace('\u000b', '')
         return tokens
 
-    def _ignore_tokens(self, keep_skip, keep_space):
+    def _ignore_tokens(self, keep_skip, keep_separator):
         ignore_tokens = []
         if not keep_skip:
             ignore_tokens.append('SKIP')
-        if not keep_space:
+        if not keep_separator:
             ignore_tokens.append('SEPARATOR')
         return ignore_tokens
 
@@ -439,9 +460,9 @@ class _CellContentTokenizer(_Tokenizer):
     token_specification = [
             ('BOOLEAN_TRUE', r'True|true'),
             ('BOOLEAN_FALSE', r'False|false'),
-            ('NUMBER',   r'\d+(\.\d*)?([eE]([-+])?\d+)?'),
-            ('NAME',       r'[^\t \d,:@][^ \t,@]*'),
-            ('SKIP',     r'([ \t]|\u000b)+'),
+            ('NUMBER',   r'(\d+(\.\d*)?([eE]([-+])?\d+)?)|((-)?(\.)?(\d+))'),
+            ('NAME',       r'[^\t \d\n,:@][^ \t\n,@]*'),
+            ('SKIP',     r'([ \t\u000b\n])+'),
             ('SEPARATOR',     r'[,@]')]
     
     def __init__(self):
@@ -475,7 +496,7 @@ class _ExperimentIdTokenizer(_Tokenizer):
     token_specification = [
         ('KEYWORD', r'experiment|Experiment'),
         ('NAME', r'[^\t \n.]+'),
-        ('SKIP', r'([ \t]|\u000b)+'),
+        ('SKIP', r'([ \t]|\u000b\n)+'),
         ('SEPARATOR', r'[.]')]
 
     def __init__(self):
@@ -511,7 +532,21 @@ class _TableHeaderTokenizer(_Tokenizer):
     
     def __init__(self):
         super().__init__(self.token_specification)
-        
+
+class _CollectionTokenMatcher(object):
+    def __init__(self, token_pairs, qualifier=''):
+        self._token_pairs = token_pairs
+        self._default_value = '[^»]+'
+        self._qualifier = qualifier
+
+    def __str__(self):
+        tokens = []
+        for token_type, token_value in self._token_pairs:
+            if not token_value:
+                token_value = self._default_value
+            tokens.append('(«%s,%s»)' % (token_type, token_value))
+        return '(%s)%s' % (''.join(tokens), self._qualifier)
+
 class _TokenMatcher(object):
     def __init__(self, token_type, value='[^»]+', qualifier='', group=None):
         self._type = token_type
@@ -563,7 +598,11 @@ class _Parser(_Tokenizer):
                                                _TokenMatcher('NAME')], qualifier='+')
             ),
             ('NAME', _make_regex([_TokenMatcher('(NAME|SEPARATOR|SKIP)', qualifier='+')])),
-            ('NUMBER', _make_regex([_TokenMatcher('NUMBER', qualifier='+')])),
+            ('NUMBER_LIST', _make_regex([_TokenMatcher('NUMBER'),
+                                         _CollectionTokenMatcher([('SEPARATOR', ','),
+                                                                  ('NUMBER', None)],
+                                                                 qualifier='*')])),
+            ('NUMBER', _make_regex([_TokenMatcher('NUMBER')])),
             ('TABLE', _make_regex([_TokenMatcher('KEYWORD', qualifier='+')])),
             # Fall through if none match
             ('NOT_DEFINED', _make_regex([_AnyMatcher()], qualifier='+'))

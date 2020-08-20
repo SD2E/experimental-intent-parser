@@ -4,7 +4,7 @@ from enum import Enum
 List of constants used for reading and writing contents from intent parser 
 """
 
-RELEASE_VERSION = '2.7'
+RELEASE_VERSION = '2.8'
 
 LAB_IDS_LIST = sorted(['BioFAB UID',
                             'Ginkgo UID',
@@ -135,4 +135,4 @@ HEADER_TEMPERATURE_TYPE = 'TEMPERATURE'
 HEADER_TIMEPOINT_TYPE = 'TIMEPOINT'
 HEADER_UNKNOWN_TYPE = 'UNKNOWN'
 
-TACC_SERVER = 'tacc'
+TACC_SERVER = 'TACC'

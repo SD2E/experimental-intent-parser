@@ -1,6 +1,7 @@
 from datetime import timedelta
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
+import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
@@ -378,7 +379,36 @@ class SBOLDictionaryAccessor(object):
                     result[tacc_id] = common_name
         return result
 
-    def get_common_name_from_trascriptic_id(self, transcriptic_id):
+    def get_mapped_strain(self, lab_name):
+        """Create a mapping for strains from the Strains tab.
+        Args:
+            lab_name: A string to represent the name of a Lab.
+
+        Returns:
+            A Tuple of StrainMapping objects. The key represents the sbh uri.
+            The value is a StrainMapping object
+        """
+        mapped_strains = {}
+        if lab_name not in dictionary_constants.MAPPED_LAB_UID:
+            message = 'Unable to map %s to a LAB_UID in the SBOL Dictionary for processing strains.' % lab_name
+            raise DictionaryMaintainerException(message)
+        lab_uid = dictionary_constants.MAPPED_LAB_UID[lab_name]
+
+        strain_tab = self.get_tab_sheet(dictionary_constants.STRAIN_TAB)
+        for row in strain_tab:
+            if dictionary_constants.COLUMN_COMMON_NAME in row \
+                    and dictionary_constants.COLUMN_SYNBIOHUB_URI in row\
+                    and lab_uid in row:
+                sbh_uri = row[dictionary_constants.COLUMN_SYNBIOHUB_URI]
+                common_name = row[dictionary_constants.COLUMN_COMMON_NAME]
+                lab_strain_names = {}
+                if row[lab_uid]:
+                    lab_strain_names = [name for name in cell_parser.PARSER.extract_name_value(row[lab_uid])]
+                mapped_strains[sbh_uri] = StrainMapping(sbh_uri, lab_name, common_name, lab_names=lab_strain_names)
+
+        return mapped_strains
+
+    def get_common_name_from_transcriptic_id(self, transcriptic_id):
         mappings = self.map_common_names_and_transcriptic_id()
         for key, value in mappings.items():
             if transcriptic_id == value:
@@ -462,3 +492,19 @@ class SBOLDictionaryAccessor(object):
         self.logger.info('Num items in item_map: %d' % len(item_map))
         return item_map
 
+class StrainMapping(object):
+
+    def __init__(self, sbh_uri, lab_id, common_name, lab_names={}):
+        self._sbh_uri = sbh_uri
+        self._lab_id = lab_id
+        self._common_name = common_name
+        self._lab_names = lab_names
+
+    def get_common_name(self):
+        return self._common_name
+
+    def get_lab_id(self):
+        return self._lab_id
+
+    def has_lab_name(self, lab_name):
+        return lab_name in self._lab_names

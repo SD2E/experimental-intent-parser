@@ -1,5 +1,23 @@
 <!DOCTYPE html>
 <html>
+<style>
+  #labSelector {
+        width: 150px;
+    }
+
+  #timeunitSelector {
+        width: 150px;
+    }
+
+  #timeValue {
+      width: 100px;
+  }
+
+  #measurementTypesTable{
+      width: 250px;
+  }
+
+</style>
 <body>
   <script>
     function onSuccess() {
@@ -35,6 +53,8 @@
                         'measurementTypes' : currMeasurements,
                         'fileTypes' : currFileTypes,
                         'numReagents' : theForm.num_reagents.value,
+                        'reagentTimepointValue' : theForm.timeValue.value,
+                        'reagentTimepointUnit' : theForm.timeunitSelector.value,
                         'temperature' : theForm.temperature.checked,
                         'timepoint' : theForm.timepoint.checked,
                         'ods' : theForm.ods.checked,
@@ -48,7 +68,6 @@
     function numMeasurementsUpdate() {
         var theForm = this.createMeasurementTableForm;
         var numNewMeasurements = theForm.num_rows.value;
-
         var table = document.getElementById('measurementTypesTable');
 
         // Delete extra rows
@@ -61,10 +80,8 @@
             var row = table.insertRow(table.rows.length);
             var measureCell = row.insertCell(0);
             var fileCell = row.insertCell(1);
-            measureCell.align = "center"
-            fileCell.align = "center"
             measureCell.innerHTML = "Measurement type <select>" + this.measurement_options + " </select>";
-            fileCell.innerHTML = "File type <select style=\"width:250px\">" + this.filetype_options + " </select>";
+            fileCell.innerHTML = "File type <select style=\"width:200px\">" + this.filetype_options + " </select>";
         }
 
         if (table.rows.length > 0) {
@@ -80,7 +97,6 @@
     this.currNumMeasurements = 0
 
     this.measurement_options = "${MEASUREMENTOPTIONS}"
-
     this.filetype_options = "${FILETYPEOPTIONS}"
 
   </script>
@@ -90,74 +106,85 @@
       <input type="hidden" name="formName" value="createMeasurementTable">
       <table stype="width:600px">
         <tr>
-          <th align="right">Lab: </th>
-          <td align="left">
-            <select id="lab" name="lab">
-              ${LABIDSOPTIONS}
-            </select>
-          </td>
+          <td align="left" colspan="2"><b>Lab:</b> <select id="labSelector" name="lab">${LABIDSOPTIONS}</select></td>
         </tr>
-        <tr>
-          <th align="right">Number of reagents: </th>
+
+        <tr><td><table><tr>
           <td>
-            <input type="text" name="num_reagents" value="0" title="Define number of columns to define reagent configuration.  Reagent names should be added to column headers and linked to SynbioHub.  Configuration can be specified as a comma separated list.">
+          <table>
+            <tr><th align="left">Num. of reagents: </th> </tr>
+            <tr>
+              <td><input name="num_reagents" type="number" min="0" value="0" align="right" title="Define number of columns to define reagent configuration.  Reagent names should be added to column headers and linked to SynbioHub.  Configuration can be specified as a comma separated list."></td>
+            </tr>
+          </table></td>
+
+          <td>
+          <table>
+            <tr><th align="left">At time point: </th></tr>
+            <tr>
+              <td><input id="timeValue" type="number" min="0" value="0" align="right"></td>
+              <td><select id="timeunitSelector">${TIMEUNITOPTION}</select></td>
+            </tr>
+          </table></td>
+
+        </tr></table></td></tr>
+        <tr><td><table align="center"><tr>
+          <td>
+          <table>
+            <tr>
+              <th align="right">Batch: </th>
+              <td><input type="checkbox" name="batch" title="Check to add a column for batch. Comma separated lists are accepted."></td>
+            </tr>
+            <tr>
+              <th align="right">Control: </th>
+              <td><input type="checkbox" name="control" title="Check to add a column for control. Comma separated lists are accepted."></td>
+            </tr>
+          </table>
           </td>
-        </tr>
-        <tr>
-          <th align="right">Temperature: </th>
+
           <td>
-            <input type="checkbox" name="temperature" title="Check to add a column for temperature configuration.  Comma separated lists are accepted.">
+          <table align="center">
+            <tr>
+              <th align="right">Notes: </th>
+              <td><input type="checkbox" name="notes" title="Check to add a column for notes/descriptions.  This column isn't parsed and has no effect on the generated structured request."></td>
+            </tr>
+            <tr>
+              <th align="right">Optical Density: </th>
+              <td><input type="checkbox" name="ods" title="Check to add a column for optical density configuration.  Comma separated lists are accepted. No units are expected."></td>
+            </tr>
+          </table>
           </td>
-        </tr>
-        <tr>
-          <th align="right">Timepoint: </th>
+
           <td>
-            <input type="checkbox" name="timepoint" title="Check to add a column for time configuration.  Comma separated lists are accepted.">
+          <table align="center">
+            <tr>
+              <th align="right">Temperature: </th>
+              <td><input type="checkbox" name="temperature" title="Check to add a column for temperature configuration.  Comma separated lists are accepted."></td>
+            </tr>
+            <tr>
+              <th align="right">Timepoint: </th>
+              <td><input type="checkbox" name="timepoint" title="Check to add a column for time configuration.  Comma separated lists are accepted."></td>
+            </tr>
+          </table>
           </td>
-        </tr>
+        </tr></table></td></tr>
+
         <tr>
-        <tr>
-          <th align="right">Optical Density: </th>
-          <td>
-            <input type="checkbox" name="ods" title="Check to add a column for optical density configuration.  Comma separated lists are accepted. No units are expected.">
-          </td>
-        </tr>
-        <tr>
-          <th align="right">Batch: </th>
-          <td>
-            <input type="checkbox" name="batch" title="Check to add a column for batch. Comma separated lists are accepted.">
-          </td>
-        </tr>
-        <tr>
-          <th align="right">Control: </th>
-          <td>
-            <input type="checkbox" name="control" title="Check to add a column for control. Comma separated lists are accepted.">
-          </td>
-        </tr>
-        <tr>
-          <th align="right">Notes: </th>
-          <td>
-            <input type="checkbox" name="notes" title="Check to add a column for notes/descriptions.  This column isn't parsed and has no effect on the generated structured request.">
-          </td>
-        </tr>
-        <tr>
-          <th align="right">Number of rows/measurements: </th>
-          <td>
+          <td align="left" colspan="2">
+            <b>Number of rows/measurements:</b>
             <input type="number" min="1" max="15" step="1" value="0" name="num_rows" oninput="numMeasurementsUpdate()">
           </td>
         </tr>
 
-        <tr stle="width:200px">
+        <tr style="width:250px">
           <td colspan="2">
-            <table stype="width:100%" id="measurementTypesTable">
-            </table>
+            <table id="measurementTypesTable" stype="width:100%"></table>
           </td>
         </tr>
 
       </table>
       <br>
-      <table stype="width:100%" id="messagesTable">
-      </table>
+      <table stype="width:100%" id="messagesTable"></table>
       <input type="button" value="Submit" id="submitButton" title="Submit form and generate a measurement table template." onclick="handleSubmit()">
       <input type="button" value="Cancel" id="cancelButton" onclick="handleCancel()">
     </form>

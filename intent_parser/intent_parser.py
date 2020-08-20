@@ -1,15 +1,14 @@
+from datacatalog.formats.common import map_experiment_reference
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, IntentParserException, TableException
-from intent_parser.lab_experiment import LabExperiment
-from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory, TableType
 from intent_parser.table.controls_table import ControlsTable
-from intent_parser.table.intent_parser_table import IntentParserTable
+from intent_parser.table.experiment_specification_table import ExperimentSpecificationTable
+from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
+from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
+from intent_parser.table.intent_parser_table_type import TableType
 from intent_parser.table.lab_table import LabTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.parameter_table import ParameterTable
-from intent_parser.table.experiment_specification_table import ExperimentSpecificationTable
-from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
-from datacatalog.formats.common import map_experiment_reference
 from jsonschema import validate
 from jsonschema import ValidationError
 import intent_parser.constants.intent_parser_constants as ip_constants
@@ -50,9 +49,10 @@ class IntentParser(object):
         self.validation_warnings = []
         self.ip_table_factory = IntentParserTableFactory()
 
+        self.ip_tables = None
         self.tables_with_captions = {}
         self.experiment_status_tables = {}
-        self.experiment_specification_tables = None
+        self.experiment_specification_tables = None\
 
     def create_experiment_status_table(self, list_of_status):
         status_table = ExperimentStatusTableParser(status_mappings=self.sbol_dictionary.map_common_names_and_tacc_id())
@@ -67,16 +67,21 @@ class IntentParser(object):
         self.experiment_status_tables[table_index] = status_table
         return status_table
 
-    def create_experiment_specification_table(self, experiment_id_with_indices={}, table_index=None):
+    def create_experiment_specification_table(self, experiment_id_with_indices={}, spec_table_index=None):
         spec_table = ExperimentSpecificationTable()
         for experiment_id, table_index in experiment_id_with_indices.items():
             spec_table.add_experiment_status_table_ref(experiment_id, table_index)
-        table_index = self.get_largest_table_index() + 1
-        spec_table.set_table_caption(table_index)
+        if spec_table_index is None:
+            spec_table_index = self.get_largest_table_index() + 1
+        spec_table.set_table_caption(spec_table_index)
         return spec_table
 
     def get_experiment_specification_table(self):
         return self.experiment_specification_tables
+
+    def get_tables_by_type(self):
+        self.process_tables()
+        return self._filter_tables_by_type()
 
     def get_table_from_index(self, index):
         """
@@ -111,6 +116,7 @@ class IntentParser(object):
             self.tables_with_captions[table_index] = ip_table
 
     def process_structure_request(self):
+        self.process_tables()
         filtered_tables = self._filter_tables_by_type()
         self._generate_request(filtered_tables[TableType.CONTROL],
                                filtered_tables[TableType.LAB],
@@ -119,15 +125,24 @@ class IntentParser(object):
         self._validate_schema()
 
     def process_experiment_run_request(self):
+        self.process_tables()
         filtered_tables = self._filter_tables_by_type()
         self._generate_experiment_request(filtered_tables[TableType.PARAMETER])
 
     def process_experiment_status_request(self):
+        self.process_tables()
         filtered_tables = self._filter_tables_by_type()
         self._generate_experiment_status_request(filtered_tables[TableType.LAB],
                                                  filtered_tables[TableType.EXPERIMENT_SPECIFICATION],
                                                  filtered_tables[TableType.EXPERIMENT_STATUS])
 
+    def process_tables(self):
+        if self.ip_tables is None:
+            tables = []
+            list_of_tables = self.lab_experiment.tables()
+            for table in list_of_tables:
+                tables.append(self.ip_table_factory.from_google_doc(table))
+            self.ip_tables = tables
 
     def _generate_experiment_status_request(self, lab_tables, experiment_specification_tables, experiment_status_tables):
         lab_content = self._process_lab_table(lab_tables)
@@ -322,46 +337,9 @@ class IntentParser(object):
         experimental_result['expData'] = exp_data
         experimental_result['expLinks'] = exp_links
         return experimental_result
-   
-    def _get_challenge_problem_id(self, text):
-        """
-        Find the closest matching measurement type to the given type, and return that as a string
-        """
-        # challenge problem ids have underscores, so replace spaces with underscores to make the inputs match better
-        text = text.replace(' ', '_')
-        best_match_type = None
-        best_match_size = 0
-        for cid in self.catalog_accessor.get_challenge_problem_ids():
-            matches = intent_parser_utils.find_common_substrings(text.lower(), cid.lower(), 1, 0)
-            for m in matches:
-                if m.size > best_match_size and m.size > int(0.25 * len(cid)):
-                    best_match_type = cid
-                    best_match_size = m.size
-        return best_match_type
-
-    def _create_default_challenge_problem(self):
-        cp_id = 'Unknown'
-        # This will return a parent list, which should have one or more Ids of parent directories
-        # We want to navigate those and see if they are a close match to a challenge problem ID
-        parent_list = self.lab_experiment.parents()
-        for parent_ref in parent_list['items']:
-            if not parent_ref['kind'] == 'drive#parentReference':
-                continue
-            parent_experiment = LabExperiment(parent_ref['id'])
-            parent_meta = parent_experiment.load_metadata_from_google_doc()
-            new_cp_id = self._get_challenge_problem_id(parent_meta['title'])
-            if new_cp_id:
-                cp_id = new_cp_id
-        return cp_id
 
     def _get_experiment_reference_url(self):
-        return 'https://docs.google.com/document/d/' + self.lab_experiment.document_id()
-
-    def _create_default_experiment_reference(self):
-        title = self.lab_experiment.title()[0]
-        title_toks = title.split(sep='-')
-        experiment_reference = title.split(sep='-')[1].strip() if len(title_toks) > 1 else title
-        return experiment_reference
+        return ip_constants.GOOGLE_DOC_URL_PREFIX + self.lab_experiment.document_id()
 
     def _get_experiment_reference(self):
         try:
@@ -370,8 +348,9 @@ class IntentParser(object):
                 map_experiment_reference(self.datacatalog_config, experiment_ref)
                 return experiment_ref[dc_constants.EXPERIMENT_REFERENCE]
         except Exception as err:
-            self.logger.info('WARNING: Data catalog failed to map experiment reference for doc id %s!' % self.lab_experiment.document_id())
-        return self._create_default_experiment_reference()
+            message = 'Failed to map experiment reference for doc id %s!' % self.lab_experiment.document_id()
+            self.validation_errors.append(message)
+            return dc_constants.UNKOWN
 
     def _get_challenge_problem(self):
         try:
@@ -380,8 +359,12 @@ class IntentParser(object):
                 map_experiment_reference(self.datacatalog_config, experiment_ref)
                 return experiment_ref[dc_constants.CHALLENGE_PROBLEM]
         except Exception as err:
-            self.logger.info('WARNING: Data catalog failed to map challenge problem for doc id %s!' % self.lab_experiment.document_id())
-        return self._create_default_challenge_problem()
+            message = 'Failed to map challenge problem for doc id %s! Check that this document is in the Challenge Problem folder under DARPA SD2E Shared > CP Working Groups > ExperimentalRequests' % self.lab_experiment.document_id()
+            self.validation_errors.append(message)
+            return dc_constants.UNDEFINED
+
+    def _get_request_name(self):
+        return self.lab_experiment.title()[0]
 
     def _generate_request(self, control_tables, lab_tables, measurement_tables, parameter_tables):
         """Generates a structured request for a given doc id
@@ -389,12 +372,12 @@ class IntentParser(object):
         experiment_ref = self._get_experiment_reference()
         experiment_ref_url = self._get_experiment_reference_url()
         cp_id = self._get_challenge_problem()
-        title = self.lab_experiment.title()[0]
+        title = self._get_request_name()
 
         ref_controls = self._process_control_tables(control_tables)
         lab_content = self._process_lab_table(lab_tables)
         parameter_sr = self._process_parameter_table(parameter_tables)
-        measurements = self._process_measurement_table(measurement_tables, ref_controls)
+        measurements = self._process_measurement_table(measurement_tables, ref_controls, lab_content[dc_constants.LAB])
         
         self.request[dc_constants.EXPERIMENT_REQUEST_NAME] = title
         self.request[dc_constants.EXPERIMENT_ID] = lab_content[dc_constants.EXPERIMENT_ID]
@@ -440,7 +423,7 @@ class IntentParser(object):
         result = {}
         if not exp_specification_tables:
             message = 'No experiment specification table to parse from document.'
-            self.validation_errors.append(message)
+            self.validation_warnings.append(message)
             return result
 
         if len(exp_specification_tables) > 1:
@@ -457,7 +440,9 @@ class IntentParser(object):
         table_id_to_statuses = {}
         if not status_tables:
             message = 'No experiment status table to parse from document.'
-            self.validation_errors.append(message)
+            self.validation_warnings.append(message)
+            return table_id_to_statuses
+
         for table in status_tables:
             status_table_parser = ExperimentStatusTableParser(table, self.sbol_dictionary.map_common_names_and_tacc_id())
             status_table_parser.process_table()
@@ -468,40 +453,49 @@ class IntentParser(object):
     def _process_lab_table(self, lab_tables):
         if not lab_tables:
             message = ('No lab table specified in this experiment. Generated default values for lab contents.')
-            self.validation_warnings.extend(message)
-            return {dc_constants.LAB: ip_constants.TACC_SERVER,
-                    dc_constants.EXPERIMENT_ID: 'experiment.%s.TBD' % ip_constants.TACC_SERVER}
-        if len(lab_tables) > 1:
-            message = ('There is more than one lab table specified in this experiment.' 
-                       'Only the last lab table identified in the document will be used for generating a request.')
-            self.validation_warnings.extend(message)
-        table = lab_tables[-1]
-        lab_table = LabTable(table)
-        lab_content = lab_table.process_table()
+            self.logger.warning(message)
+            lab_table = LabTable()
+        else:
+            if len(lab_tables) > 1:
+                message = ('There is more than one lab table specified in this experiment.' 
+                           'Only the last lab table identified in the document will be used for generating a request.')
+                self.validation_warnings.extend(message)
+            table = lab_tables[-1]
+            lab_table = LabTable(intent_parser_table=table, lab_names=self.catalog_accessor.get_lab_ids())
+            lab_table.process_table()
+        lab_content = lab_table.get_structured_request()
         self.validation_errors.extend(lab_table.get_validation_errors())
         self.validation_warnings.extend(lab_table.get_validation_warnings())
         return lab_content 
     
-    def _process_measurement_table(self, measurement_tables, ref_controls):
+    def _process_measurement_table(self, measurement_tables, ref_controls, lab_name):
         measurements = []
         if not measurement_tables:
             return measurements 
-        if len(measurement_tables) > 1: 
+
+        if len(measurement_tables) > 1:
                 message = ('There are more than one measurement table specified in this experiment.'
-                       'Only the last measurement table identified in the document will be used for generating a request.')
+                           'Only the last measurement table identified in the document will be used for generating a request.')
                 self.validation_warnings.extend(message)
-        table = measurement_tables[-1]
-        meas_table = MeasurementTable(table, 
-                                      self.catalog_accessor.get_temperature_units(), 
-                                      self.catalog_accessor.get_time_units(), 
-                                      self.catalog_accessor.get_fluid_units(), 
-                                      self.catalog_accessor.get_measurement_types(), 
-                                      self.catalog_accessor.get_file_types())
-        measurement_data = meas_table.process_table(control_tables=ref_controls, bookmarks=self.lab_experiment.bookmarks())
-        measurements.append({'measurements': measurement_data})
-        self.validation_errors.extend(meas_table.get_validation_errors())
-        self.validation_warnings.extend(meas_table.get_validation_warnings())
-        return measurements
+        try:
+            table = measurement_tables[-1]
+
+            strain_mapping = self.sbol_dictionary.get_mapped_strain(lab_name)
+            meas_table = MeasurementTable(table,
+                                          temperature_units=self.catalog_accessor.get_temperature_units(),
+                                          timepoint_units=self.catalog_accessor.get_time_units(),
+                                          fluid_units=self.catalog_accessor.get_fluid_units(),
+                                          measurement_types=self.catalog_accessor.get_measurement_types(),
+                                          file_type=self.catalog_accessor.get_file_types(),
+                                          strain_mapping=strain_mapping)
+
+            meas_table.process_table(control_tables=ref_controls, bookmarks=self.lab_experiment.bookmarks())
+            measurements.append({dc_constants.MEASUREMENTS: meas_table.get_structured_request()})
+            self.validation_errors.extend(meas_table.get_validation_errors())
+            self.validation_warnings.extend(meas_table.get_validation_warnings())
+            return measurements
+        except (DictionaryMaintainerException, TableException) as err:
+            self.validation_errors.extend([err.get_message()])
     
     def _process_parameter_table(self, parameter_tables, generate_experiment_request=False):
         if not parameter_tables:
@@ -524,28 +518,26 @@ class IntentParser(object):
             self.validation_errors.extend([err.get_message()])
 
     def _filter_tables_by_type(self):
-        list_of_tables = self.lab_experiment.tables()
         measurement_tables = []
         lab_tables = []
         parameter_tables = []
         control_tables = []
         experiment_status_tables = []
         experiment_spec_tables = []
-        for table in list_of_tables:
-            ip_table = self.ip_table_factory.from_google_doc(table)
-            table_type = self.ip_table_factory.get_table_type(ip_table)
+        for table in self.ip_tables:
+            table_type = table.get_table_type()
             if table_type == TableType.CONTROL:
-                control_tables.append(ip_table)
+                control_tables.append(table)
             elif table_type == TableType.EXPERIMENT_STATUS:
-                experiment_status_tables.append(ip_table)
+                experiment_status_tables.append(table)
             elif table_type == TableType.EXPERIMENT_SPECIFICATION:
-                experiment_spec_tables.append(ip_table)
+                experiment_spec_tables.append(table)
             elif table_type == TableType.LAB:
-                lab_tables.append(ip_table)
+                lab_tables.append(table)
             elif table_type == TableType.MEASUREMENT:
-                measurement_tables.append(ip_table)
+                measurement_tables.append(table)
             elif table_type == TableType.PARAMETER:
-                parameter_tables.append(ip_table)
+                parameter_tables.append(table)
 
         return {TableType.CONTROL: control_tables,
                 TableType.EXPERIMENT_SPECIFICATION: experiment_spec_tables,

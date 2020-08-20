@@ -7,3 +7,4 @@ token.pickle
 .pydevproject
 .settings/
 item-map.json
+/intent_parser/accessor/intent_parser_api_keys.json

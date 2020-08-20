@@ -40,7 +40,7 @@ class ControlsTable(object):
             header_row_index = self._intent_parser_table.header_row_index()
             header_cell = self._intent_parser_table.get_cell(header_row_index, cell_index)
             cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
-            if not cell.get_text():
+            if not cell.get_text().strip():
                 continue
             if intent_parser_constants.HEADER_CONTROL_TYPE_TYPE == cell_type:
                 control_type = self._process_control_type(cell)
@@ -66,18 +66,18 @@ class ControlsTable(object):
     
     def _process_channels(self, cell):
         cell_content = cell.get_text()
-        if not cell_parser.PARSER.is_name(cell_content):
-            message = ('Controls table has invalid %s value: '
-                       'Identified %s as a numerical value when ' 
-                       'expecting alpha-numeric values.') % (intent_parser_constants.HEADER_CHANNEL_VALUE, cell_content)
+
+        try:
+            list_of_channels = cell_parser.PARSER.extract_name_value(cell_content)
+            if len(list_of_channels) > 1:
+                message = ('Controls table for %s has more than one channel provided. '
+                           'Only the first channel will be used from %s.') % (intent_parser_constants.HEADER_CHANNEL_VALUE, cell_content)
+                self._logger.warning(message)
+            return list_of_channels[0]
+        except TableException as err:
+            message = ('Controls table has invalid %s value: %s') % (
+                        intent_parser_constants.HEADER_CHANNEL_VALUE, err.get_message())
             self._validation_errors.append(message)
-            return None  
-        list_of_channels = cell_parser.PARSER.process_names(cell_content)
-        if len(list_of_channels) > 1:
-            message = ('Controls table for %s has more than one channel provided. '
-                       'Only the first channel will be used from %s.') % (intent_parser_constants.HEADER_CHANNEL_VALUE, cell_content)
-            self._logger.warning(message)
-        return list_of_channels[0]
     
     def _process_contents(self, cell):
         try:
@@ -94,10 +94,10 @@ class ControlsTable(object):
                        'expecting alpha-numeric values.') % (intent_parser_constants.HEADER_STRAINS_VALUE, cell.get_text())
             self._validation_errors.append(message)
             return []
-        return cell_parser.PARSER.process_names(cell.get_text())
+        return [strain for strain,_ in cell_parser.PARSER.process_names_with_uri(cell.get_text())]
                 
     def _process_control_type(self, cell):
-        control_type = cell.get_text()
+        control_type = cell.get_text().strip()
         if control_type not in self._control_types:
             err = '%s does not match one of the following control types: \n %s' % (control_type, ' ,'.join((map(str, self._control_types))))
             message = 'Controls table has invalid %s value: %s' % (intent_parser_constants.HEADER_CONTROL_TYPE_VALUE, err)

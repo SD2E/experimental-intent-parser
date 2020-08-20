@@ -1,265 +1,449 @@
 {
-    "name": "YeastSTATES 1.0 Growth Curves Request",
-    "experiment_id": "experiment.transcriptic.2020-05-04-YeastSTATES-1-0-Growth-Curves",
     "challenge_problem": "YEAST_STATES",
+    "doc_revision_id": "357",
+    "experiment_id": "experiment.transcriptic.2020-05-04-YeastSTATES-1-0-Growth-Curves",
     "experiment_reference": "YeastSTATES-1-0-Growth-Curves",
     "experiment_reference_url": "https://docs.google.com/document/d/1fFcxyJyheMrzSsVoSsO6v7qHJKFf_0heIFtqEur02cg",
     "experiment_version": 1,
     "lab": "Transcriptic",
-    "runs": [
-        {
-            "measurements": [
-                {
-                    "measurement_type": "PLATE_READER",
-                    "file_type": [
-                        "CSV"
-                    ],
-                    "replicates": 6,
-                    "strains": [
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1",
-                        "https://hub.sd2e.org/user/sd2e/design/W303/1"
-                    ],
-                    "timepoints": [
-                        {
-                            "value": 0.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 1.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 3.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 6.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 9.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 12.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 15.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 18.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 21.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 24.0,
-                            "unit": "hour"
-                        }
-                    ],
-                    "temperatures": [
-                        {
-                            "value": 30.0,
-                            "unit": "celsius"
-                        }
-                    ],
-                    "contents": [
-                        [
-                            {
-                                "name": {
-                                    "label": "Media",
-                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
-                                },
-                                "value": "sc_media"
-                            }
-                        ]
-                    ]
-                },
-                {
-                    "measurement_type": "PLATE_READER",
-                    "file_type": [
-                        "CSV"
-                    ],
-                    "replicates": 3,
-                    "strains": [
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_6389/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_7375/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_8225/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_5783/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_8545/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_16970/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_16968/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_8231/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_6391/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_5992/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_16967/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_7373/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_8543/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_7377/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_6388/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_5993/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_16969/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_8544/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_7300/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_7374/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_8542/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_7299/1"
-                    ],
-                    "timepoints": [
-                        {
-                            "value": 0.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 1.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 3.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 6.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 9.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 12.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 15.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 18.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 21.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 24.0,
-                            "unit": "hour"
-                        }
-                    ],
-                    "temperatures": [
-                        {
-                            "value": 30.0,
-                            "unit": "celsius"
-                        }
-                    ],
-                    "contents": [
-                        [
-                            {
-                                "name": {
-                                    "label": "Media",
-                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
-                                },
-                                "value": "sc_media"
-                            }
-                        ]
-                    ]
-                },
-                {
-                    "measurement_type": "CONDITION_SPACE",
-                    "file_type": [
-                        "CSV"
-                    ],
-                    "replicates": 20,
-                    "strains": [
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1",
-                        "https://hub.sd2e.org/user/sd2e/design/W303/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_8545/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_16970/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_16968/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_8231/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_6391/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_5992/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_16967/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_7373/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_8543/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_7377/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_6388/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_5993/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_16969/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_8544/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_7300/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_7374/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_8542/1",
-                        "https://hub.sd2e.org/user/sd2e/design/UWBF_7299/1"
-                    ],
-                    "timepoints": [
-                        {
-                            "value": 0.0,
-                            "unit": "hour"
-                        },
-                        {
-                            "value": 24.0,
-                            "unit": "hour"
-                        }
-                    ],
-                    "temperatures": [
-                        {
-                            "value": 0.0,
-                            "unit": "celsius"
-                        },
-                        {
-                            "value": 35.0,
-                            "unit": "celsius"
-                        }
-                    ],
-                    "contents": [
-                        [
-                            {
-                                "name": {
-                                    "label": "Media",
-                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
-                                },
-                                "value": "sc_media"
-                            }
-                        ]
-                    ]
-                }
-            ]
-        }
-    ],
-    "doc_revision_id": "261",
-    "parameters": [
-        {
-            "inoc_info.inoc_vol": "10:microliter",
-            "inoc_info.inoc_media_vol": "700:microliter",
-            "inoc_info.inc_time_1": "16:hour",
-            "inoc_info.inoculation_media": "sc_media",
-            "incubation_info.shaking": "high_speed",
-            "recovery_info.recovery_sample_vol": "50:microliter",
-            "recovery_info.recovery_media_vol": "1000:microliter",
-            "induction_info.induction_time.total_induction_time": "8:hour",
-            "induction_info.induction_time.doubling_time": "2:hour",
-            "induction_info.dil_volume": "1700:microliter",
-            "induction_info.induction_reagents.media_vol": "300:microliter",
-            "induction_info.induction_time.induction_plate_info": "new-induction-plate",
-            "read_info.sampling_info.read_cult_vol": "300:microliter",
-            "plate_reader_info.fluor_ex": "488:nanometer",
-            "plate_reader_info.fluor_em": "530:nanometer",
-            "plate_reader_info.gain": 0.16
-        }
-    ],
-    "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/YeastSTATES 1.0 Growth Curves Request.json",
+    "name": "YeastSTATES 1.0 Growth Curves Request",
     "overnight_growth": {
         "unit": "hour",
         "value": 16.0
     },
+    "parameters": [
+        {
+            "incubation_info.shaking": "high_speed",
+            "induction_info.dil_volume": "1700:microliter",
+            "induction_info.induction_reagents.media_vol": "300:microliter",
+            "induction_info.induction_time.doubling_time": "2:hour",
+            "induction_info.induction_time.induction_plate_info": "new-induction-plate",
+            "induction_info.induction_time.total_induction_time": "8:hour",
+            "inoc_info.inc_time_1": "16:hour",
+            "inoc_info.inoc_media_vol": "700:microliter",
+            "inoc_info.inoc_vol": "10:microliter",
+            "inoc_info.inoculation_media": "sc_media",
+            "plate_reader_info.fluor_em": "530:nanometer",
+            "plate_reader_info.fluor_ex": "488:nanometer",
+            "plate_reader_info.gain": 0.16,
+            "read_info.sampling_info.read_cult_vol": "300:microliter",
+            "recovery_info.recovery_media_vol": "1000:microliter",
+            "recovery_info.recovery_sample_vol": "50:microliter"
+        }
+    ],
+    "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/YeastSTATES 1.0 Growth Curves Request.json",
+    "protocol": "GrowthCurve",
     "recovery_loops": [],
-    "protocol": "GrowthCurve"
+    "runs": [
+        {
+            "measurements": [
+                {
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "sc_media"
+                            }
+                        ]
+                    ],
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "measurement_type": "PLATE_READER",
+                    "replicates": 6,
+                    "strains": [
+                        {
+                            "lab_id": "name.transcriptic.UWBF_6390",
+                            "label": "UWBF_6390",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.W303",
+                            "label": "W303",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "unit": "celsius",
+                            "value": 30.0
+                        }
+                    ],
+                    "timepoints": [
+                        {
+                            "unit": "hour",
+                            "value": 0.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 1.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 3.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 6.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 9.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 12.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 15.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 18.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 21.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 24.0
+                        }
+                    ]
+                },
+                {
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "sc_media"
+                            }
+                        ]
+                    ],
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "measurement_type": "PLATE_READER",
+                    "replicates": 3,
+                    "strains": [
+                        {
+                            "lab_id": "name.transcriptic.UWBF_6389",
+                            "label": "UWBF_NOR_01",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6389/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_7375",
+                            "label": "UWBF_AND_01",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_7375/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_8225",
+                            "label": "UWBF_OR_00",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_8225/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_5783",
+                            "label": "UWBF_OR_01",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_5783/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_8545",
+                            "label": "UWBF_NAND_01",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_8545/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_16970",
+                            "label": "UWBF_XOR_00",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_16970/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_16968",
+                            "label": "UWBF_XOR_10",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_16968/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_8231",
+                            "label": "UWBF_XNOR_01",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_8231/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_6391",
+                            "label": "UWBF_NOR_11",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6391/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_5992",
+                            "label": "UWBF_OR_11",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_5992/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_16967",
+                            "label": "UWBF_XOR_11",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_16967/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_7373",
+                            "label": "UWBF_AND_10",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_7373/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_8543",
+                            "label": "UWBF_NAND_10",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_8543/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_7377",
+                            "label": "UWBF_XNOR_10",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_7377/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_6388",
+                            "label": "UWBF_NOR_10",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6388/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_5993",
+                            "label": "UWBF_OR_10",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_5993/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_16969",
+                            "label": "UWBF_XOR_01",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_16969/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_7376",
+                            "label": "UWBF_AND_00",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_8544",
+                            "label": "UWBF_NAND_00",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_8544/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_7300",
+                            "label": "UWBF_XNOR_00",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_7300/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_7374",
+                            "label": "UWBF_AND_11",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_7374/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_8542",
+                            "label": "UWBF_NAND_11",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_8542/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_7299",
+                            "label": "UWBF_XNOR_11",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_7299/1"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "unit": "celsius",
+                            "value": 30.0
+                        }
+                    ],
+                    "timepoints": [
+                        {
+                            "unit": "hour",
+                            "value": 0.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 1.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 3.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 6.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 9.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 12.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 15.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 18.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 21.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 24.0
+                        }
+                    ]
+                },
+                {
+                    "contents": [
+                        [
+                            {
+                                "name": {
+                                    "label": "Media",
+                                    "sbh_uri": "NO PROGRAM DICTIONARY ENTRY"
+                                },
+                                "value": "sc_media"
+                            }
+                        ]
+                    ],
+                    "file_type": [
+                        "CSV"
+                    ],
+                    "measurement_type": "CONDITION_SPACE",
+                    "replicates": 20,
+                    "strains": [
+                        {
+                            "lab_id": "name.transcriptic.UWBF_6390",
+                            "label": "UWBF_6390",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.W303",
+                            "label": "W303",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_8545",
+                            "label": "UWBF_NAND_01",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_8545/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_16970",
+                            "label": "UWBF_XOR_00",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_16970/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_16968",
+                            "label": "UWBF_XOR_10",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_16968/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_8231",
+                            "label": "UWBF_XNOR_01",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_8231/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_6391",
+                            "label": "UWBF_NOR_11",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6391/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_5992",
+                            "label": "UWBF_OR_11",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_5992/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_16967",
+                            "label": "UWBF_XOR_11",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_16967/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_7373",
+                            "label": "UWBF_AND_10",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_7373/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_8543",
+                            "label": "UWBF_NAND_10",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_8543/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_7377",
+                            "label": "UWBF_XNOR_10",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_7377/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_6388",
+                            "label": "UWBF_NOR_10",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6388/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_5993",
+                            "label": "UWBF_OR_10",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_5993/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_16969",
+                            "label": "UWBF_XOR_01",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_16969/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_7376",
+                            "label": "UWBF_AND_00",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_8544",
+                            "label": "UWBF_NAND_00",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_8544/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_7300",
+                            "label": "UWBF_XNOR_00",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_7300/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_7374",
+                            "label": "UWBF_AND_11",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_7374/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_8542",
+                            "label": "UWBF_NAND_11",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_8542/1"
+                        },
+                        {
+                            "lab_id": "name.transcriptic.UWBF_7299",
+                            "label": "UWBF_XNOR_11",
+                            "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_7299/1"
+                        }
+                    ],
+                    "temperatures": [
+                        {
+                            "unit": "celsius",
+                            "value": 0.0
+                        },
+                        {
+                            "unit": "celsius",
+                            "value": 35.0
+                        }
+                    ],
+                    "timepoints": [
+                        {
+                            "unit": "hour",
+                            "value": 0.0
+                        },
+                        {
+                            "unit": "hour",
+                            "value": 24.0
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
 }
