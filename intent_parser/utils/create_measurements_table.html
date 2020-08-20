@@ -2,18 +2,19 @@
 <html>
 <style>
   #labSelector {
-        width: 250px;
-    }
-   #labSelector option {
-        width: 250px;
+        width: 150px;
     }
 
   #timeunitSelector {
-        width: 100px;
+        width: 150px;
     }
 
   #timeValue {
-      width: 70px;
+      width: 100px;
+  }
+
+  #measurementTypesTable{
+      width: 250px;
   }
 
 </style>
@@ -67,7 +68,6 @@
     function numMeasurementsUpdate() {
         var theForm = this.createMeasurementTableForm;
         var numNewMeasurements = theForm.num_rows.value;
-
         var table = document.getElementById('measurementTypesTable');
 
         // Delete extra rows
@@ -105,9 +105,8 @@
       <input type="hidden" name="cursorChildIndex" value="${CURSOR_CHILD_INDEX}">
       <input type="hidden" name="formName" value="createMeasurementTable">
       <table stype="width:600px">
-        <tr><th align="left" colspan="2">Lab: </th></tr>
         <tr>
-          <td align="left" colspan="2"><select id="labSelector" name="lab">${LABIDSOPTIONS}</select></td>
+          <td align="left" colspan="2"><b>Lab:</b> <select id="labSelector" name="lab">${LABIDSOPTIONS}</select></td>
         </tr>
 
         <tr><td><table><tr>
@@ -129,7 +128,7 @@
           </table></td>
 
         </tr></table></td></tr>
-        <tr><td><table><tr>
+        <tr><td><table align="center"><tr>
           <td>
           <table>
             <tr>
@@ -140,19 +139,24 @@
               <th align="right">Control: </th>
               <td><input type="checkbox" name="control" title="Check to add a column for control. Comma separated lists are accepted."></td>
             </tr>
+          </table>
+          </td>
+
+          <td>
+          <table align="center">
             <tr>
               <th align="right">Notes: </th>
               <td><input type="checkbox" name="notes" title="Check to add a column for notes/descriptions.  This column isn't parsed and has no effect on the generated structured request."></td>
+            </tr>
+            <tr>
+              <th align="right">Optical Density: </th>
+              <td><input type="checkbox" name="ods" title="Check to add a column for optical density configuration.  Comma separated lists are accepted. No units are expected."></td>
             </tr>
           </table>
           </td>
 
           <td>
-          <table>
-            <tr>
-              <th align="right">Optical Density: </th>
-              <td><input type="checkbox" name="ods" title="Check to add a column for optical density configuration.  Comma separated lists are accepted. No units are expected."></td>
-            </tr>
+          <table align="center">
             <tr>
               <th align="right">Temperature: </th>
               <td><input type="checkbox" name="temperature" title="Check to add a column for temperature configuration.  Comma separated lists are accepted."></td>
@@ -167,7 +171,7 @@
 
         <tr>
           <td align="left" colspan="2">
-            Number of rows/measurements:
+            <b>Number of rows/measurements:</b>
             <input type="number" min="1" max="15" step="1" value="0" name="num_rows" oninput="numMeasurementsUpdate()">
           </td>
         </tr>
