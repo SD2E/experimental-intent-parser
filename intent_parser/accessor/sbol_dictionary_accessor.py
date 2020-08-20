@@ -1,7 +1,6 @@
 from datetime import timedelta
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
-import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
@@ -379,6 +378,7 @@ class SBOLDictionaryAccessor(object):
                     result[tacc_id] = common_name
         return result
 
+<<<<<<< HEAD
     def get_mapped_strain(self, lab_name):
         """Create a mapping for strains from the Strains tab.
         Args:
@@ -409,6 +409,9 @@ class SBOLDictionaryAccessor(object):
         return mapped_strains
 
     def get_common_name_from_transcriptic_id(self, transcriptic_id):
+=======
+    def get_common_name_from_trascriptic_id(self, transcriptic_id):
+>>>>>>> ba244faa0a4b619dd483f7c4a848ac304d9b4a23
         mappings = self.map_common_names_and_transcriptic_id()
         for key, value in mappings.items():
             if transcriptic_id == value:
@@ -492,19 +495,3 @@ class SBOLDictionaryAccessor(object):
         self.logger.info('Num items in item_map: %d' % len(item_map))
         return item_map
 
-class StrainMapping(object):
-
-    def __init__(self, sbh_uri, lab_id, common_name, lab_names={}):
-        self._sbh_uri = sbh_uri
-        self._lab_id = lab_id
-        self._common_name = common_name
-        self._lab_names = lab_names
-
-    def get_common_name(self):
-        return self._common_name
-
-    def get_lab_id(self):
-        return self._lab_id
-
-    def has_lab_name(self, lab_name):
-        return lab_name in self._lab_names

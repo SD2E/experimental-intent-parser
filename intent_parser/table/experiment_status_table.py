@@ -187,7 +187,7 @@ class ExperimentStatusTableParser(object):
             status.last_updated = cell_parser.PARSER.process_datetime_format(cell.get_text().strip())
         except ValueError as err:
             message = 'Experiment status table has invalid %s value: %s' % (
-                       intent_parser_constants.HEADER_PIPELINE_STATUS_TYPE, str(err))
+                intent_parser_constants.HEADER_PIPELINE_STATUS_TYPE, str(err))
             self._validation_errors.append(message)
 
     def _process_path(self, cell, status):
@@ -196,12 +196,17 @@ class ExperimentStatusTableParser(object):
             status_type = [status for status, _ in cell_parser.PARSER.process_names_with_uri(cell_text)]
             if len(status_type) > 1:
                 message = 'More than one %s detected from %s. Only the first status will be used.' % (
+<<<<<<< HEAD
                            intent_parser_constants.HEADER_PATH_VALUE, cell_text)
                 self._logger.warning(message)
+=======
+                intent_parser_constants.HEADER_PATH_VALUE, cell_text)
+                self._validation_warnings.append(message)
+>>>>>>> ba244faa0a4b619dd483f7c4a848ac304d9b4a23
             status.path = status_type[0]
         else:
             message = 'Experiment status table has invalid %s value: %s should be a file path.' % (
-                       intent_parser_constants.HEADER_PATH_VALUE, cell_text)
+            intent_parser_constants.HEADER_PATH_VALUE, cell_text)
             self._validation_errors.append(message)
 
     def _process_state(self, cell, status):

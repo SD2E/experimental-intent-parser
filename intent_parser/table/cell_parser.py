@@ -1,7 +1,6 @@
 from datetime import datetime
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.constants.intent_parser_constants as constants
-import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import collections
 import re
 
@@ -169,6 +168,7 @@ class CellParser(object):
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
         if cell_type == 'NAME_VALUE_UNIT_TIMEPOINT':
             label, value, unit, timepoint_value, timepoint_unit = self._get_name_values_unit_timepoint(tokens)
+<<<<<<< HEAD
             content = {dc_constants.NAME: self.create_name_with_uri(label, text_with_uri),
                        dc_constants.VALUE: value,
                        dc_constants.UNIT: self.process_content_item_unit(unit, fluid_units, timepoint_units),
@@ -185,6 +185,26 @@ class CellParser(object):
         elif cell_type == 'NAME':
             for label in self.extract_name_value(text):
                 content = {dc_constants.NAME: self.create_name_with_uri(label, text_with_uri)}
+=======
+            content = {}
+            content['name'] = self.process_name_with_uri(label, text_with_uri)
+            content['value'] = value
+            content['unit'] = self.process_content_item_unit(unit, fluid_units, timepoint_units)
+            content['timepoints'] = self.process_timepoint(timepoint_value, timepoint_unit, timepoint_units)
+            list_of_contents.append(content)
+        elif cell_type == 'NAME_VALUE_UNIT':
+            label, value, unit = self._get_name_values_unit(tokens)
+            content = {}
+            content['name'] = self.process_name_with_uri(label, text_with_uri)
+            content['value'] = value
+            content['unit'] = self.process_content_item_unit(unit, fluid_units, timepoint_units)
+            list_of_contents.append(content)
+        elif cell_type == 'NAME':
+            labels = self.process_names(text)
+            for label in labels:
+                content = {}
+                content['name'] = self.process_name_with_uri(label, text_with_uri)
+>>>>>>> ba244faa0a4b619dd483f7c4a848ac304d9b4a23
                 list_of_contents.append(content)
         else:
             raise TableException('Unable to parse %s' % text)
@@ -219,6 +239,7 @@ class CellParser(object):
         return datetime.strptime(text, '%Y/%m/%d %H:%M:%S')
 
     def process_lab_name(self, text):
+<<<<<<< HEAD
         """
         Get lab name from a text
         Args:
@@ -229,6 +250,11 @@ class CellParser(object):
         tokens = self._lab_tokenizer.tokenize(text, keep_skip=False)
         if self._get_token_type(tokens[0]) != 'KEYWORD':
             return None
+=======
+        tokens = self._lab_tokenizer.tokenize(text, keep_skip=False)
+        if self._get_token_type(tokens[0]) != 'KEYWORD':
+            return constants.TACC_SERVER
+>>>>>>> ba244faa0a4b619dd483f7c4a848ac304d9b4a23
         return self._get_token_value(tokens[-1])
 
     def process_lab_table_value(self, text):
@@ -236,7 +262,7 @@ class CellParser(object):
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
         if cell_type == 'KEYWORD_SEPARATOR_NAME' or cell_type == 'KEYWORD_SEPARATOR_VALUE':
             return self._get_token_value(tokens[-1])
-        return None
+        return 'TBD'
 
     def process_names_with_uri(self, text, text_with_uri={}):
         """Process the given text for a list of string and its attached URL.
@@ -253,6 +279,7 @@ class CellParser(object):
             else:
                 yield name, None
 
+<<<<<<< HEAD
     def create_name_with_uri(self, label, uri_dictionary):
         stripped_label = label.strip()
         if stripped_label in uri_dictionary and uri_dictionary[stripped_label]:
@@ -260,6 +287,16 @@ class CellParser(object):
 
         return {dc_constants.LABEL: stripped_label,
                 dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY}
+=======
+    def process_name_with_uri(self, label, uri_dictionary):
+        if label in uri_dictionary and uri_dictionary[label]:
+            return {'label': label, 'sbh_uri': uri_dictionary[label]}
+
+        if label.strip() in uri_dictionary and uri_dictionary[label.strip()]:
+            return {'label': label.strip(), 'sbh_uri': uri_dictionary[label.strip()]}
+
+        return {'label': label, 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}
+>>>>>>> ba244faa0a4b619dd483f7c4a848ac304d9b4a23
 
     def process_numbers(self, text):
         """
