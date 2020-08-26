@@ -1,7 +1,8 @@
+from intent_parser.intent_parser_exceptions import TableException
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
 from intent_parser.table.parameter_table import ParameterTable
-import intent_parser.constants.sd2_datacatalog_constants as dc_constants
+import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.tests.test_util as test_utils
 import unittest
 
@@ -30,7 +31,14 @@ class ParameterTableTest(unittest.TestCase):
             'Kill switch': 'reagent_info.kill_switch',
             'Media well ids': 'exp_info.media_well_strings',
             'Plate reader gain': 'plate_reader_info.gain',
-            'Sample has sbh_uri as an aliquot property': 'validate_samples'
+            'Sample has sbh_uri as an aliquot property': 'validate_samples',
+            'Plate Size': ip_constants.PARAMETER_PLATE_SIZE,
+            'Plate Number': ip_constants.PARAMETER_PLATE_NUMBER,
+            'Container Search String': ip_constants.PARAMETER_CONTAINER_SEARCH_STRING,
+            'Strain Property': ip_constants.PARAMETER_STRAIN_PROPERTY,
+            'XPlan Path': ip_constants.PARAMETER_XPLAN_PATH,
+            'Protocol ID': ip_constants.PARAMETER_PROTOCOL_ID,
+            'Experiment reference url for xplan': ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN
         }
 
     def tearDown(self):
@@ -253,6 +261,118 @@ class ParameterTableTest(unittest.TestCase):
                            'plate_reader_info.gain.2': 0.3}
         self.assertEqual(3, len(param_result))
         self.assertDictEqual(expected_result, param_result)
- 
+
+    def test_process_complete_experiment_data_from_parameter_table(self):
+        ip_table = test_utils.create_fake_parameter()
+        plate_size = IntentParserCell()
+        plate_size.add_paragraph('Plate Size')
+        parameter_value = IntentParserCell()
+        parameter_value.add_paragraph('96')
+        data_row = test_utils.create_parameter_table_row(parameter_cell=plate_size,
+                                                         parameter_value_cell=parameter_value)
+        ip_table.add_row(data_row)
+
+        plate_number = IntentParserCell()
+        plate_number.add_paragraph('Plate Number')
+        parameter_value = IntentParserCell()
+        parameter_value.add_paragraph('2')
+        data_row = test_utils.create_parameter_table_row(parameter_cell=plate_number,
+                                                         parameter_value_cell=parameter_value)
+        ip_table.add_row(data_row)
+
+        protocol_name = IntentParserCell()
+        protocol_name.add_paragraph('Protocol')
+        parameter_value = IntentParserCell()
+        parameter_value.add_paragraph('ObstacleCourse')
+        data_row = test_utils.create_parameter_table_row(parameter_cell=protocol_name,
+                                                         parameter_value_cell=parameter_value)
+        ip_table.add_row(data_row)
+
+        container_search_string = IntentParserCell()
+        container_search_string.add_paragraph('Container Search String')
+        parameter_value = IntentParserCell()
+        parameter_value.add_paragraph('Ct1e3qc85mqwbz8, ct1e3qc85jc4gj52')
+        data_row = test_utils.create_parameter_table_row(parameter_cell=container_search_string,
+                                                         parameter_value_cell=parameter_value)
+        ip_table.add_row(data_row)
+
+        strain_property = IntentParserCell()
+        strain_property.add_paragraph('Strain Property')
+        parameter_value = IntentParserCell()
+        parameter_value.add_paragraph('SD2_common_name')
+        data_row = test_utils.create_parameter_table_row(parameter_cell=strain_property,
+                                                         parameter_value_cell=parameter_value)
+        ip_table.add_row(data_row)
+
+        xplan_path = IntentParserCell()
+        xplan_path.add_paragraph('XPlan Path')
+        parameter_value = IntentParserCell()
+        parameter_value.add_paragraph('path/foo/xplan_path')
+        data_row = test_utils.create_parameter_table_row(parameter_cell=xplan_path,
+                                                         parameter_value_cell=parameter_value)
+        ip_table.add_row(data_row)
+
+        experiment_reference_url = IntentParserCell()
+        experiment_reference_url.add_paragraph('Experiment reference url for xplan')
+        parameter_value = IntentParserCell()
+        parameter_value.add_paragraph('path/foo/experiment_reference')
+        data_row = test_utils.create_parameter_table_row(parameter_cell=experiment_reference_url,
+                                                         parameter_value_cell=parameter_value)
+        ip_table.add_row(data_row)
+
+        protocol_id = IntentParserCell()
+        protocol_id.add_paragraph('Protocol ID')
+        parameter_value = IntentParserCell()
+        parameter_value.add_paragraph('pr1e5gw8bdekdxv')
+        data_row = test_utils.create_parameter_table_row(parameter_cell=protocol_id,
+                                                         parameter_value_cell=parameter_value)
+        ip_table.add_row(data_row)
+
+        deafult_params = IntentParserCell()
+        deafult_params.add_paragraph('Inoculation volume')
+        parameter_value = IntentParserCell()
+        parameter_value.add_paragraph('5 microliter')
+        data_row = test_utils.create_parameter_table_row(parameter_cell=deafult_params,
+                                                         parameter_value_cell=parameter_value)
+        ip_table.add_row(data_row)
+
+        param_table = ParameterTable(ip_table, parameter_fields=self.parameter_fields)
+        param_table.process_table()
+        sr_result = param_table.get_structured_request()
+        exp_result = param_table.get_experiment()
+        expected_sr_result = {'inoc_info.inoc_vol': '5:microliter'}
+        expected_experiment_result = {ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
+                           ip_constants.PARAMETER_PLATE_SIZE: 96,
+                           ip_constants.PARAMETER_PROTOCOL: 'ObstacleCourse',
+                           ip_constants.PARAMETER_PLATE_NUMBER: 2,
+                           ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: ['Ct1e3qc85mqwbz8', 'ct1e3qc85jc4gj52'],
+                           ip_constants.PARAMETER_STRAIN_PROPERTY: 'SD2_common_name',
+                           ip_constants.PARAMETER_XPLAN_PATH: 'path/foo/xplan_path',
+                           ip_constants.PARAMETER_SUBMIT: False,
+                           ip_constants.PARAMETER_PROTOCOL_ID: 'pr1e5gw8bdekdxv',
+                           ip_constants.PARAMETER_TEST_MODE: True,
+                           ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: 'path/foo/experiment_reference',
+                           ip_constants.DEFAULT_PARAMETERS: {'inoc_info.inoc_vol': '5:microliter'}}
+        self.assertEqual(1, len(expected_sr_result))
+        self.assertDictEqual(expected_sr_result, sr_result)
+
+        self.assertEqual(12, len(expected_experiment_result))
+        self.assertDictEqual(expected_experiment_result, exp_result)
+
+    def test_process_incomplete_experiment_data_from_parameter_table(self):
+        ip_table = test_utils.create_fake_parameter()
+        plate_size = IntentParserCell()
+        plate_size.add_paragraph('Plate Size')
+        parameter_value = IntentParserCell()
+        parameter_value.add_paragraph('96')
+        data_row = test_utils.create_parameter_table_row(parameter_cell=plate_size,
+                                                         parameter_value_cell=parameter_value)
+        ip_table.add_row(data_row)
+
+        param_table = ParameterTable(ip_table, parameter_fields=self.parameter_fields)
+        param_table.process_table()
+        with self.assertRaises(TableException):
+            self.assertEqual(0, len(param_table.get_experiment()))
+
 if __name__ == "__main__":
     unittest.main()

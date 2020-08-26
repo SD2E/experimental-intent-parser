@@ -10,7 +10,7 @@ class ParameterTable(object):
     """
 
     _logger = logging.getLogger('intent_parser')
-    
+
     FIELD_WITH_BOOLEAN_VALUE = [intent_parser_constants.PARAMETER_MEASUREMENT_INFO_36_HR_READ, 
                                 intent_parser_constants.PARAMETER_RUN_INFO_READ_EACH_RECOVER,
                                 intent_parser_constants.PARAMETER_RUN_INFO_READ_EACH_INDUCTION,
@@ -39,7 +39,8 @@ class ParameterTable(object):
                                            intent_parser_constants.PARAMETER_PROTOCOL,
                                            intent_parser_constants.PARAMETER_STRAIN_PROPERTY,
                                            intent_parser_constants.PARAMETER_XPLAN_PATH,
-                                           intent_parser_constants.PARAMETER_PROTOCOL_ID]
+                                           intent_parser_constants.PARAMETER_PROTOCOL_ID,
+                                           intent_parser_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN]
 
     FIELD_WITH_INT_VALUES = [intent_parser_constants.PARAMETER_PLATE_SIZE,
                              intent_parser_constants.PARAMETER_PLATE_NUMBER]
@@ -107,11 +108,12 @@ class ParameterTable(object):
         self._parse_parameter_field_value(self._get_parameter_field(cell_param_field), cell_param_value.get_text())
                   
     def _parse_parameter_field_value(self, parameter_field, parameter_value):
-        computed_value = None
         if parameter_field in self.FIELD_WITH_FLOAT_VALUE:
             self.process_numbered_parameter(parameter_field, parameter_value, float)
         elif parameter_field in self.FIELD_WITH_BOOLEAN_VALUE:
             self.process_boolean_parameter(parameter_field, parameter_value)
+        elif parameter_field == intent_parser_constants.PARAMETER_PROTOCOL:
+            self._flatten_parameter_values(parameter_field, [parameter_value])
         elif parameter_field in self.FIELD_WITH_STRING_COMMAS:
             self._flatten_parameter_values(parameter_field, [parameter_value])
         elif parameter_field in self.FIELD_WITH_SINGLE_STRING:
@@ -128,9 +130,12 @@ class ParameterTable(object):
     
     def _get_parameter_field(self, cell):
         parameter = cell.get_text().strip()
-        if parameter in self._parameter_fields:
+        if parameter.lower() == intent_parser_constants.PARAMETER_PROTOCOL:
+            return parameter.lower()
+        if parameter not in self._parameter_fields:
             error = 'Parameter table has invalid %s value: %s does not map to a TACC UID in the SBOL dictionary.' % (intent_parser_constants.HEADER_PARAMETER_VALUE, parameter)
-
+            self._validation_errors.extend(error)
+            return ''
         return self._parameter_fields[parameter]
 
     def get_validation_errors(self):
@@ -198,7 +203,7 @@ class _ParameterIntent(object):
     def to_experiment(self):
         for key, value in self.intent.items():
             if value is None:
-                raise TableException('Parameter Table is missing a %s row.' % key)
+                raise TableException('Parameter Table is missing a value for %s.' % key)
 
         return self.intent
 

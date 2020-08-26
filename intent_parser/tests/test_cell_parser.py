@@ -89,7 +89,6 @@ class CellParserTest(unittest.TestCase):
 
     def test_cell_with_unit_containing_multiple_abbreviations(self):
         cell_str = '1 h, 2 hr, 3 hours'
-        expected_values = ['1', '2', '3']
         result = self.parser.process_values_unit(cell_str, units={'hour'}, unit_type='timepoints')
         self.assertEqual(3, len(result))
         self.assertEqual({'value': '1', 'unit': 'hour'}, result[0])
