@@ -395,7 +395,7 @@ class IntentParser(object):
         experiment_request = self._process_parameter_table(parameter_tables, generate_experiment_request=True)
         if experiment_request is None:
             message = 'Cannot execute experiment without a parameter table.'
-            self.validation_warnings.extend(message)
+            self.validation_errors.append(message)
             return
         experiment_request[ip_constants.PARAMETER_TEST_MODE] = False
         experiment_request[ip_constants.PARAMETER_SUBMIT] = True

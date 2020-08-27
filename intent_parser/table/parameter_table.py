@@ -95,6 +95,10 @@ class ParameterTable(object):
             header_row_index = self._intent_parser_table.header_row_index()
             header_cell = self._intent_parser_table.get_cell(header_row_index, cell_index)
             cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
+
+            if not cell.get_text().strip():
+                continue
+
             if intent_parser_constants.HEADER_PARAMETER_TYPE == cell_type:
                 cell_param_field = cell
             elif intent_parser_constants.HEADER_PARAMETER_VALUE_TYPE == cell_type:
@@ -105,7 +109,7 @@ class ParameterTable(object):
         if cell_param_field:
             if (cell_param_value is None) or (not cell_param_value.get_text()):
                 return
-        self._parse_parameter_field_value(self._get_parameter_field(cell_param_field), cell_param_value.get_text())
+        self._parse_parameter_field_value(self._get_parameter_field(cell_param_field), cell_param_value.get_text().strip())
                   
     def _parse_parameter_field_value(self, parameter_field, parameter_value):
         if parameter_field in self.FIELD_WITH_FLOAT_VALUE:
@@ -133,8 +137,8 @@ class ParameterTable(object):
         if parameter.lower() == intent_parser_constants.PARAMETER_PROTOCOL:
             return parameter.lower()
         if parameter not in self._parameter_fields:
-            error = 'Parameter table has invalid %s value: %s does not map to a TACC UID in the SBOL dictionary.' % (intent_parser_constants.HEADER_PARAMETER_VALUE, parameter)
-            self._validation_errors.extend(error)
+            error = ['Parameter table has invalid %s value: %s does not map to a TACC UID in the SBOL dictionary.' % (intent_parser_constants.HEADER_PARAMETER_VALUE, parameter)]
+            self._validation_errors.append(error)
             return ''
         return self._parameter_fields[parameter]
 
