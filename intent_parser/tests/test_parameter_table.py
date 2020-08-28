@@ -341,22 +341,23 @@ class ParameterTableTest(unittest.TestCase):
         sr_result = param_table.get_structured_request()
         exp_result = param_table.get_experiment()
         expected_sr_result = {'inoc_info.inoc_vol': '5:microliter'}
-        expected_experiment_result = {ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
-                           ip_constants.PARAMETER_PLATE_SIZE: 96,
-                           ip_constants.PARAMETER_PROTOCOL: 'ObstacleCourse',
-                           ip_constants.PARAMETER_PLATE_NUMBER: 2,
-                           ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: ['Ct1e3qc85mqwbz8', 'ct1e3qc85jc4gj52'],
-                           ip_constants.PARAMETER_STRAIN_PROPERTY: 'SD2_common_name',
-                           ip_constants.PARAMETER_XPLAN_PATH: 'path/foo/xplan_path',
-                           ip_constants.PARAMETER_SUBMIT: False,
-                           ip_constants.PARAMETER_PROTOCOL_ID: 'pr1e5gw8bdekdxv',
-                           ip_constants.PARAMETER_TEST_MODE: True,
-                           ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: 'path/foo/experiment_reference',
-                           ip_constants.DEFAULT_PARAMETERS: {'inoc_info.inoc_vol': '5:microliter'}}
+        expected_experiment_result = {ip_constants.PARAMETER_BASE_DIR: None,
+                                      ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
+                                      ip_constants.PARAMETER_PLATE_SIZE: 96,
+                                      ip_constants.PARAMETER_PROTOCOL: 'ObstacleCourse',
+                                      ip_constants.PARAMETER_PLATE_NUMBER: 2,
+                                      ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: ['Ct1e3qc85mqwbz8', 'ct1e3qc85jc4gj52'],
+                                      ip_constants.PARAMETER_STRAIN_PROPERTY: 'SD2_common_name',
+                                      ip_constants.PARAMETER_XPLAN_PATH: 'path/foo/xplan_path',
+                                      ip_constants.PARAMETER_SUBMIT: False,
+                                      ip_constants.PARAMETER_PROTOCOL_ID: 'pr1e5gw8bdekdxv',
+                                      ip_constants.PARAMETER_TEST_MODE: True,
+                                      ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: 'path/foo/experiment_reference',
+                                      ip_constants.DEFAULT_PARAMETERS: {'inoc_info.inoc_vol': '5:microliter'}}
         self.assertEqual(1, len(expected_sr_result))
         self.assertDictEqual(expected_sr_result, sr_result)
 
-        self.assertEqual(12, len(expected_experiment_result))
+        self.assertEqual(13, len(expected_experiment_result))
         self.assertDictEqual(expected_experiment_result, exp_result)
 
     def test_process_incomplete_experiment_data_from_parameter_table(self):
@@ -371,8 +372,21 @@ class ParameterTableTest(unittest.TestCase):
 
         param_table = ParameterTable(ip_table, parameter_fields=self.parameter_fields)
         param_table.process_table()
-        with self.assertRaises(TableException):
-            self.assertEqual(0, len(param_table.get_experiment()))
+        expected_experiment_result = {ip_constants.PARAMETER_BASE_DIR: None,
+                                      ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
+                                      ip_constants.PARAMETER_PLATE_SIZE: 96,
+                                      ip_constants.PARAMETER_PROTOCOL: None,
+                                      ip_constants.PARAMETER_PLATE_NUMBER: None,
+                                      ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: None,
+                                      ip_constants.PARAMETER_STRAIN_PROPERTY: None,
+                                      ip_constants.PARAMETER_XPLAN_PATH: None,
+                                      ip_constants.PARAMETER_SUBMIT: False,
+                                      ip_constants.PARAMETER_PROTOCOL_ID: None,
+                                      ip_constants.PARAMETER_TEST_MODE: True,
+                                      ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: None,
+                                      ip_constants.DEFAULT_PARAMETERS: {}}
+        self.assertEqual(13, len(param_table.get_experiment()))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -148,7 +148,7 @@ class CellParserTest(unittest.TestCase):
     def test_parse_content_item_with_name_uri_value_unit(self):
         cell = IntentParserCell()
         cell.add_paragraph('name1', link='https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1')
-        cell.add_paragraph('123 unit')
+        cell.add_paragraph(' 123 unit')
         results = self.parser.parse_content_item(cell.get_text(),
                                                  cell.get_text_with_url(),
                                                  timepoint_units={'unit', 'timeunit'})
