@@ -1,4 +1,5 @@
 from intent_parser.intent_parser_exceptions import TableException, DictionaryMaintainerException
+from json import JSONDecodeError
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.table.cell_parser as cell_parser
 import json
@@ -21,7 +22,8 @@ class ParameterTable(object):
     
     FIELD_WITH_FLOAT_VALUE = [intent_parser_constants.PARAMETER_PLATE_READER_INFO_GAIN]
     
-    FIELD_WITH_NESTED_STRUCTURE = [intent_parser_constants.PARAMETER_INDUCTION_INFO_REAGENTS_INDUCER, 
+    FIELD_WITH_NESTED_STRUCTURE = [intent_parser_constants.PARAMETER_INDUCTION_INFO_REAGENTS,
+                                   intent_parser_constants.PARAMETER_INDUCTION_INFO_REAGENTS_INDUCER,
                                    intent_parser_constants.PARAMETER_MEASUREMENT_INFO_FLOW_INFO,
                                    intent_parser_constants.PARAMETER_MEASUREMENT_INFO_PLATE_READER_INFO, 
                                    intent_parser_constants.PARAMETER_REAGENT_INFO_INDUCER_INFO, 
@@ -61,7 +63,13 @@ class ParameterTable(object):
             self._process_row(row_index)
 
     def get_experiment(self):
-        return self.param_intent.to_experiment()
+        experiment_result = self.param_intent.to_experiment()
+        for key, value in experiment_result.items():
+            if key == intent_parser_constants.DEFAULT_PARAMETERS and not value:
+                self._validation_warnings.append('%s is emtpy' % intent_parser_constants.DEFAULT_PARAMETERS)
+            if value is None and key is not intent_parser_constants.PARAMETER_BASE_DIR:
+                self._validation_warnings.append('Parameter Table is missing a value for %s.' % (key))
+        return experiment_result
 
     def get_structured_request(self):
         return self.param_intent.to_structured_request()
@@ -103,7 +111,7 @@ class ParameterTable(object):
                 cell_param_field = cell
             elif intent_parser_constants.HEADER_PARAMETER_VALUE_TYPE == cell_type:
                 cell_param_value = cell
-        if cell_param_field is None and cell_param_value:
+        if ((cell_param_field is None) or (not cell_param_field.get_text().strip())) and cell_param_value:
             self._validation_errors.append('Parameter table cannot assign %s as a parameter value to an empty parameter.' % cell_param_value.get_text())
             return
         if cell_param_field:
@@ -125,9 +133,13 @@ class ParameterTable(object):
         elif parameter_field in self.FIELD_WITH_INT_VALUES:
             self.process_numbered_parameter(parameter_field, parameter_value, int)
         elif parameter_field in self.FIELD_WITH_NESTED_STRUCTURE:
-            json_parameter_value = json.loads(parameter_value)
-            computed_value = [json_parameter_value]
-            self._flatten_parameter_values(parameter_field, computed_value)
+            try:
+                json_parameter_value = json.loads(parameter_value)
+                computed_value = [json_parameter_value]
+                self._flatten_parameter_values(parameter_field, computed_value)
+            except JSONDecodeError as err:
+                errors = ['Parameter table has invalid Parameter Value: %s is an invalid json format.' % (parameter_value)]
+                self._validation_errors.append(errors)
         else:
             computed_value = cell_parser.PARSER.transform_strateos_string(parameter_value)
             self._flatten_parameter_values(parameter_field, computed_value)
@@ -174,6 +186,7 @@ class _ParameterIntent(object):
 
     def __init__(self):
         self.intent = {
+            intent_parser_constants.PARAMETER_BASE_DIR: None,
             intent_parser_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
             intent_parser_constants.PARAMETER_PLATE_SIZE: None,
             intent_parser_constants.PARAMETER_PROTOCOL: None,
@@ -205,10 +218,6 @@ class _ParameterIntent(object):
         self.intent[intent_parser_constants.DEFAULT_PARAMETERS][field] = value
 
     def to_experiment(self):
-        for key, value in self.intent.items():
-            if value is None:
-                raise TableException('Parameter Table is missing a value for %s.' % key)
-
         return self.intent
 
     def to_structured_request(self):
