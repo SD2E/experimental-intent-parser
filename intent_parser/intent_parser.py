@@ -118,15 +118,35 @@ class IntentParser(object):
     def process_structure_request(self):
         self.process_tables()
         filtered_tables = self._filter_tables_by_type()
-        self._generate_request(filtered_tables[TableType.CONTROL],
-                               filtered_tables[TableType.LAB],
-                               filtered_tables[TableType.MEASUREMENT],
-                               filtered_tables[TableType.PARAMETER])
-        self._validate_schema()
+        validation_successful = self.validate_structure_request(filtered_tables)
+        if validation_successful:
+            self._generate_request(filtered_tables[TableType.CONTROL],
+                                   filtered_tables[TableType.LAB],
+                                   filtered_tables[TableType.MEASUREMENT],
+                                   filtered_tables[TableType.PARAMETER])
+            self._validate_schema()
+
+    def validate_structure_request(self, filtered_tables):
+        """Check if filtered tables contain a lab table, a measurement table, and a parameter table.
+        Control tables are optional and will be ignored in this check.
+        """
+        if not filtered_tables[TableType.LAB]:
+            self.validation_errors.append('Cannot execute experiment without a lab table.')
+            return False
+        if not filtered_tables[TableType.MEASUREMENT]:
+            self.validation_errors.append('Cannot execute experiment without a measurement table.')
+            return False
+        if not filtered_tables[TableType.PARAMETER]:
+            self.validation_errors.append('Cannot execute experiment without a parameter table.')
+            return False
+        return True
 
     def process_experiment_run_request(self):
         self.process_tables()
         filtered_tables = self._filter_tables_by_type()
+        if not filtered_tables[TableType.PARAMETER]:
+            self.validation_errors.append('Cannot execute experiment without a parameter table.')
+            return
         self._generate_experiment_request(filtered_tables[TableType.PARAMETER])
 
     def process_experiment_status_request(self):
@@ -393,13 +413,10 @@ class IntentParser(object):
 
     def _generate_experiment_request(self, parameter_tables):
         experiment_request = self._process_parameter_table(parameter_tables, generate_experiment_request=True)
-        if experiment_request is None:
-            message = 'Cannot execute experiment without a parameter table.'
-            self.validation_warnings.extend(message)
-            return
-        experiment_request[ip_constants.PARAMETER_TEST_MODE] = False
-        experiment_request[ip_constants.PARAMETER_SUBMIT] = True
-        self.experiment_request = experiment_request
+        if experiment_request:
+            experiment_request[ip_constants.PARAMETER_TEST_MODE] = False
+            experiment_request[ip_constants.PARAMETER_SUBMIT] = True
+            self.experiment_request = experiment_request
 
     def _process_control_tables(self, control_tables):
         ref_controls = {}
@@ -498,8 +515,6 @@ class IntentParser(object):
             self.validation_errors.extend([err.get_message()])
     
     def _process_parameter_table(self, parameter_tables, generate_experiment_request=False):
-        if not parameter_tables:
-            return None
         if len(parameter_tables) > 1:
             message = ('There are more than one parameter table specified in this experiment.'
                        'Only the last parameter table identified in the document will be used for generating a request.')
@@ -516,6 +531,7 @@ class IntentParser(object):
             return [parameter_table.get_structured_request()]
         except (DictionaryMaintainerException, TableException) as err:
             self.validation_errors.extend([err.get_message()])
+            return {}
 
     def _filter_tables_by_type(self):
         measurement_tables = []
