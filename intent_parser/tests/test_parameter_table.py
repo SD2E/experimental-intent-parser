@@ -1,7 +1,7 @@
-from intent_parser.intent_parser_exceptions import TableException
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
 from intent_parser.table.parameter_table import ParameterTable
+import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.tests.test_util as test_utils
 import unittest
@@ -370,6 +370,14 @@ class ParameterTableTest(unittest.TestCase):
                                                          parameter_value_cell=parameter_value)
         ip_table.add_row(data_row)
 
+        container_search_string = IntentParserCell()
+        container_search_string.add_paragraph('Container Search String')
+        parameter_value = IntentParserCell()
+        parameter_value.add_paragraph('\n')
+        data_row = test_utils.create_parameter_table_row(parameter_cell=container_search_string,
+                                                         parameter_value_cell=parameter_value)
+        ip_table.add_row(data_row)
+
         param_table = ParameterTable(ip_table, parameter_fields=self.parameter_fields)
         param_table.process_table()
         expected_experiment_result = {ip_constants.PARAMETER_BASE_DIR: None,
@@ -377,7 +385,7 @@ class ParameterTableTest(unittest.TestCase):
                                       ip_constants.PARAMETER_PLATE_SIZE: 96,
                                       ip_constants.PARAMETER_PROTOCOL: None,
                                       ip_constants.PARAMETER_PLATE_NUMBER: None,
-                                      ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: None,
+                                      ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: dc_constants.GENERATE,
                                       ip_constants.PARAMETER_STRAIN_PROPERTY: None,
                                       ip_constants.PARAMETER_XPLAN_PATH: None,
                                       ip_constants.PARAMETER_SUBMIT: False,
@@ -386,6 +394,7 @@ class ParameterTableTest(unittest.TestCase):
                                       ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: None,
                                       ip_constants.DEFAULT_PARAMETERS: {}}
         self.assertEqual(13, len(param_table.get_experiment()))
+        self.assertDictEqual(expected_experiment_result, param_table.get_experiment())
 
 
 if __name__ == "__main__":

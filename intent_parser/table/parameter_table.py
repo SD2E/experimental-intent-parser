@@ -1,6 +1,7 @@
-from intent_parser.intent_parser_exceptions import TableException, DictionaryMaintainerException
+from intent_parser.intent_parser_exceptions import TableException
 from json import JSONDecodeError
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.table.cell_parser as cell_parser
 import json
 import logging
@@ -84,7 +85,11 @@ class ParameterTable(object):
             self.param_intent.set_field(param_field, param_value_list[0])
             return
         elif param_field in self.EXPERIMENT_FIELDS_WITH_LIST:
-            self.param_intent.set_field(param_field, param_value_list)
+            if len(param_value_list) == 1 and param_value_list[0] == dc_constants.GENERATE:
+                self.param_intent.set_field(param_field, param_value_list[0])
+            else:
+                self.param_intent.set_field(param_field, param_value_list)
+
             return
         elif len(param_value_list) == 1:
             self.param_intent.add_default_parameter(param_field, param_value_list[0])
@@ -104,9 +109,6 @@ class ParameterTable(object):
             header_cell = self._intent_parser_table.get_cell(header_row_index, cell_index)
             cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
 
-            if not cell.get_text().strip():
-                continue
-
             if intent_parser_constants.HEADER_PARAMETER_TYPE == cell_type:
                 cell_param_field = cell
             elif intent_parser_constants.HEADER_PARAMETER_VALUE_TYPE == cell_type:
@@ -115,7 +117,8 @@ class ParameterTable(object):
             self._validation_errors.append('Parameter table cannot assign %s as a parameter value to an empty parameter.' % cell_param_value.get_text())
             return
         if cell_param_field:
-            if (cell_param_value is None) or (not cell_param_value.get_text()):
+            if cell_param_value is None:
+                self._logger.error('Unable to detect a table cell for a parameter value assigned to %s' % cell_param_field.get_text())
                 return
         self._parse_parameter_field_value(self._get_parameter_field(cell_param_field), cell_param_value.get_text().strip())
                   
@@ -140,6 +143,11 @@ class ParameterTable(object):
             except JSONDecodeError as err:
                 errors = ['Parameter table has invalid Parameter Value: %s is an invalid json format.' % (parameter_value)]
                 self._validation_errors.append(errors)
+        elif parameter_field == intent_parser_constants.PARAMETER_CONTAINER_SEARCH_STRING:
+            if not parameter_value:
+                self._flatten_parameter_values(parameter_field, [dc_constants.GENERATE])
+            else:
+                self._flatten_parameter_values(parameter_field, [parameter_value])
         else:
             computed_value = cell_parser.PARSER.transform_strateos_string(parameter_value)
             self._flatten_parameter_values(parameter_field, computed_value)
