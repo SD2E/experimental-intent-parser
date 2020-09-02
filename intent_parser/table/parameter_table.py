@@ -67,9 +67,12 @@ class ParameterTable(object):
     def get_experiment(self):
         experiment_result = self.param_intent.to_experiment()
         for key, value in experiment_result.items():
-            if key == intent_parser_constants.DEFAULT_PARAMETERS and not value:
+            if key == intent_parser_constants.PARAMETER_CONTAINER_SEARCH_STRING and value is None:
+                self.param_intent.set_field(intent_parser_constants.PARAMETER_CONTAINER_SEARCH_STRING,
+                                            dc_constants.GENERATE)
+            if key == intent_parser_constants.DEFAULT_PARAMETERS and value is None:
                 self._validation_warnings.append('%s is emtpy' % intent_parser_constants.DEFAULT_PARAMETERS)
-            if value is None and key is not intent_parser_constants.PARAMETER_BASE_DIR:
+            if key is not intent_parser_constants.PARAMETER_BASE_DIR and value is None:
                 self._validation_warnings.append('Parameter Table is missing a value for %s.' % (key))
         return experiment_result
 
@@ -149,7 +152,7 @@ class ParameterTable(object):
             if not parameter_value:
                 self._flatten_parameter_values(parameter_field, [dc_constants.GENERATE])
             else:
-                self._flatten_parameter_values(parameter_field, [parameter_value])
+                self.process_name_parameter(parameter_field, parameter_value)
         else:
             if parameter_value:
                 computed_value = cell_parser.PARSER.transform_strateos_string(parameter_value)
@@ -178,12 +181,8 @@ class ParameterTable(object):
             self._flatten_parameter_values(parameter_field, computed_value)
 
     def process_name_parameter(self, parameter_field, parameter_value):
-        if cell_parser.PARSER.is_name(parameter_value):
-            computed_value = [value for value, _ in cell_parser.PARSER.process_names_with_uri(parameter_value)]
-            self._flatten_parameter_values(parameter_field, computed_value)
-        else:
-            message = 'Parameter table has invalid %s value: %s should only contain a list of names' % (parameter_field, parameter_value)
-            self._validation_errors.append(message)
+        computed_value = [value for value, _ in cell_parser.PARSER.process_names_with_uri(parameter_value)]
+        self._flatten_parameter_values(parameter_field, computed_value)
 
     def process_numbered_parameter(self, parameter_field, parameter_value, number_convert):
         try:

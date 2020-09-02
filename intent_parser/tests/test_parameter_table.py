@@ -370,6 +370,86 @@ class ParameterTableTest(unittest.TestCase):
                                                          parameter_value_cell=parameter_value)
         ip_table.add_row(data_row)
 
+        param_table = ParameterTable(ip_table, parameter_fields=self.parameter_fields)
+        param_table.process_table()
+        expected_experiment_result = {ip_constants.PARAMETER_BASE_DIR: None,
+                                      ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
+                                      ip_constants.PARAMETER_PLATE_SIZE: 96,
+                                      ip_constants.PARAMETER_PROTOCOL: None,
+                                      ip_constants.PARAMETER_PLATE_NUMBER: None,
+                                      ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: dc_constants.GENERATE,
+                                      ip_constants.PARAMETER_STRAIN_PROPERTY: None,
+                                      ip_constants.PARAMETER_XPLAN_PATH: None,
+                                      ip_constants.PARAMETER_SUBMIT: False,
+                                      ip_constants.PARAMETER_PROTOCOL_ID: None,
+                                      ip_constants.PARAMETER_TEST_MODE: True,
+                                      ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: None,
+                                      ip_constants.DEFAULT_PARAMETERS: {}}
+        self.assertEqual(13, len(param_table.get_experiment()))
+        self.assertDictEqual(expected_experiment_result, param_table.get_experiment())
+
+    def test_container_search_string_with_list(self):
+        ip_table = test_utils.create_fake_parameter()
+        container_search_string = IntentParserCell()
+        container_search_string.add_paragraph('Container Search String')
+        parameter_value = IntentParserCell()
+        parameter_value.add_paragraph('ct1et97fsbvt84h, ct1et97fs59aejp, ct1et97frwr78dx, ct1et97frq988d8, ct1et97frgr528g')
+        data_row = test_utils.create_parameter_table_row(parameter_cell=container_search_string,
+                                                         parameter_value_cell=parameter_value)
+        ip_table.add_row(data_row)
+
+        param_table = ParameterTable(ip_table, parameter_fields=self.parameter_fields)
+        param_table.process_table()
+        expected_experiment_result = {ip_constants.PARAMETER_BASE_DIR: None,
+                                      ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
+                                      ip_constants.PARAMETER_PLATE_SIZE: None,
+                                      ip_constants.PARAMETER_PROTOCOL: None,
+                                      ip_constants.PARAMETER_PLATE_NUMBER: None,
+                                      ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: ['ct1et97fsbvt84h',
+                                                                                       'ct1et97fs59aejp',
+                                                                                       'ct1et97frwr78dx',
+                                                                                       'ct1et97frq988d8',
+                                                                                       'ct1et97frgr528g'],
+                                      ip_constants.PARAMETER_STRAIN_PROPERTY: None,
+                                      ip_constants.PARAMETER_XPLAN_PATH: None,
+                                      ip_constants.PARAMETER_SUBMIT: False,
+                                      ip_constants.PARAMETER_PROTOCOL_ID: None,
+                                      ip_constants.PARAMETER_TEST_MODE: True,
+                                      ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: None,
+                                      ip_constants.DEFAULT_PARAMETERS: {}}
+        self.assertEqual(13, len(param_table.get_experiment()))
+        self.assertDictEqual(expected_experiment_result, param_table.get_experiment())
+
+    def test_container_search_string_with_single_string(self):
+        ip_table = test_utils.create_fake_parameter()
+        container_search_string = IntentParserCell()
+        container_search_string.add_paragraph('Container Search String')
+        parameter_value = IntentParserCell()
+        parameter_value.add_paragraph('ct1et97fsbvt84h')
+        data_row = test_utils.create_parameter_table_row(parameter_cell=container_search_string,
+                                                         parameter_value_cell=parameter_value)
+        ip_table.add_row(data_row)
+
+        param_table = ParameterTable(ip_table, parameter_fields=self.parameter_fields)
+        param_table.process_table()
+        expected_experiment_result = {ip_constants.PARAMETER_BASE_DIR: None,
+                                      ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
+                                      ip_constants.PARAMETER_PLATE_SIZE: None,
+                                      ip_constants.PARAMETER_PROTOCOL: None,
+                                      ip_constants.PARAMETER_PLATE_NUMBER: None,
+                                      ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: ['ct1et97fsbvt84h'],
+                                      ip_constants.PARAMETER_STRAIN_PROPERTY: None,
+                                      ip_constants.PARAMETER_XPLAN_PATH: None,
+                                      ip_constants.PARAMETER_SUBMIT: False,
+                                      ip_constants.PARAMETER_PROTOCOL_ID: None,
+                                      ip_constants.PARAMETER_TEST_MODE: True,
+                                      ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: None,
+                                      ip_constants.DEFAULT_PARAMETERS: {}}
+        self.assertEqual(13, len(param_table.get_experiment()))
+        self.assertDictEqual(expected_experiment_result, param_table.get_experiment())
+
+    def test_container_search_string_with_default_value(self):
+        ip_table = test_utils.create_fake_parameter()
         container_search_string = IntentParserCell()
         container_search_string.add_paragraph('Container Search String')
         parameter_value = IntentParserCell()
@@ -382,7 +462,7 @@ class ParameterTableTest(unittest.TestCase):
         param_table.process_table()
         expected_experiment_result = {ip_constants.PARAMETER_BASE_DIR: None,
                                       ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
-                                      ip_constants.PARAMETER_PLATE_SIZE: 96,
+                                      ip_constants.PARAMETER_PLATE_SIZE: None,
                                       ip_constants.PARAMETER_PROTOCOL: None,
                                       ip_constants.PARAMETER_PLATE_NUMBER: None,
                                       ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: dc_constants.GENERATE,
