@@ -16,5 +16,5 @@ class AnalyzeDocument(object):
     def stop_document_analysis(self):
         self.analyze_thread.join()
 
-    def _initiate_document_analysis(self):
+    def _initiate_document_analysis(self, http_message):
         pass
