@@ -25,6 +25,7 @@ class ParameterTable(object):
     
     FIELD_WITH_NESTED_STRUCTURE = [intent_parser_constants.PARAMETER_INDUCTION_INFO_REAGENTS,
                                    intent_parser_constants.PARAMETER_INDUCTION_INFO_REAGENTS_INDUCER,
+                                   intent_parser_constants.PARAMETER_INDUCTION_INFO_SAMPLING_INFO,
                                    intent_parser_constants.PARAMETER_MEASUREMENT_INFO_FLOW_INFO,
                                    intent_parser_constants.PARAMETER_MEASUREMENT_INFO_PLATE_READER_INFO, 
                                    intent_parser_constants.PARAMETER_REAGENT_INFO_INDUCER_INFO, 
@@ -123,23 +124,24 @@ class ParameterTable(object):
         self._parse_parameter_field_value(self._get_parameter_field(cell_param_field), cell_param_value.get_text().strip())
                   
     def _parse_parameter_field_value(self, parameter_field, parameter_value):
-        if parameter_field in self.FIELD_WITH_FLOAT_VALUE:
+        if parameter_field in self.FIELD_WITH_FLOAT_VALUE and parameter_value:
             self.process_numbered_parameter(parameter_field, parameter_value, float)
-        elif parameter_field in self.FIELD_WITH_BOOLEAN_VALUE:
+        elif parameter_field in self.FIELD_WITH_BOOLEAN_VALUE and parameter_value:
             self.process_boolean_parameter(parameter_field, parameter_value)
         elif parameter_field == intent_parser_constants.PARAMETER_PROTOCOL:
             self._flatten_parameter_values(parameter_field, [parameter_value])
         elif parameter_field in self.FIELD_WITH_STRING_COMMAS:
             self._flatten_parameter_values(parameter_field, [parameter_value])
-        elif parameter_field in self.FIELD_WITH_SINGLE_STRING:
+        elif parameter_field in self.FIELD_WITH_SINGLE_STRING and parameter_value:
             self.process_name_parameter(parameter_field, parameter_value)
-        elif parameter_field in self.FIELD_WITH_INT_VALUES:
+        elif parameter_field in self.FIELD_WITH_INT_VALUES and parameter_value:
             self.process_numbered_parameter(parameter_field, parameter_value, int)
         elif parameter_field in self.FIELD_WITH_NESTED_STRUCTURE:
             try:
-                json_parameter_value = json.loads(parameter_value)
-                computed_value = [json_parameter_value]
-                self._flatten_parameter_values(parameter_field, computed_value)
+                if parameter_value:
+                    json_parameter_value = json.loads(parameter_value)
+                    computed_value = [json_parameter_value]
+                    self._flatten_parameter_values(parameter_field, computed_value)
             except JSONDecodeError as err:
                 errors = ['Parameter table has invalid Parameter Value: %s is an invalid json format.' % (parameter_value)]
                 self._validation_errors.append(errors)
@@ -149,8 +151,9 @@ class ParameterTable(object):
             else:
                 self._flatten_parameter_values(parameter_field, [parameter_value])
         else:
-            computed_value = cell_parser.PARSER.transform_strateos_string(parameter_value)
-            self._flatten_parameter_values(parameter_field, computed_value)
+            if parameter_value:
+                computed_value = cell_parser.PARSER.transform_strateos_string(parameter_value)
+                self._flatten_parameter_values(parameter_field, computed_value)
     
     def _get_parameter_field(self, cell):
         parameter = cell.get_text().strip()
