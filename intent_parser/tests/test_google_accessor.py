@@ -24,6 +24,16 @@ class GoogleAccessorTest(unittest.TestCase):
         self.assertTrue(spreadsheet_id)
         self.assertTrue(self.drive_accessor.delete_file(spreadsheet_id))
 
+    def test_comment_box(self):
+        text_to_comment_on = 'Expected data and analysis'
+        document_id = '1zf9l0K4rj7I08ZRpxV2ZY54RMMQc15Rlg7ULviJ7SBQ'
+        self.drive_accessor.insert_comment_box(document_id,
+                                               comment_message='api without quoted text')
+
+        self.drive_accessor.insert_comment_box(document_id,
+                                               comment_message='api with quoted text',
+                                               quoted_text=text_to_comment_on)
+
     def test_app_script(self):
         pass
 

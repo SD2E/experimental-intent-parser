@@ -130,6 +130,52 @@ class GoogleDriveV2Accessor(object):
         response = self._authed_session.request('GET', url)
         return response
 
+    def insert_comment_box(self, file_id, comment_message, quoted_text=None):
+        """Insert a comment box to the desired document.
+
+        Args:
+            file_id: ID of a document.
+            comment_message: message to display in comment box
+            quoted_text: text in document that comment box refers to.
+        """
+        new_comment = {'content': comment_message}
+        if quoted_text:
+            new_comment['context'] = {'value': quoted_text}
+        try:
+            response = self._service.comments().insert(fileId=file_id,
+                                                       body=new_comment).execute()
+        except errors.HttpError as error:
+            self.logger.warning('Unable to insert comment box to file: %s due to %s' % (file_id, error))
+
+    def retrieve_comments(self, file_id):
+        """Retrieve a list of comments.
+
+        Args:
+          service: Drive API service instance.
+          file_id: ID of the file to retrieve comments for.
+        Returns:
+          List of comments.
+        """
+        try:
+            comments = self._service.comments().list(fileId=file_id).execute()
+            return comments.get('items', [])
+        except errors.HttpError as error:
+            self.logger.warning('Unable to retrieve comments from file: %s due to %s' % (file_id, error))
+
+    def remove_comment(self, file_id, comment_id):
+        """Remove a comment.
+
+        Args:
+          service: Drive API service instance.
+          file_id: ID of the file to remove the comment for.
+          comment_id: ID of the comment to remove.
+        """
+        try:
+            self._service.comments().delete(
+                fileId=file_id, commentId=comment_id).execute()
+        except errors.HttpError as error:
+            self.logger.warning('Unable to remove comment box from file: %s due to %s' % (file_id, error))
+
     def upload_revision(self, document_name, document, folder_id, original_format, title='Untitled',
                         target_format='*/*'):
         """Upload file to a Google Drive folder.

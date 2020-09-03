@@ -210,6 +210,8 @@ class IntentParserServer(object):
             response = self.process_experiment_status(http_message)
         elif resource == '/update_experiment_status':
             response = self.process_update_experiment_status(http_message)
+        elif resource == '/insert_table_hints':
+            response = self.process_table_hints(http_message)
         else:
             response = self._create_http_response(HTTPStatus.NOT_FOUND, 'Resource Not Found')
             logger.warning('Did not find ' + resource)
@@ -242,6 +244,12 @@ class IntentParserServer(object):
                                               'application/json')
         
         return self._create_http_response(HTTPStatus.OK, json.dumps(intent_parser.get_structured_request()), 'application/json')
+
+    def process_table_hints(self, http_message):
+        resource = http_message.get_resource()
+        document_id = resource.split('?')[1]
+        drive_accessor = GoogleAccessor().get_google_drive_accessor()
+        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
 
     def process_experiment_request_documents(self, http_message):
         """
