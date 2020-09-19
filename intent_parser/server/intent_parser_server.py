@@ -4,8 +4,10 @@ from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
+from intent_parser.document.analyze_document import AnalyzeDocument
 from intent_parser.intent_parser_exceptions import ConnectionException, DictionaryMaintainerException, IntentParserException, TableException
 from intent_parser.intent_parser_factory import IntentParserFactory
+from intent_parser.document.intent_parser_document_factory import IntentParserDocumentFactory
 from intent_parser.intent_parser_sbh import IntentParserSBH
 from intent_parser.table.intent_parser_table_type import TableType
 from intent_parser.table.table_creator import TableCreator
@@ -83,6 +85,7 @@ class IntentParserServer(object):
 
         self.spellCheckers = {}
         # Dictionary per-user that stores analyze associations to ignore
+        self.analysis = AnalyzeDocument()
         self.analyze_never_link = {}
         self.analyze_processing_map = {}
         self.analyze_processing_map_lock = threading.Lock() # Used to lock the map
@@ -353,53 +356,52 @@ class IntentParserServer(object):
         logger.info('Generated POST request in %0.2fms, %s' %((end - start) * 1000, time.time()))
 
     def process_analyze_document(self, http_message):
-        """
-        This function will initiate an analysis if the document isn't currently being analyzed and
-        then it will report on the progress of that document's analysis until it is done.  Once it's done
-        this function will notify the client that the document is ready.
-        """
         json_body = intent_parser_utils.get_json_body(http_message)
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+        docBeingProcessed = self.analysis.is_analyzing_document(document_id)
+        if not docBeingProcessed:
+            self.analysis.intialize_analysis(document_id, self.sbol_dictionary.get_common_names_to_uri_new())
+            lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
+            document = lab_experiment.load_from_google_doc()
+            document_factory = IntentParserDocumentFactory()
+            ip_document = document_factory.from_google_doc(document)
+            self.analysis.analyze_document(ip_document)
+        progress_percent = self.analysis.get_current_progress()
+        if progress_percent == 100:
+            analyze_result = self.analysis.get_analyze_result()
+            if analyze_result:
+                actionList = self.report_search_results_new(analyze_result, document_id)
+            else:
+                actionList = self.report_analysis_complete()
 
-        self.analyze_processing_map_lock.acquire()
-        docBeingProcessed = document_id in self.analyze_processing_map
-        self.analyze_processing_map_lock.release()
-
-        if docBeingProcessed: # Doc being processed, check progress
-            time.sleep(self.ANALYZE_PROGRESS_PERIOD)
-
-            self.analyze_processing_map_lock.acquire()
-            progress_percent = self.analyze_processing_map[document_id]
-            self.analyze_processing_map_lock.release()
-
-            if progress_percent < 100: # Not done yet, update client
-                action = {}
-                action['action'] = 'updateProgress'
-                action['progress'] = str(int(progress_percent * 100))
-                actions = {'actions': [action]}
-                return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-            else: # Document is analyzed, start navigating results
-                try:
-                    self.analyze_processing_lock[document_id].acquire() # This ensures we've waited for the processing thread to release the client connection
-                    (__, client_state) = self.get_client_state(http_message)
-                    actionList = self.report_search_results(client_state)
-                    actions = {'actions': actionList}
-                    return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-                finally:
-                    self.analyze_processing_map.pop(document_id)
-                    self.analyze_processing_lock[document_id].release()
-                    self.release_connection(client_state)
-        else: # Doc not being processed, spawn new processing thread
-            self.analyze_processing_map[document_id] = 0
-            analyze_thread = threading.Thread(
-                target=self._initiate_document_analysis,
-                args=(http_message,)  # without comma you'd get a... TypeError
-            )
-            analyze_thread.start()
-            dialogAction = intent_parser_view.progress_sidebar_dialog()
-            actions = {'actions': [dialogAction]}
+            actions = {'actions': actionList}
             return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-    
+
+    def report_analysis_complete(self):
+        self.analysis = AnalyzeDocument()
+        return intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])
+
+    def report_search_results_new(self, analyze_result, document_id):
+        item_map = self.sbol_dictionary.get_common_names_to_uri_new()
+        term = analyze_result.get_matched_term()
+        matched_term_from_dictionary = item_map[term]
+        dictionary_link = matched_term_from_dictionary.get_sbh_uri()
+        paragraph = analyze_result.get_paragraph()
+        hyperlinked_elements = paragraph.get_elements_with_hyperlink()
+        already_linked_terms = [element.text for element in hyperlinked_elements if element.hyperlink == dictionary_link]
+        if not already_linked_terms:
+            content_term = matched_term_from_dictionary.get_common_name()
+            offset = analyze_result.get_start_position()
+            end_offset = analyze_result.get_end_position()
+            paragraph_index = paragraph.get_paragraph_index()
+            return intent_parser_view.create_search_result_dialog(term, dictionary_link, content_term, document_id, paragraph_index, offset, end_offset)
+
+        analyze_result = self.analysis.get_analyze_result()
+        if analyze_result:
+            return self.report_search_results_new(analyze_result, document_id)
+        return self.report_analysis_complete()
+
+
     def report_search_results(self, client_state):
         search_results = client_state['search_results']
         item_map = self.sbol_dictionary.get_common_names_to_uri()
@@ -830,25 +832,39 @@ class IntentParserServer(object):
             raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
         data = json_body['data']
 
-        if 'buttonId' not in data:
-            errorMessage = 'data missing buttonId'
+        if ip_addon_constants.BUTTON_ID not in data:
+            errorMessage = 'Expected to get %s assigned to this HTTP data: %s but none was found.' % (ip_addon_constants.BUTTON_ID, http_message)
             raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
-        if type(data['buttonId']) is dict:
-            buttonDat = data['buttonId']
-            buttonId = buttonDat['buttonId']
+
+        if type(data[ip_addon_constants.BUTTON_ID]) is dict:
+            buttonDat = data[ip_addon_constants.BUTTON_ID]
+            button_id = buttonDat[ip_addon_constants.BUTTON_ID]
         else:
-            buttonId = data['buttonId']
+            button_id = data[ip_addon_constants.BUTTON_ID]
 
-        method = getattr( self, buttonId )
-
-        try:
-            actionList = method(json_body, client_state)
+        if button_id == ip_addon_constants.ANALYZE_YES:
+            actionList = self.process_analyze_yes(data[ip_addon_constants.BUTTON_ID])
             actions = {'actions': actionList}
             return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-        except Exception as e:
-            raise e
-        finally:
-            self.release_connection(client_state)
+        elif button_id == ip_addon_constants.ANALYZE_NO:
+            pass
+        elif button_id == ip_addon_constants.ANALYZE_YES_TO_ALL:
+            pass
+        elif button_id == ip_addon_constants.ANALYZE_NO_TO_ALL:
+            pass
+        elif button_id == ip_addon_constants.ANALYZE_NEVER_LINK:
+            pass
+        else:
+            method = getattr( self, button_id)
+
+            try:
+                actionList = method(json_body, client_state)
+                actions = {'actions': actionList}
+                return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
+            except Exception as e:
+                raise e
+            finally:
+                self.release_connection(client_state)
             
     def process_nop(self, http_message, sm):
         http_message # Fix unused warning
@@ -919,24 +935,22 @@ class IntentParserServer(object):
             dialog_action = intent_parser_view.invalid_request_model_dialog('Structured request validation: Failed!', all_messages)
         actionList = [dialog_action]
         actions = {'actions': actionList}
-        return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')   
+        return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
 
-    def process_analyze_yes(self, json_body, client_state):
-        """
-        Handle "Yes" button as part of analyze document.
-        """
-        search_results = client_state['search_results']
-        search_result_index = client_state['search_result_index'] - 1
-        search_result = search_results[search_result_index]
+    def process_analyze_yes(self, data):
+        document_id = data[ip_addon_constants.DOCUMENT_ID]
+        offset = data[ip_addon_constants.ANALYZE_OFFSET]
+        paragraph_index = data[ip_addon_constants.ANALYZE_PARAGRAPH_INDEX]
+        end_offset = data[ip_addon_constants.ANALYZE_END_OFFSET]
+        link = data[ip_addon_constants.ANALYZE_LINK]
 
-        if type(json_body['data']['buttonId']) is dict:
-            new_link = json_body['data']['buttonId']['link']
+        action = [intent_parser_view.link_text(paragraph_index, offset, end_offset, link)]
+        analyze_result = self.analysis.get_analyze_result()
+        if analyze_result is None:
+            action.append(self.report_analysis_complete())
         else:
-            new_link = None
-
-        actions = self.add_link(search_result, new_link);
-        actions += self.report_search_results(client_state)
-        return actions
+            action.append(self.report_search_results_new(analyze_result, document_id))
+        return action
 
     def process_analyze_no(self, json_body, client_state):
         """
@@ -1556,10 +1570,10 @@ class IntentParserServer(object):
 
     def get_client_state(self, http_message):
         json_body = intent_parser_utils.get_json_body(http_message)
-        if 'documentId' not in json_body:
+        if ip_addon_constants.DOCUMENT_ID not in json_body:
             raise ConnectionException(HTTPStatus.BAD_REQUEST,
-                                      'Missing documentId')
-        document_id = json_body['documentId']
+                                      'Expecting to get a %s from this http_message: %s but none was given' % (ip_addon_constants.DOCUMENT_ID, http_message))
+        document_id = json_body[ip_addon_constants.DOCUMENT_ID]
         try:
             client_state = self.get_connection(document_id)
         except:

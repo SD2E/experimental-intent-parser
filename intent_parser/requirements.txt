@@ -11,4 +11,5 @@ requests_oauthlib
 sbol2
 tenacity
 transcriptic
+flashtext
 

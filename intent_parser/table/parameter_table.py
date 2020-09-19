@@ -93,7 +93,7 @@ class ParameterTable(object):
             # Cell type based on column header
             header_row_index = self._intent_parser_table.header_row_index()
             header_cell = self._intent_parser_table.get_cell(header_row_index, cell_index)
-            cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
+            cell_type = cell_parser.PARSER.get_header_type(header_cell.get_matched_term())
             if intent_parser_constants.HEADER_PARAMETER_TYPE == cell_type:
                 cell_param_field = cell
             elif intent_parser_constants.HEADER_PARAMETER_VALUE_TYPE == cell_type:
@@ -127,7 +127,7 @@ class ParameterTable(object):
             self._flatten_parameter_values(parameter_field, computed_value)
     
     def _get_parameter_field(self, cell):
-        parameter = cell.get_text().strip()
+        parameter = cell.get_matched_term().strip()
         if parameter in self._parameter_fields:
             error = 'Parameter table has invalid %s value: %s does not map to a TACC UID in the SBOL dictionary.' % (intent_parser_constants.HEADER_PARAMETER_VALUE, parameter)
 

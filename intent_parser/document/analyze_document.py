@@ -1,20 +1,73 @@
-import threading
+from flashtext import KeywordProcessor
+import logging
 
 class AnalyzeDocument(object):
 
-    def __init__(self, http_message):
-        self.analyze_processing_map_lock = threading.Lock()
+    logger = logging.getLogger('intent_parser_analyze_document')
+
+    def __init__(self):
+        self._ignore_terms = []
         self.analyze_processing_map = {}
-        self.analyze_thread = threading.Thread(target=self._initiate_document_analysis,
-                                               args=(http_message,)  # without comma you'd get a... TypeError
-        )
+        self._document_id = None
+        self._keyword_processor = None
+        self._current_progress = None
+        self._matched_terms = []
 
-    def start_document_analysis(self):
-        self._initiate_document_analysis()
-        self.analyze_thread.start()
+    def _analyze_text(self, paragraph):
+        keywords_found = self._keyword_processor.extract_keywords(paragraph.get_text(), span_info=True)
+        for match in keywords_found:
+            matched_text = MatchingText(paragraph, match[0], match[1], match[2])
+            self._matched_terms.append(matched_text)
 
-    def stop_document_analysis(self):
-        self.analyze_thread.join()
+    def analyze_document(self, ip_document):
+        paragraphs = ip_document.get_paragraphs()
+        num_of_paragraphs = len(paragraphs)
+        for index in range(len(paragraphs)):
+            self._analyze_text(paragraphs[index])
+            self._current_progress = float(((index+1) * 100)/num_of_paragraphs)
 
-    def _initiate_document_analysis(self, http_message):
-        pass
+    def add_ignore_term(self, term_to_ignore):
+        if term_to_ignore in self._ignore_terms:
+            return
+        self._ignore_terms.append(term_to_ignore)
+
+    def get_analyze_result(self):
+        if len(self._matched_terms) > 0:
+            return self._matched_terms.pop(0)
+        else:
+            return None
+
+    def get_current_progress(self):
+        return self._current_progress
+
+    def is_analyzing_document(self, document_id):
+        return self._document_id == document_id
+
+    def intialize_analysis(self, document_id, experiment_variables):
+        self.analyze_processing_map[document_id] = 0
+        self._document_id = document_id
+        self._current_progress = 0
+        self._keyword_processor = KeywordProcessor()
+        for exper_var in experiment_variables.values():
+            self._keyword_processor.add_keyword(exper_var.get_common_name())
+
+
+class MatchingText(object):
+
+    def __init__(self, paragraph, text, start_position, end_position):
+        self._paragraph = paragraph
+        self._text = text
+        self._start_position = start_position
+        self._end_position = end_position
+
+    def get_start_position(self):
+        return self._start_position
+
+    def get_end_position(self):
+        return self._end_position
+
+    def get_matched_term(self):
+        return self._text
+
+    def get_paragraph(self):
+        return self._paragraph

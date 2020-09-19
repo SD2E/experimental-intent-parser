@@ -138,8 +138,8 @@ class ExperimentStatusTableParser(object):
             # Cell type based on column header
             header_row_index = self._intent_parser_table.header_row_index()
             header_cell = self._intent_parser_table.get_cell(header_row_index, cell_index)
-            cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
-            if not cell.get_text():
+            cell_type = cell_parser.PARSER.get_header_type(header_cell.get_matched_term())
+            if not cell.get_matched_term():
                 continue
             if intent_parser_constants.HEADER_PIPELINE_STATUS_TYPE == cell_type:
                 self._process_status_type(cell, status)
@@ -173,7 +173,7 @@ class ExperimentStatusTableParser(object):
             self._logger.warning('%s is not a experiment status supported in Intent Parser' % status.status_type)
 
     def _process_status_type(self, cell, status):
-        cell_text = cell.get_text().strip()
+        cell_text = cell.get_matched_term().strip()
         type = [tacc_id for tacc_id, common_name in self.status_mappings.items() if cell_text == common_name]
         if len(type) == 0:
             status.status_type = 'Unknown'
@@ -184,14 +184,14 @@ class ExperimentStatusTableParser(object):
 
     def _process_last_updated(self, cell, status):
         try:
-            status.last_updated = cell_parser.PARSER.process_datetime_format(cell.get_text().strip())
+            status.last_updated = cell_parser.PARSER.process_datetime_format(cell.get_matched_term().strip())
         except ValueError as err:
             message = 'Experiment status table has invalid %s value: %s' % (
                        intent_parser_constants.HEADER_PIPELINE_STATUS_TYPE, str(err))
             self._validation_errors.append(message)
 
     def _process_path(self, cell, status):
-        cell_text = cell.get_text().strip()
+        cell_text = cell.get_matched_term().strip()
         if cell_parser.PARSER.is_name(cell_text):
             status_type = [status for status, _ in cell_parser.PARSER.process_names_with_uri(cell_text)]
             if len(status_type) > 1:
@@ -205,7 +205,7 @@ class ExperimentStatusTableParser(object):
             self._validation_errors.append(message)
 
     def _process_state(self, cell, status):
-        cell_text = cell.get_text().strip().lower()
+        cell_text = cell.get_matched_term().strip().lower()
         if cell_text == 'succeeded':
             status.state = True
         elif cell_text == 'failed':

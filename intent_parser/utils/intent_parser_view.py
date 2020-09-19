@@ -236,25 +236,38 @@ def progress_sidebar_dialog():
 def create_search_result_dialog(term, uri, content_term, document_id, paragraph_index, offset, end_offset):
     actions = [highlight_text(paragraph_index, offset, end_offset)]
 
-    buttons = [('Yes', 'process_analyze_yes', 'Creates a hyperlink for the highlighted text, using the suggested URL.'),
-               ('No', 'process_analyze_no', 'Skips this term without creating a link.'),
-               ('Yes to All', 'process_link_all', 'Creates a hyperlink for the highilghted text and every instance of it in the document, using the suggested URL.'),
-               ('No to All', 'process_no_to_all', 'Skips this term and every other instance of it in the document.'),
-               ('Never Link', 'process_never_link', 'Never suggest links to this term, in this document or any other.')]
+    yes_button = ('Yes', addon_constants.ANALYZE_YES, 'Creates a hyperlink for the highlighted text, using the suggested URL.')
+    no_button = ('No', addon_constants.ANALYZE_NO, 'Skips this term without creating a link.')
+    yes_to_all_button = ('Yes to All', addon_constants.ANALYZE_YES_TO_ALL, 'Creates a hyperlink for the highilghted text and every instance of it in the document, using the suggested URL.')
+    no_to_all_button = ('No to All', addon_constants.ANALYZE_NO_TO_ALL, 'Skips this term and every other instance of it in the document.')
+    never_link_button = ('Never Link', addon_constants.ANALYZE_NEVER_LINK, 'Never suggest links to this term, in this document or any other.')
+    buttons = [yes_button, no_button, yes_to_all_button, no_to_all_button, never_link_button]
 
     button_HTML = ''
     button_script = ''
+
+    data = {addon_constants.DOCUMENT_ID: document_id,
+            addon_constants.ANALYZE_LINK: uri,
+            addon_constants.ANALYZE_PARAGRAPH_INDEX: paragraph_index,
+            addon_constants.ANALYZE_OFFSET: offset,
+            addon_constants.ANALYZE_END_OFFSET: end_offset,
+            addon_constants.ANALYZE_CONTENT_TERM: content_term,
+            addon_constants.ANALYZE_TERM: term}
     for button in buttons:
         button_HTML += '<input id=' + button[1] + 'Button value="'
         button_HTML += button[0] + '" type="button" title="'
         button_HTML += button[2] + '" onclick="'
         button_HTML += button[1] + 'Click()" />\n'
 
-        button_script += 'function ' + button[1] + 'Click() {\n'
-        button_script += '  google.script.run.withSuccessHandler'
-        button_script += '(onSuccess).buttonClick(\''
-        button_script += button[1]  + '\')\n'
-        button_script += '}\n\n'
+        button_script += """
+        function %sClick() {
+            var data = %s;
+            var extra = "%s";
+            data.buttonId = extra; 
+            busy('Linking to SynBioHub entry');
+
+            google.script.run.withSuccessHandler(onSuccess).buttonClick(data);}
+        """ % (button[1], data, button[1])
 
     button_HTML += '<input id=EnterLinkButton value="Manually Enter Link" type="button" title="Enter a link for this term manually." onclick="EnterLinkClick()" />'
     # Script for the EnterLinkButton is already in the HTML

@@ -26,8 +26,8 @@ class IntentParserTable(object):
             row = self.get_row(self._caption_index)
             for col_index in range(len(row)):
                 cell = self.get_cell(self._caption_index, col_index)
-                if cell_parser.PARSER.is_table_caption(cell.get_text()):
-                    return cell_parser.PARSER.process_table_caption_index(cell.get_text())
+                if cell_parser.PARSER.is_table_caption(cell.get_matched_term()):
+                    return cell_parser.PARSER.process_table_caption_index(cell.get_matched_term())
         return None
     
     def caption_row_index(self):

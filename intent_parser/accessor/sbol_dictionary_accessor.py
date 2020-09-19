@@ -1,4 +1,5 @@
 from datetime import timedelta
+from intent_parser.experiment_variables.experiment_variables import ExperimentVariable
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
 import intent_parser.table.cell_parser as cell_parser
@@ -370,7 +371,7 @@ class SBOLDictionaryAccessor(object):
 
     def map_common_names_and_tacc_id(self):
         result = {}
-        attribute_tab = self.get_tab_sheet(dictionary_constants.ATTRIBUTE_TAB)
+        attribute_tab = self.get_tab_sheet(dictionary_constants.TAB_ATTRIBUTE)
         for row in attribute_tab:
             if dictionary_constants.COLUMN_COMMON_NAME in row and dictionary_constants.COLUMN_TACC_UID in row:
                 common_name = row[dictionary_constants.COLUMN_COMMON_NAME]
@@ -394,19 +395,33 @@ class SBOLDictionaryAccessor(object):
             raise DictionaryMaintainerException(message)
         lab_uid = dictionary_constants.MAPPED_LAB_UID[lab_name]
 
-        strain_tab = self.get_tab_sheet(dictionary_constants.STRAIN_TAB)
+        strain_tab = self.get_tab_sheet(dictionary_constants.TAB_STRAIN)
         for row in strain_tab:
-            if dictionary_constants.COLUMN_COMMON_NAME in row \
-                    and dictionary_constants.COLUMN_SYNBIOHUB_URI in row\
-                    and lab_uid in row:
+            if (dictionary_constants.COLUMN_COMMON_NAME in row
+                and dictionary_constants.COLUMN_SYNBIOHUB_URI in row
+                and lab_uid in row):
                 sbh_uri = row[dictionary_constants.COLUMN_SYNBIOHUB_URI]
                 common_name = row[dictionary_constants.COLUMN_COMMON_NAME]
                 lab_strain_names = {}
                 if row[lab_uid]:
                     lab_strain_names = [name for name in cell_parser.PARSER.extract_name_value(row[lab_uid])]
-                mapped_strains[sbh_uri] = StrainMapping(sbh_uri, lab_name, common_name, lab_names=lab_strain_names)
-
+                mapped_strains[sbh_uri] = ExperimentVariable(sbh_uri, lab_name, common_name, lab_names=lab_strain_names)
         return mapped_strains
+
+    def create_experiment_variables_from_spreadsheet_tab(self, tab):
+        experiment_variables ={}
+        for row in tab:
+            if (dictionary_constants.COLUMN_COMMON_NAME in row and dictionary_constants.COLUMN_SYNBIOHUB_URI in row):
+                sbh_uri = row[dictionary_constants.COLUMN_SYNBIOHUB_URI]
+                common_name = row[dictionary_constants.COLUMN_COMMON_NAME]
+                for lab_name, lab_uid in dictionary_constants.MAPPED_LAB_UID.items():
+                    if lab_uid and lab_uid in row:
+                        if row[lab_uid]:
+                            lab_strain_names = [name for name in cell_parser.PARSER.extract_name_value(row[lab_uid])]
+                            experiment_variables[common_name] = ExperimentVariable(sbh_uri, lab_name, common_name, lab_names=lab_strain_names)
+                        else:
+                            experiment_variables[common_name] = ExperimentVariable(sbh_uri, lab_name, common_name)
+        return experiment_variables
 
     def get_common_name_from_transcriptic_id(self, transcriptic_id):
         mappings = self.map_common_names_and_transcriptic_id()
@@ -417,13 +432,25 @@ class SBOLDictionaryAccessor(object):
 
     def map_common_names_and_transcriptic_id(self):
         result = {}
-        attribute_tab = self.get_tab_sheet(dictionary_constants.ATTRIBUTE_TAB)
+        attribute_tab = self.get_tab_sheet(dictionary_constants.TAB_ATTRIBUTE)
         for row in attribute_tab:
             if dictionary_constants.COLUMN_COMMON_NAME in row and dictionary_constants.COLUMN_TRANSCRIPT_UID in row:
                 common_name = row[dictionary_constants.COLUMN_COMMON_NAME]
                 strateos_id = row[dictionary_constants.COLUMN_TRANSCRIPT_UID]
                 if strateos_id:
                     result[common_name] = strateos_id
+        return result
+
+    def get_common_names_to_uri_new(self):
+        tabs_to_process = [dictionary_constants.TAB_PROTEIN,
+                           dictionary_constants.TAB_STRAIN,
+                           dictionary_constants.TAB_GENETIC_CONSTRUCTS,
+                           dictionary_constants.TAB_REAGENT]
+        result = {}
+        for tab_name in tabs_to_process:
+            tab = self.get_tab_sheet(tab_name)
+            exper_var = self.create_experiment_variables_from_spreadsheet_tab(tab)
+            result.update(exper_var)
         return result
 
     def get_common_names_to_uri(self, use_cache=False):
@@ -492,19 +519,3 @@ class SBOLDictionaryAccessor(object):
         self.logger.info('Num items in item_map: %d' % len(item_map))
         return item_map
 
-class StrainMapping(object):
-
-    def __init__(self, sbh_uri, lab_id, common_name, lab_names={}):
-        self._sbh_uri = sbh_uri
-        self._lab_id = lab_id
-        self._common_name = common_name
-        self._lab_names = lab_names
-
-    def get_common_name(self):
-        return self._common_name
-
-    def get_lab_id(self):
-        return self._lab_id
-
-    def has_lab_name(self, lab_name):
-        return lab_name in self._lab_names

@@ -1,8 +1,24 @@
 """
 List of constants used in intent parser's Google App Script Add-on
 """
+ACTION_UPDATE_PROGRESS = 'updateProgress'
+
+ANALYZE_CONTENT_TERM = 'content_term'
+ANALYZE_END_OFFSET = 'end_offset'
+ANALYZE_LINK = 'link'
+ANALYZE_NEVER_LINK = 'process_never_link'
+ANALYZE_NO = 'process_analyze_no'
+ANALYZE_NO_TO_ALL = 'process_no_to_all'
+ANALYZE_PARAGRAPH_INDEX = 'paragraph_index'
+ANALYZE_PROGRESS = 'progress'
+ANALYZE_OFFSET = 'offset'
+ANALYZE_TERM = 'term'
+ANALYZE_YES = 'process_analyze_yes'
+ANALYZE_YES_TO_ALL = 'process_link_all'
+BUTTON_ID = 'buttonId'
 CHILD_INDEX = 'childIndex'
 CURSOR_CHILD_INDEX = 'cursorChildIndex'
+DOCUMENT_ID = 'documentId'
 
 HTML_BATCH = 'batch'
 HTML_CAPTION = 'caption'
@@ -31,3 +47,4 @@ TABLE_TYPE_STATUS = 'tableStatus'
 TABLE_TYPE_LAB = 'tableLab'
 TABLE_TYPE_MEASUREMENTS = 'measurements'
 TABLE_TYPE_PARAMETERS = 'parameters'
+
