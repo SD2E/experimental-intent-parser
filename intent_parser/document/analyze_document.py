@@ -6,7 +6,6 @@ class AnalyzeDocument(object):
     logger = logging.getLogger('intent_parser_analyze_document')
 
     def __init__(self):
-        self._ignore_terms = []
         self.analyze_processing_map = {}
         self._document_id = None
         self._keyword_processor = None
@@ -26,10 +25,14 @@ class AnalyzeDocument(object):
             self._analyze_text(paragraphs[index])
             self._current_progress = float(((index+1) * 100)/num_of_paragraphs)
 
-    def add_ignore_term(self, term_to_ignore):
-        if term_to_ignore in self._ignore_terms:
-            return
-        self._ignore_terms.append(term_to_ignore)
+    def get_matched_terms(self, common_name):
+        removed_terms = []
+        for keyword_index in reversed(range(0, len(self._matched_terms))):
+            matching_keyword = self._matched_terms[keyword_index]
+            if matching_keyword.get_matched_term() == common_name:
+                removed_term = self._matched_terms.pop(keyword_index)
+                removed_terms.append(removed_term)
+        return reversed(removed_terms)
 
     def get_analyze_result(self):
         if len(self._matched_terms) > 0:
@@ -50,6 +53,9 @@ class AnalyzeDocument(object):
         self._keyword_processor = KeywordProcessor()
         for exper_var in experiment_variables.values():
             self._keyword_processor.add_keyword(exper_var.get_common_name())
+            if exper_var.get_common_name() not in self.analyze_processing_map:
+                self.analyze_processing_map[exper_var.get_common_name] = exper_var.get_sbh_uri()
+
 
 
 class MatchingText(object):
@@ -64,7 +70,7 @@ class MatchingText(object):
         return self._start_position
 
     def get_end_position(self):
-        return self._end_position
+        return self._end_position-1
 
     def get_matched_term(self):
         return self._text

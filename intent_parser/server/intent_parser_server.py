@@ -358,8 +358,8 @@ class IntentParserServer(object):
     def process_analyze_document(self, http_message):
         json_body = intent_parser_utils.get_json_body(http_message)
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-        docBeingProcessed = self.analysis.is_analyzing_document(document_id)
-        if not docBeingProcessed:
+        doc_being_processed = self.analysis.is_analyzing_document(document_id)
+        if not doc_being_processed:
             self.analysis.intialize_analysis(document_id, self.sbol_dictionary.get_common_names_to_uri_new())
             lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
             document = lab_experiment.load_from_google_doc()
@@ -370,18 +370,18 @@ class IntentParserServer(object):
         if progress_percent == 100:
             analyze_result = self.analysis.get_analyze_result()
             if analyze_result:
-                actionList = self.report_search_results_new(analyze_result, document_id)
+                action_list = self.report_next_analyze_results(analyze_result, document_id)
             else:
-                actionList = self.report_analysis_complete()
+                action_list = self.report_analysis_complete()
 
-            actions = {'actions': actionList}
+            actions = {'actions': action_list}
             return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
 
     def report_analysis_complete(self):
         self.analysis = AnalyzeDocument()
         return intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])
 
-    def report_search_results_new(self, analyze_result, document_id):
+    def report_next_analyze_results(self, analyze_result, document_id):
         item_map = self.sbol_dictionary.get_common_names_to_uri_new()
         term = analyze_result.get_matched_term()
         matched_term_from_dictionary = item_map[term]
@@ -398,7 +398,7 @@ class IntentParserServer(object):
 
         analyze_result = self.analysis.get_analyze_result()
         if analyze_result:
-            return self.report_search_results_new(analyze_result, document_id)
+            return self.report_next_analyze_results(analyze_result, document_id)
         return self.report_analysis_complete()
 
 
@@ -823,43 +823,50 @@ class IntentParserServer(object):
 
         return actions
 
-    
-    def process_button_click(self, http_message):
-        (json_body, client_state) = self.get_client_state(http_message)
-
-        if 'data' not in json_body:
-            errorMessage = 'Missing data'
-            raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
-        data = json_body['data']
-
+    def _get_button_id(self, data):
         if ip_addon_constants.BUTTON_ID not in data:
-            errorMessage = 'Expected to get %s assigned to this HTTP data: %s but none was found.' % (ip_addon_constants.BUTTON_ID, http_message)
-            raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
+            error_message = 'Expected to get %s assigned to this HTTP data: %s but none was found.' % (ip_addon_constants.BUTTON_ID, data)
+            raise ConnectionException(HTTPStatus.BAD_REQUEST, error_message)
 
         if type(data[ip_addon_constants.BUTTON_ID]) is dict:
             buttonDat = data[ip_addon_constants.BUTTON_ID]
             button_id = buttonDat[ip_addon_constants.BUTTON_ID]
-        else:
-            button_id = data[ip_addon_constants.BUTTON_ID]
+            return button_id
+        return data[ip_addon_constants.BUTTON_ID]
 
+    def process_button_click(self, http_message):
+        (json_body, client_state) = self.get_client_state(http_message)
+
+        if 'data' not in json_body:
+            error_message = 'Missing data'
+            raise ConnectionException(HTTPStatus.BAD_REQUEST, error_message)
+        data = json_body['data']
+
+        button_id = self._get_button_id(data)
         if button_id == ip_addon_constants.ANALYZE_YES:
-            actionList = self.process_analyze_yes(data[ip_addon_constants.BUTTON_ID])
-            actions = {'actions': actionList}
+            action_list = self.process_analyze_yes(data[ip_addon_constants.BUTTON_ID])
+            actions = {'actions': action_list}
             return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
         elif button_id == ip_addon_constants.ANALYZE_NO:
-            pass
+            action_list = self.process_analyze_no(data[ip_addon_constants.BUTTON_ID])
+            actions = {'actions': action_list}
+            return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
         elif button_id == ip_addon_constants.ANALYZE_YES_TO_ALL:
-            pass
+            action_list = self.process_analyze_yes_to_all(data[ip_addon_constants.BUTTON_ID])
+            actions = {'actions': action_list}
+            return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
         elif button_id == ip_addon_constants.ANALYZE_NO_TO_ALL:
-            pass
+            action_list = self.process_analyze_no_to_all(data[ip_addon_constants.BUTTON_ID])
+            actions = {'actions': action_list}
+            return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
         elif button_id == ip_addon_constants.ANALYZE_NEVER_LINK:
             pass
         else:
             method = getattr( self, button_id)
 
             try:
-                actionList = method(json_body, client_state)
-                actions = {'actions': actionList}
+                action_list = method(json_body, client_state)
+                actions = {'actions': action_list}
                 return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
             except Exception as e:
                 raise e
@@ -949,15 +956,55 @@ class IntentParserServer(object):
         if analyze_result is None:
             action.append(self.report_analysis_complete())
         else:
-            action.append(self.report_search_results_new(analyze_result, document_id))
+            action.extend(self.report_next_analyze_results(analyze_result, document_id))
         return action
 
-    def process_analyze_no(self, json_body, client_state):
-        """
-        Handle "No" button as part of analyze document.
-        """
-        json_body # Remove unused warning
-        return self.report_search_results(client_state)
+    def process_analyze_no(self, data):
+        document_id = data[ip_addon_constants.DOCUMENT_ID]
+        action = []
+        analyze_result = self.analysis.get_analyze_result()
+        if analyze_result is None:
+            action.append(self.report_analysis_complete())
+        else:
+            action.extend(self.report_next_analyze_results(analyze_result, document_id))
+        return action
+
+    def process_analyze_yes_to_all(self, data):
+        document_id = data[ip_addon_constants.DOCUMENT_ID]
+        link = data[ip_addon_constants.ANALYZE_LINK]
+        dictionary_term = data[ip_addon_constants.ANALYZE_CONTENT_TERM]
+
+        actions = [intent_parser_view.link_text(data[ip_addon_constants.ANALYZE_PARAGRAPH_INDEX],
+                                                data[ip_addon_constants.ANALYZE_OFFSET],
+                                                data[ip_addon_constants.ANALYZE_END_OFFSET],
+                                                data[ip_addon_constants.ANALYZE_LINK])]
+        for term in self.analysis.get_matched_terms(dictionary_term):
+            paragraph = term.get_paragraph()
+            paragraph_index = paragraph.get_paragraph_index()
+
+            offset = term.get_start_position()
+            end_offset = term.get_end_position()
+            actions.append(intent_parser_view.link_text(paragraph_index, offset, end_offset, link))
+
+        analyze_result = self.analysis.get_analyze_result()
+        if analyze_result is None:
+            actions.append(self.report_analysis_complete())
+        else:
+            actions.extend(self.report_next_analyze_results(analyze_result, document_id))
+        return actions
+
+    def process_analyze_no_to_all(self, data):
+        document_id = data[ip_addon_constants.DOCUMENT_ID]
+        dictionary_term = data[ip_addon_constants.ANALYZE_CONTENT_TERM]
+        self.analysis.get_matched_terms(dictionary_term)
+
+        action = []
+        analyze_result = self.analysis.get_analyze_result()
+        if analyze_result is None:
+            action.append(self.report_analysis_complete())
+        else:
+            action.extend(self.report_next_analyze_results(analyze_result, document_id))
+        return action
 
     def process_link_all(self, json_body, client_state):
         """

@@ -25,15 +25,37 @@ class GoogleDocumentParser(DocumentParser):
         intent_parser_doc = IntentParserDocument()
         doc_properties = document[doc_constants.BODY][doc_constants.CONTENT]
         paragraph_index = 0
-        for property in doc_properties:
+        while len(doc_properties) > 0:
+            property = doc_properties.pop(0)
             if doc_constants.PARAGRAPH in property:
                 paragraph = self._parse_paragraphs(property[doc_constants.PARAGRAPH])
                 paragraph.set_start_index(property[doc_constants.START_INDEX])
                 paragraph.set_end_index(property[doc_constants.END_INDEX])
                 paragraph.set_paragraph_index(paragraph_index)
-                paragraph_index += 1
                 intent_parser_doc.add_paragraph(paragraph)
+                paragraph_index += 1
+            elif doc_constants.TABLE in property:
+                doc_properties = self._get_properties_from_table(property[doc_constants.TABLE]) + doc_properties
+
         return intent_parser_doc
+
+    def _get_properties_from_table(self, table_property):
+        properties = []
+
+        if doc_constants.TABLE_ROWS in table_property:
+            for row_property in table_property[doc_constants.TABLE_ROWS]:
+                properties.extend(self._get_properties_from_table_row(row_property))
+        return properties
+
+    def _get_properties_from_table_row(self, row_property):
+        properties = []
+
+        if doc_constants.TABLE_CELLS in row_property:
+            for cell_property in row_property[doc_constants.TABLE_CELLS]:
+               if doc_constants.CONTENT in cell_property:
+                   for content_property in cell_property[doc_constants.CONTENT]:
+                        properties.append(content_property)
+        return properties
 
     def _parse_paragraphs(self, paragraph):
         ip_paragraph = self.Paragraph()
@@ -45,9 +67,10 @@ class GoogleDocumentParser(DocumentParser):
                 if doc_constants.URL in link:
                     url = link[doc_constants.URL]
                     ip_element = self.Element(text, element[doc_constants.START_INDEX], element[doc_constants.END_INDEX], hyperlink=url)
+                    ip_paragraph.add_element(ip_element)
             else:
                 ip_element = self.Element(text, element[doc_constants.START_INDEX], element[doc_constants.END_INDEX])
-            ip_paragraph.add_element(ip_element)
+                ip_paragraph.add_element(ip_element)
         return ip_paragraph
 
     class Paragraph(object):

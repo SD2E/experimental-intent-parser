@@ -234,6 +234,16 @@ def progress_sidebar_dialog():
     return action
 
 def create_search_result_dialog(term, uri, content_term, document_id, paragraph_index, offset, end_offset):
+    """
+    Args:
+        term: term in document represented as a string
+        uri: a SBH uri that the hyperlink text will reference to
+        content_term: matched keyword found in sbol dictionary
+        document_id: id of a document
+        paragraph_index: an integer value to represent the paragraph where the term is found in the document
+        offset: an integer value to mark the starting position where the terms appears in the document paragraph
+        end_offset: an integer value to mark the ending position where the terms appears in the document paragraph
+    """
     actions = [highlight_text(paragraph_index, offset, end_offset)]
 
     yes_button = ('Yes', addon_constants.ANALYZE_YES, 'Creates a hyperlink for the highlighted text, using the suggested URL.')

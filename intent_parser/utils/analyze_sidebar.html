@@ -91,7 +91,7 @@ p    {word-break: break-all; white-space: normal;}\
     function linkItem(theForm, link) {
         var data = {'buttonId' : 'process_analyze_yes',
                      'link' : link}
-        busy('Linking to exsiting SynBioHub entry')
+        busy('Linking to existing SynBioHub entry')
 
         google.script.run.withSuccessHandler(onSuccess).
             buttonClick(data)
