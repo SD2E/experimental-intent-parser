@@ -356,9 +356,63 @@ class IntentParserServer(object):
         logger.info('Generated POST request in %0.2fms, %s' %((end - start) * 1000, time.time()))
 
     def process_analyze_document(self, http_message):
+        """
+        This function will initiate an analysis if the document isn't currently being analyzed and
+        then it will report on the progress of that document's analysis until it is done.  Once it's done
+        this function will notify the client that the document is ready.
+        """
         json_body = intent_parser_utils.get_json_body(http_message)
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+
+        self.analyze_processing_map_lock.acquire()
+        docBeingProcessed = document_id in self.analyze_processing_map
+        self.analyze_processing_map_lock.release()
+
+        if docBeingProcessed:  # Doc being processed, check progress
+            time.sleep(self.ANALYZE_PROGRESS_PERIOD)
+
+            self.analyze_processing_map_lock.acquire()
+            progress_percent = self.analyze_processing_map[document_id]
+            self.analyze_processing_map_lock.release()
+
+            if progress_percent < 100:  # Not done yet, update client
+                action = {}
+                action['action'] = 'updateProgress'
+                action['progress'] = str(int(progress_percent * 100))
+                actions = {'actions': [action]}
+                return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
+            else:  # Document is analyzed, start navigating results
+                try:
+                    self.analyze_processing_lock[
+                        document_id].acquire()  # This ensures we've waited for the processing thread to release the client connection
+                    (__, client_state) = self.get_client_state(http_message)
+                    actionList = self.report_search_results(client_state)
+                    actions = {'actions': actionList}
+                    return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
+                finally:
+                    self.analyze_processing_map.pop(document_id)
+                    self.analyze_processing_lock[document_id].release()
+                    self.release_connection(client_state)
+        else:  # Doc not being processed, spawn new processing thread
+            self.analyze_processing_map[document_id] = 0
+            analyze_thread = threading.Thread(
+                target=self._initiate_document_analysis,
+                args=(http_message,)  # without comma you'd get a... TypeError
+            )
+            analyze_thread.start()
+            dialogAction = intent_parser_view.progress_sidebar_dialog()
+            actions = {'actions': [dialogAction]}
+            return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
+
+    def process_analyze_document_new(self, http_message):
+        json_body = intent_parser_utils.get_json_body(http_message)
+        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+        doc_being_processed = False
+        self.analyze_processing_map_lock.acquire()
         doc_being_processed = self.analysis.is_analyzing_document(document_id)
+        doc_being_processed = document_id in self.analyze_processing_map
+        self.analyze_processing_map_lock.release()
+
         if not doc_being_processed:
             self.analysis.intialize_analysis(document_id, self.sbol_dictionary.get_common_names_to_uri_new())
             lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
@@ -366,6 +420,7 @@ class IntentParserServer(object):
             document_factory = IntentParserDocumentFactory()
             ip_document = document_factory.from_google_doc(document)
             self.analysis.analyze_document(ip_document)
+
         progress_percent = self.analysis.get_current_progress()
         if progress_percent == 100:
             analyze_result = self.analysis.get_analyze_result()
@@ -843,35 +898,16 @@ class IntentParserServer(object):
         data = json_body['data']
 
         button_id = self._get_button_id(data)
-        if button_id == ip_addon_constants.ANALYZE_YES:
-            action_list = self.process_analyze_yes(data[ip_addon_constants.BUTTON_ID])
-            actions = {'actions': action_list}
-            return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-        elif button_id == ip_addon_constants.ANALYZE_NO:
-            action_list = self.process_analyze_no(data[ip_addon_constants.BUTTON_ID])
-            actions = {'actions': action_list}
-            return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-        elif button_id == ip_addon_constants.ANALYZE_YES_TO_ALL:
-            action_list = self.process_analyze_yes_to_all(data[ip_addon_constants.BUTTON_ID])
-            actions = {'actions': action_list}
-            return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-        elif button_id == ip_addon_constants.ANALYZE_NO_TO_ALL:
-            action_list = self.process_analyze_no_to_all(data[ip_addon_constants.BUTTON_ID])
-            actions = {'actions': action_list}
-            return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-        elif button_id == ip_addon_constants.ANALYZE_NEVER_LINK:
-            pass
-        else:
-            method = getattr( self, button_id)
+        method = getattr(self, button_id)
 
-            try:
-                action_list = method(json_body, client_state)
-                actions = {'actions': action_list}
-                return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-            except Exception as e:
-                raise e
-            finally:
-                self.release_connection(client_state)
+        try:
+            action_list = method(json_body, client_state)
+            actions = {'actions': action_list}
+            return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
+        except Exception as e:
+            raise e
+        finally:
+            self.release_connection(client_state)
             
     def process_nop(self, http_message, sm):
         http_message # Fix unused warning
@@ -944,74 +980,46 @@ class IntentParserServer(object):
         actions = {'actions': actionList}
         return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
 
-    def process_analyze_yes(self, data):
-        document_id = data[ip_addon_constants.DOCUMENT_ID]
-        offset = data[ip_addon_constants.ANALYZE_OFFSET]
-        paragraph_index = data[ip_addon_constants.ANALYZE_PARAGRAPH_INDEX]
-        end_offset = data[ip_addon_constants.ANALYZE_END_OFFSET]
-        link = data[ip_addon_constants.ANALYZE_LINK]
+    def process_analyze_yes(self, json_body, client_state):
+        """
+        Handle "Yes" button as part of analyze document.
+        """
+        search_results = client_state['search_results']
+        search_result_index = client_state['search_result_index']
+        search_result = search_results[search_result_index]
 
-        action = [intent_parser_view.link_text(paragraph_index, offset, end_offset, link)]
-        analyze_result = self.analysis.get_analyze_result()
-        if analyze_result is None:
-            action.append(self.report_analysis_complete())
+        if type(json_body['data']['buttonId']) is dict:
+            new_link = json_body['data']['buttonId']['link']
         else:
-            action.extend(self.report_next_analyze_results(analyze_result, document_id))
-        return action
+            new_link = None
 
-    def process_analyze_no(self, data):
-        document_id = data[ip_addon_constants.DOCUMENT_ID]
-        action = []
-        analyze_result = self.analysis.get_analyze_result()
-        if analyze_result is None:
-            action.append(self.report_analysis_complete())
-        else:
-            action.extend(self.report_next_analyze_results(analyze_result, document_id))
-        return action
-
-    def process_analyze_yes_to_all(self, data):
-        document_id = data[ip_addon_constants.DOCUMENT_ID]
-        link = data[ip_addon_constants.ANALYZE_LINK]
-        dictionary_term = data[ip_addon_constants.ANALYZE_CONTENT_TERM]
-
-        actions = [intent_parser_view.link_text(data[ip_addon_constants.ANALYZE_PARAGRAPH_INDEX],
-                                                data[ip_addon_constants.ANALYZE_OFFSET],
-                                                data[ip_addon_constants.ANALYZE_END_OFFSET],
-                                                data[ip_addon_constants.ANALYZE_LINK])]
-        for term in self.analysis.get_matched_terms(dictionary_term):
-            paragraph = term.get_paragraph()
-            paragraph_index = paragraph.get_paragraph_index()
-
-            offset = term.get_start_position()
-            end_offset = term.get_end_position()
-            actions.append(intent_parser_view.link_text(paragraph_index, offset, end_offset, link))
-
-        analyze_result = self.analysis.get_analyze_result()
-        if analyze_result is None:
-            actions.append(self.report_analysis_complete())
-        else:
-            actions.extend(self.report_next_analyze_results(analyze_result, document_id))
+        actions = self.add_link(search_result, new_link);
+        actions += self.report_search_results(client_state)
         return actions
 
-    def process_analyze_no_to_all(self, data):
-        document_id = data[ip_addon_constants.DOCUMENT_ID]
-        dictionary_term = data[ip_addon_constants.ANALYZE_CONTENT_TERM]
-        self.analysis.get_matched_terms(dictionary_term)
+    def process_analyze_no(self, json_body, client_state):
+        """
+        Handle "No" button as part of analyze document.
+        """
+        json_body  # Remove unused warning
+        # Find out what term to point to
+        curr_idx = client_state['search_result_index']
+        next_idx = curr_idx + 1
+        search_results = client_state['search_results']
 
-        action = []
-        analyze_result = self.analysis.get_analyze_result()
-        if analyze_result is None:
-            action.append(self.report_analysis_complete())
-        else:
-            action.extend(self.report_next_analyze_results(analyze_result, document_id))
-        return action
+        new_search_results = search_results[1:]
+        new_idx = new_search_results.index(search_results[next_idx])
+        # Update client state
+        client_state['search_results'] = new_search_results
+        client_state['search_result_index'] = new_idx
+        return self.report_search_results(client_state)
 
     def process_link_all(self, json_body, client_state):
         """
         Handle "Link all" button as part of analyze document.
         """
         search_results = client_state['search_results']
-        search_result_index = client_state['search_result_index'] - 1
+        search_result_index = client_state['search_result_index']
         search_result = search_results[search_result_index]
         term = search_result['term']
         term_search_results = list(filter(lambda x : x['term'] == term,
@@ -1036,7 +1044,7 @@ class IntentParserServer(object):
         Handle "No to all" button as part of analyze document.
         """
         json_body # Remove unused warning
-        curr_idx = client_state['search_result_index'] - 1
+        curr_idx = client_state['search_result_index']
         next_idx = curr_idx + 1
         search_results = client_state['search_results']
         while next_idx < len(search_results) and search_results[curr_idx]['term'] == search_results[next_idx]['term']:
@@ -1064,7 +1072,7 @@ class IntentParserServer(object):
         """
         json_body # Remove unused warning
 
-        curr_idx = client_state['search_result_index'] - 1
+        curr_idx = client_state['search_result_index']
         search_results = client_state['search_results']
 
         dict_term = search_results[curr_idx]['term']

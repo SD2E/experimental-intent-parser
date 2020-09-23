@@ -1,16 +1,22 @@
 from flashtext import KeywordProcessor
+import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import logging
+import os
+import threading
 
 class AnalyzeDocument(object):
 
     logger = logging.getLogger('intent_parser_analyze_document')
 
-    def __init__(self):
-        self.analyze_processing_map = {}
+    def __init__(self, ignore_terms={}):
         self._document_id = None
         self._keyword_processor = None
         self._current_progress = None
         self._matched_terms = []
+        self._ignore_terms = ignore_terms
+        self.analyze_processing_map = {} # document id is the key, thread running each document is the value
+        self.analyze_processing_map_lock = threading.Lock()  # Used to lock the map
+        self.analyze_processing_lock = {}  # Used to indicate if the processing thread has finished, mapped to each doc_id
 
     def _analyze_text(self, paragraph):
         keywords_found = self._keyword_processor.extract_keywords(paragraph.get_text(), span_info=True)
@@ -37,8 +43,7 @@ class AnalyzeDocument(object):
     def get_analyze_result(self):
         if len(self._matched_terms) > 0:
             return self._matched_terms.pop(0)
-        else:
-            return None
+        return None
 
     def get_current_progress(self):
         return self._current_progress
@@ -53,10 +58,10 @@ class AnalyzeDocument(object):
         self._keyword_processor = KeywordProcessor()
         for exper_var in experiment_variables.values():
             self._keyword_processor.add_keyword(exper_var.get_common_name())
-            if exper_var.get_common_name() not in self.analyze_processing_map:
-                self.analyze_processing_map[exper_var.get_common_name] = exper_var.get_sbh_uri()
 
-
+    def load_never_link_terms(self):
+        curr_path = os.path.dirname(os.path.realpath(__file__))
+        ignore_terms = intent_parser_utils.load_json_file(os.path.join(curr_path, 'ignore_analyzed_terms.json'))
 
 class MatchingText(object):
 
