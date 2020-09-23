@@ -952,6 +952,8 @@ class IntentParserServer(object):
         search_results = client_state['search_results']
 
         new_search_results = search_results[1:]
+        if len(new_search_results) < 1:
+            return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
         new_idx = new_search_results.index(search_results[next_idx])
         # Update client state
         client_state['search_results'] = new_search_results
@@ -995,7 +997,7 @@ class IntentParserServer(object):
             next_idx = next_idx + 1
         # Are we at the end? Then just exit
         if next_idx >= len(search_results):
-            return []
+            return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
 
         term_to_ignore = search_results[curr_idx]['term']
         # Generate results without term to ignore
