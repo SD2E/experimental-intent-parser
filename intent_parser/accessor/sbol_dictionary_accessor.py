@@ -441,18 +441,6 @@ class SBOLDictionaryAccessor(object):
                     result[common_name] = strateos_id
         return result
 
-    def get_common_names_to_uri_new(self):
-        tabs_to_process = [dictionary_constants.TAB_PROTEIN,
-                           dictionary_constants.TAB_STRAIN,
-                           dictionary_constants.TAB_GENETIC_CONSTRUCTS,
-                           dictionary_constants.TAB_REAGENT]
-        result = {}
-        for tab_name in tabs_to_process:
-            tab = self.get_tab_sheet(tab_name)
-            exper_var = self.create_experiment_variables_from_spreadsheet_tab(tab)
-            result.update(exper_var)
-        return result
-
     def get_common_names_to_uri(self, use_cache=False):
         """
         Use the SBOL Dictionary to generate a dictionary of common names referring to its SBH URI and store it into a local item-map.json file

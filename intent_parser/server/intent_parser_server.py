@@ -4,10 +4,8 @@ from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
-from intent_parser.document.analyze_document import AnalyzeDocument
 from intent_parser.intent_parser_exceptions import ConnectionException, DictionaryMaintainerException, IntentParserException, TableException
 from intent_parser.intent_parser_factory import IntentParserFactory
-from intent_parser.document.intent_parser_document_factory import IntentParserDocumentFactory
 from intent_parser.intent_parser_sbh import IntentParserSBH
 from intent_parser.table.intent_parser_table_type import TableType
 from intent_parser.table.table_creator import TableCreator
@@ -85,7 +83,6 @@ class IntentParserServer(object):
 
         self.spellCheckers = {}
         # Dictionary per-user that stores analyze associations to ignore
-        self.analysis = AnalyzeDocument()
         self.analyze_never_link = {}
         self.analyze_processing_map = {}
         self.analyze_processing_map_lock = threading.Lock() # Used to lock the map
@@ -403,59 +400,6 @@ class IntentParserServer(object):
             dialogAction = intent_parser_view.progress_sidebar_dialog()
             actions = {'actions': [dialogAction]}
             return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-
-    def process_analyze_document_new(self, http_message):
-        json_body = intent_parser_utils.get_json_body(http_message)
-        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-        doc_being_processed = False
-        self.analyze_processing_map_lock.acquire()
-        doc_being_processed = self.analysis.is_analyzing_document(document_id)
-        doc_being_processed = document_id in self.analyze_processing_map
-        self.analyze_processing_map_lock.release()
-
-        if not doc_being_processed:
-            self.analysis.intialize_analysis(document_id, self.sbol_dictionary.get_common_names_to_uri_new())
-            lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
-            document = lab_experiment.load_from_google_doc()
-            document_factory = IntentParserDocumentFactory()
-            ip_document = document_factory.from_google_doc(document)
-            self.analysis.analyze_document(ip_document)
-
-        progress_percent = self.analysis.get_current_progress()
-        if progress_percent == 100:
-            analyze_result = self.analysis.get_analyze_result()
-            if analyze_result:
-                action_list = self.report_next_analyze_results(analyze_result, document_id)
-            else:
-                action_list = self.report_analysis_complete()
-
-            actions = {'actions': action_list}
-            return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-
-    def report_analysis_complete(self):
-        self.analysis = AnalyzeDocument()
-        return intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])
-
-    def report_next_analyze_results(self, analyze_result, document_id):
-        item_map = self.sbol_dictionary.get_common_names_to_uri_new()
-        term = analyze_result.get_matched_term()
-        matched_term_from_dictionary = item_map[term]
-        dictionary_link = matched_term_from_dictionary.get_sbh_uri()
-        paragraph = analyze_result.get_paragraph()
-        hyperlinked_elements = paragraph.get_elements_with_hyperlink()
-        already_linked_terms = [element.text for element in hyperlinked_elements if element.hyperlink == dictionary_link]
-        if not already_linked_terms:
-            content_term = matched_term_from_dictionary.get_common_name()
-            offset = analyze_result.get_start_position()
-            end_offset = analyze_result.get_end_position()
-            paragraph_index = paragraph.get_paragraph_index()
-            return intent_parser_view.create_search_result_dialog(term, dictionary_link, content_term, document_id, paragraph_index, offset, end_offset)
-
-        analyze_result = self.analysis.get_analyze_result()
-        if analyze_result:
-            return self.report_next_analyze_results(analyze_result, document_id)
-        return self.report_analysis_complete()
-
 
     def report_search_results(self, client_state):
         search_results = client_state['search_results']
