@@ -46,22 +46,33 @@ class MeasurementTable(object):
                 self.measurement_intent.add_measurement(measurement)
 
     def _process_control_mapping(self, control_tables, bookmarks):
+        table_caption_index = {}
         if bookmarks:
-            return self._map_bookmarks_to_captions(control_tables, bookmarks)
-        return self._map_captions_to_control(control_tables)
+            table_caption_index = self._map_bookmarks_to_captions(control_tables, bookmarks)
+        # if bookmarks produce empty result, process control table's caption
+        if not table_caption_index:
+            try:
+                if control_tables:
+                    table_caption_index = self._map_captions_to_control(control_tables)
+            except TableException as err:
+                self._validation_errors.append('Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_CONTROL_VALUE, err))
+        return table_caption_index
 
     def _map_captions_to_control(self, control_tables):
         control_map = {}
         for table_caption, control_data in control_tables.items():
             if table_caption:
                 control_map[table_caption] = control_data
+        if not control_map:
+            raise TableException('No reference to a Control table.')
         return control_map
                 
     def _map_bookmarks_to_captions(self, control_tables, bookmarks):
         control_map = {}
         for bookmark in bookmarks:
-            if bookmark['text'] in control_tables:
-                control_map[bookmark['id']] = control_tables[bookmark['text']]
+            table_index = cell_parser.PARSER.process_table_caption_index(bookmark['text'])
+            if table_index in control_tables:
+                control_map[table_index] = control_tables[table_index]
         return control_map
     
     def _process_row(self, row_index, control_data):
@@ -154,7 +165,11 @@ class MeasurementTable(object):
             self._validation_errors.append(message)
     
     def _process_control(self, cell, control_tables, measurement):
-        result = [] 
+        result = []
+        if not control_tables:
+            self._validation_errors.append('Unable to process controls from a Measurement table without Control Tables.')
+            return result
+
         if cell.get_bookmark_ids():
             result = self._process_control_with_bookmarks(cell, control_tables)
 

@@ -127,6 +127,9 @@ class IntentParser(object):
     def process_experiment_run_request(self):
         self.process_tables()
         filtered_tables = self._filter_tables_by_type()
+        if not filtered_tables[TableType.PARAMETER]:
+            self.validation_errors.append('Cannot execute experiment without a parameter table.')
+            return
         self._generate_experiment_request(filtered_tables[TableType.PARAMETER])
 
     def process_experiment_status_request(self):
@@ -393,17 +396,15 @@ class IntentParser(object):
 
     def _generate_experiment_request(self, parameter_tables):
         experiment_request = self._process_parameter_table(parameter_tables, generate_experiment_request=True)
-        if experiment_request is None:
-            message = 'Cannot execute experiment without a parameter table.'
-            self.validation_warnings.extend(message)
-            return
-        experiment_request[ip_constants.PARAMETER_TEST_MODE] = False
-        experiment_request[ip_constants.PARAMETER_SUBMIT] = True
-        self.experiment_request = experiment_request
+        if experiment_request:
+            experiment_request[ip_constants.PARAMETER_TEST_MODE] = False
+            experiment_request[ip_constants.PARAMETER_SUBMIT] = True
+            self.experiment_request = experiment_request
 
     def _process_control_tables(self, control_tables):
         ref_controls = {}
         if not control_tables:
+            self.validation_warnings.append('No controls table to parse from document.')
             return ref_controls
         
         for table in control_tables:
@@ -499,7 +500,12 @@ class IntentParser(object):
     
     def _process_parameter_table(self, parameter_tables, generate_experiment_request=False):
         if not parameter_tables:
-            return None
+            if generate_experiment_request:
+                self.validation_errors.append('Unable to generate an experiment request without a parameter table.')
+            else:
+                self.validation_warnings.append('No parameter table to parse from document.')
+            return []
+
         if len(parameter_tables) > 1:
             message = ('There are more than one parameter table specified in this experiment.'
                        'Only the last parameter table identified in the document will be used for generating a request.')
@@ -516,6 +522,7 @@ class IntentParser(object):
             return [parameter_table.get_structured_request()]
         except (DictionaryMaintainerException, TableException) as err:
             self.validation_errors.extend([err.get_message()])
+            return {}
 
     def _filter_tables_by_type(self):
         measurement_tables = []

@@ -2,6 +2,7 @@ from http import HTTPStatus
 from intent_parser.server.http_message import HttpMessage
 from intent_parser.server.intent_parser_server import IntentParserServer
 from unittest.mock import Mock, patch
+import intent_parser.constants.ip_app_script_constants as addon_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.utils.intent_parser_view as intent_parser_view
 import json
@@ -190,6 +191,405 @@ class IntentParserServerTest(unittest.TestCase):
         response = self.ip_server.process_analyze_document(http_message)
         self._verify_response_status(response, HTTPStatus.OK)
         self._verify_response_body(response, expected_actions)
+
+    def test_process_analyze_yes_for_search_results_size_1(self):
+        text_paragraph_index = 13
+        text_start_offset = 183
+        text_end_offset = 185
+        document_term = 'DNA'
+        dictionary_matched_term = 'DNA'
+        desired_sbh_link = 'https://hub.sd2e.org/user/sd2e/design/DNA/1'
+        self.mock_sbol_dictionary_accessor.get_common_names_to_uri.return_value = {dictionary_matched_term: desired_sbh_link}
+        json_body = {addon_constants.DATA: {addon_constants.BUTTON_ID: {addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                                       addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                                       addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                                       addon_constants.ANALYZE_CONTENT_TERM: document_term,
+                                                                       addon_constants.DOCUMENT_ID: 'foo',
+                                                                       addon_constants.ANALYZE_LINK: desired_sbh_link,
+                                                                       addon_constants.ANALYZE_OFFSET: text_start_offset}}}
+        client_state = {addon_constants.ANALYZE_SEARCH_RESULTS: [{addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                                  addon_constants.ANALYZE_OFFSET: text_start_offset,
+                                                                  addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                                  addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                                  'uri': desired_sbh_link,
+                                                                  addon_constants.ANALYZE_LINK: None,
+                                                                  'text': document_term}],
+                        addon_constants.ANALYZE_SEARCH_RESULT_INDEX: 0}
+        response = self.ip_server.process_analyze_yes(json_body=json_body, client_state=client_state)
+        expected_actions = [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
+        self.assertEqual(response, expected_actions)
+
+    def test_process_analyze_yes_for_search_results_size_2(self):
+        text_paragraph_index = 13
+        text_start_offset = 183
+        text_end_offset = 185
+        document_term = 'DNA'
+        dictionary_matched_term = 'DNA'
+        desired_sbh_link = 'https://hub.sd2e.org/user/sd2e/design/DNA/1'
+        self.mock_sbol_dictionary_accessor.get_common_names_to_uri.return_value = {dictionary_matched_term: desired_sbh_link,
+                                                                                   'protein': 'https://hub.sd2e.org/user/sd2e/design/protein/1'}
+        json_body = {addon_constants.DATA: {addon_constants.BUTTON_ID: {addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                                       addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                                       addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                                       addon_constants.ANALYZE_CONTENT_TERM: document_term,
+                                                                       addon_constants.DOCUMENT_ID: 'foo',
+                                                                       addon_constants.ANALYZE_LINK: desired_sbh_link,
+                                                                       addon_constants.ANALYZE_OFFSET: text_start_offset}}}
+        client_state = {addon_constants.ANALYZE_SEARCH_RESULTS: [{addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                                  addon_constants.ANALYZE_OFFSET: text_start_offset,
+                                                                  addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                                  addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                                  'uri': desired_sbh_link,
+                                                                  addon_constants.ANALYZE_LINK: None,
+                                                                  'text': document_term},
+                                                                 {addon_constants.ANALYZE_PARAGRAPH_INDEX: 20,
+                                                                  addon_constants.ANALYZE_OFFSET: 15,
+                                                                  addon_constants.ANALYZE_END_OFFSET: 23,
+                                                                  addon_constants.ANALYZE_TERM: 'protein',
+                                                                  'uri': 'https://hub.sd2e.org/user/sd2e/design/protein/1',
+                                                                  addon_constants.ANALYZE_LINK: None,
+                                                                  'text': 'protein'}
+                                                                 ],
+                        addon_constants.ANALYZE_SEARCH_RESULT_INDEX: 0,
+                        'document_id': 'document_foo'}
+        response = self.ip_server.process_analyze_yes(json_body=json_body, client_state=client_state)
+        expected_actions = [intent_parser_view.link_text(text_paragraph_index, text_start_offset, text_end_offset, desired_sbh_link)]
+        expected_actions.extend(intent_parser_view.create_search_result_dialog('protein', 'https://hub.sd2e.org/user/sd2e/design/protein/1', 'protein', 'document_foo', 20, 15, 23))
+        self.assertEqual(response, expected_actions)
+
+    def test_process_analyze_no_for_search_results_size_1(self):
+        text_paragraph_index = 13
+        text_start_offset = 183
+        text_end_offset = 185
+        document_term = 'DNA'
+        dictionary_matched_term = 'DNA'
+        desired_sbh_link = 'https://hub.sd2e.org/user/sd2e/design/DNA/1'
+        self.mock_sbol_dictionary_accessor.get_common_names_to_uri.return_value = {dictionary_matched_term: desired_sbh_link}
+        json_body = {addon_constants.DATA: {
+            addon_constants.BUTTON_ID: {addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                        addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                        addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                        addon_constants.ANALYZE_CONTENT_TERM: document_term,
+                                        addon_constants.DOCUMENT_ID: 'foo',
+                                        addon_constants.ANALYZE_LINK: desired_sbh_link,
+                                        addon_constants.ANALYZE_OFFSET: text_start_offset}}}
+        client_state = {
+            addon_constants.ANALYZE_SEARCH_RESULTS: [{addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                      addon_constants.ANALYZE_OFFSET: text_start_offset,
+                                                      addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                      addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                      'uri': desired_sbh_link,
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': document_term}],
+            addon_constants.ANALYZE_SEARCH_RESULT_INDEX: 0}
+        response = self.ip_server.process_analyze_no(json_body=json_body, client_state=client_state)
+        expected_actions = [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
+        self.assertEqual(response, expected_actions)
+
+    def test_process_analyze_no_for_search_results_size_2(self):
+        text_paragraph_index = 13
+        text_start_offset = 183
+        text_end_offset = 185
+        document_term = 'DNA'
+        dictionary_matched_term = 'DNA'
+        desired_sbh_link = 'https://hub.sd2e.org/user/sd2e/design/DNA/1'
+        self.mock_sbol_dictionary_accessor.get_common_names_to_uri.return_value = {dictionary_matched_term: desired_sbh_link,
+                                                                                   'protein': 'https://hub.sd2e.org/user/sd2e/design/protein/1'}
+        json_body = {addon_constants.DATA: {addon_constants.BUTTON_ID: {addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                                       addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                                       addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                                       addon_constants.ANALYZE_CONTENT_TERM: document_term,
+                                                                       addon_constants.DOCUMENT_ID: 'foo',
+                                                                       addon_constants.ANALYZE_LINK: desired_sbh_link,
+                                                                       addon_constants.ANALYZE_OFFSET: text_start_offset}}}
+        client_state = {addon_constants.ANALYZE_SEARCH_RESULTS: [{addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                                  addon_constants.ANALYZE_OFFSET: text_start_offset,
+                                                                  addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                                  addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                                  'uri': desired_sbh_link,
+                                                                  addon_constants.ANALYZE_LINK: None,
+                                                                  'text': document_term},
+                                                                 {addon_constants.ANALYZE_PARAGRAPH_INDEX: 20,
+                                                                  addon_constants.ANALYZE_OFFSET: 15,
+                                                                  addon_constants.ANALYZE_END_OFFSET: 23,
+                                                                  addon_constants.ANALYZE_TERM: 'protein',
+                                                                  'uri': 'https://hub.sd2e.org/user/sd2e/design/protein/1',
+                                                                  addon_constants.ANALYZE_LINK: None,
+                                                                  'text': 'protein'}
+                                                                 ],
+                        addon_constants.ANALYZE_SEARCH_RESULT_INDEX: 0,
+                        'document_id': 'document_foo'}
+        response = self.ip_server.process_analyze_no(json_body=json_body, client_state=client_state)
+        expected_actions = intent_parser_view.create_search_result_dialog('protein', 'https://hub.sd2e.org/user/sd2e/design/protein/1', 'protein', 'document_foo', 20, 15, 23)
+        self.assertEqual(response, expected_actions)
+
+    def test_process_analyze_no_to_all_for_1_term_occurrence_with_search_results_size_1(self):
+        text_paragraph_index = 13
+        text_start_offset = 183
+        text_end_offset = 185
+        document_term = 'DNA'
+        dictionary_matched_term = 'DNA'
+        desired_sbh_link = 'https://hub.sd2e.org/user/sd2e/design/DNA/1'
+        self.mock_sbol_dictionary_accessor.get_common_names_to_uri.return_value = {
+            dictionary_matched_term: desired_sbh_link}
+        json_body = {addon_constants.DATA: {
+            addon_constants.BUTTON_ID: {addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                        addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                        addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                        addon_constants.ANALYZE_CONTENT_TERM: document_term,
+                                        addon_constants.DOCUMENT_ID: 'foo',
+                                        addon_constants.ANALYZE_LINK: desired_sbh_link,
+                                        addon_constants.ANALYZE_OFFSET: text_start_offset}}}
+        client_state = {
+            addon_constants.ANALYZE_SEARCH_RESULTS: [{addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                      addon_constants.ANALYZE_OFFSET: text_start_offset,
+                                                      addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                      addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                      'uri': desired_sbh_link,
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': document_term}
+                                                     ],
+            addon_constants.ANALYZE_SEARCH_RESULT_INDEX: 0}
+        response = self.ip_server.process_no_to_all(json_body=json_body, client_state=client_state)
+        expected_actions = [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
+        self.assertEqual(response, expected_actions)
+
+    def test_process_analyze_no_to_all_for_2_term_occurrences_with_search_results_size_2(self):
+        text_paragraph_index = 13
+        text_start_offset = 183
+        text_end_offset = 185
+        document_term = 'DNA'
+        dictionary_matched_term = 'DNA'
+        desired_sbh_link = 'https://hub.sd2e.org/user/sd2e/design/DNA/1'
+        self.mock_sbol_dictionary_accessor.get_common_names_to_uri.return_value = {
+            dictionary_matched_term: desired_sbh_link}
+        json_body = {addon_constants.DATA: {
+            addon_constants.BUTTON_ID: {addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                        addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                        addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                        addon_constants.ANALYZE_CONTENT_TERM: document_term,
+                                        addon_constants.DOCUMENT_ID: 'foo',
+                                        addon_constants.ANALYZE_LINK: desired_sbh_link,
+                                        addon_constants.ANALYZE_OFFSET: text_start_offset}}}
+        client_state = {
+            addon_constants.ANALYZE_SEARCH_RESULTS: [{addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                      addon_constants.ANALYZE_OFFSET: text_start_offset,
+                                                      addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                      addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                      'uri': desired_sbh_link,
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': document_term},
+                                                     {addon_constants.ANALYZE_PARAGRAPH_INDEX: 20,
+                                                      addon_constants.ANALYZE_OFFSET: 200,
+                                                      addon_constants.ANALYZE_END_OFFSET: 210,
+                                                      addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                      'uri': desired_sbh_link,
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': document_term}
+                                                     ],
+            addon_constants.ANALYZE_SEARCH_RESULT_INDEX: 0}
+        response = self.ip_server.process_no_to_all(json_body=json_body, client_state=client_state)
+        expected_actions = [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
+        self.assertEqual(response, expected_actions)
+
+    def test_process_analyze_yes_to_all_for_1_term_occurrence(self):
+        text_paragraph_index = 13
+        text_start_offset = 183
+        text_end_offset = 185
+        document_term = 'DNA'
+        dictionary_matched_term = 'DNA'
+        desired_sbh_link = 'https://hub.sd2e.org/user/sd2e/design/DNA/1'
+        self.mock_sbol_dictionary_accessor.get_common_names_to_uri.return_value = {
+            dictionary_matched_term: desired_sbh_link}
+        json_body = {addon_constants.DATA: {
+            addon_constants.BUTTON_ID: {addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                        addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                        addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                        addon_constants.ANALYZE_CONTENT_TERM: document_term,
+                                        addon_constants.DOCUMENT_ID: 'foo',
+                                        addon_constants.ANALYZE_LINK: desired_sbh_link,
+                                        addon_constants.ANALYZE_OFFSET: text_start_offset}}}
+        client_state = {
+            addon_constants.ANALYZE_SEARCH_RESULTS: [{addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                      addon_constants.ANALYZE_OFFSET: text_start_offset,
+                                                      addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                      addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                      'uri': desired_sbh_link,
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': document_term}
+                                                     ],
+            addon_constants.ANALYZE_SEARCH_RESULT_INDEX: 0}
+        response = self.ip_server.process_link_all(json_body=json_body, client_state=client_state)
+        expected_actions = [intent_parser_view.link_text(text_paragraph_index, text_start_offset, text_end_offset, desired_sbh_link),
+                            intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
+        self.assertEqual(response, expected_actions)
+
+    def test_process_analyze_yes_to_all_for_2_term_occurrences_with_search_results_size_2(self):
+        text_paragraph_index = 13
+        text_start_offset = 183
+        text_end_offset = 185
+        document_term = 'DNA'
+        dictionary_matched_term = 'DNA'
+        desired_sbh_link = 'https://hub.sd2e.org/user/sd2e/design/DNA/1'
+        self.mock_sbol_dictionary_accessor.get_common_names_to_uri.return_value = {
+            dictionary_matched_term: desired_sbh_link}
+        json_body = {addon_constants.DATA: {
+            addon_constants.BUTTON_ID: {addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                        addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                        addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                        addon_constants.ANALYZE_CONTENT_TERM: document_term,
+                                        addon_constants.DOCUMENT_ID: 'foo',
+                                        addon_constants.ANALYZE_LINK: desired_sbh_link,
+                                        addon_constants.ANALYZE_OFFSET: text_start_offset}}}
+        client_state = {
+            addon_constants.ANALYZE_SEARCH_RESULTS: [{addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                      addon_constants.ANALYZE_OFFSET: text_start_offset,
+                                                      addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                      addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                      'uri': desired_sbh_link,
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': document_term},
+                                                     {addon_constants.ANALYZE_PARAGRAPH_INDEX: 20,
+                                                      addon_constants.ANALYZE_OFFSET: 200,
+                                                      addon_constants.ANALYZE_END_OFFSET: 210,
+                                                      addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                      'uri': desired_sbh_link,
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': document_term}
+                                                     ],
+            addon_constants.ANALYZE_SEARCH_RESULT_INDEX: 0}
+        response = self.ip_server.process_link_all(json_body=json_body, client_state=client_state)
+        expected_actions = [intent_parser_view.link_text(text_paragraph_index, text_start_offset, text_end_offset, desired_sbh_link),
+                            intent_parser_view.link_text(20, 200, 210, desired_sbh_link),
+                            intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
+        self.assertEqual(response, expected_actions)
+
+    def test_process_analyze_yes_to_all_for_2_term_occurrences_with_search_results_size_3(self):
+        text_paragraph_index = 13
+        text_start_offset = 183
+        text_end_offset = 185
+        document_term = 'DNA'
+        dictionary_matched_term = 'DNA'
+        desired_sbh_link = 'https://hub.sd2e.org/user/sd2e/design/DNA/1'
+        self.mock_sbol_dictionary_accessor.get_common_names_to_uri.return_value = {
+            dictionary_matched_term: desired_sbh_link,
+            'protein': 'https://hub.sd2e.org/user/sd2e/design/protein/1'}
+        json_body = {addon_constants.DATA: {
+            addon_constants.BUTTON_ID: {addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                        addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                        addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                        addon_constants.ANALYZE_CONTENT_TERM: document_term,
+                                        addon_constants.DOCUMENT_ID: 'foo',
+                                        addon_constants.ANALYZE_LINK: desired_sbh_link,
+                                        addon_constants.ANALYZE_OFFSET: text_start_offset}}}
+        client_state = {
+            addon_constants.ANALYZE_SEARCH_RESULTS: [{addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                      addon_constants.ANALYZE_OFFSET: text_start_offset,
+                                                      addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                      addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                      'uri': desired_sbh_link,
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': document_term},
+                                                     {addon_constants.ANALYZE_PARAGRAPH_INDEX: 20,
+                                                      addon_constants.ANALYZE_OFFSET: 200,
+                                                      addon_constants.ANALYZE_END_OFFSET: 210,
+                                                      addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                      'uri': desired_sbh_link,
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': document_term},
+                                                     {addon_constants.ANALYZE_PARAGRAPH_INDEX: 20,
+                                                      addon_constants.ANALYZE_OFFSET: 15,
+                                                      addon_constants.ANALYZE_END_OFFSET: 23,
+                                                      addon_constants.ANALYZE_TERM: 'protein',
+                                                      'uri': 'https://hub.sd2e.org/user/sd2e/design/protein/1',
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': 'protein'}
+                                                     ],
+            addon_constants.ANALYZE_SEARCH_RESULT_INDEX: 0,
+            'document_id': 'document_foo'}
+        response = self.ip_server.process_link_all(json_body=json_body, client_state=client_state)
+        expected_actions = [intent_parser_view.link_text(text_paragraph_index, text_start_offset, text_end_offset, desired_sbh_link),
+                            intent_parser_view.link_text(20, 200, 210, desired_sbh_link)]
+        expected_actions.extend(intent_parser_view.create_search_result_dialog('protein', 'https://hub.sd2e.org/user/sd2e/design/protein/1', 'protein', 'document_foo', 20, 15, 23))
+        self.assertEqual(response, expected_actions)
+
+    def test_process_analyze_never_link_terms_for_1_occurrence_with_search_results_size_1(self):
+        text_paragraph_index = 13
+        text_start_offset = 183
+        text_end_offset = 185
+        document_term = 'foo'
+        dictionary_matched_term = 'foo'
+        desired_sbh_link = 'https://hub.sd2e.org/user/sd2e/design/DNA/1'
+
+        json_body = {addon_constants.DATA: {
+            addon_constants.BUTTON_ID: {addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                        addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                        addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                        addon_constants.ANALYZE_CONTENT_TERM: document_term,
+                                        addon_constants.DOCUMENT_ID: 'foo',
+                                        addon_constants.ANALYZE_LINK: desired_sbh_link,
+                                        addon_constants.ANALYZE_OFFSET: text_start_offset}}}
+        client_state = {
+            addon_constants.ANALYZE_SEARCH_RESULTS: [{addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                      addon_constants.ANALYZE_OFFSET: text_start_offset,
+                                                      addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                      addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                      'uri': desired_sbh_link,
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': document_term}
+                                                     ],
+            addon_constants.ANALYZE_SEARCH_RESULT_INDEX: 0,
+            addon_constants.USER_ID: 'admin',
+            'document_id': 'document_foo'}
+        response = self.ip_server.process_never_link(json_body=json_body, client_state=client_state)
+        expected_actions = [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
+        self.assertEqual(response, expected_actions)
+
+    def test_process_analyze_never_link_terms_for_1_occurrence_with_search_results_size_3(self):
+        text_paragraph_index = 13
+        text_start_offset = 183
+        text_end_offset = 185
+        document_term = 'foo'
+        dictionary_matched_term = 'foo'
+        desired_sbh_link = 'https://hub.sd2e.org/user/sd2e/design/DNA/1'
+
+        json_body = {addon_constants.DATA: {
+            addon_constants.BUTTON_ID: {addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                        addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                        addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                        addon_constants.ANALYZE_CONTENT_TERM: document_term,
+                                        addon_constants.DOCUMENT_ID: 'foo',
+                                        addon_constants.ANALYZE_LINK: desired_sbh_link,
+                                        addon_constants.ANALYZE_OFFSET: text_start_offset}}}
+        client_state = {
+            addon_constants.ANALYZE_SEARCH_RESULTS: [{addon_constants.ANALYZE_PARAGRAPH_INDEX: text_paragraph_index,
+                                                      addon_constants.ANALYZE_OFFSET: text_start_offset,
+                                                      addon_constants.ANALYZE_END_OFFSET: text_end_offset,
+                                                      addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                      'uri': desired_sbh_link,
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': document_term},
+                                                     {addon_constants.ANALYZE_PARAGRAPH_INDEX: 20,
+                                                      addon_constants.ANALYZE_OFFSET: 200,
+                                                      addon_constants.ANALYZE_END_OFFSET: 210,
+                                                      addon_constants.ANALYZE_TERM: dictionary_matched_term,
+                                                      'uri': desired_sbh_link,
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': document_term},
+                                                     {addon_constants.ANALYZE_PARAGRAPH_INDEX: 20,
+                                                      addon_constants.ANALYZE_OFFSET: 15,
+                                                      addon_constants.ANALYZE_END_OFFSET: 23,
+                                                      addon_constants.ANALYZE_TERM: 'protein',
+                                                      'uri': 'https://hub.sd2e.org/user/sd2e/design/protein/1',
+                                                      addon_constants.ANALYZE_LINK: None,
+                                                      'text': 'protein'}
+                                                     ],
+            addon_constants.ANALYZE_SEARCH_RESULT_INDEX: 0,
+            addon_constants.USER_ID: 'admin',
+            'document_id': 'document_foo'}
+        response = self.ip_server.process_never_link(json_body=json_body, client_state=client_state)
+        expected_actions = intent_parser_view.create_search_result_dialog('protein', 'https://hub.sd2e.org/user/sd2e/design/protein/1', 'protein', 'document_foo', 20, 15, 23)
+        self.assertEqual(response, expected_actions)
 
     def _verify_response_status(self, response, expected_status):
         header_from_status = 'HTTP/1.1 %s %s' % (expected_status.value, expected_status.name)

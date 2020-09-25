@@ -2,7 +2,7 @@ from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
-from intent_parser.accessor.sbol_dictionary_accessor import StrainMapping
+from intent_parser.experiment_variables.experiment_variables import ExperimentVariable
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.tests.test_util as test_utils
 import unittest
@@ -89,7 +89,7 @@ class MeasurementTableTest(unittest.TestCase):
         data_row = test_utils.create_measurement_table_row(strain_cell=strains)
         ip_table.add_row(data_row)
 
-        strain_obj = StrainMapping('https://foo.com', 'myLab', 'AND_00', lab_names={'test_strain', 'foo-strain'})
+        strain_obj = ExperimentVariable('https://foo.com', 'myLab', 'AND_00', lab_names={'test_strain', 'foo-strain'})
         strain_mapping = {'https://foo.com': strain_obj}
 
         meas_table = MeasurementTable(ip_table, strain_mapping=strain_mapping)
@@ -109,7 +109,7 @@ class MeasurementTableTest(unittest.TestCase):
         data_row = test_utils.create_measurement_table_row(strain_cell=strains)
         ip_table.add_row(data_row)
 
-        strain_obj = StrainMapping('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'myLab', 'AND_00', lab_names={'test_strain', 'foo-strain'})
+        strain_obj = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'myLab', 'AND_00', lab_names={'test_strain', 'foo-strain'})
         strain_mapping = {'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1': strain_obj}
 
         meas_table = MeasurementTable(ip_table, strain_mapping=strain_mapping)
@@ -124,7 +124,7 @@ class MeasurementTableTest(unittest.TestCase):
         data_row = test_utils.create_measurement_table_row(strain_cell=strains)
         ip_table.add_row(data_row)
 
-        strain_obj = StrainMapping('https://foo.com', dc_constants.LAB_TACC, 'AND_00', lab_names={'UWBF_7376'})
+        strain_obj = ExperimentVariable('https://foo.com', dc_constants.LAB_TACC, 'AND_00', lab_names={'UWBF_7376'})
         strain_mapping = {'https://foo.com': strain_obj}
 
         meas_table = MeasurementTable(ip_table, strain_mapping=strain_mapping)
@@ -145,8 +145,8 @@ class MeasurementTableTest(unittest.TestCase):
         data_row = test_utils.create_measurement_table_row(strain_cell=strains)
         ip_table.add_row(data_row)
 
-        strain1_obj = StrainMapping(strain_link1, 'myLab', 'AND_00', lab_names={lab_strain1})
-        strain2_obj = StrainMapping(strain_link2, 'myLab', 'AND_01', lab_names={lab_strain2})
+        strain1_obj = ExperimentVariable(strain_link1, 'myLab', 'AND_00', lab_names={lab_strain1})
+        strain2_obj = ExperimentVariable(strain_link2, 'myLab', 'AND_01', lab_names={lab_strain2})
         strain_mapping = {strain_link1: strain1_obj,
                           strain_link2: strain2_obj}
 
