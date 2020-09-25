@@ -118,28 +118,11 @@ class IntentParser(object):
     def process_structure_request(self):
         self.process_tables()
         filtered_tables = self._filter_tables_by_type()
-        validation_successful = self.validate_structure_request(filtered_tables)
-        if validation_successful:
-            self._generate_request(filtered_tables[TableType.CONTROL],
-                                   filtered_tables[TableType.LAB],
-                                   filtered_tables[TableType.MEASUREMENT],
-                                   filtered_tables[TableType.PARAMETER])
-            self._validate_schema()
-
-    def validate_structure_request(self, filtered_tables):
-        """Check if filtered tables contain a lab table, a measurement table, and a parameter table.
-        Control tables are optional and will be ignored in this check.
-        """
-        if not filtered_tables[TableType.LAB]:
-            self.validation_errors.append('Cannot execute experiment without a lab table.')
-            return False
-        if not filtered_tables[TableType.MEASUREMENT]:
-            self.validation_errors.append('Cannot execute experiment without a measurement table.')
-            return False
-        if not filtered_tables[TableType.PARAMETER]:
-            self.validation_errors.append('Cannot execute experiment without a parameter table.')
-            return False
-        return True
+        self._generate_request(filtered_tables[TableType.CONTROL],
+                               filtered_tables[TableType.LAB],
+                               filtered_tables[TableType.MEASUREMENT],
+                               filtered_tables[TableType.PARAMETER])
+        self._validate_schema()
 
     def process_experiment_run_request(self):
         self.process_tables()
@@ -421,6 +404,7 @@ class IntentParser(object):
     def _process_control_tables(self, control_tables):
         ref_controls = {}
         if not control_tables:
+            self.validation_warnings.append('No controls table to parse from document.')
             return ref_controls
         
         for table in control_tables:
@@ -515,6 +499,13 @@ class IntentParser(object):
             self.validation_errors.extend([err.get_message()])
     
     def _process_parameter_table(self, parameter_tables, generate_experiment_request=False):
+        if not parameter_tables:
+            if generate_experiment_request:
+                self.validation_errors.append('Unable to generate an experiment request without a parameter table.')
+            else:
+                self.validation_warnings.append('No parameter table to parse from document.')
+            return []
+
         if len(parameter_tables) > 1:
             message = ('There are more than one parameter table specified in this experiment.'
                        'Only the last parameter table identified in the document will be used for generating a request.')
