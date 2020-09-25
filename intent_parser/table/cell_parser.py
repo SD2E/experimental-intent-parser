@@ -165,7 +165,7 @@ class CellParser(object):
         list_of_contents = []
         tokens = self._cell_tokenizer.tokenize(text, keep_skip=False)
         if len(tokens) < 1:
-            raise TableException('Invalid value: %s does not contain a name' % text.get_text())
+            raise TableException('Invalid value: %s does not contain a name' % text.get_matched_term())
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
         if cell_type == 'NAME_VALUE_UNIT_TIMEPOINT':
             label, value, unit, timepoint_value, timepoint_unit = self._get_name_values_unit_timepoint(tokens)
