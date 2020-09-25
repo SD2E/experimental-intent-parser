@@ -653,7 +653,7 @@ class IntentParserServer(object):
 
     def get_paragraph_text(self, paragraph):
         elements = paragraph['elements']
-        paragraph_text = '';
+        paragraph_text = ''
 
         for element_index in range(len(elements)):
             element = elements[element_index]
@@ -928,16 +928,25 @@ class IntentParserServer(object):
         """
         Handle "Yes" button as part of analyze document.
         """
-        search_results = client_state['search_results']
-        search_result_index = client_state['search_result_index']
+        search_results = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS]
+        search_result_index = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX]
         search_result = search_results[search_result_index]
 
-        if type(json_body['data']['buttonId']) is dict:
-            new_link = json_body['data']['buttonId']['link']
+        if type(json_body[ip_addon_constants.DATA][ip_addon_constants.BUTTON_ID]) is dict:
+            new_link = json_body[ip_addon_constants.DATA][ip_addon_constants.BUTTON_ID][ip_addon_constants.ANALYZE_LINK]
         else:
             new_link = None
 
-        actions = self.add_link(search_result, new_link);
+        actions = self.add_link(search_result, new_link)
+        curr_idx = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX]
+        next_idx = curr_idx + 1
+        new_search_results = search_results[1:]
+        if len(new_search_results) < 1:
+            return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
+        new_idx = new_search_results.index(search_results[next_idx])
+        # Update client state
+        client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS] = new_search_results
+        client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX] = new_idx
         actions += self.report_search_results(client_state)
         return actions
 
@@ -945,19 +954,18 @@ class IntentParserServer(object):
         """
         Handle "No" button as part of analyze document.
         """
-        json_body  # Remove unused warning
         # Find out what term to point to
-        curr_idx = client_state['search_result_index']
+        curr_idx = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX]
         next_idx = curr_idx + 1
-        search_results = client_state['search_results']
+        search_results = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS]
 
         new_search_results = search_results[1:]
         if len(new_search_results) < 1:
             return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
         new_idx = new_search_results.index(search_results[next_idx])
         # Update client state
-        client_state['search_results'] = new_search_results
-        client_state['search_result_index'] = new_idx
+        client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS] = new_search_results
+        client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX] = new_idx
         return self.report_search_results(client_state)
 
     def process_link_all(self, json_body, client_state):
@@ -977,19 +985,16 @@ class IntentParserServer(object):
             new_link = None
 
         actions = []
-
         for term_result in term_search_results:
             actions += self.add_link(term_result, new_link);
 
         actions += self.report_search_results(client_state)
-
         return actions
 
     def process_no_to_all(self, json_body, client_state):
         """
         Handle "No to all" button as part of analyze document.
         """
-        json_body # Remove unused warning
         curr_idx = client_state['search_result_index']
         next_idx = curr_idx + 1
         search_results = client_state['search_results']
@@ -1016,25 +1021,23 @@ class IntentParserServer(object):
         Handle "Never Link" button as part of analyze document.
         This works like "No to all" but also stores the association to ignore it in subsequent runs.
         """
-        json_body # Remove unused warning
+        curr_idx = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX]
+        search_results = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS]
 
-        curr_idx = client_state['search_result_index']
-        search_results = client_state['search_results']
-
-        dict_term = search_results[curr_idx]['term']
+        dict_term = search_results[curr_idx][ip_addon_constants.ANALYZE_TERM]
         content_text = search_results[curr_idx]['text']
 
-        userId = client_state['user_id']
+        userId = client_state[ip_addon_constants.USER_ID]
 
         # Make sure we have a list of link preferences for this userId
-        if not userId in self.analyze_never_link:
+        if userId not in self.analyze_never_link:
             link_pref_file = os.path.join(self.link_pref_path, userId + '.json')
             if os.path.exists(link_pref_file):
                 try:
                     with open(link_pref_file, 'r') as fin:
                         self.analyze_never_link[userId] = json.load(fin)
                         logger.info('Loaded link preferences for userId, path: %s' % link_pref_file)
-                except:
+                except Exception as e:
                     logger.error('ERROR: Failed to load link preferences file!')
             else:
                 self.analyze_never_link[userId] = {}
@@ -1051,7 +1054,7 @@ class IntentParserServer(object):
         try:
             with open(link_pref_file, 'w') as fout:
                 json.dump(self.analyze_never_link[userId], fout)
-        except:
+        except Exception as e:
             logger.error('ERROR: Failed to write link preferences file!')
 
         # Remove all of these associations from the results
@@ -1063,7 +1066,7 @@ class IntentParserServer(object):
 
         # Are we at the end? Then just exit
         if next_idx >= len(search_results):
-            return []
+            return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
 
         term_to_ignore = search_results[curr_idx]['term']
         text_to_ignore = search_results[curr_idx]['text']
@@ -1583,16 +1586,16 @@ class IntentParserServer(object):
         return (json_body, client_state)
     
     def add_link(self, search_result, new_link=None):
+        """ Add a hyperlink to the desired search_result
         """
-        """
-        paragraph_index = search_result['paragraph_index']
-        offset = search_result['offset']
-        end_offset = search_result['end_offset']
+        paragraph_index = search_result[ip_addon_constants.ANALYZE_PARAGRAPH_INDEX]
+        offset = search_result[ip_addon_constants.ANALYZE_OFFSET]
+        end_offset = search_result[ip_addon_constants.ANALYZE_END_OFFSET]
         if new_link is None:
             link = search_result['uri']
         else:
             link = new_link
-        search_result['link'] = link
+        search_result[ip_addon_constants.ANALYZE_LINK] = link
 
         action = intent_parser_view.link_text(paragraph_index, offset,
                                 end_offset, link)
