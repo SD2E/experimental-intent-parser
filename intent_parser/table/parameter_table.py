@@ -6,6 +6,7 @@ import intent_parser.table.cell_parser as cell_parser
 import json
 import logging
 
+
 class ParameterTable(object):
     """
     Process information from Intent Parser's Parameter Table
@@ -13,22 +14,22 @@ class ParameterTable(object):
 
     _logger = logging.getLogger('intent_parser')
 
-    FIELD_WITH_BOOLEAN_VALUE = [intent_parser_constants.PARAMETER_MEASUREMENT_INFO_36_HR_READ, 
+    FIELD_WITH_BOOLEAN_VALUE = [intent_parser_constants.PARAMETER_MEASUREMENT_INFO_36_HR_READ,
                                 intent_parser_constants.PARAMETER_RUN_INFO_READ_EACH_RECOVER,
                                 intent_parser_constants.PARAMETER_RUN_INFO_READ_EACH_INDUCTION,
-                                intent_parser_constants.PARAMETER_RUN_INFO_SAVE_FOR_RNASEQ, 
-                                intent_parser_constants.PARAMETER_RUN_INFO_SKIP_FIRST_FLOW, 
-                                intent_parser_constants.PARAMETER_RUN_INFO_ONLY_ENDPOINT_FLOW, 
+                                intent_parser_constants.PARAMETER_RUN_INFO_SAVE_FOR_RNASEQ,
+                                intent_parser_constants.PARAMETER_RUN_INFO_SKIP_FIRST_FLOW,
+                                intent_parser_constants.PARAMETER_RUN_INFO_ONLY_ENDPOINT_FLOW,
                                 intent_parser_constants.PARAMETER_VALIDATE_SAMPLES]
-    
+
     FIELD_WITH_FLOAT_VALUE = [intent_parser_constants.PARAMETER_PLATE_READER_INFO_GAIN]
-    
+
     FIELD_WITH_NESTED_STRUCTURE = [intent_parser_constants.PARAMETER_INDUCTION_INFO_REAGENTS,
                                    intent_parser_constants.PARAMETER_INDUCTION_INFO_REAGENTS_INDUCER,
                                    intent_parser_constants.PARAMETER_INDUCTION_INFO_SAMPLING_INFO,
                                    intent_parser_constants.PARAMETER_MEASUREMENT_INFO_FLOW_INFO,
-                                   intent_parser_constants.PARAMETER_MEASUREMENT_INFO_PLATE_READER_INFO, 
-                                   intent_parser_constants.PARAMETER_REAGENT_INFO_INDUCER_INFO, 
+                                   intent_parser_constants.PARAMETER_MEASUREMENT_INFO_PLATE_READER_INFO,
+                                   intent_parser_constants.PARAMETER_REAGENT_INFO_INDUCER_INFO,
                                    intent_parser_constants.PARAMETER_REAGENT_INFO_KILL_SWITCH,
                                    intent_parser_constants.PARAMETER_RECOVERY_INFO]
 
@@ -56,20 +57,24 @@ class ParameterTable(object):
         self._parameter_fields = parameter_fields
         self._validation_errors = []
         self._validation_warnings = []
-        self._intent_parser_table = intent_parser_table 
+        self._intent_parser_table = intent_parser_table
         self._table_caption = None
 
     def process_table(self):
         self._table_caption = self._intent_parser_table.caption()
-        for row_index in range(self._intent_parser_table.data_row_start_index(), self._intent_parser_table.number_of_rows()):
+        for row_index in range(self._intent_parser_table.data_row_start_index(),
+                               self._intent_parser_table.number_of_rows()):
             self._process_row(row_index)
 
     def get_experiment(self):
         experiment_result = self.param_intent.to_experiment()
         for key, value in experiment_result.items():
-            if key == intent_parser_constants.DEFAULT_PARAMETERS and not value:
+            if key == intent_parser_constants.PARAMETER_CONTAINER_SEARCH_STRING and value is None:
+                self.param_intent.set_field(intent_parser_constants.PARAMETER_CONTAINER_SEARCH_STRING,
+                                            dc_constants.GENERATE)
+            if key == intent_parser_constants.DEFAULT_PARAMETERS and value is None:
                 self._validation_warnings.append('%s is emtpy' % intent_parser_constants.DEFAULT_PARAMETERS)
-            if value is None and key is not intent_parser_constants.PARAMETER_BASE_DIR:
+            if key is not intent_parser_constants.PARAMETER_BASE_DIR and value is None:
                 self._validation_warnings.append('Parameter Table is missing a value for %s.' % (key))
         return experiment_result
 
@@ -77,7 +82,8 @@ class ParameterTable(object):
         return self.param_intent.to_structured_request()
 
     def set_experiment_ref(self, experiment_ref_url):
-        self.param_intent.set_field(intent_parser_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN, experiment_ref_url)
+        self.param_intent.set_field(intent_parser_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN,
+                                    experiment_ref_url)
 
     def _flatten_parameter_values(self, param_field, param_value_list):
         if len(param_value_list) == 0:
@@ -115,14 +121,17 @@ class ParameterTable(object):
             elif intent_parser_constants.HEADER_PARAMETER_VALUE_TYPE == cell_type:
                 cell_param_value = cell
         if ((cell_param_field is None) or (not cell_param_field.get_text().strip())) and cell_param_value:
-            self._validation_errors.append('Parameter table cannot assign %s as a parameter value to an empty parameter.' % cell_param_value.get_text())
+            self._validation_errors.append(
+                'Parameter table cannot assign %s as a parameter value to an empty parameter.' % cell_param_value.get_text())
             return
         if cell_param_field:
             if cell_param_value is None:
-                self._logger.error('Unable to detect a table cell for a parameter value assigned to %s' % cell_param_field.get_text())
+                self._logger.error(
+                    'Unable to detect a table cell for a parameter value assigned to %s' % cell_param_field.get_text())
                 return
-        self._parse_parameter_field_value(self._get_parameter_field(cell_param_field), cell_param_value.get_text().strip())
-                  
+        self._parse_parameter_field_value(self._get_parameter_field(cell_param_field),
+                                          cell_param_value.get_text().strip())
+
     def _parse_parameter_field_value(self, parameter_field, parameter_value):
         if parameter_field in self.FIELD_WITH_FLOAT_VALUE and parameter_value:
             self.process_numbered_parameter(parameter_field, parameter_value, float)
@@ -143,24 +152,26 @@ class ParameterTable(object):
                     computed_value = [json_parameter_value]
                     self._flatten_parameter_values(parameter_field, computed_value)
             except JSONDecodeError as err:
-                errors = ['Parameter table has invalid Parameter Value: %s is an invalid json format.' % (parameter_value)]
+                errors = [
+                    'Parameter table has invalid Parameter Value: %s is an invalid json format.' % (parameter_value)]
                 self._validation_errors.append(errors)
         elif parameter_field == intent_parser_constants.PARAMETER_CONTAINER_SEARCH_STRING:
             if not parameter_value:
                 self._flatten_parameter_values(parameter_field, [dc_constants.GENERATE])
             else:
-                self._flatten_parameter_values(parameter_field, [parameter_value])
+                self.process_name_parameter(parameter_field, parameter_value)
         else:
             if parameter_value:
                 computed_value = cell_parser.PARSER.transform_strateos_string(parameter_value)
                 self._flatten_parameter_values(parameter_field, computed_value)
-    
+
     def _get_parameter_field(self, cell):
         parameter = cell.get_text().strip()
         if parameter.lower() == intent_parser_constants.PARAMETER_PROTOCOL:
             return parameter.lower()
         if parameter not in self._parameter_fields:
-            error = ['Parameter table has invalid %s value: %s does not map to a TACC UID in the SBOL dictionary.' % (intent_parser_constants.HEADER_PARAMETER_VALUE, parameter)]
+            error = ['Parameter table has invalid %s value: %s does not map to a TACC UID in the SBOL dictionary.' % (
+            intent_parser_constants.HEADER_PARAMETER_VALUE, parameter)]
             self._validation_errors.append(error)
             return ''
         return self._parameter_fields[parameter]
@@ -171,19 +182,16 @@ class ParameterTable(object):
     def process_boolean_parameter(self, parameter_field, parameter_value):
         boolean_value = cell_parser.PARSER.process_boolean_flag(parameter_value)
         if boolean_value is None:
-            message = 'Parameter table has invalid %s value: %s should be a boolean value' % (parameter_field, parameter_value)
+            message = 'Parameter table has invalid %s value: %s should be a boolean value' % (
+            parameter_field, parameter_value)
             self._validation_errors.append(message)
         else:
             computed_value = [boolean_value]
             self._flatten_parameter_values(parameter_field, computed_value)
 
     def process_name_parameter(self, parameter_field, parameter_value):
-        if cell_parser.PARSER.is_name(parameter_value):
-            computed_value = [value for value, _ in cell_parser.PARSER.process_names_with_uri(parameter_value)]
-            self._flatten_parameter_values(parameter_field, computed_value)
-        else:
-            message = 'Parameter table has invalid %s value: %s should only contain a list of names' % (parameter_field, parameter_value)
-            self._validation_errors.append(message)
+        computed_value = [value for value, _ in cell_parser.PARSER.process_names_with_uri(parameter_value)]
+        self._flatten_parameter_values(parameter_field, computed_value)
 
     def process_numbered_parameter(self, parameter_field, parameter_value, number_convert):
         try:
@@ -192,6 +200,7 @@ class ParameterTable(object):
         except TableException as err:
             message = 'Parameter table has invalid %s value: %s' % (parameter_field, err)
             self._validation_errors.append(message)
+
 
 class _ParameterIntent(object):
 
@@ -217,7 +226,8 @@ class _ParameterIntent(object):
             raise TableException('Parameter Table cannot identify row of type %s.' % field)
 
         if self.intent[field] is not None:
-            raise TableException('Parameter Table has a conflict for %s. Found %s and %s.' % (field, self.intent[field], value))
+            raise TableException(
+                'Parameter Table has a conflict for %s. Found %s and %s.' % (field, self.intent[field], value))
 
         self.intent[field] = value
 
@@ -233,4 +243,3 @@ class _ParameterIntent(object):
 
     def to_structured_request(self):
         return self.intent[intent_parser_constants.DEFAULT_PARAMETERS]
-

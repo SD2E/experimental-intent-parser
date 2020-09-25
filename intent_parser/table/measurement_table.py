@@ -165,7 +165,11 @@ class MeasurementTable(object):
             self._validation_errors.append(message)
     
     def _process_control(self, cell, control_tables, measurement):
-        result = [] 
+        result = []
+        if not control_tables:
+            self._validation_errors.append('Unable to process controls from a Measurement table without Control Tables.')
+            return result
+
         if cell.get_bookmark_ids():
             result = self._process_control_with_bookmarks(cell, control_tables)
 

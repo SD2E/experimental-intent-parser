@@ -367,22 +367,23 @@ class IntentParserServer(object):
         docBeingProcessed = document_id in self.analyze_processing_map
         self.analyze_processing_map_lock.release()
 
-        if docBeingProcessed: # Doc being processed, check progress
+        if docBeingProcessed:  # Doc being processed, check progress
             time.sleep(self.ANALYZE_PROGRESS_PERIOD)
 
             self.analyze_processing_map_lock.acquire()
             progress_percent = self.analyze_processing_map[document_id]
             self.analyze_processing_map_lock.release()
 
-            if progress_percent < 100: # Not done yet, update client
+            if progress_percent < 100:  # Not done yet, update client
                 action = {}
                 action['action'] = 'updateProgress'
                 action['progress'] = str(int(progress_percent * 100))
                 actions = {'actions': [action]}
                 return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-            else: # Document is analyzed, start navigating results
+            else:  # Document is analyzed, start navigating results
                 try:
-                    self.analyze_processing_lock[document_id].acquire() # This ensures we've waited for the processing thread to release the client connection
+                    self.analyze_processing_lock[
+                        document_id].acquire()  # This ensures we've waited for the processing thread to release the client connection
                     (__, client_state) = self.get_client_state(http_message)
                     actionList = self.report_search_results(client_state)
                     actions = {'actions': actionList}
@@ -391,7 +392,7 @@ class IntentParserServer(object):
                     self.analyze_processing_map.pop(document_id)
                     self.analyze_processing_lock[document_id].release()
                     self.release_connection(client_state)
-        else: # Doc not being processed, spawn new processing thread
+        else:  # Doc not being processed, spawn new processing thread
             self.analyze_processing_map[document_id] = 0
             analyze_thread = threading.Thread(
                 target=self._initiate_document_analysis,
@@ -401,7 +402,7 @@ class IntentParserServer(object):
             dialogAction = intent_parser_view.progress_sidebar_dialog()
             actions = {'actions': [dialogAction]}
             return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-    
+
     def report_search_results(self, client_state):
         search_results = client_state['search_results']
         item_map = self.sbol_dictionary.get_common_names_to_uri()
@@ -654,7 +655,7 @@ class IntentParserServer(object):
 
     def get_paragraph_text(self, paragraph):
         elements = paragraph['elements']
-        paragraph_text = '';
+        paragraph_text = ''
 
         for element_index in range(len(elements)):
             element = elements[element_index]
@@ -823,29 +824,31 @@ class IntentParserServer(object):
 
         return actions
 
-    
+    def _get_button_id(self, data):
+        if ip_addon_constants.BUTTON_ID not in data:
+            error_message = 'Expected to get %s assigned to this HTTP data: %s but none was found.' % (ip_addon_constants.BUTTON_ID, data)
+            raise ConnectionException(HTTPStatus.BAD_REQUEST, error_message)
+
+        if type(data[ip_addon_constants.BUTTON_ID]) is dict:
+            buttonDat = data[ip_addon_constants.BUTTON_ID]
+            button_id = buttonDat[ip_addon_constants.BUTTON_ID]
+            return button_id
+        return data[ip_addon_constants.BUTTON_ID]
+
     def process_button_click(self, http_message):
         (json_body, client_state) = self.get_client_state(http_message)
 
         if 'data' not in json_body:
-            errorMessage = 'Missing data'
-            raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
+            error_message = 'Missing data'
+            raise ConnectionException(HTTPStatus.BAD_REQUEST, error_message)
         data = json_body['data']
 
-        if 'buttonId' not in data:
-            errorMessage = 'data missing buttonId'
-            raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
-        if type(data['buttonId']) is dict:
-            buttonDat = data['buttonId']
-            buttonId = buttonDat['buttonId']
-        else:
-            buttonId = data['buttonId']
-
-        method = getattr( self, buttonId )
+        button_id = self._get_button_id(data)
+        method = getattr(self, button_id)
 
         try:
-            actionList = method(json_body, client_state)
-            actions = {'actions': actionList}
+            action_list = method(json_body, client_state)
+            actions = {'actions': action_list}
             return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
         except Exception as e:
             raise e
@@ -921,22 +924,31 @@ class IntentParserServer(object):
             dialog_action = intent_parser_view.invalid_request_model_dialog('Structured request validation: Failed!', all_messages)
         actionList = [dialog_action]
         actions = {'actions': actionList}
-        return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')   
+        return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
 
     def process_analyze_yes(self, json_body, client_state):
         """
         Handle "Yes" button as part of analyze document.
         """
-        search_results = client_state['search_results']
-        search_result_index = client_state['search_result_index'] - 1
+        search_results = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS]
+        search_result_index = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX]
         search_result = search_results[search_result_index]
 
-        if type(json_body['data']['buttonId']) is dict:
-            new_link = json_body['data']['buttonId']['link']
+        if type(json_body[ip_addon_constants.DATA][ip_addon_constants.BUTTON_ID]) is dict:
+            new_link = json_body[ip_addon_constants.DATA][ip_addon_constants.BUTTON_ID][ip_addon_constants.ANALYZE_LINK]
         else:
             new_link = None
 
-        actions = self.add_link(search_result, new_link);
+        actions = self.add_link(search_result, new_link)
+        curr_idx = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX]
+        next_idx = curr_idx + 1
+        new_search_results = search_results[1:]
+        if len(new_search_results) < 1:
+            return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
+        new_idx = new_search_results.index(search_results[next_idx])
+        # Update client state
+        client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS] = new_search_results
+        client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX] = new_idx
         actions += self.report_search_results(client_state)
         return actions
 
@@ -944,7 +956,18 @@ class IntentParserServer(object):
         """
         Handle "No" button as part of analyze document.
         """
-        json_body # Remove unused warning
+        # Find out what term to point to
+        curr_idx = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX]
+        next_idx = curr_idx + 1
+        search_results = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS]
+
+        new_search_results = search_results[1:]
+        if len(new_search_results) < 1:
+            return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
+        new_idx = new_search_results.index(search_results[next_idx])
+        # Update client state
+        client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS] = new_search_results
+        client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX] = new_idx
         return self.report_search_results(client_state)
 
     def process_link_all(self, json_body, client_state):
@@ -952,7 +975,7 @@ class IntentParserServer(object):
         Handle "Link all" button as part of analyze document.
         """
         search_results = client_state['search_results']
-        search_result_index = client_state['search_result_index'] - 1
+        search_result_index = client_state['search_result_index']
         search_result = search_results[search_result_index]
         term = search_result['term']
         term_search_results = list(filter(lambda x : x['term'] == term,
@@ -964,27 +987,24 @@ class IntentParserServer(object):
             new_link = None
 
         actions = []
-
         for term_result in term_search_results:
             actions += self.add_link(term_result, new_link);
 
         actions += self.report_search_results(client_state)
-
         return actions
 
     def process_no_to_all(self, json_body, client_state):
         """
         Handle "No to all" button as part of analyze document.
         """
-        json_body # Remove unused warning
-        curr_idx = client_state['search_result_index'] - 1
+        curr_idx = client_state['search_result_index']
         next_idx = curr_idx + 1
         search_results = client_state['search_results']
         while next_idx < len(search_results) and search_results[curr_idx]['term'] == search_results[next_idx]['term']:
             next_idx = next_idx + 1
         # Are we at the end? Then just exit
         if next_idx >= len(search_results):
-            return []
+            return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
 
         term_to_ignore = search_results[curr_idx]['term']
         # Generate results without term to ignore
@@ -1003,25 +1023,23 @@ class IntentParserServer(object):
         Handle "Never Link" button as part of analyze document.
         This works like "No to all" but also stores the association to ignore it in subsequent runs.
         """
-        json_body # Remove unused warning
+        curr_idx = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX]
+        search_results = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS]
 
-        curr_idx = client_state['search_result_index'] - 1
-        search_results = client_state['search_results']
-
-        dict_term = search_results[curr_idx]['term']
+        dict_term = search_results[curr_idx][ip_addon_constants.ANALYZE_TERM]
         content_text = search_results[curr_idx]['text']
 
-        userId = client_state['user_id']
+        userId = client_state[ip_addon_constants.USER_ID]
 
         # Make sure we have a list of link preferences for this userId
-        if not userId in self.analyze_never_link:
+        if userId not in self.analyze_never_link:
             link_pref_file = os.path.join(self.link_pref_path, userId + '.json')
             if os.path.exists(link_pref_file):
                 try:
                     with open(link_pref_file, 'r') as fin:
                         self.analyze_never_link[userId] = json.load(fin)
                         logger.info('Loaded link preferences for userId, path: %s' % link_pref_file)
-                except:
+                except Exception as e:
                     logger.error('ERROR: Failed to load link preferences file!')
             else:
                 self.analyze_never_link[userId] = {}
@@ -1038,7 +1056,7 @@ class IntentParserServer(object):
         try:
             with open(link_pref_file, 'w') as fout:
                 json.dump(self.analyze_never_link[userId], fout)
-        except:
+        except Exception as e:
             logger.error('ERROR: Failed to write link preferences file!')
 
         # Remove all of these associations from the results
@@ -1050,7 +1068,7 @@ class IntentParserServer(object):
 
         # Are we at the end? Then just exit
         if next_idx >= len(search_results):
-            return []
+            return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
 
         term_to_ignore = search_results[curr_idx]['term']
         text_to_ignore = search_results[curr_idx]['text']
@@ -1558,10 +1576,10 @@ class IntentParserServer(object):
 
     def get_client_state(self, http_message):
         json_body = intent_parser_utils.get_json_body(http_message)
-        if 'documentId' not in json_body:
+        if ip_addon_constants.DOCUMENT_ID not in json_body:
             raise ConnectionException(HTTPStatus.BAD_REQUEST,
-                                      'Missing documentId')
-        document_id = json_body['documentId']
+                                      'Expecting to get a %s from this http_message: %s but none was given' % (ip_addon_constants.DOCUMENT_ID, http_message))
+        document_id = json_body[ip_addon_constants.DOCUMENT_ID]
         try:
             client_state = self.get_connection(document_id)
         except:
@@ -1570,16 +1588,16 @@ class IntentParserServer(object):
         return (json_body, client_state)
     
     def add_link(self, search_result, new_link=None):
+        """ Add a hyperlink to the desired search_result
         """
-        """
-        paragraph_index = search_result['paragraph_index']
-        offset = search_result['offset']
-        end_offset = search_result['end_offset']
+        paragraph_index = search_result[ip_addon_constants.ANALYZE_PARAGRAPH_INDEX]
+        offset = search_result[ip_addon_constants.ANALYZE_OFFSET]
+        end_offset = search_result[ip_addon_constants.ANALYZE_END_OFFSET]
         if new_link is None:
             link = search_result['uri']
         else:
             link = new_link
-        search_result['link'] = link
+        search_result[ip_addon_constants.ANALYZE_LINK] = link
 
         action = intent_parser_view.link_text(paragraph_index, offset,
                                 end_offset, link)
