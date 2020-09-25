@@ -280,8 +280,10 @@ class IntentParserServer(object):
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_experiment_run_request()
         if len(intent_parser.get_validation_errors()) > 0:
+            errors = [intent_parser.get_validation_errors()]
+            warnings = [intent_parser.get_validation_warnings()]
             return self._create_http_response(HTTPStatus.BAD_REQUEST,
-                                              json.dumps({'errors': intent_parser.get_validation_errors()}),
+                                              json.dumps({'errors': errors, 'warnings': warnings}),
                                               'application/json')
 
         request_data = intent_parser.get_experiment_request()

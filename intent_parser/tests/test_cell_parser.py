@@ -89,7 +89,6 @@ class CellParserTest(unittest.TestCase):
 
     def test_cell_with_unit_containing_multiple_abbreviations(self):
         cell_str = '1 h, 2 hr, 3 hours'
-        expected_values = ['1', '2', '3']
         result = self.parser.process_values_unit(cell_str, units={'hour'}, unit_type='timepoints')
         self.assertEqual(3, len(result))
         self.assertEqual({'value': '1', 'unit': 'hour'}, result[0])
@@ -149,7 +148,7 @@ class CellParserTest(unittest.TestCase):
     def test_parse_content_item_with_name_uri_value_unit(self):
         cell = IntentParserCell()
         cell.add_paragraph('name1', link='https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1')
-        cell.add_paragraph('123 unit')
+        cell.add_paragraph(' 123 unit')
         results = self.parser.parse_content_item(cell.get_text(),
                                                  cell.get_text_with_url(),
                                                  timepoint_units={'unit', 'timeunit'})
