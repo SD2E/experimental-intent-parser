@@ -508,7 +508,7 @@ class IntentParserServer(object):
                         for action in reportActions:
                             result['actions'].append(action)
             elif action == 'createControlsTable':
-                actions = self.process_controls_table(data)
+                actions = self.process_controls_table(data, json_body['documentId'])
                 result = {'actions': actions,
                           'results': {'operationSucceeded': True}
                 }
@@ -1418,8 +1418,14 @@ class IntentParserServer(object):
         table_template.append([lab_name])
         table_template.append([experiment_id])
         return table_template
+
+    def _process_new_table_index(self, document_id):
+        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+        intent_parser.process_table_indices()
+        return intent_parser.get_largest_table_index()+1
     
-    def process_controls_table(self, data):
+    def process_controls_table(self, data, document_id):
+        table_index = self._process_new_table_index(document_id)
         table_template = []
         header_row = [intent_parser_constants.HEADER_CONTROL_TYPE_VALUE,
                       intent_parser_constants.HEADER_STRAINS_VALUE]
@@ -1433,7 +1439,7 @@ class IntentParserServer(object):
         # column_offset = column size - # of columns with generated default value
         column_offset = len(header_row) - 1
         if data[ip_addon_constants.HTML_CAPTION]:
-            table_caption = ['Table 1: Control']
+            table_caption = ['Table %d: Control' % table_index]
             table_caption.extend(['' for _ in range(column_offset)])
             table_template.append(table_caption)
         table_template.append(header_row)
