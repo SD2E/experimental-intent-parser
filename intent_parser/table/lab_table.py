@@ -41,32 +41,32 @@ class LabTable(object):
         row = self._intent_parser_table.get_row(row_index)
         for cell_index in range(len(row)):
             cell = self._intent_parser_table.get_cell(row_index, cell_index)
-            if cell_parser.PARSER.has_lab_table_keyword(cell.get_matched_term(), dc_constants.LAB):
+            if cell_parser.PARSER.has_lab_table_keyword(cell.get_text(), dc_constants.LAB):
                 self._process_lab_name(cell)
-            elif cell_parser.PARSER.has_lab_table_keyword(cell.get_matched_term(), dc_constants.EXPERIMENT_ID):
+            elif cell_parser.PARSER.has_lab_table_keyword(cell.get_text(), dc_constants.EXPERIMENT_ID):
                 self._process_experiment_id(cell)
             else:
                 self._validation_errors.append(
-                    'Lab table has invalid value: %s is not supported in this table' % cell.get_matched_term())
+                    'Lab table has invalid value: %s is not supported in this table' % cell.get_text())
 
     def _process_lab_name(self, cell):
-        lab_name = cell_parser.PARSER.process_lab_name(cell.get_matched_term())
+        lab_name = cell_parser.PARSER.process_lab_name(cell.get_text())
         if lab_name:
             canonicalize_lab_names = [lab.lower() for lab in self._lab_names]
             processed_lab_name = lab_name.lower()
             if processed_lab_name in canonicalize_lab_names:
                 self.lab_intent.set_field(dc_constants.LAB, lab_name)
             else:
-                err = '%s does not match one of the following lab names: \n %s' % (cell.get_matched_term(), ' ,'.join((map(str, self._lab_names))))
+                err = '%s does not match one of the following lab names: \n %s' % (cell.get_text(), ' ,'.join((map(str, self._lab_names))))
                 message = 'Lab table has invalid %s value: %s' % (ip_constants.HEADER_LAB_VALUE, err)
                 self._validation_errors.append(message)
         else:
-            err = '%s does not follow the correct format for specifying a lab name.' % (cell.get_matched_term())
+            err = '%s does not follow the correct format for specifying a lab name.' % (cell.get_text())
             message = 'Lab table has invalid %s value: %s' % (ip_constants.HEADER_LAB_VALUE, err)
             self._validation_errors.append(message)
 
     def _process_experiment_id(self, cell):
-        experiment_id = cell_parser.PARSER.process_lab_table_value(cell.get_matched_term())
+        experiment_id = cell_parser.PARSER.process_lab_table_value(cell.get_text())
         if experiment_id:
             self.lab_intent.set_field(dc_constants.EXPERIMENT_ID, experiment_id)
 

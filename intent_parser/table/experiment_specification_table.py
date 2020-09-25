@@ -50,8 +50,8 @@ class ExperimentSpecificationTable(object):
             # Cell type based on column header
             header_row_index = self._intent_parser_table.header_row_index()
             header_cell = self._intent_parser_table.get_cell(header_row_index, cell_index)
-            cell_type = cell_parser.PARSER.get_header_type(header_cell.get_matched_term())
-            if not cell.get_matched_term():
+            cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
+            if not cell.get_text():
                 continue
             if intent_parser_constants.HEADER_EXPERIMENT_ID_TYPE == cell_type:
                 experiment_id = self._process_experiment_id(cell)
@@ -66,20 +66,20 @@ class ExperimentSpecificationTable(object):
 
     def _process_experiment_id(self, cell):
         canonicalized_lab_name = [lab.lower() for lab in self._lab_names]
-        if cell_parser.PARSER.is_experiment_id(cell.get_matched_term(), canonicalized_lab_name):
-            return cell.get_matched_term().strip()
+        if cell_parser.PARSER.is_experiment_id(cell.get_text(), canonicalized_lab_name):
+            return cell.get_text().strip()
         else:
             message = 'Experiment Status Table has invalid %s value: %s must follow experiment.lab_name.experiment_id' \
-                      % (intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE, cell.get_matched_term())
+                      % (intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE, cell.get_text())
             self._validation_errors.append(message)
             return None
 
     def _process_experiment_status(self, cell):
-        if cell_parser.PARSER.is_table_caption(cell.get_matched_term()):
-            table_index = cell_parser.PARSER.process_table_caption_index(cell.get_matched_term())
+        if cell_parser.PARSER.is_table_caption(cell.get_text()):
+            table_index = cell_parser.PARSER.process_table_caption_index(cell.get_text())
             return table_index
         else:
             message = 'Experiment Status Table has invalid %s value: %s does not reference a Table' \
-                      % (intent_parser_constants.HEADER_EXPERIMENT_STATUS_VALUE, cell.get_matched_term())
+                      % (intent_parser_constants.HEADER_EXPERIMENT_STATUS_VALUE, cell.get_text())
             self._validation_errors.append(message)
             return None

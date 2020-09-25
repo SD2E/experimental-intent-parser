@@ -39,8 +39,8 @@ class ControlsTable(object):
             # Cell type based on column header
             header_row_index = self._intent_parser_table.header_row_index()
             header_cell = self._intent_parser_table.get_cell(header_row_index, cell_index)
-            cell_type = cell_parser.PARSER.get_header_type(header_cell.get_matched_term())
-            if not cell.get_matched_term().strip():
+            cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
+            if not cell.get_text().strip():
                 continue
             if intent_parser_constants.HEADER_CONTROL_TYPE_TYPE == cell_type:
                 control_type = self._process_control_type(cell)
@@ -65,7 +65,7 @@ class ControlsTable(object):
         return control_data 
     
     def _process_channels(self, cell):
-        cell_content = cell.get_matched_term()
+        cell_content = cell.get_text()
 
         try:
             list_of_channels = cell_parser.PARSER.extract_name_value(cell_content)
@@ -81,23 +81,23 @@ class ControlsTable(object):
     
     def _process_contents(self, cell):
         try:
-            return cell_parser.PARSER.parse_content_item(cell.get_matched_term(), cell.get_text_with_url(), fluid_units=self._fluid_units, timepoint_units=self._timepoint_units)
+            return cell_parser.PARSER.parse_content_item(cell.get_text(), cell.get_text_with_url(), fluid_units=self._fluid_units, timepoint_units=self._timepoint_units)
         except TableException as err:
             message = 'Controls table has invalid %s value: %s' % (intent_parser_constants.HEADER_CONTENTS_VALUE, err.get_message())
             self._validation_errors.append(message)
             return []
         
     def _process_control_strains(self, cell):
-        if cell_parser.PARSER.is_valued_cell(cell.get_matched_term()):
+        if cell_parser.PARSER.is_valued_cell(cell.get_text()):
             message = ('Controls table has invalid %s value: %s' 
                        'Identified %s as a numerical value when '
-                       'expecting alpha-numeric values.') % (intent_parser_constants.HEADER_STRAINS_VALUE, cell.get_matched_term())
+                       'expecting alpha-numeric values.') % (intent_parser_constants.HEADER_STRAINS_VALUE, cell.get_text())
             self._validation_errors.append(message)
             return []
-        return [strain for strain,_ in cell_parser.PARSER.process_names_with_uri(cell.get_matched_term())]
+        return [strain for strain,_ in cell_parser.PARSER.process_names_with_uri(cell.get_text())]
                 
     def _process_control_type(self, cell):
-        control_type = cell.get_matched_term().strip()
+        control_type = cell.get_text().strip()
         if control_type not in self._control_types:
             err = '%s does not match one of the following control types: \n %s' % (control_type, ' ,'.join((map(str, self._control_types))))
             message = 'Controls table has invalid %s value: %s' % (intent_parser_constants.HEADER_CONTROL_TYPE_VALUE, err)
@@ -108,7 +108,7 @@ class ControlsTable(object):
     def _process_timepoint(self, cell):
         try:
             result = []
-            for value_unit in cell_parser.PARSER.process_values_unit(cell.get_matched_term(),
+            for value_unit in cell_parser.PARSER.process_values_unit(cell.get_text(),
                                                                      units=self._timepoint_units,
                                                                      unit_type='timepoints'):
                 timepoint = {dc_constants.VALUE: float(value_unit[dc_constants.VALUE]),

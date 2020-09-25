@@ -47,7 +47,7 @@ class IntentParserTableFactory(object):
         for row_index in range(intent_parser_table.number_of_rows()):
             for cell_index in range(len(intent_parser_table.get_row(row_index))):
                 cell = intent_parser_table.get_cell(row_index, cell_index)
-                if cell_parser.PARSER.is_table_caption(cell.get_matched_term()):
+                if cell_parser.PARSER.is_table_caption(cell.get_text()):
                     return row_index
         return None 
         
@@ -57,7 +57,7 @@ class IntentParserTableFactory(object):
             header_values = []
             for col_index in range(len(row)):
                 cell = intent_parser_table.get_cell(row_index, col_index)
-                header = cell_parser.PARSER.get_header_type(cell.get_matched_term())
+                header = cell_parser.PARSER.get_header_type(cell.get_text())
                 header_values.append(header)
 
             if _CONTROLS_TABLE_HEADER.issubset(set(header_values)) \
@@ -75,7 +75,7 @@ class IntentParserTableFactory(object):
             header_values = set()
             for cell_index in range(len(intent_parser_table.get_row(header_row_index))):
                 cell = intent_parser_table.get_cell(header_row_index, cell_index)
-                header = cell_parser.PARSER.get_header_type(cell.get_matched_term())
+                header = cell_parser.PARSER.get_header_type(cell.get_text())
                 header_values.add(header)
 
             if _CONTROLS_TABLE_HEADER.issubset(header_values):
@@ -101,7 +101,7 @@ class IntentParserTableFactory(object):
             if len(row) != 1:
                 return False 
             for column in row:
-                text = column.get_matched_term().lower()
+                text = column.get_text().lower()
                 if text.startswith('lab'):
                     return True 
         return False 

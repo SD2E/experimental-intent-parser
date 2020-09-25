@@ -83,9 +83,9 @@ class MeasurementTable(object):
             cell = self._intent_parser_table.get_cell(row_index, cell_index)
             # Cell type based on column header
             header_cell = self._intent_parser_table.get_cell(self._intent_parser_table.header_row_index(), cell_index)
-            cell_type = cell_parser.PARSER.get_header_type(header_cell.get_matched_term())
+            cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
             
-            if not cell.get_matched_term().strip() or cell_type in self.IGNORE_COLUMNS:
+            if not cell.get_text().strip() or cell_type in self.IGNORE_COLUMNS:
                 continue
             
             if intent_parser_constants.HEADER_MEASUREMENT_TYPE_TYPE == cell_type:
@@ -117,8 +117,8 @@ class MeasurementTable(object):
     
     def _process_reagent_media(self, cell, header_cell):
         reagents_media = []
-        text = cell.get_matched_term()
-        name_dict, timepoint_dict = cell_parser.PARSER.process_reagent_header(header_cell.get_matched_term(),
+        text = cell.get_text()
+        name_dict, timepoint_dict = cell_parser.PARSER.process_reagent_header(header_cell.get_text(),
                                                                               header_cell.get_text_with_url(),
                                                                               units=self._timepoint_units,
                                                                               unit_type='timepoints')
@@ -156,7 +156,7 @@ class MeasurementTable(object):
         return self._validation_warnings
     
     def _process_batch(self, cell, measurement):
-        text = cell.get_matched_term()
+        text = cell.get_text()
         try:
             batch = [int(value) for value in cell_parser.PARSER.process_numbers(text)]
             measurement.add_field(dc_constants.BATCH, batch)
@@ -165,7 +165,11 @@ class MeasurementTable(object):
             self._validation_errors.append(message)
     
     def _process_control(self, cell, control_tables, measurement):
-        result = [] 
+        result = []
+        if not control_tables:
+            self._validation_errors.append('Unable to process controls from a Measurement table without Control Tables.')
+            return result
+
         if cell.get_bookmark_ids():
             result = self._process_control_with_bookmarks(cell, control_tables)
 
@@ -183,7 +187,7 @@ class MeasurementTable(object):
     
     def _process_control_with_captions(self, cell, control_tables):
         controls = []
-        for table_caption in cell_parser.PARSER.extract_name_value(cell.get_matched_term()):
+        for table_caption in cell_parser.PARSER.extract_name_value(cell.get_text()):
             table_index = cell_parser.PARSER.process_table_caption_index(table_caption)
             if table_index in control_tables:
                 for control in control_tables[table_index]:
@@ -191,7 +195,7 @@ class MeasurementTable(object):
         return controls       
            
     def _process_file_type(self, cell, measurement):
-        file_types = [value for value in cell_parser.PARSER.extract_name_value(cell.get_matched_term())]
+        file_types = [value for value in cell_parser.PARSER.extract_name_value(cell.get_text())]
         result = []
         for file_type in file_types:
             if file_type not in self._file_type:
@@ -202,7 +206,7 @@ class MeasurementTable(object):
                 result.append(file_type)
 
         if not result:
-            err = '%s does not match one of the following file types: \n %s' % (cell.get_matched_term(), ' ,'.join((map(str, self._file_type))))
+            err = '%s does not match one of the following file types: \n %s' % (cell.get_text(), ' ,'.join((map(str, self._file_type))))
             message = 'Measurement table has invalid %s value: %s' % (
             intent_parser_constants.HEADER_FILE_TYPE_VALUE, err)
             self._validation_errors.append(message)
@@ -210,7 +214,7 @@ class MeasurementTable(object):
             measurement.add_field(dc_constants.FILE_TYPE, result)
 
     def _process_measurement_type(self, cell, measurement):
-        measurement_type = cell.get_matched_term().strip()
+        measurement_type = cell.get_text().strip()
         if measurement_type not in self._measurement_types:
             err = '%s does not match one of the following measurement types: \n %s' % (measurement_type, ' ,'.join((map(str, self._measurement_types))))
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE, err)
@@ -220,14 +224,14 @@ class MeasurementTable(object):
 
     def _process_ods(self, cell, measurement):
         try:
-            ods = [float(value) for value in cell_parser.PARSER.process_numbers(cell.get_matched_term())]
+            ods = [float(value) for value in cell_parser.PARSER.process_numbers(cell.get_text())]
             measurement.add_field(dc_constants.ODS, ods)
         except TableException as err:
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_ODS_VALUE, err)
             self._validation_errors.append(message)
 
     def _process_replicate(self, cell, measurement):
-        text = cell.get_matched_term()
+        text = cell.get_text()
         try:
             list_of_replicates = cell_parser.PARSER.process_numbers(text)
             if len(list_of_replicates) > 1:
@@ -241,7 +245,7 @@ class MeasurementTable(object):
         
     def _process_strains(self, cell, measurement):
         strains = []
-        for input_strain, link in cell_parser.PARSER.process_names_with_uri(cell.get_matched_term(), text_with_uri=cell.get_text_with_url()):
+        for input_strain, link in cell_parser.PARSER.process_names_with_uri(cell.get_text(), text_with_uri=cell.get_text_with_url()):
             parsed_strain = input_strain.strip()
             if link is None:
                 message = ('Measurement table has invalid %s value: %s is missing a SBH URI.' % (intent_parser_constants.HEADER_STRAINS_VALUE, parsed_strain))
@@ -272,7 +276,7 @@ class MeasurementTable(object):
             measurement.add_field(dc_constants.STRAINS, strains)
 
     def _process_temperature(self, cell, measurement):
-        text = cell.get_matched_term()
+        text = cell.get_text()
         try:
             result = []
             for value_unit in cell_parser.PARSER.process_values_unit(text,
@@ -287,7 +291,7 @@ class MeasurementTable(object):
             self._validation_errors.append(message)
 
     def _process_timepoints(self, cell, measurement):
-        text = cell.get_matched_term()
+        text = cell.get_text()
         try:
             result = []
             for value_unit in cell_parser.PARSER.process_values_unit(text, units=self._timepoint_units, unit_type='timepoints'):

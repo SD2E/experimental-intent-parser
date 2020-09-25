@@ -24,8 +24,8 @@ class TableParserTest(unittest.TestCase):
                                                          'startIndex': 0,
                                                          'endIndex': 100})
 
-        self.assertEqual('notes', ip_table.get_cell(0, 0).get_matched_term())
-        self.assertEqual('a note', ip_table.get_cell(1, 0).get_matched_term())
+        self.assertEqual('notes', ip_table.get_cell(0, 0).get_text())
+        self.assertEqual('a note', ip_table.get_cell(1, 0).get_text())
 
     def test_table_with_trailing_whitespace(self):
         input_table = {'tableRows': [
@@ -38,8 +38,8 @@ class TableParserTest(unittest.TestCase):
                                                          'startIndex': 0,
                                                          'endIndex': 100})
 
-        self.assertEqual('notes', ip_table.get_cell(0, 0).get_matched_term())
-        self.assertEqual('  a  note  ', ip_table.get_cell(1, 0).get_matched_term())
+        self.assertEqual('notes', ip_table.get_cell(0, 0).get_text())
+        self.assertEqual('  a  note  ', ip_table.get_cell(1, 0).get_text())
 
     def test_table_with_commas(self):
         input_table = {'tableRows': [
@@ -52,8 +52,8 @@ class TableParserTest(unittest.TestCase):
                                                           'startIndex': 0,
                                                           'endIndex': 100})
 
-        self.assertEqual('strains', ip_table.get_cell(0, 0).get_matched_term())
-        self.assertEqual('AND_00, AND_01, AND_10', ip_table.get_cell(1, 0).get_matched_term())
+        self.assertEqual('strains', ip_table.get_cell(0, 0).get_text())
+        self.assertEqual('AND_00, AND_01, AND_10', ip_table.get_cell(1, 0).get_text())
 
     def test_table_with_commas_and_newline(self):
         input_table = {'tableRows': [
@@ -66,8 +66,8 @@ class TableParserTest(unittest.TestCase):
                                                           'startIndex': 0,
                                                           'endIndex': 100})
 
-        self.assertEqual('strains', ip_table.get_cell(0, 0).get_matched_term())
-        self.assertEqual('AND_00, AND_01, AND_10\n', ip_table.get_cell(1, 0).get_matched_term())
+        self.assertEqual('strains', ip_table.get_cell(0, 0).get_text())
+        self.assertEqual('AND_00, AND_01, AND_10\n', ip_table.get_cell(1, 0).get_text())
 
     def test_table_with_newline_before_commas(self):
         input_table = {'tableRows': [
@@ -80,8 +80,8 @@ class TableParserTest(unittest.TestCase):
                                                           'startIndex': 0,
                                                           'endIndex': 100})
 
-        self.assertEqual('strains', ip_table.get_cell(0, 0).get_matched_term())
-        self.assertEqual('AND_00, \nAND_01,\n AND_10\n', ip_table.get_cell(1, 0).get_matched_term())
+        self.assertEqual('strains', ip_table.get_cell(0, 0).get_text())
+        self.assertEqual('AND_00, \nAND_01,\n AND_10\n', ip_table.get_cell(1, 0).get_text())
 
 if __name__ == '__main__':
     unittest.main()
