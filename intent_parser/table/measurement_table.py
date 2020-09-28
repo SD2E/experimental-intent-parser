@@ -1,4 +1,4 @@
-from intent_parser.intent.measurement_intent import Measurement, MeasurementIntent
+from intent_parser.intent.measurement_intent import Measurement
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
@@ -32,10 +32,10 @@ class MeasurementTable(object):
         self._validation_warnings = []
         self._intent_parser_table = intent_parser_table 
         self._table_caption = None
-        self.measurement_intent = MeasurementIntent()
+        self.measurements = []
 
     def get_structured_request(self):
-        return self.measurement_intent.to_structured_request()
+        return [measurement.to_structured_request() for measurement in self.measurements]
     
     def process_table(self, control_tables={}, bookmarks={}):
         self._table_caption = self._intent_parser_table.caption()
@@ -43,7 +43,7 @@ class MeasurementTable(object):
         for row_index in range(self._intent_parser_table.data_row_start_index(), self._intent_parser_table.number_of_rows()):
             measurement = self._process_row(row_index, control_mappings)
             if measurement.to_structured_request():
-                self.measurement_intent.add_measurement(measurement)
+                self.measurements.append(measurement)
 
     def _process_control_mapping(self, control_tables, bookmarks):
         table_caption_index = {}
