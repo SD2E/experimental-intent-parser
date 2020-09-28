@@ -33,9 +33,5 @@ class GoogleAccessorTest(unittest.TestCase):
             err = ''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))
             print(err)
 
-    def test_app_script(self):
-        pass
-
-
 if __name__ == "__main__":
     unittest.main()
