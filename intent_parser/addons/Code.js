@@ -62,14 +62,14 @@ function reportLabInfo(){
 		'</ul>\n' +
 		'<b>Optionalfields:</b>\n' +
 		'<ul>\n' +
-		'\t<li><b>Experiment_id</b>: a string identifier, namespaced performer, for the experiment <i>Example:</i> 123</li>\n' +
+		'\t<li><b>Experiment_id</b>: a string identifier, namespaced performer, for the experiment. <i>Example:</i> 123</li>\n' +
 		'</ul>';
 	showSidebar(html_content);
 }
 
 function reportMeasurementsInfo(){
 	html_content = '<h2> Measurements Table </h2>\n' +
-		'<p><b>Description</b>: measurements expected to be produced for a run, broken down by measurement type and sample conditions</p>\n' +
+		'<p><b>Description</b>: measurements expected to be produced for a run, broken down by measurement type and sample conditions.</p>\n' +
 		'<b>Required fields:</b>\n' +
 		'<ul>\n' +
 		'\t<li><a href="https://schema.catalog.sd2e.org/schemas/measurement_type.json"> <b>Measurement Type</b></a>: an expected file type for this measurement. <i>Example:</i> RNA_SEQ</li>\n' +
@@ -78,7 +78,7 @@ function reportMeasurementsInfo(){
 		'<b>Optional fields:</b>\n' +
 		'<ul>\n' +
 		'\t<li><b>Batch</b>: a list of one or more numerical values representing the batches a measurement belongs to. <i>Example:</i> 1, 2, 3</li>\n' +
-		'\t<li><b>Controls</b>: a list of Control Table captions for representing expected control elements for this run <i>Example:</i> Table 1, Table 2</li>\n' +
+		'\t<li><b>Controls</b>: a list of Control Table captions for representing expected control elements for this run. <i>Example:</i> Table 1, Table 2</li>\n' +
 		'\t<li><b>Ods</b>: a list of one or more numerical values representing expected optical densities for this measurement. <i>Example:</i> 5</li>\n' +
 		'\t<li><b>Replicates</b>: a list of one or more numerical values representing expected number of replicates. <i>Example:</i> 6</li>\n' +
 		'\t<li><b>Strains</b>: a list of one or more string values representing expected strains for this measurement. Strains listed in this field must have a hyperlink that references to a SBH URI. <i>Example:</i> UWBF_6390</li>\n' +
