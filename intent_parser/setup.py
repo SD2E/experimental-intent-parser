@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name='intent-parser', 
-    version='2.8',
+    version='2.9',
     packages=setuptools.find_packages(),
     python_requires='>=3.6',
     include_package_data=True,    # include everything in source control
