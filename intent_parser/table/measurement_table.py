@@ -1,4 +1,4 @@
-from intent_parser.intent.measurement_intent import Measurement, MeasurementIntent
+from intent_parser.intent.measurement_intent import Measurement
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
@@ -32,10 +32,10 @@ class MeasurementTable(object):
         self._validation_warnings = []
         self._intent_parser_table = intent_parser_table 
         self._table_caption = None
-        self.measurement_intent = MeasurementIntent()
+        self.measurements = []
 
     def get_structured_request(self):
-        return self.measurement_intent.to_structured_request()
+        return [measurement.to_structured_request() for measurement in self.measurements]
     
     def process_table(self, control_tables={}, bookmarks={}):
         self._table_caption = self._intent_parser_table.caption()
@@ -43,25 +43,36 @@ class MeasurementTable(object):
         for row_index in range(self._intent_parser_table.data_row_start_index(), self._intent_parser_table.number_of_rows()):
             measurement = self._process_row(row_index, control_mappings)
             if measurement.to_structured_request():
-                self.measurement_intent.add_measurement(measurement)
+                self.measurements.append(measurement)
 
     def _process_control_mapping(self, control_tables, bookmarks):
+        table_caption_index = {}
         if bookmarks:
-            return self._map_bookmarks_to_captions(control_tables, bookmarks)
-        return self._map_captions_to_control(control_tables)
+            table_caption_index = self._map_bookmarks_to_captions(control_tables, bookmarks)
+        # if bookmarks produce empty result, process control table's caption
+        if not table_caption_index:
+            try:
+                if control_tables:
+                    table_caption_index = self._map_captions_to_control(control_tables)
+            except TableException as err:
+                self._validation_errors.append('Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_CONTROL_VALUE, err))
+        return table_caption_index
 
     def _map_captions_to_control(self, control_tables):
         control_map = {}
         for table_caption, control_data in control_tables.items():
             if table_caption:
                 control_map[table_caption] = control_data
+        if not control_map:
+            raise TableException('No reference to a Control table.')
         return control_map
                 
     def _map_bookmarks_to_captions(self, control_tables, bookmarks):
         control_map = {}
         for bookmark in bookmarks:
-            if bookmark['text'] in control_tables:
-                control_map[bookmark['id']] = control_tables[bookmark['text']]
+            table_index = cell_parser.PARSER.process_table_caption_index(bookmark['text'])
+            if table_index in control_tables:
+                control_map[table_index] = control_tables[table_index]
         return control_map
     
     def _process_row(self, row_index, control_data):
@@ -154,7 +165,11 @@ class MeasurementTable(object):
             self._validation_errors.append(message)
     
     def _process_control(self, cell, control_tables, measurement):
-        result = [] 
+        result = []
+        if not control_tables:
+            self._validation_errors.append('Unable to process controls from a Measurement table without Control Tables.')
+            return result
+
         if cell.get_bookmark_ids():
             result = self._process_control_with_bookmarks(cell, control_tables)
 

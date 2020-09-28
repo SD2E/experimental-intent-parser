@@ -72,7 +72,8 @@ This project is set up to build docker images for the server and for the Google 
         docker push username/repo_name:tag_name_and_version
         ```
 4. To build and push a docker image for GAS, 
-    - Update `current_release`(a variable) in [ip_addon_script.py](https://github.com/SD2E/experimental-intent-parser/blob/master/intent_parser/addons/ip_addon_script.py)  to reflect the tool's version for release.
+    - Update `current_release`(a variable) in [ip_addon_script.py](https://github.com/SD2E/experimental-intent-parser/blob/master/intent_parser/addons/ip_addon_script.py) to reflect the tool's version for release.
+    - Update version in [setup.py](https://github.com/SD2E/experimental-intent-parser/blob/a0e3108888dfaa12e139dbb516a262dd63ddf271/intent_parser/setup.py#L5) to reflect the tool's version for release.
     - Run the following dockerhub commands:
     
         ```

@@ -1,5 +1,4 @@
 from googleapiclient.discovery import build
-from intent_parser.constants.google_doc_api_constants import TextStyleFields
 import intent_parser.constants.google_doc_api_constants as doc_constants
 import logging
 import statistics
@@ -110,12 +109,6 @@ class GoogleDocAccessor(object):
         merge_properties = {doc_constants.TABLE_RANGE: table_range}
 
         return {doc_constants.REQUEST_MERGE_TABLE_CELLS: merge_properties}
-
-    def update_text_style(self, text_start_index, text_end_index):
-        text_style_properties = {doc_constants.TEXT_STYLE: '',
-                                 doc_constants.FIELDS: TextStyleFields.BOLD,
-                                 doc_constants.RANGE: self.create_range(text_start_index, text_end_index)}
-        return {doc_constants.REQUEST_UPDATE_TEXT_STYLE: text_style_properties}
 
     def execute_batch_request(self, requests, document_id):
         return self._docs_service.documents().batchUpdate(documentId=document_id,

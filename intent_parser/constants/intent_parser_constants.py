@@ -45,10 +45,12 @@ GOOGLE_DOC_URL_PREFIX = 'https://docs.google.com/document/d/'
 GOOGLE_DOC_MIMETYPE = 'application/vnd.google-apps.document'
 WORD_DOC_MIMETYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
+# Stateos Protocols Supported in IP
 GROWTH_CURVE_PROTOCOL = 'GrowthCurve'
 OBSTACLE_COURSE_PROTOCOL = 'ObstacleCourse'
 TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
 
+# Mapping protocols to human readible names
 PARAMETER_PROTOCOL = 'protocol'
 PROTOCOL_NAMES = {GROWTH_CURVE_PROTOCOL: 'Growth Curves', 
                   TIME_SERIES_HTP_PROTOCOL: 'Time Series', 
@@ -57,6 +59,7 @@ DEFAULT_PARAMETERS = 'default_parameters'
 PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN = 'experiment_reference_url_for_xplan'
 PARAMETER_TEST_MODE = 'test_mode'
 PARAMETER_SUBMIT = 'submit'
+PARAMETER_BASE_DIR = 'xplan_base_dir'
 PARAMETER_XPLAN_REACTOR = 'xplan_reactor'
 PARAMETER_PLATE_SIZE = 'plate_size'
 PARAMETER_PLATE_NUMBER = 'plate_number'
@@ -66,7 +69,9 @@ PARAMETER_XPLAN_PATH = 'xplan_path'
 PARAMETER_PROTOCOL_ID = 'protocol_id'
 
 PARAMETER_EXP_INFO_MEDIA_WELL_STRINGS = 'exp_info.media_well_strings'
+PARAMETER_INDUCTION_INFO_REAGENTS = 'induction_info.induction_reagents'
 PARAMETER_INDUCTION_INFO_REAGENTS_INDUCER = 'induction_info.induction_reagents.inducer'
+PARAMETER_INDUCTION_INFO_SAMPLING_INFO = 'induction_info.sampling_info'
 PARAMETER_MEASUREMENT_INFO_36_HR_READ = 'measurement_info.36_hr_read'
 PARAMETER_MEASUREMENT_INFO_FLOW_INFO = 'measurement_info.flow_info'
 PARAMETER_MEASUREMENT_INFO_PLATE_READER_INFO = 'measurement_info.plate_reader_info'
@@ -85,7 +90,7 @@ SD2_SPREADSHEET_ID = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Progra
 TEST_SPREADSHEET_ID = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
 UNIT_TEST_SPREADSHEET_ID = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0' #sd2 unit test dictionary 
 
-# Header types
+# Table headers
 HEADER_BATCH_VALUE = 'batch'
 HEADER_CHANNEL_VALUE = 'Channel'
 HEADER_CONTENTS_VALUE = 'Contents'
@@ -110,6 +115,7 @@ HEADER_STRAINS_VALUE = 'Strains'
 HEADER_TEMPERATURE_VALUE = 'temperature'
 HEADER_TIMEPOINT_VALUE = 'Timepoint'
 
+# Table header types
 HEADER_BATCH_TYPE = 'BATCH'
 HEADER_CHANNEL_TYPE = 'CHANNEL'
 HEADER_CONTENTS_TYPE = 'CONTENTS'
