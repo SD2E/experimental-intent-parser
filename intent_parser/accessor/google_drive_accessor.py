@@ -14,6 +14,14 @@ class GoogleDriveV3Accessor(object):
         self._service = build('drive', 'v3', credentials=credentials)
         self._authed_session = AuthorizedSession(credentials)
 
+    def insert_comment_with_anchor(self, file_id, comment_text, quoted_tex, anchor_data):
+        body = {'content': comment_text,
+                'quotedFileContent': {'value': quoted_tex},
+                'anchor': json.dumps(anchor_data)}
+        results = self._service.comments.create(fileId=file_id,
+                                                  fields='*',
+                                                  body=body).execute()
+
     def get_documents_from_folder(self, folder_id):
         """
         Get all Google Docs from a Google Drive folder.
