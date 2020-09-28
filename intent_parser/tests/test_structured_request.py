@@ -1,5 +1,5 @@
 from intent_parser.intent_parser import IntentParser
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import json
 import os

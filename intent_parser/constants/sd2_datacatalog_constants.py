@@ -14,7 +14,7 @@ EXPERIMENT_REFERENCE = 'experiment_reference'
 EXPERIMENT_REFERENCE_URL = 'experiment_reference_url'
 EXPERIMENT_VERSION = 'experiment_version'
 FILE_TYPE ='file_type'
-
+GENERATE = 'generate'
 LAB = 'lab'
 LAB_CALTECH = 'Caltech'
 LAB_DUKE_HAASE = 'Duke_Haase'
