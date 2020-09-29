@@ -1,3 +1,6 @@
+from intent_parser.intent_parser_exceptions import IntentParserException
+import intent_parser.constants.sd2_datacatalog_constants as dc_constants
+
 class Control(object):
 
     def __init__(self):
@@ -24,7 +27,10 @@ class Control(object):
         self._channel = value
 
     def set_control_type(self, value: str):
+        if self._control_type:
+            raise IntentParserException('Conflict setting control type %s. Current set value %s' % (value, self._control_type))
         self._control_type = value
 
     def to_structured_request(self):
+        sr = {dc_constants.TYPE, self._control_type}
         return self.intent
