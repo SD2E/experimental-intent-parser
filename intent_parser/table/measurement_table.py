@@ -182,7 +182,7 @@ class MeasurementTable(object):
         for bookmark_id in cell.get_bookmark_ids():
             if bookmark_id in control_tables:
                 for control in control_tables[bookmark_id]:
-                    controls.append(control)
+                    controls.append(control.to_structured_request())
         return controls
     
     def _process_control_with_captions(self, cell, control_tables):
@@ -191,7 +191,7 @@ class MeasurementTable(object):
             table_index = cell_parser.PARSER.process_table_caption_index(table_caption)
             if table_index in control_tables:
                 for control in control_tables[table_index]:
-                    controls.append(control)
+                    controls.append(control.to_structured_request())
         return controls       
            
     def _process_file_type(self, cell, measurement):
