@@ -1,0 +1,10 @@
+
+EXPERIMENT_AUTHENTICATION_URL = 'https://intentparser-gateway.sd2e.org/submit?token='
+EXPERIMENT_EXECUTION_ID = 'executionId'
+EXPERIMENT_EXECUTION_EXIT_CODE = 'exitCode'
+EXPERIMENT_EXECUTION_LOGS = 'logs'
+EXPERIMENT_EXECUTION_MESSAGE = 'message'
+EXPERIMENT_EXECUTION_STATUS = 'status'
+EXPERIMENT_EXECUTION_RESULT = 'result'
+EXPERIMENT_EXECUTION_TARGET_URL = 'https://api.sd2e.org/actors/v2/control-annotator.prod/messages?x-nonce='
+EXPERIMENT_EXECUTION_RESULT_URL = 'https://api.sd2e.org/actors/v2/control-annotator.prod/executions/'

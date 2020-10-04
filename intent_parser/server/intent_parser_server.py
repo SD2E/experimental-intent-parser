@@ -206,6 +206,8 @@ class IntentParserServer(object):
             response = self.process_run_experiment(http_message)
         elif resource == '/experiment_request_documents':
             response = self.process_experiment_request_documents(http_message)
+        elif resource == '/experiment_authentication':
+            response = self.process_experiment_authentication(http_message)
         elif resource == '/experiment_status':
             response = self.process_experiment_status(http_message)
         elif resource == '/update_experiment_status':
@@ -245,11 +247,9 @@ class IntentParserServer(object):
         
         return self._create_http_response(HTTPStatus.OK, json.dumps(intent_parser.get_structured_request()), 'application/json')
 
-    def process_table_hints(self, http_message):
-        resource = http_message.get_resource()
-        document_id = resource.split('?')[1]
-        drive_accessor = GoogleAccessor().get_google_drive_accessor()
-        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+    def process_experiment_authentication(self, http_message):
+        credential_dialog = TACCGoAccessor().authenticate_credentials()
+        return self._create_http_response(HTTPStatus.OK, credential_dialog, 'text/html')
 
     def process_experiment_request_documents(self, http_message):
         """
@@ -298,6 +298,10 @@ class IntentParserServer(object):
         experiment_response = TACCGoAccessor().execute_experiment(request_data)
         return self._create_http_response(HTTPStatus.OK, json.dumps({'result': experiment_response}),
                                           'application/json')
+
+    def process_authenticate_experiment_execution(self, http_message):
+        response = TACCGoAccessor().authenticate_credentials()
+        return self._create_http_response(HTTPStatus.OK, response, 'text/html')
 
     def process_execute_experiment(self, http_message):
         json_body = intent_parser_utils.get_json_body(http_message)

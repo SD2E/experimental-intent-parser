@@ -363,7 +363,6 @@ def open_new_window(link=None):
     return modal_dialog(html, 'Validation Passed', 500, 300)
 
 def message_dialog(title, message):
-    text_area_rows = 15
     height = 150
     buttons = [('Ok', 'process_nop')]
     return simple_modal_dialog(message, buttons, title, 200, height)

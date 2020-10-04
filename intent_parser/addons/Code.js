@@ -160,7 +160,13 @@ function enterLinkPrompt(title, msg) {
 }
 
 function executeExperiment() {
+	// authenticate user credential
+	var response = UrlFetchApp.fetch(serverURL + '/experiment_authentication');
+	Logger.log(response.getContentText());
+	showModalDialog(response, 'authenticate', 600, 600)
+	// execute experiment
 	sendPost('/executeExperiment');
+	// report execution status
 }
 
 function reportExperimentStatus() {
@@ -385,7 +391,6 @@ function highlightDocText(paragraphIndex, offset, endOffset) {
 	var selectionRange = doc.newRange();
 
 	selectionRange.addElement(docText, offset, endOffset);
-
 	doc.setSelection(selectionRange.build());
 }
 
@@ -402,7 +407,6 @@ function sendPost(resource, data) {
 	var docId = DocumentApp.getActiveDocument().getId();
 	var user = Session.getActiveUser();
 	var userEmail = user.getEmail();
-
 	var request = {
 			'documentId': docId,
 			'user': user,
@@ -414,7 +418,6 @@ function sendPost(resource, data) {
 	}
 
 	var requestJSON = JSON.stringify(request);
-
 	var options = {
 			'method' : 'post',
 			'payload' : requestJSON
@@ -436,14 +439,11 @@ function sendPost(resource, data) {
 function identifyParagraph(element) {
 	var foundParagraph = true;
 	var identity = [];
-
 	var parent = element.getParent();
 	while(parent != null) {
 		elementType = element.getType();
-
 		var idx = parent.getChildIndex(element);
 		identity.push(idx);
-
 		element = parent;
 		parent = element.getParent();
 	}
