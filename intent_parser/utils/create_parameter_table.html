@@ -20,7 +20,18 @@
         formInfo.extra = extra;
         google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);
     }
-    
+    function showOptionalFields(){
+       var selectedProtocol = theForm.protocols.value
+      if (selectedProtocol == 'Growth Curves'){
+
+      }
+      else if(selectedProtocol == 'Time Series'){
+
+      }
+      else if(selectedProtocol == 'Obstacle Course'){
+
+      }
+    }
   </script>
   <center>
     <form name="createParameterTableForm" action="/add">
@@ -30,12 +41,9 @@
         <tr>
           <th align="right">Protocol: </th>
           <td align="left">
-            <select id="protocol_opt" name="protocols">
-              ${PROTOCOLOPTIONS}
-            </select>
+            <select id="protocol_opt" name="protocols" onChange=showOptionalFields()>${PROTOCOLOPTIONS}</select>
           </td>
         </tr>
-
       </table>
       <input type="button" value="Submit" id="submitButton" title="Submit form and generate a parameter table template." onclick="handleSubmit()">
       <input type="button" value="Cancel" id="cancelButton" onclick="handleCancel()">
