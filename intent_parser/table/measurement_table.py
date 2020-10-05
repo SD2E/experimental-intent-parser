@@ -140,6 +140,7 @@ class MeasurementTable(object):
             message = ('Measurement table has invalid %s value: %s') % (
                 intent_parser_constants.HEADER_LAB_ID_VALUE, err.get_message())
             self._validation_errors.append(message)
+            return []
 
     def _process_row_id(self, cell):
         text = cell.get_text()
@@ -153,6 +154,7 @@ class MeasurementTable(object):
         except TableException as err:
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_ROW_ID_VALUE, err)
             self._validation_errors.append(message)
+            return []
 
     def _process_col_id(self, cell):
         text = cell.get_text()
@@ -166,6 +168,7 @@ class MeasurementTable(object):
         except TableException as err:
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_COLUMN_ID_VALUE, err)
             self._validation_errors.append(message)
+            return []
     
     def _process_reagent_media(self, cell, header_cell):
         reagents_media = []
