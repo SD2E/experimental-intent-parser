@@ -70,9 +70,9 @@ class MeasurementTableTest(unittest.TestCase):
         meas_table = MeasurementTable(ip_table)
         meas_table.process_table()
         meas_result = meas_table.get_structured_request()
-        expected_results = {'contents': [[{'name': {'label': 'column_id'}, 'value': 13}],
-                                         [{'name': {'label': 'lab_id'}, 'value': 'foo'}],
-                                         [{'name': {'label': 'row_id'}, 'value': 3}]]}
+        expected_results = {'contents': [[{'name': {'label': 'column_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 13}],
+                                         [{'name': {'label': 'lab_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 'foo'}],
+                                         [{'name': {'label': 'row_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 3}]]}
         self.assertEqual(1, len(meas_result))
         self.assertEqual(expected_results[dc_constants.CONTENTS], meas_result[0][dc_constants.CONTENTS])
 
