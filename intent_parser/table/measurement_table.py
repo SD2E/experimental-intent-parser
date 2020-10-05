@@ -189,17 +189,6 @@ class MeasurementTable(object):
                 message = err.get_message()
                 self._validation_errors.append(message)
         elif cell_parser.PARSER.is_number(text):
-            # header_name = header_cell.get_text().lower().strip()
-            # if header_name == 'row_id':
-            #     result = self._process_row_id(text)
-            #     reagents_media.append(result)
-            # elif header_name == 'col_id':
-            #     result = self._process_col_id(text)
-            #     reagents_media.append(result)
-            # elif header_name == 'lab_id':
-            #     result = self._process_lab_id(text)
-            #     reagents_media.append(result)
-            # else:
             err = '%s is missing a unit' % text
             message = 'Measurement table has invalid reagent/media value: %s' % err
             self._validation_errors.append(message)
