@@ -55,6 +55,74 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEqual(1, len(meas_result))
         self.assertTrue(dc_constants.FILE_TYPE in meas_result[0])
         self.assertEqual(['FASTQ'], meas_result[0][dc_constants.FILE_TYPE])
+
+    def test_mixture_of_lab_row_col_ids(self):
+        ip_table = test_utils.create_fake_measurement_table()
+        col_ids = IntentParserCell()
+        col_ids.add_paragraph('13')
+        lab_ids = IntentParserCell()
+        lab_ids.add_paragraph('foo')
+        row_ids = IntentParserCell()
+        row_ids.add_paragraph('3')
+        data_row = test_utils.create_measurement_table_row(lab_id_cell=lab_ids, row_id_cell=row_ids, col_id_cell=col_ids)
+        ip_table.add_row(data_row)
+
+        meas_table = MeasurementTable(ip_table)
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
+        expected_results = {'contents': [[{'name': {'label': 'column_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 13}],
+                                         [{'name': {'label': 'lab_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 'foo'}],
+                                         [{'name': {'label': 'row_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 3}]]}
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(expected_results[dc_constants.CONTENTS], meas_result[0][dc_constants.CONTENTS])
+
+    def test_table_with_3_lab_ids(self):
+        ip_table = test_utils.create_fake_measurement_table()
+        lab_ids = IntentParserCell()
+        lab_ids.add_paragraph('foo, r1eu66zybzdwew, lab_id')
+        data_row = test_utils.create_measurement_table_row(lab_id_cell=lab_ids)
+        ip_table.add_row(data_row)
+
+        meas_table = MeasurementTable(ip_table)
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
+        expected_results = {'contents': [[{'name': {'label': 'lab_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 'foo'},
+                            {'name': {'label': 'lab_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 'r1eu66zybzdwew'},
+                            {'name': {'label': 'lab_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 'lab_id'}]]}
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(expected_results[dc_constants.CONTENTS], meas_result[0][dc_constants.CONTENTS])
+
+    def test_table_with_3_row_ids(self):
+        ip_table = test_utils.create_fake_measurement_table()
+        row_ids = IntentParserCell()
+        row_ids.add_paragraph('1, 2, 3')
+        data_row = test_utils.create_measurement_table_row(row_id_cell=row_ids)
+        ip_table.add_row(data_row)
+
+        meas_table = MeasurementTable(ip_table)
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
+        expected_results = {'contents': [[{'name': {'label': 'row_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 1},
+                                          {'name': {'label': 'row_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 2},
+                                          {'name': {'label': 'row_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 3}]]}
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(expected_results[dc_constants.CONTENTS], meas_result[0][dc_constants.CONTENTS])
+
+    def test_table_with_3_col_ids(self):
+        ip_table = test_utils.create_fake_measurement_table()
+        col_ids = IntentParserCell()
+        col_ids.add_paragraph('1, 2, 3')
+        data_row = test_utils.create_measurement_table_row(col_id_cell=col_ids)
+        ip_table.add_row(data_row)
+
+        meas_table = MeasurementTable(ip_table)
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
+        expected_results = {'contents': [[{'name': {'label': 'column_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 1},
+                                          {'name': {'label': 'column_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 2},
+                                          {'name': {'label': 'column_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 3}]]}
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(expected_results[dc_constants.CONTENTS], meas_result[0][dc_constants.CONTENTS])
     
     def test_table_with_1_replicate(self):
         ip_table = test_utils.create_fake_measurement_table()

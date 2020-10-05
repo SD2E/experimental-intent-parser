@@ -35,7 +35,10 @@ def create_fake_measurement_table(table_index=None, reagent_media_cells=None):
                     ip_constants.HEADER_BATCH_VALUE,
                     ip_constants.HEADER_CONTROL_VALUE,
                     ip_constants.HEADER_SAMPLES_VALUE,
-                    ip_constants.HEADER_NOTES_VALUE]
+                    ip_constants.HEADER_NOTES_VALUE,
+                    ip_constants.HEADER_COLUMN_ID_VALUE,
+                    ip_constants.HEADER_LAB_ID_VALUE,
+                    ip_constants.HEADER_ROW_ID_VALUE]
     header_row = _create_table_headers(header_names)
     if reagent_media_cells:
         header_row.extend(reagent_media_cells)
@@ -157,7 +160,10 @@ def create_measurement_table_row(measurement_type_cell=None,
                                  batch_cell=None,
                                  controls_cell=None,
                                  sample_cell=None,
-                                 notes_cell=None):
+                                 notes_cell=None,
+                                 lab_id_cell=None,
+                                 row_id_cell=None,
+                                 col_id_cell=None):
     if measurement_type_cell is None:
         measurement_type_cell = IntentParserCell()
         measurement_type_cell.add_paragraph('')
@@ -191,6 +197,15 @@ def create_measurement_table_row(measurement_type_cell=None,
     if notes_cell is None:
         notes_cell = IntentParserCell()
         notes_cell.add_paragraph('')
+    if lab_id_cell is None:
+        lab_id_cell = IntentParserCell()
+        lab_id_cell.add_paragraph('')
+    if row_id_cell is None:
+        row_id_cell = IntentParserCell()
+        row_id_cell.add_paragraph('')
+    if col_id_cell is None:
+        col_id_cell = IntentParserCell()
+        col_id_cell.add_paragraph('')
 
     return [measurement_type_cell,
             file_type_cell,
@@ -202,7 +217,11 @@ def create_measurement_table_row(measurement_type_cell=None,
             batch_cell,
             controls_cell,
             sample_cell,
-            notes_cell]
+            notes_cell,
+            col_id_cell,
+            lab_id_cell,
+            row_id_cell
+            ]
 
 def create_fake_lab_table(table_index=None):
     ip_table = IntentParserTable()
