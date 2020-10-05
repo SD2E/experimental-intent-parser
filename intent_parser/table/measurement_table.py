@@ -106,6 +106,18 @@ class MeasurementTable(object):
                 self._process_batch(cell, measurement)
             elif intent_parser_constants.HEADER_CONTROL_TYPE == cell_type:
                 self._process_control(cell, control_data, measurement)
+            elif intent_parser_constants.HEADER_COLUMN_ID_TYPE == cell_type:
+                col_id = self._process_col_id(cell)
+                if col_id:
+                    content.append(col_id)
+            elif intent_parser_constants.HEADER_ROW_ID_TYPE == cell_type:
+                row_id = self._process_row_id(cell)
+                if row_id:
+                    content.append(row_id)
+            elif intent_parser_constants.HEADER_MEASUREMENT_LAB_ID_TYPE == cell_type:
+                lab_id = self._process_lab_id(cell)
+                if lab_id:
+                    content.append(lab_id)
             else:
                 reagents = self._process_reagent_media(cell, header_cell)
                 if reagents:
@@ -114,6 +126,46 @@ class MeasurementTable(object):
             measurement.add_field(dc_constants.CONTENTS, content)
 
         return measurement
+
+    def _process_lab_id(self, cell):
+        cell_content = cell.get_text()
+        try:
+            lab_ids = []
+            for value in cell_parser.PARSER.extract_name_value(cell_content):
+                result = {'name': {'label': 'lab_id'},
+                          'value': value}
+                lab_ids.append(result)
+            return lab_ids
+        except TableException as err:
+            message = ('Measurement table has invalid %s value: %s') % (
+                intent_parser_constants.HEADER_LAB_ID_VALUE, err.get_message())
+            self._validation_errors.append(message)
+
+    def _process_row_id(self, cell):
+        text = cell.get_text()
+        try:
+            row_ids = []
+            for value in cell_parser.PARSER.process_numbers(text):
+                result = {'name': {'label': 'row_id'},
+                          'value': int(value)}
+                row_ids.append(result)
+            return row_ids
+        except TableException as err:
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_ROW_ID_VALUE, err)
+            self._validation_errors.append(message)
+
+    def _process_col_id(self, cell):
+        text = cell.get_text()
+        try:
+            col_ids = []
+            for value in cell_parser.PARSER.process_numbers(text):
+                result = {'name': {'label': 'column_id'},
+                          'value': int(value)}
+                col_ids.append(result)
+            return col_ids
+        except TableException as err:
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_ROW_ID_VALUE, err)
+            self._validation_errors.append(message)
     
     def _process_reagent_media(self, cell, header_cell):
         reagents_media = []
@@ -137,6 +189,17 @@ class MeasurementTable(object):
                 message = err.get_message()
                 self._validation_errors.append(message)
         elif cell_parser.PARSER.is_number(text):
+            # header_name = header_cell.get_text().lower().strip()
+            # if header_name == 'row_id':
+            #     result = self._process_row_id(text)
+            #     reagents_media.append(result)
+            # elif header_name == 'col_id':
+            #     result = self._process_col_id(text)
+            #     reagents_media.append(result)
+            # elif header_name == 'lab_id':
+            #     result = self._process_lab_id(text)
+            #     reagents_media.append(result)
+            # else:
             err = '%s is missing a unit' % text
             message = 'Measurement table has invalid reagent/media value: %s' % err
             self._validation_errors.append(message)
