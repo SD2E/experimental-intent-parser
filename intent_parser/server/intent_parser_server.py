@@ -1397,6 +1397,12 @@ class IntentParserServer(object):
             header_row.append(intent_parser_constants.HEADER_NOTES_VALUE)
         if data[ip_addon_constants.HTML_CONTROLS]:
             header_row.append(intent_parser_constants.HEADER_CONTROL_VALUE)
+        if data[ip_addon_constants.HTML_COL_ID]:
+            header_row.append(intent_parser_constants.HEADER_COLUMN_ID_VALUE)
+        if data[ip_addon_constants.HTML_ROW_ID]:
+            header_row.append(intent_parser_constants.HEADER_ROW_ID_VALUE)
+        if data[ip_addon_constants.HTML_LAB_ID]:
+            header_row.append(intent_parser_constants.HEADER_LAB_ID_VALUE)
         if data[ip_addon_constants.HTML_NUM_OF_REAGENTS] and \
            data[ip_addon_constants.HTML_REAGENT_TIMEPOINT_VALUE] and \
            data[ip_addon_constants.HTML_REAGENT_TIMEPOINT_UNIT]:

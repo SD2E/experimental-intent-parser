@@ -42,13 +42,13 @@ function reportControlsInfo(){
 		'<b>Required fields:</b>\n' +
 		'<ul>\n' +
 		'\t<li><a href="https://schema.catalog.sd2e.org/schemas/control_type.json"> <b>Type</b></a>: an expected type for this control. <i>Example:</i> HIGH_FITC</li>\n' +
-		'\t<li><b>Strains</b>: a list of one or more string values representing a strain listed in the SBOL Dictionary lab name. <i>Example:</i> B_subtilis_comKS_mCherry_1x</li>\n' +
+		'\t<li><b>Strains</b>: a list of one or more text values representing a strain listed in the SBOL Dictionary lab name. <i>Example:</i> B_subtilis_comKS_mCherry_1x</li>\n' +
 		'</ul>\n' +
 		'<b>Optional fields:</b>\n' +
 		'<ul>\n' +
-		'\t<li><b>Channel</b>: a string value representing FCS channel. <i>Example:</i> BL1-A</li>\n' +
-		'\t<li><b>Contents</b>: a list of one or more string values representing the content of a control. A content can come in the form of a name or a name followed by a value, followed by a timepoint unit. <i>Example:</i> beta_estradiol or beta_estradiol 0.05 micromole</li>\n' +
-		'\t<li><b><a href="https://schema.catalog.sd2e.org/schemas/time_unit.json">Timepoints</a></b>: a list of one or more string values representing point in a time series. <i>Example:</i> 2, 4 hours</li>\n' +
+		'\t<li><b>Channel</b>: a text value representing FCS channel. <i>Example:</i> BL1-A</li>\n' +
+		'\t<li><b>Contents</b>: a list of one or more text values representing the content of a control. A content can come in the form of a name or a name followed by a value, followed by a timepoint unit. <i>Example:</i> beta_estradiol or beta_estradiol 0.05 micromole</li>\n' +
+		'\t<li><b><a href="https://schema.catalog.sd2e.org/schemas/time_unit.json">Timepoints</a></b>: a list of one or more text values representing point in a time series. <i>Example:</i> 2, 4 hours</li>\n' +
 		'</ul>';
 	showSidebar(html_content);
 }
@@ -58,18 +58,18 @@ function reportLabInfo(){
 		'<p><b>Description</b>: information linked to a lab.</p>\n' +
 		'<b>Required fields:</b>\n' +
 		'<ul>\n' +
-		'\t<li><a href="https://schema.catalog.sd2e.org/schemas/lab.json"> <b>Lab</b></a>: a string value representing the lab that performed this experiment. <i>Example:</i> TACC</li>\n' +
+		'\t<li><a href="https://schema.catalog.sd2e.org/schemas/lab.json"> <b>Lab</b></a>: a text value representing the lab that performed this experiment. <i>Example:</i> TACC</li>\n' +
 		'</ul>\n' +
 		'<b>Optionalfields:</b>\n' +
 		'<ul>\n' +
-		'\t<li><b>Experiment_id</b>: a string identifier, namespaced performer, for the experiment. <i>Example:</i> 123</li>\n' +
-		'</ul>';
+		'\t<li><b>Experiment_id</b>: a text identifier, namespaced performer, for the experiment <i>Example:</i> 123</li>\n' +
+		'</ul>'
 	showSidebar(html_content);
 }
 
 function reportMeasurementsInfo(){
 	html_content = '<h2> Measurements Table </h2>\n' +
-		'<p><b>Description</b>: measurements expected to be produced for a run, broken down by measurement type and sample conditions.</p>\n' +
+		'<p><b>Description</b>: measurements expected to be produced for a run, broken down by measurement type and sample conditions</p>\n' +
 		'<b>Required fields:</b>\n' +
 		'<ul>\n' +
 		'\t<li><a href="https://schema.catalog.sd2e.org/schemas/measurement_type.json"> <b>Measurement Type</b></a>: an expected file type for this measurement. <i>Example:</i> RNA_SEQ</li>\n' +
@@ -78,12 +78,15 @@ function reportMeasurementsInfo(){
 		'<b>Optional fields:</b>\n' +
 		'<ul>\n' +
 		'\t<li><b>Batch</b>: a list of one or more numerical values representing the batches a measurement belongs to. <i>Example:</i> 1, 2, 3</li>\n' +
-		'\t<li><b>Controls</b>: a list of Control Table captions for representing expected control elements for this run. <i>Example:</i> Table 1, Table 2</li>\n' +
+		'\t<li><b>Controls</b>: a list of Control Table captions for representing expected control elements for this run <i>Example:</i> Table 1, Table 2</li>\n' +
 		'\t<li><b>Ods</b>: a list of one or more numerical values representing expected optical densities for this measurement. <i>Example:</i> 5</li>\n' +
 		'\t<li><b>Replicates</b>: a list of one or more numerical values representing expected number of replicates. <i>Example:</i> 6</li>\n' +
 		'\t<li><b>Strains</b>: a list of one or more string values representing expected strains for this measurement. Strains listed in this field must have a hyperlink that references to a SBH URI. <i>Example:</i> UWBF_6390</li>\n' +
 		'\t<li><a href="https://schema.catalog.sd2e.org/schemas/temperature.json"><b>Temperatures</b></a>: a list of one or more numerical values followed by a temperature unit representing expected temperatures for this measurement. <i>Example</i>: 30 celsius</li>\n' +
 		'\t<li><a href="https://schema.catalog.sd2e.org/schemas/time_unit.json"><b>Timepoints</b></a>: a list of one or more numerical values followed by a timepoint unit representing expected timepoints for this run. <i>Example:</i> 0, 4, 8, 12, 16 hour</li>\n' +
+		'\t<li><b>Column_id</b>: a list of one or more numerical values to signify which column of which run received which inducer concentration. <i>Example:</i> 2</li>\n' +
+		'\t<li><b>Row_id</b>: a list of one or more numerical values signify which row of which run received which inducer concentration. <i>Example:</i> 1</li>\n' +
+		'\t<li><b>lab_id</b>: a list of one or more text values to specify lab ids. <i>Example:</i> abc</li>\n' +
 		'</ul>';
 	showSidebar(html_content);
 }
