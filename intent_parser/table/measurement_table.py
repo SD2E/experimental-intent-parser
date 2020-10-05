@@ -164,7 +164,7 @@ class MeasurementTable(object):
                 col_ids.append(result)
             return col_ids
         except TableException as err:
-            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_ROW_ID_VALUE, err)
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_COLUMN_ID_VALUE, err)
             self._validation_errors.append(message)
     
     def _process_reagent_media(self, cell, header_cell):
