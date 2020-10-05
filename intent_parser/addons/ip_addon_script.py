@@ -17,7 +17,7 @@ from intent_parser.accessor.google_accessor import GoogleAccessor
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.utils.intent_parser_utils as util
 import json
-import logging 
+import logging.config
 import os.path
 import time
 import traceback
