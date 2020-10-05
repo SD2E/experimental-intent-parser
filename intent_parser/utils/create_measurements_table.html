@@ -59,6 +59,9 @@
                         'timepoint' : theForm.timepoint.checked,
                         'ods' : theForm.ods.checked,
                         'batch' : theForm.batch.checked,
+                        'colId': theForm.colId.checked,
+                        'labId': theForm.labId.checked,
+                        'rowId': theForm.rowId.checked,
                         'controls' : theForm.control.checked,
                         'notes' : theForm.notes.checked,
                         'numRows' : theForm.num_rows.value};
@@ -136,6 +139,10 @@
               <td><input type="checkbox" name="batch" title="Check to add a column for batch. Comma separated lists are accepted."></td>
             </tr>
             <tr>
+              <th align="right">Column ID: </th>
+              <td><input type="checkbox" name="colId" title="Check to add a column for column ID. Comma separated lists are accepted."></td>
+            </tr>
+            <tr>
               <th align="right">Control: </th>
               <td><input type="checkbox" name="control" title="Check to add a column for control. Comma separated lists are accepted."></td>
             </tr>
@@ -144,6 +151,10 @@
 
           <td>
           <table align="center">
+            <tr>
+              <th align="right">Lab ID: </th>
+              <td><input type="checkbox" name="labId" title="Check to add a column for lab ID. Comma separated lists are accepted."></td>
+            </tr>
             <tr>
               <th align="right">Notes: </th>
               <td><input type="checkbox" name="notes" title="Check to add a column for notes/descriptions.  This column isn't parsed and has no effect on the generated structured request."></td>
@@ -157,6 +168,10 @@
 
           <td>
           <table align="center">
+            <tr>
+              <th align="right">Row ID: </th>
+              <td><input type="checkbox" name="rowId" title="Check to add a column for row ID. Comma separated lists are accepted."></td>
+            </tr>
             <tr>
               <th align="right">Temperature: </th>
               <td><input type="checkbox" name="temperature" title="Check to add a column for temperature configuration.  Comma separated lists are accepted."></td>
