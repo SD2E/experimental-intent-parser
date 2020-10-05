@@ -132,7 +132,7 @@ class MeasurementTable(object):
         try:
             lab_ids = []
             for value in cell_parser.PARSER.extract_name_value(cell_content):
-                result = {'name': {'label': 'lab_id'},
+                result = {'name': {'label': 'lab_id', 'sbh_uri': dc_constants.NO_PROGRAM_DICTIONARY},
                           'value': value}
                 lab_ids.append(result)
             return lab_ids
@@ -146,7 +146,7 @@ class MeasurementTable(object):
         try:
             row_ids = []
             for value in cell_parser.PARSER.process_numbers(text):
-                result = {'name': {'label': 'row_id'},
+                result = {'name': {'label': 'row_id', 'sbh_uri': dc_constants.NO_PROGRAM_DICTIONARY},
                           'value': int(value)}
                 row_ids.append(result)
             return row_ids
@@ -159,7 +159,7 @@ class MeasurementTable(object):
         try:
             col_ids = []
             for value in cell_parser.PARSER.process_numbers(text):
-                result = {'name': {'label': 'column_id'},
+                result = {'name': {'label': 'column_id', 'sbh_uri': dc_constants.NO_PROGRAM_DICTIONARY},
                           'value': int(value)}
                 col_ids.append(result)
             return col_ids
