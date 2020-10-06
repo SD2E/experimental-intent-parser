@@ -40,7 +40,7 @@ class StrateosAccessor(object):
 
         self.protocol_lock.acquire()
         for protocol in protocol_list:
-            self.protocols[protocol['name']] = self._parse_protocol(protocol)
+            self.protocols[protocol['name']] = self._parse_protocol(protocol['inputs'])
             # self.protocols[protocol['name']] = protocol
         self.protocol_lock.release()
         
@@ -77,7 +77,7 @@ class StrateosAccessor(object):
             id = '.'.join(names)
 
             if 'inputs' in protocol_field:
-                for key, value in protocol_field['inputs']:
+                for key, value in protocol_field['inputs'].items():
                     queue.append((names + [key], value))
             else:
                 parameter_field = ParameterField()
@@ -87,7 +87,10 @@ class StrateosAccessor(object):
                     parameter_field.set_required(protocol_field['required'])
                 if 'options' in protocol_field:
                     for option in protocol_field['options']:
-                        parameter_field.add_option(option['name'], option['value'])
+                        if 'name' in option and 'value' in option:
+                            parameter_field.add_option(option['name'], option['value'])
+                        else:
+                            pass
                 parameters[id] = parameter_field
 
         return parameters
@@ -102,6 +105,9 @@ class ParameterField(object):
     def add_option(self, name, value):
         option = ParameterFieldOption(name, value)
         self._options.append(option)
+
+    def is_required(self):
+        return self._required
 
     def set_default_value(self, value):
         if self._default_value:

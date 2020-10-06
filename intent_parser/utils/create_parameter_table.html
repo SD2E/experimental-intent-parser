@@ -20,18 +20,42 @@
         formInfo.extra = extra;
         google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);
     }
-    function showOptionalFields(){
-       var selectedProtocol = theForm.protocols.value
-      if (selectedProtocol == 'Growth Curves'){
 
+    function resetTableOptions(table){
+        // Remove existing information
+        while (table.rows.length > 0) {
+            table.deleteRow(table.rows.length - 1);
+        }
+    }
+
+    function populateTableOptions(table, listOfOptions){
+        for (index = 0; index < listOfOptions.length; index++) {
+            var row = table.insertRow(index);
+            var checkBoxCell = row.insertCell(0);
+            var optionalFieldTextCell = row.insertCell(1);
+            checkBoxCell.innerHTML = "<td><input type='checkbox' id='chk_"+i+"' /></td>";
+            optionalFieldTextCell.innerHTML = listOfOptions[index];
+        }
+    }
+
+    function showOptionalFields(){
+      var selectedProtocol = theForm.protocols
+      var table = document.getElementById('parameterFieldOptionsTable');
+      resetTableOptions(table);
+      if (selectedProtocol == 'Growth Curves'){
+          populateTableOptions(table, this.timeseriesParameterOptions)
       }
       else if(selectedProtocol == 'Time Series'){
-
+          populateTableOptions(table, this.growthCurveParameterOptions)
       }
       else if(selectedProtocol == 'Obstacle Course'){
-
+          populateTableOptions(table, this.obstacleCourseParameterOptions)
       }
     }
+
+    this.timeseriesParameterOptions = "${TIMESERIESPARAMETEROPTIONS}"
+    this.growthCurveParameterOptions = "${GROWTHCURVEPARAMETEROPTIONS}"
+    this.obstacleCourseParameterOptions = "${OBSTACLECOURSEPARAMETEROPTIONS}"
   </script>
   <center>
     <form name="createParameterTableForm" action="/add">
@@ -42,6 +66,12 @@
           <th align="right">Protocol: </th>
           <td align="left">
             <select id="protocol_opt" name="protocols" onChange=showOptionalFields()>${PROTOCOLOPTIONS}</select>
+          </td>
+        </tr>
+
+        <tr style="width:250px">
+          <td colspan="2">
+            <table id="parameterFieldOptionsTable" stype="width:100%"></table>
           </td>
         </tr>
       </table>

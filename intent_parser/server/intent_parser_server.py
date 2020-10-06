@@ -1158,8 +1158,16 @@ class IntentParserServer(object):
                 dialog_action = intent_parser_view.create_measurement_table_dialog(cursor_child_index)
                 actionList.append(dialog_action)
             elif table_type == ip_addon_constants.TABLE_TYPE_PARAMETERS:
-                protocol_options = list(intent_parser_constants.PROTOCOL_NAMES.values())
-                dialog_action = intent_parser_view.create_parameter_table_dialog(cursor_child_index, protocol_options)
+                protocol_names = list(intent_parser_constants.PROTOCOL_NAMES.values())
+                growth_curve_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.GROWTH_CURVE_PROTOCOL)
+                obstacle_course_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.OBSTACLE_COURSE_PROTOCOL)
+                time_series_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.TIME_SERIES_HTP_PROTOCOL)
+
+                dialog_action = intent_parser_view.create_parameter_table_dialog(cursor_child_index,
+                                                                                 protocol_names,
+                                                                                 timeseries_optional_fields=self.get_common_names_for_optional_parameter_fields(time_series_parameters),
+                                                                                 growthcurve_optional_fields=self.get_common_names_for_optional_parameter_fields(growth_curve_parameters),
+                                                                                 obstaclecourse_optional_fields=self.get_common_names_for_optional_parameter_fields(obstacle_course_parameters))
                 actionList.append(dialog_action)
             else:
                 logger.warning('WARNING: unsupported table type: %s' % table_type)
@@ -1168,6 +1176,15 @@ class IntentParserServer(object):
             return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
         except Exception as e:
             raise e
+
+    def get_common_names_for_optional_parameter_fields(self, parameters: dict):
+        common_names = [field for field in parameters.values()]
+        for field_id, parameter in parameters.items():
+            if not parameter.is_required():
+                field_name = self.sbol_dictionary.get_common_name_from_transcriptic_id(field_id)
+                if field_name:
+                    common_names.append(field_name)
+        return common_names
 
     def process_add_to_syn_bio_hub(self, http_message):
         try:
