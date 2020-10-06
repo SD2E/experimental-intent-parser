@@ -1178,7 +1178,7 @@ class IntentParserServer(object):
             raise e
 
     def get_common_names_for_optional_parameter_fields(self, parameters: dict):
-        common_names = [field for field in parameters.values()]
+        common_names = []
         for field_id, parameter in parameters.items():
             if not parameter.is_required():
                 field_name = self.sbol_dictionary.get_common_name_from_transcriptic_id(field_id)

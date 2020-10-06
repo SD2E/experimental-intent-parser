@@ -41,7 +41,6 @@ class StrateosAccessor(object):
         self.protocol_lock.acquire()
         for protocol in protocol_list:
             self.protocols[protocol['name']] = self._parse_protocol(protocol['inputs'])
-            # self.protocols[protocol['name']] = protocol
         self.protocol_lock.release()
         
     def get_protocol(self, protocol):
@@ -89,8 +88,6 @@ class StrateosAccessor(object):
                     for option in protocol_field['options']:
                         if 'name' in option and 'value' in option:
                             parameter_field.add_option(option['name'], option['value'])
-                        else:
-                            pass
                 parameters[id] = parameter_field
 
         return parameters

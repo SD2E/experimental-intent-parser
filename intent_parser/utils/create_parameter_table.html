@@ -22,34 +22,33 @@
     }
 
     function resetTableOptions(table){
-        // Remove existing information
         while (table.rows.length > 0) {
-            table.deleteRow(table.rows.length - 1);
+            table.deleteRow(0);
         }
     }
 
     function populateTableOptions(table, listOfOptions){
-        for (index = 0; index < listOfOptions.length; index++) {
-            var row = table.insertRow(index);
-            var checkBoxCell = row.insertCell(0);
-            var optionalFieldTextCell = row.insertCell(1);
-            checkBoxCell.innerHTML = "<td><input type='checkbox' id='chk_"+i+"' /></td>";
-            optionalFieldTextCell.innerHTML = listOfOptions[index];
+        for (let index = 0; index < listOfOptions.length; index++) {
+            let row = table.insertRow(index);
+            let checkBoxCell = row.insertCell(0);
+            let optionalFieldTextCell = row.insertCell(1);
+            checkBoxCell.innerHTML = "<input type='checkbox' id='chk_${index}'/>";
+            optionalFieldTextCell.text = listOfOptions[index];
         }
     }
 
     function showOptionalFields(){
-      var selectedProtocol = theForm.protocols
-      var table = document.getElementById('parameterFieldOptionsTable');
-      resetTableOptions(table);
+      let selectedProtocol = this.createParameterTableForm.protocols;
+      let table = document.getElementById('parameterFieldOptionsTable');
+      // resetTableOptions(table);
       if (selectedProtocol == 'Growth Curves'){
-          populateTableOptions(table, this.timeseriesParameterOptions)
+          populateTableOptions(table, ['a', 'b', 'c']);
       }
       else if(selectedProtocol == 'Time Series'){
-          populateTableOptions(table, this.growthCurveParameterOptions)
+          populateTableOptions(table, ['a', 'b', 'c']);
       }
       else if(selectedProtocol == 'Obstacle Course'){
-          populateTableOptions(table, this.obstacleCourseParameterOptions)
+          populateTableOptions(table, ['a', 'b', 'c']);
       }
     }
 
@@ -65,7 +64,7 @@
         <tr>
           <th align="right">Protocol: </th>
           <td align="left">
-            <select id="protocol_opt" name="protocols" onChange=showOptionalFields()>${PROTOCOLOPTIONS}</select>
+            <select id="protocol_opt" name="protocols" onChange="showOptionalFields()">${PROTOCOLNAMES}</select>
           </td>
         </tr>
 

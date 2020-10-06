@@ -138,14 +138,14 @@ class ParameterTableHtmlBuilder(object):
     def protocol_names_html(self, html_protocols):
         self.html = self.html.replace('${PROTOCOLNAMES}', html_protocols)
 
-    def growthcurve_optional_parameter_fields(self, fields: list):
-        self.html = self.html.replace('${GROWTHCURVEPARAMETEROPTIONS', fields)
+    def growthcurve_optional_parameter_fields(self, fields):
+        self.html = self.html.replace('${GROWTHCURVEPARAMETEROPTIONS}', fields)
 
-    def obstaclecourse_optional_parameter_fields(self, fields: list):
-        self.html = self.html.replace('${OBSTACLECOURSEPARAMETEROPTIONS', fields)
+    def obstaclecourse_optional_parameter_fields(self, fields):
+        self.html = self.html.replace('${OBSTACLECOURSEPARAMETEROPTIONS}', fields)
 
-    def timeseries_optional_parameter_fields(self, fields: list):
-        self.html = self.html.replace('${TIMESERIESPARAMETEROPTIONS', fields)
+    def timeseries_optional_parameter_fields(self, fields):
+        self.html = self.html.replace('${TIMESERIESPARAMETEROPTIONS}', fields)
 
     def build(self):
         return self.html
