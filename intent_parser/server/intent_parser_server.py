@@ -1592,7 +1592,6 @@ class IntentParserServer(object):
         table_template.append(header_row)
 
         selected_protocol = self._get_selected_protocol(data[ip_addon_constants.HTML_PROTOCOL])
-        table_template.append([intent_parser_constants.PARAMETER_PROTOCOL, selected_protocol])
 
         protocol = self.strateos_accessor.get_protocol(selected_protocol)
         required_fields = self._add_required_parameters(protocol)
