@@ -52,9 +52,10 @@ TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
 
 # Mapping protocols to human readible names
 PARAMETER_PROTOCOL = 'protocol'
-PROTOCOL_NAMES = {GROWTH_CURVE_PROTOCOL: 'Growth Curves', 
-                  TIME_SERIES_HTP_PROTOCOL: 'Time Series', 
-                  OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course'}
+PROTOCOL_NAMES = {'PLACEHOLDER': 'Select a protocol',
+                  GROWTH_CURVE_PROTOCOL: 'Growth Curves',
+                  OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course',
+                  TIME_SERIES_HTP_PROTOCOL: 'Time Series'}
 DEFAULT_PARAMETERS = 'default_parameters'
 PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN = 'experiment_reference_url_for_xplan'
 PARAMETER_TEST_MODE = 'test_mode'

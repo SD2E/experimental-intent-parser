@@ -31,6 +31,20 @@ def generate_results_pagination_html(offset, count):
 
     return html
 
+def create_optional_fields_table(optional_fields, table_field_id='optionalFieldTable'):
+    html_rows = []
+    html_table = '''<table id=%s>''' % table_field_id
+    for index in range(len(optional_fields)):
+        html_checkbox = '''<input type="checkbox" id="chkOption%s">''' % str(index)
+        html_label = '''<label for="chkOption%s">%s</label>''' % (str(index), optional_fields[index])
+        html_col1 = '''<td>%s</td>''' % html_checkbox
+        html_col2 = '''<td>%s</td>''' % html_label
+        html_row = '''<tr>%s %s</tr>''' % (html_col1, html_col2)
+        html_rows.append(html_row)
+    # close tag after html table is completely filled in
+    html_table += '</table>'
+    # return ''.join(html_rows)
+    return ','.join(optional_fields)
 
 def create_table_template(position_in_document, table_data, table_type, col_sizes, additional_info={}):
     create_table = {'action': 'addTable',
@@ -53,15 +67,16 @@ def create_controls_table_dialog(cursor_index):
     html = builder.build()
     dialog_action = modal_dialog(html, 'Create Controls Table', 600, 600)
     return dialog_action
-    
+
 def create_parameter_table_dialog(cursor_child_index, protocol_names, timeseries_optional_fields=[], growthcurve_optional_fields=[], obstaclecourse_optional_fields=[]):
     html_protocols = generate_html_options(protocol_names)
     builder = ParameterTableHtmlBuilder()
     builder.cursor_child_index_html(cursor_child_index)
     builder.protocol_names_html(html_protocols)
-    builder.growthcurve_optional_parameter_fields(generate_html_options(growthcurve_optional_fields))
-    builder.obstaclecourse_optional_parameter_fields(generate_html_options(obstaclecourse_optional_fields))
-    builder.timeseries_optional_parameter_fields(generate_html_options(timeseries_optional_fields))
+
+    builder.growthcurve_optional_parameter_fields(create_optional_fields_table(growthcurve_optional_fields))
+    builder.obstaclecourse_optional_parameter_fields(create_optional_fields_table(obstaclecourse_optional_fields))
+    builder.timeseries_optional_parameter_fields(create_optional_fields_table(timeseries_optional_fields))
     html_parameter = builder.build() 
     dialog_action = modal_dialog(html_parameter, 'Create Parameters Table', 600, 600)
     return dialog_action

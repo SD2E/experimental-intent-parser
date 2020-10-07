@@ -5,72 +5,102 @@
     function onSuccess() {
         google.script.host.close();
     }
+
     function handleCancel() {
         google.script.host.close();
     }
-    function handleSubmit() {
-        var table = document.getElementById('parameterTable');
 
+    function handleSubmit() {
         var extra = {"action": "createParameterTable"};
         var theForm = this.createParameterTableForm;
-        var formInfo = {'cursorChildIndex' : theForm.cursorChildIndex.value,
-                        'formName' : theForm.formName.value,
-                        'protocol' : theForm.protocols.value
+        var formInfo = {"cursorChildIndex" : theForm.cursorChildIndex.value,
+                        "formName" : theForm.formName.value,
+                        "protocol" : theForm.protocols.value,
+                        "optionalParameters": getSelectedOptionalParameters(),
                         };
         formInfo.extra = extra;
         google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);
     }
 
-    function resetTableOptions(table){
-        while (table.rows.length > 0) {
-            table.deleteRow(0);
+    function getSelectedOptionalParameters(){
+        var parameterFields = new Array();
+        var checkboxes = document.getElementsByName("optionalParameter");
+        for (var checkbox of checkboxes) {
+            if (checkbox.checked){
+                parameterFields.push(checkbox.value);
+            }
+        }
+        return parameterFields;
+    }
+
+    function insertOptions(){
+        var theForm = this.createParameterTableForm;
+        var selectedProtocol = theForm.protocols.value;
+        resetOptionsTable();
+        if(selectedProtocol == "Growth Curves"){
+            var listOfOptions = self.growthCurve.split(",");
+            createOptionTable(listOfOptions);
+        }
+        else if(selectedProtocol == "Time Series"){
+            var listOfOptions = self.timeSeries.split(",");
+            createOptionTable(listOfOptions);
+        }
+        else if(selectedProtocol == "Obstacle Course"){
+            var listOfOptions = self.obstacleCourse.split(",");
+            createOptionTable(listOfOptions);
+        }
+
+    }
+
+    function resetOptionsTable(){
+        var table = document.getElementById("optionalFields");
+        table.innerHTML = "";
+    }
+
+    function createOptionTable(listOfOptions){
+        var table = document.getElementById("optionalFields");
+        var header = table.createTHead();
+        header.innerHTML += "<tr><td colspan='2'>Optional Parameter(s):</td></tr>";
+
+        for (var index=0; index<listOfOptions.length; index++){
+            var checkbox = document.createElement("input");
+            checkbox.setAttribute("type", "checkbox");
+            checkbox.setAttribute("id", "chkIfParam" + index);
+            checkbox.setAttribute("name", "optionalParameter");
+            checkbox.setAttribute("value", listOfOptions[index]);
+
+            var label = document.createElement("label");
+            label.setAttribute("for", "chkIfParam"+index);
+            label.appendChild(document.createTextNode(listOfOptions[index]));
+
+            var newRow = table.insertRow();
+            var col1 = newRow.insertCell(0);
+            col1.appendChild(checkbox);
+
+            var col2 = newRow.insertCell(1);
+            col2.appendChild(label);
         }
     }
-
-    function populateTableOptions(table, listOfOptions){
-        for (let index = 0; index < listOfOptions.length; index++) {
-            let row = table.insertRow(index);
-            let checkBoxCell = row.insertCell(0);
-            let optionalFieldTextCell = row.insertCell(1);
-            checkBoxCell.innerHTML = "<input type='checkbox' id='chk_${index}'/>";
-            optionalFieldTextCell.text = listOfOptions[index];
-        }
-    }
-
-    function showOptionalFields(){
-      let selectedProtocol = this.createParameterTableForm.protocols;
-      let table = document.getElementById('parameterFieldOptionsTable');
-      // resetTableOptions(table);
-      if (selectedProtocol == 'Growth Curves'){
-          populateTableOptions(table, ['a', 'b', 'c']);
-      }
-      else if(selectedProtocol == 'Time Series'){
-          populateTableOptions(table, ['a', 'b', 'c']);
-      }
-      else if(selectedProtocol == 'Obstacle Course'){
-          populateTableOptions(table, ['a', 'b', 'c']);
-      }
-    }
-
-    this.timeseriesParameterOptions = "${TIMESERIESPARAMETEROPTIONS}"
-    this.growthCurveParameterOptions = "${GROWTHCURVEPARAMETEROPTIONS}"
-    this.obstacleCourseParameterOptions = "${OBSTACLECOURSEPARAMETEROPTIONS}"
+    this.growthCurve= "${GROWTHCURVEPARAMETEROPTIONS}";
+    this.timeSeries ="${TIMESERIESPARAMETEROPTIONS}";
+    this.obstacleCourse = "${OBSTACLECOURSEPARAMETEROPTIONS}";
   </script>
+
   <center>
     <form name="createParameterTableForm" action="/add">
       <input type="hidden" name="cursorChildIndex" value="${CURSOR_CHILD_INDEX}">
       <input type="hidden" name="formName" value="createParameterTable">
       <table stype="width:600px">
         <tr>
-          <th align="right">Protocol: </th>
-          <td align="left">
-            <select id="protocol_opt" name="protocols" onChange="showOptionalFields()">${PROTOCOLNAMES}</select>
+          <td align="center"><b>Protocol:</b>
+            <select id="protocol_opt" name="protocols" onchange="insertOptions()">
+              ${PROTOCOLNAMES}
+            </select>
           </td>
         </tr>
-
-        <tr style="width:250px">
-          <td colspan="2">
-            <table id="parameterFieldOptionsTable" stype="width:100%"></table>
+        <tr>
+          <td>
+            <table id="optionalFields" stype="width:100%"></table>
           </td>
         </tr>
       </table>
