@@ -51,7 +51,7 @@ OBSTACLE_COURSE_PROTOCOL = 'ObstacleCourse'
 TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
 
 # Mapping protocols to human readible names
-PARAMETER_PROTOCOL = 'protocol'
+PARAMETER_PROTOCOL = 'Protocol Name'
 PROTOCOL_NAMES = {'PLACEHOLDER': 'Select a protocol',
                   GROWTH_CURVE_PROTOCOL: 'Growth Curves',
                   OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course',
