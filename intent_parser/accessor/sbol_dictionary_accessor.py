@@ -430,6 +430,10 @@ class SBOLDictionaryAccessor(object):
                 return key
         return None
 
+    def get_transcriptic_id_from_common_name(self, common_name):
+        mappings = self.map_common_names_and_transcriptic_id()
+        return mappings[common_name] if common_name in mappings else None
+
     def map_common_names_and_transcriptic_id(self):
         result = {}
         attribute_tab = self.get_tab_sheet(dictionary_constants.TAB_ATTRIBUTE)

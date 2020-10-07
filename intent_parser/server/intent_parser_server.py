@@ -1158,8 +1158,16 @@ class IntentParserServer(object):
                 dialog_action = intent_parser_view.create_measurement_table_dialog(cursor_child_index)
                 actionList.append(dialog_action)
             elif table_type == ip_addon_constants.TABLE_TYPE_PARAMETERS:
-                protocol_options = list(intent_parser_constants.PROTOCOL_NAMES.values())
-                dialog_action = intent_parser_view.create_parameter_table_dialog(cursor_child_index, protocol_options)
+                protocol_names = list(intent_parser_constants.PROTOCOL_NAMES.values())
+                growth_curve_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.GROWTH_CURVE_PROTOCOL)
+                obstacle_course_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.OBSTACLE_COURSE_PROTOCOL)
+                time_series_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.TIME_SERIES_HTP_PROTOCOL)
+
+                dialog_action = intent_parser_view.create_parameter_table_dialog(cursor_child_index,
+                                                                                 protocol_names,
+                                                                                 timeseries_optional_fields=self.get_common_names_for_optional_parameter_fields(time_series_parameters),
+                                                                                 growthcurve_optional_fields=self.get_common_names_for_optional_parameter_fields(growth_curve_parameters),
+                                                                                 obstaclecourse_optional_fields=self.get_common_names_for_optional_parameter_fields(obstacle_course_parameters))
                 actionList.append(dialog_action)
             else:
                 logger.warning('WARNING: unsupported table type: %s' % table_type)
@@ -1168,6 +1176,15 @@ class IntentParserServer(object):
             return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
         except Exception as e:
             raise e
+
+    def get_common_names_for_optional_parameter_fields(self, parameters: dict):
+        common_names = []
+        for field_id, parameter in parameters.items():
+            if not parameter.is_required():
+                field_name = self.sbol_dictionary.get_common_name_from_transcriptic_id(field_id)
+                if field_name:
+                    common_names.append(field_name)
+        return common_names
 
     def process_add_to_syn_bio_hub(self, http_message):
         try:
@@ -1573,26 +1590,55 @@ class IntentParserServer(object):
         header_row = [intent_parser_constants.HEADER_PARAMETER_VALUE,
                       intent_parser_constants.HEADER_PARAMETER_VALUE_VALUE]
         table_template.append(header_row)
-        selected_protocol = data[ip_addon_constants.HTML_PROTOCOL]
-        protocols = [key for key, value in intent_parser_constants.PROTOCOL_NAMES.items() if value == selected_protocol]
-        strateos_protocol = protocols[0]
-        if strateos_protocol not in intent_parser_constants.PROTOCOL_NAMES.keys():
-            raise ConnectionException(HTTPStatus.BAD_REQUEST, 'Invalid protocol specified.')
 
-        table_template.append([intent_parser_constants.PARAMETER_PROTOCOL, strateos_protocol])
-        protocol_default_value = self.strateos_accessor.get_protocol(strateos_protocol)
-        for protocol_key, protocol_value in protocol_default_value.items():
-            common_name = self.sbol_dictionary.get_common_name_from_transcriptic_id(protocol_key)
-            if common_name:
-                table_template.append([common_name, protocol_value])
-            else:
-                logger.warning('Unable to locate %s as a Strateos UID in SBOL Dictionary.' % protocol_key)
+        selected_protocol = self._get_selected_protocol(data[ip_addon_constants.HTML_PROTOCOL])
+        table_template.append([intent_parser_constants.PARAMETER_PROTOCOL, selected_protocol])
+
+        protocol = self.strateos_accessor.get_protocol(selected_protocol)
+        required_fields = self._add_required_parameters(protocol)
+        table_template.extend(required_fields)
+
+        optional_fields = self._add_optional_parameters(protocol, data[ip_addon_constants.HTML_OPTIONALPARAMETERS])
+        table_template.extend(optional_fields)
 
         column_width = [len(header) for header in header_row]
         return intent_parser_view.create_table_template(data[ip_addon_constants.CURSOR_CHILD_INDEX],
                                                         table_template,
                                                         ip_addon_constants.TABLE_TYPE_PARAMETERS,
                                                         column_width)
+
+    def _add_required_parameters(self, protocol):
+        required_parameters = []
+        for parameter_id, parameter_field in protocol.items():
+            common_name = self.sbol_dictionary.get_common_name_from_transcriptic_id(parameter_id)
+            if common_name:
+                if parameter_field.is_required():
+                    required_parameters.append([common_name, parameter_field.get_default_value()])
+            else:
+                logger.warning('Unable to locate %s as a Strateos UID in SBOL Dictionary.' % parameter_id)
+
+        return required_parameters
+
+    def _add_optional_parameters(self, protocol: dict, selected_optional_parameters: list) -> list:
+        optional_parameters = []
+        for common_name in selected_optional_parameters:
+            transcriptic_id = self.sbol_dictionary.get_transcriptic_id_from_common_name(common_name)
+            if transcriptic_id:
+                parameter_field = protocol[transcriptic_id]
+                optional_parameters.append([common_name, parameter_field.get_default_value()])
+            else:
+                logger.warning('Unable to locate %s as a Strateos UID in SBOL Dictionary for common_name: %s' % (transcriptic_id, common_name))
+
+        return optional_parameters
+
+
+    def _get_selected_protocol(self, protocol_name):
+        selected_protocols = [key for key, value in intent_parser_constants.PROTOCOL_NAMES.items() if
+                                     value == protocol_name]
+        if len(selected_protocols) != 1:
+            raise ConnectionException(HTTPStatus.BAD_REQUEST, 'Invalid protocol specified.')
+
+        return selected_protocols[0]
 
     def get_client_state(self, http_message):
         json_body = intent_parser_utils.get_json_body(http_message)
