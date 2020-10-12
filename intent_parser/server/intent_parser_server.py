@@ -1162,12 +1162,14 @@ class IntentParserServer(object):
                 growth_curve_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.GROWTH_CURVE_PROTOCOL)
                 obstacle_course_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.OBSTACLE_COURSE_PROTOCOL)
                 time_series_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.TIME_SERIES_HTP_PROTOCOL)
+                cell_free_riboswitch_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL)
 
                 dialog_action = intent_parser_view.create_parameter_table_dialog(cursor_child_index,
                                                                                  protocol_names,
                                                                                  timeseries_optional_fields=self.get_common_names_for_optional_parameter_fields(time_series_parameters),
                                                                                  growthcurve_optional_fields=self.get_common_names_for_optional_parameter_fields(growth_curve_parameters),
-                                                                                 obstaclecourse_optional_fields=self.get_common_names_for_optional_parameter_fields(obstacle_course_parameters))
+                                                                                 obstaclecourse_optional_fields=self.get_common_names_for_optional_parameter_fields(obstacle_course_parameters),
+                                                                                 cellfreeriboswitch_optional_fields=self.get_common_names_for_optional_parameter_fields(cell_free_riboswitch_parameters))
                 actionList.append(dialog_action)
             else:
                 logger.warning('WARNING: unsupported table type: %s' % table_type)

@@ -49,13 +49,16 @@ WORD_DOC_MIMETYPE = 'application/vnd.openxmlformats-officedocument.wordprocessin
 GROWTH_CURVE_PROTOCOL = 'GrowthCurve'
 OBSTACLE_COURSE_PROTOCOL = 'ObstacleCourse'
 TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
+CELL_FREE_RIBO_SWITCH_PROTOCOL = 'CellFreeRiboswitches'
 
 # Mapping protocols to human readible names
 PARAMETER_PROTOCOL = 'protocol'
 PROTOCOL_NAMES = {'PLACEHOLDER': 'Select a protocol',
                   GROWTH_CURVE_PROTOCOL: 'Growth Curves',
                   OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course',
-                  TIME_SERIES_HTP_PROTOCOL: 'Time Series'}
+                  TIME_SERIES_HTP_PROTOCOL: 'Time Series',
+                  CELL_FREE_RIBO_SWITCH_PROTOCOL: 'Cell Free Ribo Switch'}
+
 DEFAULT_PARAMETERS = 'default_parameters'
 PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN = 'experiment_reference_url_for_xplan'
 PARAMETER_TEST_MODE = 'test_mode'
@@ -86,6 +89,8 @@ PARAMETER_RUN_INFO_READ_EACH_INDUCTION = 'run_info.read_each_induction'
 PARAMETER_RUN_INFO_SAVE_FOR_RNASEQ = 'run_info.save_for_rnaseq'
 PARAMETER_RUN_INFO_SKIP_FIRST_FLOW = 'run_info.skip_first_flow'
 PARAMETER_VALIDATE_SAMPLES = 'validate_samples'
+PARAMETER_RUN_INFO_INCUBATE_IN_READER = 'run_info.incubate_in_reader'
+PARAMETER_INDUCERS = 'inducers'
 
 SD2_SPREADSHEET_ID = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program dict
 TEST_SPREADSHEET_ID = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
