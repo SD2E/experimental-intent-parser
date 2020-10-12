@@ -147,5 +147,8 @@ class ParameterTableHtmlBuilder(object):
     def timeseries_optional_parameter_fields(self, fields):
         self.html = self.html.replace('${TIMESERIESPARAMETEROPTIONS}', fields)
 
+    def cellfreeriboswitch_optional_parameter_fields(self, fields):
+        self.html = self.html.replace('${CELLFREERIBOSWITCHOPTIONS}', fields)
+
     def build(self):
         return self.html

@@ -49,6 +49,10 @@
             var listOfOptions = self.obstacleCourse.split(",");
             createOptionTable(listOfOptions);
         }
+        else if(selectedProtocol == "Cell Free Ribo Switch"){
+          var listOfOptions = self.cellFreeRiboSwitch.split(",");
+          createOptionTable(listOfOptions)
+        }
 
     }
 
@@ -84,6 +88,7 @@
     this.growthCurve= "${GROWTHCURVEPARAMETEROPTIONS}";
     this.timeSeries ="${TIMESERIESPARAMETEROPTIONS}";
     this.obstacleCourse = "${OBSTACLECOURSEPARAMETEROPTIONS}";
+    this.cellFreeRiboSwitch = "${CELLFREERIBOSWITCHOPTIONS}";
   </script>
 
   <center>
