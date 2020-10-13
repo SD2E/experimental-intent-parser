@@ -190,21 +190,19 @@ class CellParser(object):
             raise TableException('Unable to parse %s' % text)
         return list_of_contents
 
-    def process_boolean_flag(self, text: str) -> bool:
+    def process_boolean_flag(self, text: str) -> List[bool]:
         tokens = self._cell_tokenizer.tokenize(text, keep_separator=False, keep_skip=False)
-        cell_type = self._get_token_type(self._cell_parser.parse(tokens))
-        if cell_type == 'BOOLEAN_FLAG':
-            token_type = self._get_token_type(tokens[0])
+        result = []
+        for token in tokens:
+            token_type = self._get_token_type(token)
             if token_type == 'BOOLEAN_FALSE':
-                return False
+                result.append(False)
             elif token_type == 'BOOLEAN_TRUE':
-                return True
-        if self._get_token_value(tokens[0]).lower() == 'false':
-            return False
-        elif self._get_token_value(tokens[0]).lower() == 'true':
-            return True
-        else:
-            raise TableException('%s is not boolean value' % text)
+                result.append(True)
+            else:
+                raise TableException('%s is not boolean value' % text)
+
+        return result
 
     def process_content_item_unit(self, unit, fluid_units, timepoint_units):
         all_units = set()

@@ -184,7 +184,13 @@ class ParameterTable(object):
     def process_boolean_parameter(self, parameter_field, parameter_value):
         try:
             boolean_value = cell_parser.PARSER.process_boolean_flag(parameter_value)
-            self._flatten_parameter_values(parameter_field, [boolean_value])
+            if len(boolean_value) == 1:
+                self._flatten_parameter_values(parameter_field, boolean_value)
+            else:
+                message = 'Found more than one boolean value in %s. Only the first boolean value encountered is used.' % (parameter_field)
+                self._validation_warnings.append(message)
+                self._flatten_parameter_values(parameter_field, [boolean_value[0]])
+
         except TableException as err:
             message = 'Parameter table has invalid %s value: %s' % (parameter_field, err)
             self._validation_errors.append(message)

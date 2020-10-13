@@ -152,7 +152,7 @@ class MeasurementTableTest(unittest.TestCase):
     def test_table_with_rna_inhibitor_in_reaction(self):
         ip_table = test_utils.create_fake_measurement_table()
         rna_inhibitor_reaction = IntentParserCell()
-        rna_inhibitor_reaction.add_paragraph('false')
+        rna_inhibitor_reaction.add_paragraph('false, true')
         data_row = test_utils.create_measurement_table_row(rna_inhibitor_reaction_cell=rna_inhibitor_reaction)
         ip_table.add_row(data_row)
 
@@ -162,7 +162,11 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {dc_constants.CONTENTS: [
             [{dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE,
                                   dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
-              dc_constants.VALUE: 'False'}]]}
+              dc_constants.VALUE: 'False'},
+             {dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE,
+                                  dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+              dc_constants.VALUE: 'True'}
+             ]]}
         self.assertEqual(1, len(meas_result))
         self.assertEqual(expected_results[dc_constants.CONTENTS], meas_result[0][dc_constants.CONTENTS])
 

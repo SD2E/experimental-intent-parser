@@ -296,6 +296,7 @@ class CellParserTest(unittest.TestCase):
         self.assertTrue(self.parser.process_boolean_flag('True'))
         self.assertFalse(self.parser.process_boolean_flag('False'))
         self.assertFalse(self.parser.process_boolean_flag('False'))
+        self.assertTrue([False, True], (self.parser.process_boolean_flag('false, true')))
         with self.assertRaises(TableException):
             self.parser.process_boolean_flag('neither')
 
