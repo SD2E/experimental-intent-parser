@@ -162,7 +162,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {dc_constants.CONTENTS: [
             [{dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE,
                                   dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
-              dc_constants.VALUE: False}]]}
+              dc_constants.VALUE: 'False'}]]}
         self.assertEqual(1, len(meas_result))
         self.assertEqual(expected_results[dc_constants.CONTENTS], meas_result[0][dc_constants.CONTENTS])
 
