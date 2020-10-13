@@ -14,6 +14,15 @@ class MeasurementTableTest(unittest.TestCase):
     """
     def setUp(self):
         self.ip_table_factory = IntentParserTableFactory()
+        strain1 = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'ip_admin', 'strain1',
+                                     lab_names=['MG1655'])
+        strain2 = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1', 'ip_admin', 'strain2',
+                                     lab_names=['MG1655_LPV3'])
+        strain3 = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'ip_admin', 'strain3',
+                                     lab_names=['UWBF_7376'])
+        self.strain_mappings = {'https://hub.sd2e.org/user/sd2e/design/MG1655/1': strain1,
+                                'https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1': strain2,
+                                'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1': strain3}
 
     def tearDown(self):
         pass
@@ -791,12 +800,13 @@ class MeasurementTableTest(unittest.TestCase):
         control_type = IntentParserCell()
         control_type.add_paragraph('HIGH_FITC')
         strains = IntentParserCell()
-        strains.add_paragraph('UWBF_25784')
+        strains.add_paragraph('UWBF_7376', link='https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1')
         data_row = test_utils.create_control_table_row(control_type_cell=control_type, strains_cell=strains)
         ip_table_controls.add_row(data_row)
 
-        control_parser = ControlsTable(ip_table_controls, control_types={'HIGH_FITC'})
-        control_result = control_parser.process_table()
+        control_parser = ControlsTable(ip_table_controls, control_types={'HIGH_FITC'}, strain_mapping=self.strain_mappings)
+        control_parser.process_table()
+        control_result = control_parser.get_structured_request()
         
         measurement_parser = MeasurementTable(ip_table_measurment)
         measurement_parser.process_table(control_tables={control_parser.get_table_caption(): control_result})
@@ -805,7 +815,9 @@ class MeasurementTableTest(unittest.TestCase):
         self.assertEqual(1, len(meas_result[0][dc_constants.CONTROLS]))
         control = meas_result[0][dc_constants.CONTROLS][0]
         self.assertEqual(control[dc_constants.TYPE], 'HIGH_FITC')
-        self.assertListEqual(control[dc_constants.STRAINS], ['UWBF_25784'])
+        self.assertListEqual(control[dc_constants.STRAINS], [{dc_constants.LAB_ID: 'name.ip_admin.UWBF_7376',
+                                                              dc_constants.LABEL: 'strain3',
+                                                              dc_constants.SBH_URI: 'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1'}])
     
     def test_table_with_2_reference_control_in_one_measurement(self):
         ip_measurement_table = test_utils.create_fake_measurement_table()
@@ -818,7 +830,7 @@ class MeasurementTableTest(unittest.TestCase):
         control_type = IntentParserCell()
         control_type.add_paragraph('HIGH_FITC')
         strains = IntentParserCell()
-        strains.add_paragraph('UWBF_25784')
+        strains.add_paragraph('UWBF_7376', link='https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1')
         data_row = test_utils.create_control_table_row(control_type_cell=control_type, strains_cell=strains)
         ip_control_table1.add_row(data_row)
 
@@ -826,14 +838,17 @@ class MeasurementTableTest(unittest.TestCase):
         control_type = IntentParserCell()
         control_type.add_paragraph('foo')
         strains = IntentParserCell()
-        strains.add_paragraph('UWBF_6390')
+        strains.add_paragraph('MG1655_LPV3', link='https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1')
         data_row = test_utils.create_control_table_row(control_type_cell=control_type, strains_cell=strains)
         ip_control_table2.add_row(data_row)
 
-        control1_parser = ControlsTable(ip_control_table1, control_types={'HIGH_FITC'})
-        control1_result = control1_parser.process_table()
-        control2_parser = ControlsTable(ip_control_table2, control_types={'foo'})
-        control2_result = control2_parser.process_table()
+        control1_parser = ControlsTable(ip_control_table1, control_types={'HIGH_FITC'}, strain_mapping=self.strain_mappings)
+        control1_parser.process_table()
+        control1_result = control1_parser.get_structured_request()
+
+        control2_parser = ControlsTable(ip_control_table2, control_types={'foo'}, strain_mapping=self.strain_mappings)
+        control2_parser.process_table()
+        control2_result = control2_parser.get_structured_request()
         
         measurement_parser = MeasurementTable(ip_measurement_table)
         measurement_parser.process_table(control_tables={1: control1_result, 2: control2_result})
@@ -844,10 +859,15 @@ class MeasurementTableTest(unittest.TestCase):
         
         control1 = meas_result[0][dc_constants.CONTROLS][0]
         self.assertEqual(control1[dc_constants.TYPE], 'HIGH_FITC')
-        self.assertListEqual(control1[dc_constants.STRAINS], ['UWBF_25784'])
+        self.assertListEqual(control1[dc_constants.STRAINS], [{dc_constants.LAB_ID: 'name.ip_admin.UWBF_7376',
+                                                              dc_constants.LABEL: 'strain3',
+                                                              dc_constants.SBH_URI: 'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1'}])
+
         control2 = meas_result[0][dc_constants.CONTROLS][1]
         self.assertEqual(control2[dc_constants.TYPE], 'foo')
-        self.assertListEqual(control2[dc_constants.STRAINS], ['UWBF_6390'])
+        self.assertListEqual(control2[dc_constants.STRAINS], [{dc_constants.LAB_ID: 'name.ip_admin.MG1655_LPV3',
+                                                              dc_constants.LABEL: 'strain2',
+                                                              dc_constants.SBH_URI: 'https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1'}])
     
     def test_table_with_2_reference_control_in_seperate_measurements(self):
         ip_measurement_table = test_utils.create_fake_measurement_table()
@@ -865,7 +885,7 @@ class MeasurementTableTest(unittest.TestCase):
         control_type = IntentParserCell()
         control_type.add_paragraph('HIGH_FITC')
         strains = IntentParserCell()
-        strains.add_paragraph('UWBF_25784')
+        strains.add_paragraph('UWBF_7376', link='https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1')
         data_row = test_utils.create_control_table_row(control_type_cell=control_type, strains_cell=strains)
         ip_control_table1.add_row(data_row)
 
@@ -873,14 +893,17 @@ class MeasurementTableTest(unittest.TestCase):
         control_type = IntentParserCell()
         control_type.add_paragraph('foo')
         strains = IntentParserCell()
-        strains.add_paragraph('UWBF_6390', link='https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1')
+        strains.add_paragraph('MG1655_LPV3', link='https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1')
         data_row = test_utils.create_control_table_row(control_type_cell=control_type, strains_cell=strains)
         ip_control_table2.add_row(data_row)
 
-        control1_parser = ControlsTable(ip_control_table1, control_types={'HIGH_FITC'})
-        control1_result = control1_parser.process_table()
-        control2_parser = ControlsTable(ip_control_table2, control_types={'foo'})
-        control2_result = control2_parser.process_table()
+        control1_parser = ControlsTable(ip_control_table1, control_types={'HIGH_FITC'}, strain_mapping=self.strain_mappings)
+        control1_parser.process_table()
+        control1_result = control1_parser.get_structured_request()
+
+        control2_parser = ControlsTable(ip_control_table2, control_types={'foo'}, strain_mapping=self.strain_mappings)
+        control2_parser.process_table()
+        control2_result = control2_parser.get_structured_request()
         
         measurement_parser = MeasurementTable(ip_measurement_table)
         measurement_parser.process_table(control_tables={1: control1_result, 2: control2_result})
@@ -891,10 +914,15 @@ class MeasurementTableTest(unittest.TestCase):
         
         control1 = meas_result[0][dc_constants.CONTROLS][0]
         self.assertEqual(control1[dc_constants.TYPE], 'HIGH_FITC')
-        self.assertListEqual(control1[dc_constants.STRAINS], ['UWBF_25784'])
+        self.assertListEqual(control1[dc_constants.STRAINS], [{dc_constants.LAB_ID: 'name.ip_admin.UWBF_7376',
+                                                              dc_constants.LABEL: 'strain3',
+                                                              dc_constants.SBH_URI: 'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1'}])
+
         control2 = meas_result[1][dc_constants.CONTROLS][0]
         self.assertEqual(control2[dc_constants.TYPE], 'foo')
-        self.assertListEqual(control2[dc_constants.STRAINS], ['UWBF_6390'])
+        self.assertListEqual(control2[dc_constants.STRAINS], [{dc_constants.LAB_ID: 'name.ip_admin.MG1655_LPV3',
+                                                              dc_constants.LABEL: 'strain2',
+                                                              dc_constants.SBH_URI: 'https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1'}])
       
         
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
+from intent_parser.experiment_variables.experiment_variables import ExperimentVariable
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.tests.test_util as test_utils
 import unittest
@@ -13,6 +14,13 @@ class ControlsTableTest(unittest.TestCase):
     def setUp(self):
         self.ip_table_factory = IntentParserTableFactory()
 
+        strain1 = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'ip_admin', 'strain1', lab_names=['MG1655'])
+        strain2 = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1', 'ip_admin', 'strain2', lab_names=['MG1655_LPV3'])
+        strain3 = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'ip_admin', 'strain3', lab_names=['UWBF_7376'])
+        self.strain_mappings = {'https://hub.sd2e.org/user/sd2e/design/MG1655/1': strain1,
+                                'https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1': strain2,
+                                'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1': strain3}
+
     def tearDown(self):
         pass
 
@@ -24,7 +32,8 @@ class ControlsTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         control_table_parser = ControlsTable(ip_table, control_types={'HIGH_FITC'})
-        control_result = control_table_parser.process_table()
+        control_table_parser.process_table()
+        control_result = control_table_parser.get_structured_request()
         self.assertEqual(1, len(control_result))
         self.assertEqual(control_result[0][dc_constants.TYPE], 'HIGH_FITC')
         
@@ -36,7 +45,8 @@ class ControlsTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         control_table_parser = ControlsTable(ip_table)
-        control_result = control_table_parser.process_table()
+        control_table_parser.process_table()
+        control_result = control_table_parser.get_structured_request()
         self.assertEqual(1, len(control_result))
         self.assertEqual(control_result[0][dc_constants.CHANNEL], 'BL1-A')
     
@@ -48,7 +58,8 @@ class ControlsTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         control_table_parser = ControlsTable(ip_table)
-        control_result = control_table_parser.process_table()
+        control_table_parser.process_table()
+        control_result = control_table_parser.get_structured_request()
         self.assertEqual(1, len(control_result))
         self.assertEqual(control_result[0][dc_constants.CHANNEL], 'BL1-A')
         
@@ -60,12 +71,13 @@ class ControlsTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         control_table_parser = ControlsTable(ip_table)
-        control_result = control_table_parser.process_table()
-        self.assertEqual(1, len(control_result))
-        actual_strains = control_result[0][dc_constants.STRAINS]
-        self.assertEqual(1, len(actual_strains))
-        self.assertEqual(actual_strains[0], 'UWBF_25784')
-    
+        control_table_parser.process_table()
+        control_result = control_table_parser.get_structured_request()
+        self.assertEqual(0, len(control_result))
+        expected_errors = ['Controls table has invalid Strains value: UWBF_25784 is missing a SBH URI.']
+        self.assertListEqual(expected_errors, control_table_parser.get_validation_errors())
+        self.assertListEqual([], control_table_parser.get_validation_warnings())
+
     def test_table_with_1_timepoint(self):
         ip_table = test_utils.create_fake_controls_table()
         content = IntentParserCell()
@@ -74,12 +86,12 @@ class ControlsTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         control_table_parser = ControlsTable(ip_table, timepoint_units={'hour'})
-        control_result = control_table_parser.process_table()
+        control_table_parser.process_table()
+        control_result = control_table_parser.get_structured_request()
         self.assertEqual(1, len(control_result))
-        timepoint_list = control_result[0][dc_constants.TIMEPOINTS]
-        self.assertEqual(1, len(timepoint_list))
+        timepoint = control_result[0][dc_constants.TIMEPOINTS]
         expected_timepoint = {dc_constants.VALUE: 8.0, dc_constants.UNIT: 'hour'}
-        self.assertEqual(timepoint_list[0], expected_timepoint)
+        self.assertEqual(timepoint, expected_timepoint)
 
     def test_strains_with_uris(self):
         ip_table = test_utils.create_fake_controls_table()
@@ -88,11 +100,13 @@ class ControlsTableTest(unittest.TestCase):
         data_row = test_utils.create_control_table_row(strains_cell=strains)
         ip_table.add_row(data_row)
 
-        control_table_parser = ControlsTable(ip_table)
-        control_result = control_table_parser.process_table()
+        control_table_parser = ControlsTable(ip_table, strain_mapping=self.strain_mappings)
+        control_table_parser.process_table()
+        control_result = control_table_parser.get_structured_request()
         self.assertEquals(1, len(control_result))
-        self.assertEqual(1, len(control_result[0][dc_constants.STRAINS]))
-        self.assertEqual('UWBF_7376', control_result[0][dc_constants.STRAINS][0])
+        exp_res = [{'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'label': 'strain3',
+                    'lab_id': 'name.ip_admin.UWBF_7376'}]
+        self.assertListEqual(exp_res, control_result[0][dc_constants.STRAINS])
     
     def test_strains_with_uri_and_trailing_strings(self):
         ip_table = test_utils.create_fake_controls_table()
@@ -102,29 +116,34 @@ class ControlsTableTest(unittest.TestCase):
         data_row = test_utils.create_control_table_row(strains_cell=strains)
         ip_table.add_row(data_row)
 
-        control_table_parser = ControlsTable(ip_table)
-        control_result = control_table_parser.process_table()
+        control_table_parser = ControlsTable(ip_table, strain_mapping=self.strain_mappings)
+        control_table_parser.process_table()
+        control_result = control_table_parser.get_structured_request()
         self.assertEquals(1, len(control_result))
 
-        exp_res = ['MG1655', 'MG1655_LPV3','MG1655_RPU_Standard']
-        self.assertListEqual(exp_res, control_result[0]['strains'])
+        exp_res = [{'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'label': 'strain1',
+                    'lab_id': 'name.ip_admin.MG1655'}]
+        self.assertListEqual(exp_res, control_result[0][dc_constants.STRAINS])
         
     def test_strains_with_string_and_trailing_uris(self):
         ip_table = test_utils.create_fake_controls_table()
         strains = IntentParserCell()
         strains.add_paragraph('MG1655_RPU_Standard,')
-        strains.add_paragraph('MG1655,', link='https://hub.sd2e.org/user/sd2e/design/MG1655/1')
+        strains.add_paragraph('MG1655', link='https://hub.sd2e.org/user/sd2e/design/MG1655/1')
+        strains.add_paragraph(',')
         strains.add_paragraph('MG1655_LPV3', link='https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1')
         data_row = test_utils.create_control_table_row(strains_cell=strains)
         ip_table.add_row(data_row)
 
-        control_table_parser = ControlsTable(ip_table)
-        control_result = control_table_parser.process_table()
+        control_table_parser = ControlsTable(ip_table, strain_mapping=self.strain_mappings)
+        control_table_parser.process_table()
+        control_result = control_table_parser.get_structured_request()
         self.assertEqual(1, len(control_result))
         
-        exp_res = ['MG1655_RPU_Standard',
-                   'MG1655',
-                   'MG1655_LPV3']
+        exp_res = [{'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'label': 'strain1',
+                    'lab_id': 'name.ip_admin.MG1655'},
+                   {'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1', 'label': 'strain2',
+                    'lab_id': 'name.ip_admin.MG1655_LPV3'}]
         self.assertListEqual(exp_res, control_result[0][dc_constants.STRAINS])
     
     def test_strains_with_mix_string_and_uri(self):
@@ -138,12 +157,14 @@ class ControlsTableTest(unittest.TestCase):
         data_row = test_utils.create_control_table_row(strains_cell=strains)
         ip_table.add_row(data_row)
 
-        control_table_parser = ControlsTable(ip_table)
-        control_result = control_table_parser.process_table()
+        control_table_parser = ControlsTable(ip_table, strain_mapping=self.strain_mappings)
+        control_table_parser.process_table()
+        control_result = control_table_parser.get_structured_request()
         self.assertEqual(1, len(control_result))
         
-        exp_res = ['MG1655', 'MG1655_RPU_Standard', 'MG1655_LPV3']
-        self.assertListEqual(exp_res, control_result[0]['strains'])
+        exp_res = [{'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'label': 'strain1', 'lab_id': 'name.ip_admin.MG1655'},
+                   {'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1', 'label': 'strain2', 'lab_id': 'name.ip_admin.MG1655_LPV3'}]
+        self.assertListEqual(exp_res, control_result[0][dc_constants.STRAINS])
     
     def test_table_with_contents(self):
         ip_table = test_utils.create_fake_controls_table()
@@ -153,7 +174,8 @@ class ControlsTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         control_table_parser = ControlsTable(ip_table)
-        control_result = control_table_parser.process_table()
+        control_table_parser.process_table()
+        control_result = control_table_parser.get_structured_request()
         self.assertEqual(1, len(control_result))
         self.assertEqual(1, len(control_result[0][dc_constants.CONTENTS]))
         content = control_result[0][dc_constants.CONTENTS][0]

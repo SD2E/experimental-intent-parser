@@ -239,18 +239,24 @@ class MeasurementTable(object):
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_BATCH_VALUE, err)
             self._validation_errors.append(message)
     
-    def _process_control(self, cell, control_tables, measurement):
+    def _process_control(self, cell, control_data, measurement):
         result = []
-        if not control_tables:
+        if not control_data:
             self._validation_errors.append('Unable to process controls from a Measurement table without Control Tables.')
             return result
 
         if cell.get_bookmark_ids():
-            result = self._process_control_with_bookmarks(cell, control_tables)
+            result = self._process_control_with_bookmarks(cell, control_data)
 
+        # if processing control by bookmark_id did not work, process by table index value
         if not result:
-            result = self._process_control_with_captions(cell, control_tables)
-        measurement.add_field(dc_constants.CONTROLS, result)
+            result_by_caption = self._process_control_with_captions(cell, control_data)
+            if result_by_caption:
+                measurement.add_field(dc_constants.CONTROLS, result_by_caption)
+            else:
+                message = 'Measurement table has invalid %s value: control value is empty' % (
+                intent_parser_constants.HEADER_CONTROL_VALUE)
+                self._validation_errors.append(message)
 
     def _process_control_with_bookmarks(self, cell, control_tables):
         controls = []
@@ -267,8 +273,8 @@ class MeasurementTable(object):
             if table_index in control_tables:
                 for control in control_tables[table_index]:
                     controls.append(control)
-        return controls
-
+        return controls       
+           
     def _process_dna_reaction_concentration(self, cell):
         try:
             dna_reaction_concentration = []

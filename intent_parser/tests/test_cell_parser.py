@@ -292,10 +292,10 @@ class CellParserTest(unittest.TestCase):
         self.assertEqual(['7'], self.parser.process_numbers(' 7 '))
 
     def test_boolean_values(self):
-        self.assertTrue(self.parser.process_boolean_flag('true'))
-        self.assertTrue(self.parser.process_boolean_flag('True'))
-        self.assertFalse(self.parser.process_boolean_flag('False'))
-        self.assertFalse(self.parser.process_boolean_flag('False'))
+        self.assertTrue(self.parser.process_boolean_flag('true')[0])
+        self.assertTrue(self.parser.process_boolean_flag('True')[0])
+        self.assertFalse(self.parser.process_boolean_flag('False')[0])
+        self.assertFalse(self.parser.process_boolean_flag('False')[0])
         self.assertTrue([False, True], (self.parser.process_boolean_flag('false, true')))
         with self.assertRaises(TableException):
             self.parser.process_boolean_flag('neither')
