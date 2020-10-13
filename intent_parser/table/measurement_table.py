@@ -288,7 +288,7 @@ class MeasurementTable(object):
     def _process_template_dna(self, cell):
         dna_templates = []
         for value in cell_parser.PARSER.extract_name_value(cell.get_text()):
-            result = {dc_constants.NAME: {dc_constants.LABEL: intent_parser_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE,
+            result = {dc_constants.NAME: {dc_constants.LABEL: intent_parser_constants.HEADER_TEMPLATE_DNA_VALUE,
                                           dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
                       dc_constants.VALUE: value}
             dna_templates.append(result)

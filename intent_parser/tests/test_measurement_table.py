@@ -177,10 +177,10 @@ class MeasurementTableTest(unittest.TestCase):
         meas_table.process_table()
         meas_result = meas_table.get_structured_request()
         expected_results = {dc_constants.CONTENTS: [
-            [{dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE,
+            [{dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_TEMPLATE_DNA_VALUE,
                                   dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
               dc_constants.VALUE: 'Test DNA1'},
-             {dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE,
+             {dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_TEMPLATE_DNA_VALUE,
                                   dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
               dc_constants.VALUE: 'Test DNA2'}
              ]]}
