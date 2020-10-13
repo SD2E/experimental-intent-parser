@@ -1418,6 +1418,14 @@ class IntentParserServer(object):
             header_row.append(intent_parser_constants.HEADER_ROW_ID_VALUE)
         if data[ip_addon_constants.HTML_LAB_ID]:
             header_row.append(intent_parser_constants.HEADER_LAB_ID_VALUE)
+        if data[ip_addon_constants.HTML_NUM_NEG_CONTROLS]:
+            header_row.append(intent_parser_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE)
+        if data[ip_addon_constants.HTML_RNA_INHIBITOR_REACTION]:
+            header_row.append(intent_parser_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE)
+        if data[ip_addon_constants.HTML_DNA_REACTION_CONCENTRATION]:
+            header_row.append(intent_parser_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE)
+        if data[ip_addon_constants.HTML_TEMPLATE_DNA]:
+            header_row.append(intent_parser_constants.HEADER_TEMPLATE_DNA_VALUE)
         if data[ip_addon_constants.HTML_NUM_OF_REAGENTS] and \
            data[ip_addon_constants.HTML_REAGENT_TIMEPOINT_VALUE] and \
            data[ip_addon_constants.HTML_REAGENT_TIMEPOINT_UNIT]:
