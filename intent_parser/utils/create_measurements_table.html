@@ -2,11 +2,11 @@
 <html>
 <style>
   #labSelector {
-        width: 150px;
+        width: 250px;
     }
 
   #timeunitSelector {
-        width: 150px;
+        width: 220px;
     }
 
   #timeValue {
@@ -64,7 +64,12 @@
                         'rowId': theForm.rowId.checked,
                         'controls' : theForm.control.checked,
                         'notes' : theForm.notes.checked,
-                        'numRows' : theForm.num_rows.value};
+                        'numRows' : theForm.num_rows.value,
+                        'dnaReactionConcentration': theForm.dnaReactionConcentration.value,
+                        'numNegControls': theForm.numNegControls.value,
+                        'templateDna': theForm.templateDna.value,
+                        'rnaInhibitorReaction': theForm.rnaInhibitorReaction.value
+        };
         formInfo.extra = extra;
         google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);
     }
@@ -112,7 +117,7 @@
           <td align="left" colspan="2"><b>Lab:</b> <select id="labSelector" name="lab">${LABIDSOPTIONS}</select></td>
         </tr>
 
-        <tr><td><table><tr>
+        <tr><td><table align="left"><tr>
           <td>
           <table>
             <tr><th align="left">Num. of reagents: </th> </tr>
@@ -131,7 +136,7 @@
           </table></td>
 
         </tr></table></td></tr>
-        <tr><td><table align="center"><tr>
+        <tr><td><table align="left"><tr>
           <td>
           <table>
             <tr>
@@ -146,11 +151,10 @@
               <th align="right">Control: </th>
               <td><input type="checkbox" name="control" title="Check to add a column for control. Comma separated lists are accepted."></td>
             </tr>
-          </table>
-          </td>
-
-          <td>
-          <table align="center">
+            <tr>
+              <th align="right">DNA Reaction Concentration: </th>
+              <td><input type="checkbox" name="dnaReactionConcentration" title="Check to add a column for DNA reaction concentration.  Comma separated lists are accepted."></td>
+            </tr>
             <tr>
               <th align="right">Lab ID: </th>
               <td><input type="checkbox" name="labId" title="Check to add a column for lab ID. Comma separated lists are accepted."></td>
@@ -159,15 +163,20 @@
               <th align="right">Notes: </th>
               <td><input type="checkbox" name="notes" title="Check to add a column for notes/descriptions.  This column isn't parsed and has no effect on the generated structured request."></td>
             </tr>
-            <tr>
-              <th align="right">Optical Density: </th>
-              <td><input type="checkbox" name="ods" title="Check to add a column for optical density configuration.  Comma separated lists are accepted. No units are expected."></td>
-            </tr>
           </table>
           </td>
 
           <td>
-          <table align="center">
+          <table align="left">
+
+            <tr>
+              <th align="right">Number of Negative Controls: </th>
+              <td><input type="checkbox" name="numNegControls" title="Check to add a column for number of negative controls.  Comma separated lists are accepted."></td>
+            </tr>
+            <tr>
+              <th align="right">Optical Density: </th>
+              <td><input type="checkbox" name="ods" title="Check to add a column for optical density configuration.  Comma separated lists are accepted. No units are expected."></td>
+            </tr>
             <tr>
               <th align="right">Row ID: </th>
               <td><input type="checkbox" name="rowId" title="Check to add a column for row ID. Comma separated lists are accepted."></td>
@@ -177,8 +186,16 @@
               <td><input type="checkbox" name="temperature" title="Check to add a column for temperature configuration.  Comma separated lists are accepted."></td>
             </tr>
             <tr>
+              <th align="right">Template DNA: </th>
+              <td><input type="checkbox" name="templateDna" title="Check to add a column for template DNA.  Comma separated lists are accepted."></td>
+            </tr>
+            <tr>
               <th align="right">Timepoint: </th>
               <td><input type="checkbox" name="timepoint" title="Check to add a column for time configuration.  Comma separated lists are accepted."></td>
+            </tr>
+            <tr>
+              <th align="right">Use RNAse Inhibitor in Reaction: </th>
+              <td><input type="checkbox" name="rnaInhibitorReaction" title="Check to add a column for use RNAse inhibitor in reaction.  Comma separated lists are accepted."></td>
             </tr>
           </table>
           </td>

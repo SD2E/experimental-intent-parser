@@ -1,4 +1,5 @@
 from datetime import timedelta
+from intent_parser.intent_parser_exceptions import IntentParserException
 from transcriptic import Connection
 import logging
 import time 
@@ -39,7 +40,9 @@ class StrateosAccessor(object):
 
         self.protocol_lock.acquire()
         for protocol in protocol_list:
-            self.protocols[protocol['name']] = protocol
+            parameters = self._parse_protocol(protocol['inputs'])
+            parameters['protocol_id'] = ParameterField(default_value=protocol['id'], required=True)
+            self.protocols[protocol['name']] = parameters
         self.protocol_lock.release()
         
     def get_protocol(self, protocol):
@@ -60,18 +63,67 @@ class StrateosAccessor(object):
         self.protocol_lock.acquire()
         if protocol not in self.protocols:
             raise Exception('Unable to get %s from Strateos' % protocol)
-        selected_protocol = self.protocols[protocol]['inputs']
+        selected_protocol = self.protocols[protocol]
         self.protocol_lock.release()
-        return self._get_protocol_default_values(selected_protocol)
+        return selected_protocol
     
-    def _get_protocol_default_values(self, protocol):
-        result = {}
-        for key,value in protocol.items():
-            if 'inputs' not in value:
-                continue
-            for subkey, subvalue in value['inputs'].items():
-                strateos_key = '.'.join([key, subkey])
-                result[strateos_key] = str(subvalue['default']) if 'default' in subvalue else ''
+    def _parse_protocol(self, protocol):
+        queue = []
+        parameters = {}
+        for key, value in protocol.items():
+            queue.append(([key], value))
 
-        return result
-    
+        while len(queue) > 0:
+            names, protocol_field = queue.pop(0)
+            id = '.'.join(names)
+
+            if 'inputs' in protocol_field:
+                for key, value in protocol_field['inputs'].items():
+                    queue.append((names + [key], value))
+            else:
+                parameter_field = ParameterField()
+                if 'default' in protocol_field:
+                    parameter_field.set_default_value(protocol_field['default'])
+                if 'required' in protocol_field:
+                    parameter_field.set_required(protocol_field['required'])
+                if 'options' in protocol_field:
+                    for option in protocol_field['options']:
+                        if 'name' in option and 'value' in option:
+                            parameter_field.add_option(option['name'], option['value'])
+                parameters[id] = parameter_field
+
+        return parameters
+
+class ParameterField(object):
+
+    def __init__(self, default_value=None, required=False):
+        self._default_value = default_value
+        self._required = required
+        self._options = []
+
+    def add_option(self, name, value):
+        option = ParameterFieldOption(name, value)
+        self._options.append(option)
+
+    def get_default_value(self):
+        if self._default_value is None:
+            return ' '
+        return str(self._default_value)
+
+    def is_required(self):
+        return self._required
+
+    def set_default_value(self, value):
+        if self._default_value:
+            raise IntentParserException('Conflict setting %s as a default value when it is currently set to %s' % (value, self._default_value))
+        self._default_value = value
+
+    def set_required(self, value: bool):
+        self._required = value
+
+
+class ParameterFieldOption(object):
+
+    def __init__(self, name, value):
+        self._name = name
+        self._value = value

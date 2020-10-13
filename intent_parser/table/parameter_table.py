@@ -20,7 +20,8 @@ class ParameterTable(object):
                                 intent_parser_constants.PARAMETER_RUN_INFO_SAVE_FOR_RNASEQ,
                                 intent_parser_constants.PARAMETER_RUN_INFO_SKIP_FIRST_FLOW,
                                 intent_parser_constants.PARAMETER_RUN_INFO_ONLY_ENDPOINT_FLOW,
-                                intent_parser_constants.PARAMETER_VALIDATE_SAMPLES]
+                                intent_parser_constants.PARAMETER_VALIDATE_SAMPLES,
+                                intent_parser_constants.PARAMETER_RUN_INFO_INCUBATE_IN_READER]
 
     FIELD_WITH_FLOAT_VALUE = [intent_parser_constants.PARAMETER_PLATE_READER_INFO_GAIN]
 
@@ -31,7 +32,8 @@ class ParameterTable(object):
                                    intent_parser_constants.PARAMETER_MEASUREMENT_INFO_PLATE_READER_INFO,
                                    intent_parser_constants.PARAMETER_REAGENT_INFO_INDUCER_INFO,
                                    intent_parser_constants.PARAMETER_REAGENT_INFO_KILL_SWITCH,
-                                   intent_parser_constants.PARAMETER_RECOVERY_INFO]
+                                   intent_parser_constants.PARAMETER_RECOVERY_INFO,
+                                   intent_parser_constants.PARAMETER_INDUCERS]
 
     FIELD_WITH_STRING_COMMAS = [intent_parser_constants.PARAMETER_EXP_INFO_MEDIA_WELL_STRINGS]
     FIELD_WITH_SINGLE_STRING = [intent_parser_constants.PARAMETER_PROTOCOL,
@@ -180,14 +182,18 @@ class ParameterTable(object):
         return self._validation_errors
 
     def process_boolean_parameter(self, parameter_field, parameter_value):
-        boolean_value = cell_parser.PARSER.process_boolean_flag(parameter_value)
-        if boolean_value is None:
-            message = 'Parameter table has invalid %s value: %s should be a boolean value' % (
-            parameter_field, parameter_value)
+        try:
+            boolean_value = cell_parser.PARSER.process_boolean_flag(parameter_value)
+            if len(boolean_value) == 1:
+                self._flatten_parameter_values(parameter_field, boolean_value)
+            else:
+                message = 'Found more than one boolean value in %s. Only the first boolean value encountered is used.' % (parameter_field)
+                self._validation_warnings.append(message)
+                self._flatten_parameter_values(parameter_field, [boolean_value[0]])
+
+        except TableException as err:
+            message = 'Parameter table has invalid %s value: %s' % (parameter_field, err)
             self._validation_errors.append(message)
-        else:
-            computed_value = [boolean_value]
-            self._flatten_parameter_values(parameter_field, computed_value)
 
     def process_name_parameter(self, parameter_field, parameter_value):
         computed_value = [value for value, _ in cell_parser.PARSER.process_names_with_uri(parameter_value)]

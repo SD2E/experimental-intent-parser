@@ -1,7 +1,6 @@
 from intent_parser.intent_parser_exceptions import TableException
 from intent_parser.table.cell_parser import CellParser
 from intent_parser.table.intent_parser_cell import IntentParserCell
-import datetime
 import unittest
 
 class CellParserTest(unittest.TestCase):
@@ -297,7 +296,9 @@ class CellParserTest(unittest.TestCase):
         self.assertTrue(self.parser.process_boolean_flag('True'))
         self.assertFalse(self.parser.process_boolean_flag('False'))
         self.assertFalse(self.parser.process_boolean_flag('False'))
-        self.assertEqual(self.parser.process_boolean_flag('neither'), None)
+        self.assertTrue([False, True], (self.parser.process_boolean_flag('false, true')))
+        with self.assertRaises(TableException):
+            self.parser.process_boolean_flag('neither')
 
     def test_lab_name(self):
         self.assertEqual('foo', self.parser.process_lab_name('Lab: foo'))
@@ -327,14 +328,6 @@ class CellParserTest(unittest.TestCase):
         names = [name for name, _ in self.parser.process_names_with_uri(cell_text)]
         self.assertEqual(len(names), 1)
         self.assertEqual(names[0], cell_text)
-
-    def test_datetime(self):
-        self.assertEqual(self.parser.process_datetime_format('2020/06/04 18:52:47'), datetime.datetime(2020, 6, 4, 18, 52, 47))
-        self.assertEqual(self.parser.process_datetime_format('2020/6/4 18:52:47'), datetime.datetime(2020, 6, 4, 18, 52, 47))
-
-    def test_invalid_datetime_format(self):
-        with self.assertRaises(ValueError):
-            self.assertEqual(self.parser.process_datetime_format('20/6/4 18:52:47'))
 
     def test_processing_table_caption_index(self):
         self.assertEqual(1, self.parser.process_table_caption_index('Table 1'))
