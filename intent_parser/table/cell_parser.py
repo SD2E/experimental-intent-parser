@@ -191,7 +191,7 @@ class CellParser(object):
         return list_of_contents
 
     def process_boolean_flag(self, text: str) -> List[bool]:
-        tokens = self._cell_tokenizer.tokenize(text, keep_separator=False, keep_skip=False)
+        tokens = self._cell_tokenizer.tokenize(text.lower(), keep_separator=False, keep_skip=False)
         result = []
         for token in tokens:
             token_type = self._get_token_type(token)
