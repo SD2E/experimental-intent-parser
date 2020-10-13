@@ -365,7 +365,7 @@ class MeasurementTable(object):
             boolean_value = cell_parser.PARSER.process_boolean_flag(cell.get_text())
             result = {dc_constants.NAME: {dc_constants.LABEL: intent_parser_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE,
                                           dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
-                      dc_constants.VALUE: boolean_value}
+                      dc_constants.VALUE: str(boolean_value)}
             rna_inhibitor_reaction.append(result)
             return rna_inhibitor_reaction
         except TableException as err:
