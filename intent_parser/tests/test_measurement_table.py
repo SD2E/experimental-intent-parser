@@ -4,6 +4,7 @@ from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
 from intent_parser.experiment_variables.experiment_variables import ExperimentVariable
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
+import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.tests.test_util as test_utils
 import unittest
 
@@ -121,6 +122,92 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'contents': [[{'name': {'label': 'column_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 1},
                                           {'name': {'label': 'column_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 2},
                                           {'name': {'label': 'column_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 3}]]}
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(expected_results[dc_constants.CONTENTS], meas_result[0][dc_constants.CONTENTS])
+
+    def test_table_with_number_of_negative_control_type(self):
+        ip_table = test_utils.create_fake_measurement_table()
+        num_neg_controls = IntentParserCell()
+        num_neg_controls.add_paragraph('1, 2, 3')
+        data_row = test_utils.create_measurement_table_row(num_neg_controls_cell=num_neg_controls)
+        ip_table.add_row(data_row)
+
+        meas_table = MeasurementTable(ip_table)
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
+        expected_results = {dc_constants.CONTENTS: [[{dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE,
+                                                                          dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+                                                      dc_constants.VALUE: 1},
+                                                     {dc_constants.NAME: {
+                                                         dc_constants.LABEL: ip_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE,
+                                                         dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+                                                      dc_constants.VALUE: 2},
+                                                     {dc_constants.NAME: {
+                                                         dc_constants.LABEL: ip_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE,
+                                                         dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+                                                      dc_constants.VALUE: 3}]]}
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(expected_results[dc_constants.CONTENTS], meas_result[0][dc_constants.CONTENTS])
+
+    def test_table_with_rna_inhibitor_in_reaction(self):
+        ip_table = test_utils.create_fake_measurement_table()
+        rna_inhibitor_reaction = IntentParserCell()
+        rna_inhibitor_reaction.add_paragraph('false')
+        data_row = test_utils.create_measurement_table_row(rna_inhibitor_reaction_cell=rna_inhibitor_reaction)
+        ip_table.add_row(data_row)
+
+        meas_table = MeasurementTable(ip_table)
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
+        expected_results = {dc_constants.CONTENTS: [
+            [{dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE,
+                                  dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+              dc_constants.VALUE: False}]]}
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(expected_results[dc_constants.CONTENTS], meas_result[0][dc_constants.CONTENTS])
+
+    def test_table_with_template_dna(self):
+        ip_table = test_utils.create_fake_measurement_table()
+        template_dna = IntentParserCell()
+        template_dna.add_paragraph('Test DNA1, Test DNA2')
+        data_row = test_utils.create_measurement_table_row(template_dna_cell=template_dna)
+        ip_table.add_row(data_row)
+
+        meas_table = MeasurementTable(ip_table)
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
+        expected_results = {dc_constants.CONTENTS: [
+            [{dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE,
+                                  dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+              dc_constants.VALUE: 'Test DNA1'},
+             {dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE,
+                                  dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+              dc_constants.VALUE: 'Test DNA2'}
+             ]]}
+        self.assertEqual(1, len(meas_result))
+        self.assertEqual(expected_results[dc_constants.CONTENTS], meas_result[0][dc_constants.CONTENTS])
+
+    def test_table_with_dna_reaction_concentration_cell(self):
+        ip_table = test_utils.create_fake_measurement_table()
+        dna_reaction_concentration = IntentParserCell()
+        dna_reaction_concentration.add_paragraph('1, 2, 3')
+        data_row = test_utils.create_measurement_table_row(dna_reaction_concentration_cell=dna_reaction_concentration)
+        ip_table.add_row(data_row)
+
+        meas_table = MeasurementTable(ip_table)
+        meas_table.process_table()
+        meas_result = meas_table.get_structured_request()
+        expected_results = {dc_constants.CONTENTS: [[{dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE,
+                                                                          dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+                                                      dc_constants.VALUE: 1},
+                                                     {dc_constants.NAME: {
+                                                         dc_constants.LABEL: ip_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE,
+                                                         dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+                                                      dc_constants.VALUE: 2},
+                                                     {dc_constants.NAME: {
+                                                         dc_constants.LABEL: ip_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE,
+                                                         dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+                                                      dc_constants.VALUE: 3}]]}
         self.assertEqual(1, len(meas_result))
         self.assertEqual(expected_results[dc_constants.CONTENTS], meas_result[0][dc_constants.CONTENTS])
     

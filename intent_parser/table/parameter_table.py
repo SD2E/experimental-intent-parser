@@ -182,14 +182,12 @@ class ParameterTable(object):
         return self._validation_errors
 
     def process_boolean_parameter(self, parameter_field, parameter_value):
-        boolean_value = cell_parser.PARSER.process_boolean_flag(parameter_value)
-        if boolean_value is None:
-            message = 'Parameter table has invalid %s value: %s should be a boolean value' % (
-            parameter_field, parameter_value)
+        try:
+            boolean_value = cell_parser.PARSER.process_boolean_flag(parameter_value)
+            self._flatten_parameter_values(parameter_field, [boolean_value])
+        except TableException as err:
+            message = 'Parameter table has invalid %s value: %s' % (parameter_field, err)
             self._validation_errors.append(message)
-        else:
-            computed_value = [boolean_value]
-            self._flatten_parameter_values(parameter_field, computed_value)
 
     def process_name_parameter(self, parameter_field, parameter_value):
         computed_value = [value for value, _ in cell_parser.PARSER.process_names_with_uri(parameter_value)]

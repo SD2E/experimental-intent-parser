@@ -38,7 +38,11 @@ def create_fake_measurement_table(table_index=None, reagent_media_cells=None):
                     ip_constants.HEADER_NOTES_VALUE,
                     ip_constants.HEADER_COLUMN_ID_VALUE,
                     ip_constants.HEADER_LAB_ID_VALUE,
-                    ip_constants.HEADER_ROW_ID_VALUE]
+                    ip_constants.HEADER_ROW_ID_VALUE,
+                    ip_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE,
+                    ip_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE,
+                    ip_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE,
+                    ip_constants.HEADER_TEMPLATE_DNA_VALUE]
     header_row = _create_table_headers(header_names)
     if reagent_media_cells:
         header_row.extend(reagent_media_cells)
@@ -163,7 +167,11 @@ def create_measurement_table_row(measurement_type_cell=None,
                                  notes_cell=None,
                                  lab_id_cell=None,
                                  row_id_cell=None,
-                                 col_id_cell=None):
+                                 col_id_cell=None,
+                                 num_neg_controls_cell=None,
+                                 rna_inhibitor_reaction_cell=None,
+                                 dna_reaction_concentration_cell=None,
+                                 template_dna_cell=None):
     if measurement_type_cell is None:
         measurement_type_cell = IntentParserCell()
         measurement_type_cell.add_paragraph('')
@@ -206,6 +214,18 @@ def create_measurement_table_row(measurement_type_cell=None,
     if col_id_cell is None:
         col_id_cell = IntentParserCell()
         col_id_cell.add_paragraph('')
+    if num_neg_controls_cell is None:
+        num_neg_controls_cell = IntentParserCell()
+        num_neg_controls_cell.add_paragraph('')
+    if rna_inhibitor_reaction_cell is None:
+        rna_inhibitor_reaction_cell = IntentParserCell()
+        rna_inhibitor_reaction_cell.add_paragraph('')
+    if dna_reaction_concentration_cell is None:
+        dna_reaction_concentration_cell = IntentParserCell()
+        dna_reaction_concentration_cell.add_paragraph('')
+    if template_dna_cell is None:
+        template_dna_cell = IntentParserCell()
+        template_dna_cell.add_paragraph('')
 
     return [measurement_type_cell,
             file_type_cell,
@@ -220,7 +240,11 @@ def create_measurement_table_row(measurement_type_cell=None,
             notes_cell,
             col_id_cell,
             lab_id_cell,
-            row_id_cell
+            row_id_cell,
+            num_neg_controls_cell,
+            rna_inhibitor_reaction_cell,
+            dna_reaction_concentration_cell,
+            template_dna_cell
             ]
 
 def create_fake_lab_table(table_index=None):
