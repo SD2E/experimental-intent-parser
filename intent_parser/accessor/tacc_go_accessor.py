@@ -47,7 +47,7 @@ class TACCGoAccessor(object):
             'Content-type': 'application/json',
         }
         payload = json.dumps(data)
-        response = requests.post(tacc_constants.EXPERIMENT_EXECUTION_TARGET_URL + self._nonce,
+        response = requests.post(tacc_constants.EXPERIMENT_EXECUTION_TARGET_URL + self._authenticate_token,
                                  headers=headers,
                                  data=payload)
         response_content = response.json()
