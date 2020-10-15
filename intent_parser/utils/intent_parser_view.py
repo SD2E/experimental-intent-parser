@@ -378,6 +378,16 @@ def valid_request_model_dialog(warnings, link=None):
     buttons = [('Ok', 'process_nop')] 
     return simple_modal_dialog(msg, buttons, title, 500, height)
 
+def execute_experiment_dialog(link, title):
+    text_area_rows = 15
+    height = 300
+    msg = ''
+    if link:
+        msg = 'Download Structured Request ' + link
+    msg += "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, 'hello')
+    buttons = [('Ok', 'process_nop')]
+    return simple_modal_dialog(msg, buttons, title, 500, height)
+
 def simple_modal_dialog(message, buttons, title, width, height):
     html_message = '<script>\n\n'
     html_message += 'function onSuccess() { \n\

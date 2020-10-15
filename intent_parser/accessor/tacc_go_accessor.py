@@ -5,11 +5,9 @@ import logging
 import os.path
 import requests
 
-
 class TACCGoAccessor(object):
 
     logger = logging.getLogger('intent_parser_strateos_accessor')
-
     _TACC_GO_ACCESSOR = None
 
     def __init__(self):
@@ -27,11 +25,15 @@ class TACCGoAccessor(object):
         self._authenticate_token = ip_util.load_json_file(credential_file)['experiment_authentication_token']
 
 
-    def authenticate_credentials(self):
-        response = requests.post(tacc_constants.EXPERIMENT_AUTHENTICATION_URL + self._authenticate_token)
-        response_content = response.text
-        return response_content
-
+    def authenticate_credentials(self, data):
+        headers = {
+            'Content-type': 'application/json',
+        }
+        payload = json.dumps(data)
+        response = requests.post(tacc_constants.EXPERIMENT_AUTHENTICATION_URL + self._authenticate_token,
+                                 headers=headers,
+                                 data=payload)
+        return response
 
     def execute_experiment(self, data):
         """Send request to execute an experiment.

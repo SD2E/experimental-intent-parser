@@ -206,8 +206,6 @@ class IntentParserServer(object):
             response = self.process_run_experiment(http_message)
         elif resource == '/experiment_request_documents':
             response = self.process_experiment_request_documents(http_message)
-        elif resource == '/experiment_authentication':
-            response = self.process_experiment_authentication(http_message)
         elif resource == '/experiment_status':
             response = self.process_experiment_status(http_message)
         elif resource == '/update_experiment_status':
@@ -248,8 +246,32 @@ class IntentParserServer(object):
         return self._create_http_response(HTTPStatus.OK, json.dumps(intent_parser.get_structured_request()), 'application/json')
 
     def process_experiment_authentication(self, http_message):
-        credential_dialog = TACCGoAccessor().authenticate_credentials()
-        return self._create_http_response(HTTPStatus.OK, credential_dialog, 'text/html')
+        json_body = intent_parser_utils.get_json_body(http_message)
+        http_host = http_message.get_header('Host')
+        validation_errors = []
+        validation_warnings = []
+        if json_body is None or http_host is None:
+            validation_errors.append('Unable to get information from Google document.')
+        else:
+            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+            intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+            intent_parser.process_experiment_run_request()
+            validation_warnings.extend(intent_parser.get_validation_warnings())
+            validation_errors.extend(intent_parser.get_validation_errors())
+
+        if len(validation_errors) == 0:
+            request_data = intent_parser.get_experiment_request()
+            response = TACCGoAccessor().authenticate_credentials(request_data)
+            dialog_action = intent_parser_view.message_dialog('Please authenticate to approve your request.', response)
+        else:
+            all_messages = []
+            all_messages.extend(validation_warnings)
+            all_messages.extend(validation_errors)
+            dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to execute experiment',
+                                                                            all_messages)
+        actionList = [dialog_action]
+        actions = {'actions': actionList}
+        return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
 
     def process_experiment_request_documents(self, http_message):
         """
@@ -299,10 +321,6 @@ class IntentParserServer(object):
         return self._create_http_response(HTTPStatus.OK, json.dumps({'result': experiment_response}),
                                           'application/json')
 
-    def process_authenticate_experiment_execution(self, http_message):
-        response = TACCGoAccessor().authenticate_credentials()
-        return self._create_http_response(HTTPStatus.OK, response, 'text/html')
-
     def process_execute_experiment(self, http_message):
         json_body = intent_parser_utils.get_json_body(http_message)
         http_host = http_message.get_header('Host')
@@ -319,14 +337,17 @@ class IntentParserServer(object):
 
         if len(validation_errors) == 0:
             request_data = intent_parser.get_experiment_request()
-            experiment_response = TACCGoAccessor().execute_experiment(request_data)
-            dialog_action = intent_parser_view.message_dialog('Experiment Execution Status', experiment_response)
+            response = TACCGoAccessor().authenticate_credentials(request_data)
+            link = '<a href=%s target=_blank>here</a>' % response.url
+            dialog_action = intent_parser_view.execute_experiment_dialog(link, 'Please authenticate to approve your request.')
         else:
             all_messages = []
             all_messages.extend(validation_warnings)
             all_messages.extend(validation_errors)
-            dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to execute experiment', all_messages)
-        actions = {'actions': [dialog_action]}
+            dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to execute experiment',
+                                                                            all_messages)
+        actionList = [dialog_action]
+        actions = {'actions': actionList}
         return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
 
     def handle_POST(self, http_message, socket_manager):
