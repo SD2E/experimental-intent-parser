@@ -294,7 +294,7 @@ class IntentParserServer(object):
                                           'application/json')
 
     def process_experiment_execution_status(self, json_body, client_state):
-        execution_id = json_body['link']
+        execution_id = 'ZzL5p65NgyXw' # TODO: placeholder to assume authentication was successful. Will need to update to correct execution_id
         tacc_accessor = TACCGoAccessor()
         status = tacc_accessor.get_status_of_experiment(execution_id)
         return [intent_parser_view.message_dialog('Submission Status', status)]
@@ -1874,7 +1874,7 @@ class IntentParserServer(object):
 
 def setup_logging(
     default_path='logging.json',
-    default_level=logging.INFO,
+    default_level=logging.DEBUG,
     env_key='LOG_CFG'):
     """
     Setup logging configuration

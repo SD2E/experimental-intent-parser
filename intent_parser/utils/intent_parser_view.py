@@ -376,26 +376,25 @@ def valid_request_model_dialog(warnings, link=None):
 
 def create_execute_experiment_dialog(link):
     dialog_title = 'Submit Experiment'
-    data = {'link': link}
+    data = {'buttonId': 'process_experiment_execution_status'}
     html_message = '''
     <script>
     function onSuccess() { google.script.host.close(); }
     function authExperimentExecutionClick(){
-        window.open('https://google.com');
+        window.open('%s');
     } 
     function experimentStatusClick(){
         var data = %s;
-        var extra = "%s";
-        data.buttonId = extra; 
         google.script.run.withSuccessHandler(onSuccess).buttonClick(data);
     } 
     </script>
-    <p>Please click Authenticate to complete your request. Click on Check Status to see the result of your submission.</p>
+    <p>Please click Authenticate to complete your request.</p> 
+    <p>Once authenticated, click on Check Status to see the result of your submission.</p>
     <center>
         <input id=authExperimentExecution type="button", onclick="authExperimentExecutionClick()" value="Authenticate" />
         <input id=experimentStatus type="button", onclick="experimentStatusClick()" value="Check Status" />
     </center> 
-    ''' % (data, 'process_experiment_execution_status')
+    ''' % (link, data)
     return modal_dialog(html_message, dialog_title, 300, 200)
 
 def simple_modal_dialog(message, buttons, title, width, height):
