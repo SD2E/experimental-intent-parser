@@ -6,5 +6,5 @@ EXPERIMENT_EXECUTION_LOGS = 'logs'
 EXPERIMENT_EXECUTION_MESSAGE = 'message'
 EXPERIMENT_EXECUTION_STATUS = 'status'
 EXPERIMENT_EXECUTION_RESULT = 'result'
-EXPERIMENT_EXECUTION_TARGET_URL = 'https://api.sd2e.org/actors/v2/control-annotator.prod/messages?x-nonce='
-EXPERIMENT_EXECUTION_RESULT_URL = 'https://api.sd2e.org/actors/v2/control-annotator.prod/executions/'
+EXPERIMENT_CONTROL_ANNOTATOR_URL = 'https://api.sd2e.org/actors/v2/control-annotator.prod'
+EXPERIMENT_EXECUTION_URL = '%s/executions' % EXPERIMENT_CONTROL_ANNOTATOR_URL

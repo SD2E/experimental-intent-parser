@@ -163,13 +163,7 @@ function enterLinkPrompt(title, msg) {
 }
 
 function executeExperiment() {
-	// authenticate user credential
-	var response = UrlFetchApp.fetch(serverURL + '/experiment_authentication');
-	Logger.log(response.getContentText());
-	showModalDialog(response, 'authenticate', 600, 600)
-	// execute experiment
 	sendPost('/executeExperiment');
-	// report execution status
 }
 
 function reportExperimentStatus() {

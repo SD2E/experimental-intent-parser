@@ -349,7 +349,7 @@ def report_spelling_results(client_state):
 
     # If this entry was previously linked, add a button to reuse that link
     if 'prev_link' in spell_check_results[result_idx]:
-        buttons.insert(4, {'value' : 'Reuse previous link', 'id': 'spellcheck_reuse_link', 'title' : 'Reuse the previous link: %s' % spell_check_results[result_idx]['prev_link']})
+        buttons.insert(4, {'value': 'Reuse previous link', 'id': 'spellcheck_reuse_link', 'title' : 'Reuse the previous link: %s' % spell_check_results[result_idx]['prev_link']})
     dialog_action = simple_sidebar_dialog(html, buttons)
     action_list.append(dialog_action)
     return action_list
@@ -357,10 +357,6 @@ def report_spelling_results(client_state):
 def sidebar_dialog(html_message):
     return {'action': 'showSidebar',
             'html': html_message}
-
-def open_new_window(link=None):
-    html = "<script>window.open('" + link + "');google.script.host.close();</script>"
-    return modal_dialog(html, 'Validation Passed', 500, 300)
 
 def message_dialog(title, message):
     height = 150
@@ -378,15 +374,29 @@ def valid_request_model_dialog(warnings, link=None):
     buttons = [('Ok', 'process_nop')] 
     return simple_modal_dialog(msg, buttons, title, 500, height)
 
-def execute_experiment_dialog(link, title):
-    text_area_rows = 15
-    height = 300
-    msg = ''
-    if link:
-        msg = 'Download Structured Request ' + link
-    msg += "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, 'hello')
-    buttons = [('Ok', 'process_nop')]
-    return simple_modal_dialog(msg, buttons, title, 500, height)
+def create_execute_experiment_dialog(link):
+    dialog_title = 'Submit Experiment'
+    data = {'link': link}
+    html_message = '''
+    <script>
+    function onSuccess() { google.script.host.close(); }
+    function authExperimentExecutionClick(){
+        window.open('https://google.com');
+    } 
+    function experimentStatusClick(){
+        var data = %s;
+        var extra = "%s";
+        data.buttonId = extra; 
+        google.script.run.withSuccessHandler(onSuccess).buttonClick(data);
+    } 
+    </script>
+    <p>Please click Authenticate to complete your request. Click on Check Status to see the result of your submission.</p>
+    <center>
+        <input id=authExperimentExecution type="button", onclick="authExperimentExecutionClick()" value="Authenticate" />
+        <input id=experimentStatus type="button", onclick="experimentStatusClick()" value="Check Status" />
+    </center> 
+    ''' % (data, 'process_experiment_execution_status')
+    return modal_dialog(html_message, dialog_title, 300, 200)
 
 def simple_modal_dialog(message, buttons, title, width, height):
     html_message = '<script>\n\n'
