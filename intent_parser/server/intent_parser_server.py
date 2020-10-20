@@ -318,7 +318,7 @@ class IntentParserServer(object):
             request_data = intent_parser.get_experiment_request()
             response = TACCGoAccessor().execute_experiment(request_data)
             link = response.url
-            action_list.append(intent_parser_view.create_execute_experiment_dialog(link))
+            action_list.append(intent_parser_view.create_execute_experiment_dialog(link, response.text))
         else:
             all_messages = []
             all_messages.extend(validation_warnings)
