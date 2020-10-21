@@ -35,14 +35,13 @@ class TACCGoAccessor(object):
         response = requests.post(tacc_constants.EXPERIMENT_AUTHENTICATION_URL + self._execution_token,
                                  headers=headers,
                                  data=payload)
-        # TODO: log report used for debugging TACC endpoint and not for deployment!
+
         if response.status_code != HTTPStatus.OK:
             data = dump.dump_all(response)
             self.logger.error(data.decode('utf-8'))
-        else:
-            data = dump.dump_all(response)
-            self.logger.error(data.decode('utf-8'))
-        return response, response.json()
+            return {}
+
+        return response.json()
 
     def get_failure_experiment_result(self, execution_id: str):
         headers = {

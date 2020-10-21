@@ -315,7 +315,7 @@ class IntentParserServer(object):
 
         action_list = []
         request_data = intent_parser.get_experiment_request()
-        response, response_json = TACCGoAccessor().execute_experiment(request_data)
+        response_json = TACCGoAccessor().execute_experiment(request_data)
         if '_links' not in response_json and 'self' not in response_json['_links']:
             validation_errors.append('Intent Parser unable to get redirect link to TACC authentication webpage.')
 
@@ -1877,7 +1877,7 @@ class IntentParserServer(object):
 
 def setup_logging(
     default_path='logging.json',
-    default_level=logging.DEBUG,
+    default_level=logging.INFO,
     env_key='LOG_CFG'):
     """
     Setup logging configuration
