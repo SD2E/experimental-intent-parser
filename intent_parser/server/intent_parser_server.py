@@ -202,7 +202,7 @@ class IntentParserServer(object):
             response = self.process_document_report(http_message)
         elif resource == '/document_request':
             response = self.process_document_request(http_message)
-        elif resource =='/run_experiment':
+        elif resource == '/run_experiment':
             response = self.process_run_experiment(http_message)
         elif resource == '/experiment_request_documents':
             response = self.process_experiment_request_documents(http_message)
@@ -245,12 +245,6 @@ class IntentParserServer(object):
         
         return self._create_http_response(HTTPStatus.OK, json.dumps(intent_parser.get_structured_request()), 'application/json')
 
-    def process_table_hints(self, http_message):
-        resource = http_message.get_resource()
-        document_id = resource.split('?')[1]
-        drive_accessor = GoogleAccessor().get_google_drive_accessor()
-        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-
     def process_experiment_request_documents(self, http_message):
         """
         Retrieve experiment request documents.
@@ -287,17 +281,31 @@ class IntentParserServer(object):
         document_id = resource.split('?')[1]
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_experiment_run_request()
-        if len(intent_parser.get_validation_errors()) > 0:
-            errors = [intent_parser.get_validation_errors()]
-            warnings = [intent_parser.get_validation_warnings()]
-            return self._create_http_response(HTTPStatus.BAD_REQUEST,
-                                              json.dumps({'errors': errors, 'warnings': warnings}),
-                                              'application/json')
+
+        validation_warnings = []
+        validation_errors = []
+        validation_warnings.extend(intent_parser.get_validation_warnings())
+        validation_errors.extend(intent_parser.get_validation_errors())
 
         request_data = intent_parser.get_experiment_request()
-        experiment_response = TACCGoAccessor().execute_experiment(request_data)
-        return self._create_http_response(HTTPStatus.OK, json.dumps({'result': experiment_response}),
+        response_json = TACCGoAccessor().execute_experiment(request_data)
+        if '_links' not in response_json and 'self' not in response_json['_links']:
+            validation_errors.append('Intent Parser unable to get redirect link to TACC authentication webpage.')
+
+        if len(validation_errors) > 0:
+            return self._create_http_response(HTTPStatus.BAD_REQUEST,
+                                              json.dumps({'errors': validation_errors, 'warnings': validation_warnings}),
+                                              'application/json')
+
+        link = response_json['_links']['self']
+        return self._create_http_response(HTTPStatus.OK, json.dumps({'authenticationLink': link}),
                                           'application/json')
+
+    def process_experiment_execution_status(self, json_body, client_state):
+        execution_id = 'ZzL5p65NgyXw' # TODO: placeholder to assume authentication was successful. Will need to update to correct execution_id
+        tacc_accessor = TACCGoAccessor()
+        status = tacc_accessor.get_status_of_experiment(execution_id)
+        return [intent_parser_view.message_dialog('Submission Status', status)]
 
     def process_execute_experiment(self, http_message):
         json_body = intent_parser_utils.get_json_body(http_message)
@@ -313,16 +321,23 @@ class IntentParserServer(object):
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
 
+        action_list = []
+        request_data = intent_parser.get_experiment_request()
+        response_json = TACCGoAccessor().execute_experiment(request_data)
+        if '_links' not in response_json and 'self' not in response_json['_links']:
+            validation_errors.append('Intent Parser unable to get redirect link to TACC authentication webpage.')
+
         if len(validation_errors) == 0:
-            request_data = intent_parser.get_experiment_request()
-            experiment_response = TACCGoAccessor().execute_experiment(request_data)
-            dialog_action = intent_parser_view.message_dialog('Experiment Execution Status', experiment_response)
+            link = response_json['_links']['self']
+            action_list.append(intent_parser_view.create_execute_experiment_dialog(link))
         else:
             all_messages = []
             all_messages.extend(validation_warnings)
             all_messages.extend(validation_errors)
-            dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to execute experiment', all_messages)
-        actions = {'actions': [dialog_action]}
+            dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to execute experiment',
+                                                                               all_messages)
+            action_list.append(dialog_action)
+        actions = {'actions': action_list}
         return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
 
     def handle_POST(self, http_message, socket_manager):
@@ -342,6 +357,8 @@ class IntentParserServer(object):
             response = self.process_create_table_template(http_message)
         elif resource == '/executeExperiment':
             response = self.process_execute_experiment(http_message)
+        elif resource == 'experimentExecutionStatus':
+            response = self.process_experiment_execution_status(http_message)
         elif resource == '/generateStructuredRequest':
             response = self.process_generate_structured_request(http_message)
         elif resource == '/message':

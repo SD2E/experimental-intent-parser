@@ -25,13 +25,7 @@ class GoogleAccessorTest(unittest.TestCase):
         self.assertTrue(spreadsheet_id)
         self.assertTrue(self.drive_accessor.delete_file(spreadsheet_id))
 
-    def test_get_doc_from_google_drive(self):
-        document_id = '1zf9l0K4rj7I08ZRpxV2ZY54RMMQc15Rlg7ULviJ7SBQ'
-        try:
-            response = self.doc_accessor.get_document(document_id=document_id)
-        except Exception as ex:
-            err = ''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))
-            print(err)
+
 
 if __name__ == "__main__":
     unittest.main()
