@@ -377,11 +377,11 @@ class IntentParser(object):
         cp_id = self._get_challenge_problem()
         title = self._get_request_name()
 
-        ref_controls = self._process_control_tables(control_tables)
         lab_content = self._process_lab_table(lab_tables)
-        parameter_sr = self._process_parameter_table(parameter_tables)
+        ref_controls = self._process_control_tables(control_tables, lab_content[dc_constants.LAB])
         measurements = self._process_measurement_table(measurement_tables, ref_controls, lab_content[dc_constants.LAB])
-        
+        parameter_sr = self._process_parameter_table(parameter_tables)
+
         self.request[dc_constants.EXPERIMENT_REQUEST_NAME] = title
         self.request[dc_constants.EXPERIMENT_ID] = lab_content[dc_constants.EXPERIMENT_ID]
         self.request[dc_constants.CHALLENGE_PROBLEM] = cp_id
@@ -401,24 +401,30 @@ class IntentParser(object):
             experiment_request[ip_constants.PARAMETER_SUBMIT] = True
             self.experiment_request = experiment_request
 
-    def _process_control_tables(self, control_tables):
+    def _process_control_tables(self, control_tables, lab_name):
         ref_controls = {}
         if not control_tables:
             self.validation_warnings.append('No controls table to parse from document.')
             return ref_controls
-        
+        try:
+            strain_mapping = self.sbol_dictionary.get_mapped_strain(lab_name)
+        except (DictionaryMaintainerException, TableException) as err:
+            self.validation_errors.extend([err.get_message()])
         for table in control_tables:
-            controls_table = ControlsTable(table, 
-                                           self.catalog_accessor.get_control_type(),
-                                           self.catalog_accessor.get_fluid_units(),
-                                           self.catalog_accessor.get_time_units()) 
-            controls_data = controls_table.process_table()
+            controls_table = ControlsTable(table,
+                                           control_types=self.catalog_accessor.get_control_type(),
+                                           fluid_units=self.catalog_accessor.get_fluid_units(),
+                                           timepoint_units=self.catalog_accessor.get_time_units(),
+                                           strain_mapping=strain_mapping)
+            controls_table.process_table()
+            controls_data = controls_table.get_structured_request()
             table_caption = controls_table.get_table_caption()
             if table_caption:
                 ref_controls[table_caption] = controls_data
             self.validation_errors.extend(controls_table.get_validation_errors())
             self.validation_warnings.extend(controls_table.get_validation_warnings())
         return ref_controls
+
 
     def _process_experiment_specification_tables(self, exp_specification_tables):
         result = {}

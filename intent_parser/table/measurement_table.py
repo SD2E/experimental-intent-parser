@@ -106,6 +106,22 @@ class MeasurementTable(object):
                 self._process_batch(cell, measurement)
             elif intent_parser_constants.HEADER_CONTROL_TYPE == cell_type:
                 self._process_control(cell, control_data, measurement)
+            elif intent_parser_constants.HEADER_NUM_NEG_CONTROL_TYPE == cell_type:
+                num_neg_controls = self._process_num_neg_controls(cell)
+                if num_neg_controls:
+                    content.append(num_neg_controls)
+            elif intent_parser_constants.HEADER_RNA_INHIBITOR_REACTION_TYPE == cell_type:
+                rna_inhibitor_reaction = self._process_rna_inhibitor_reaction(cell)
+                if rna_inhibitor_reaction:
+                    content.append(rna_inhibitor_reaction)
+            elif intent_parser_constants.HEADER_DNA_REACTION_CONCENTRATION_TYPE == cell_type:
+                dna_reaction_concentration = self._process_dna_reaction_concentration(cell)
+                if dna_reaction_concentration:
+                    content.append(dna_reaction_concentration)
+            elif intent_parser_constants.HEADER_TEMPLATE_DNA_TYPE == cell_type:
+                dna_template = self._process_template_dna(cell)
+                if dna_template:
+                    content.append(dna_template)
             elif intent_parser_constants.HEADER_COLUMN_ID_TYPE == cell_type:
                 col_id = self._process_col_id(cell)
                 if col_id:
@@ -122,6 +138,7 @@ class MeasurementTable(object):
                 reagents = self._process_reagent_media(cell, header_cell)
                 if reagents:
                     content.append(reagents)
+
         if content:
             measurement.add_field(dc_constants.CONTENTS, content)
 
@@ -132,8 +149,9 @@ class MeasurementTable(object):
         try:
             lab_ids = []
             for value in cell_parser.PARSER.extract_name_value(cell_content):
-                result = {'name': {'label': 'lab_id', 'sbh_uri': dc_constants.NO_PROGRAM_DICTIONARY},
-                          'value': value}
+                result = {dc_constants.NAME: {dc_constants.LABEL: 'lab_id',
+                                              dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+                          dc_constants.VALUE: value}
                 lab_ids.append(result)
             return lab_ids
         except TableException as err:
@@ -147,8 +165,9 @@ class MeasurementTable(object):
         try:
             row_ids = []
             for value in cell_parser.PARSER.process_numbers(text):
-                result = {'name': {'label': 'row_id', 'sbh_uri': dc_constants.NO_PROGRAM_DICTIONARY},
-                          'value': int(value)}
+                result = {dc_constants.NAME: {dc_constants.LABEL: 'row_id',
+                                              dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+                          dc_constants.VALUE: int(value)}
                 row_ids.append(result)
             return row_ids
         except TableException as err:
@@ -157,12 +176,13 @@ class MeasurementTable(object):
             return []
 
     def _process_col_id(self, cell):
-        text = cell.get_text()
         try:
             col_ids = []
+            text = cell.get_text()
             for value in cell_parser.PARSER.process_numbers(text):
-                result = {'name': {'label': 'column_id', 'sbh_uri': dc_constants.NO_PROGRAM_DICTIONARY},
-                          'value': int(value)}
+                result = {dc_constants.NAME: {dc_constants.LABEL: 'column_id',
+                                              dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+                          dc_constants.VALUE: int(value)}
                 col_ids.append(result)
             return col_ids
         except TableException as err:
@@ -219,18 +239,24 @@ class MeasurementTable(object):
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_BATCH_VALUE, err)
             self._validation_errors.append(message)
     
-    def _process_control(self, cell, control_tables, measurement):
+    def _process_control(self, cell, control_data, measurement):
         result = []
-        if not control_tables:
+        if not control_data:
             self._validation_errors.append('Unable to process controls from a Measurement table without Control Tables.')
             return result
 
         if cell.get_bookmark_ids():
-            result = self._process_control_with_bookmarks(cell, control_tables)
+            result = self._process_control_with_bookmarks(cell, control_data)
 
+        # if processing control by bookmark_id did not work, process by table index value
         if not result:
-            result = self._process_control_with_captions(cell, control_tables)
-        measurement.add_field(dc_constants.CONTROLS, result)
+            result_by_caption = self._process_control_with_captions(cell, control_data)
+            if result_by_caption:
+                measurement.add_field(dc_constants.CONTROLS, result_by_caption)
+            else:
+                message = 'Measurement table has invalid %s value: control value is empty' % (
+                intent_parser_constants.HEADER_CONTROL_VALUE)
+                self._validation_errors.append(message)
 
     def _process_control_with_bookmarks(self, cell, control_tables):
         controls = []
@@ -249,6 +275,32 @@ class MeasurementTable(object):
                     controls.append(control)
         return controls       
            
+    def _process_dna_reaction_concentration(self, cell):
+        try:
+            dna_reaction_concentration = []
+            for value in cell_parser.PARSER.process_numbers(cell.get_text()):
+                result = {dc_constants.NAME: {dc_constants.LABEL: intent_parser_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE,
+                                              dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+                          dc_constants.VALUE: int(value)}
+                dna_reaction_concentration.append(result)
+
+            return dna_reaction_concentration
+        except TableException as err:
+            message = 'Measurement table has invalid %s value: %s' % (
+            intent_parser_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE, err)
+            self._validation_errors.append(message)
+            return []
+
+    def _process_template_dna(self, cell):
+        dna_templates = []
+        for value in cell_parser.PARSER.extract_name_value(cell.get_text()):
+            result = {dc_constants.NAME: {dc_constants.LABEL: intent_parser_constants.HEADER_TEMPLATE_DNA_VALUE,
+                                          dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+                      dc_constants.VALUE: value}
+            dna_templates.append(result)
+
+        return dna_templates
+
     def _process_file_type(self, cell, measurement):
         file_types = [value for value in cell_parser.PARSER.extract_name_value(cell.get_text())]
         result = []
@@ -277,12 +329,27 @@ class MeasurementTable(object):
         else:
             measurement.add_field(dc_constants.MEASUREMENT_TYPE, measurement_type)
 
+    def _process_num_neg_controls(self, cell):
+        try:
+            num_neg_controls = []
+            for value in cell_parser.PARSER.process_numbers(cell.get_text()):
+                result = {dc_constants.NAME: {dc_constants.LABEL: intent_parser_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE,
+                                              dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+                          dc_constants.VALUE: int(value)}
+                num_neg_controls.append(result)
+
+            return num_neg_controls
+        except TableException as err:
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE, err)
+            self._validation_errors.append(message)
+            return []
+
     def _process_ods(self, cell, measurement):
         try:
             ods = [float(value) for value in cell_parser.PARSER.process_numbers(cell.get_text())]
             measurement.add_field(dc_constants.ODS, ods)
         except TableException as err:
-            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_ODS_VALUE, err)
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE, err)
             self._validation_errors.append(message)
 
     def _process_replicate(self, cell, measurement):
@@ -297,7 +364,22 @@ class MeasurementTable(object):
         except TableException as err:
             message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_REPLICATE_VALUE, err)
             self._validation_errors.append(message)
-        
+
+    def _process_rna_inhibitor_reaction(self, cell):
+        try:
+            rna_inhibitor_reaction = []
+            for boolean_value in cell_parser.PARSER.process_boolean_flag(cell.get_text()):
+                result = {dc_constants.NAME: {dc_constants.LABEL: intent_parser_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE,
+                                              dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
+                          dc_constants.VALUE: str(boolean_value)}
+                rna_inhibitor_reaction.append(result)
+
+            return rna_inhibitor_reaction
+        except TableException as err:
+            message = 'Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE, err)
+            self._validation_errors.append(message)
+            return []
+
     def _process_strains(self, cell, measurement):
         strains = []
         for input_strain, link in cell_parser.PARSER.process_names_with_uri(cell.get_text(), text_with_uri=cell.get_text_with_url()):

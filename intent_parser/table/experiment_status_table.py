@@ -184,7 +184,7 @@ class ExperimentStatusTableParser(object):
 
     def _process_last_updated(self, cell, status):
         try:
-            status.last_updated = cell_parser.PARSER.process_datetime_format(cell.get_text().strip())
+            status.last_updated = datetime.strptime(cell.get_text().strip(), '%Y/%m/%d %H:%M:%S')
         except ValueError as err:
             message = 'Experiment status table has invalid %s value: %s' % (
                        intent_parser_constants.HEADER_PIPELINE_STATUS_TYPE, str(err))

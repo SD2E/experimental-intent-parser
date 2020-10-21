@@ -1,5 +1,5 @@
-from datetime import datetime
 from intent_parser.intent_parser_exceptions import TableException
+from typing import Dict, List, Tuple
 import intent_parser.constants.intent_parser_constants as constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import collections
@@ -38,7 +38,7 @@ class CellParser(object):
         self._table_header_tokenizer = _TableHeaderTokenizer()
         self._cell_parser = _Parser()
 
-    def extract_name_value(self, text):
+    def extract_name_value(self, text: str) -> List[str]:
         """
         Parse text to get a list of NAME strings.
 
@@ -67,7 +67,7 @@ class CellParser(object):
             result.append(''.join(cell_str))
         return result
 
-    def get_header_type(self, text):
+    def get_header_type(self, text: str) -> str:
         """Process the name of a table header supported by Intent Parser.
         Args:
             text: name of header
@@ -79,7 +79,7 @@ class CellParser(object):
             return 'UNKNOWN'
         return self._get_token_type(tokens[0])
 
-    def has_lab_table_keyword(self, text, keyword):
+    def has_lab_table_keyword(self, text: str, keyword: str) -> bool:
         """
         Deterimine if the text has keywords supported in Intent Parser's Lab table.
         Args:
@@ -91,7 +91,7 @@ class CellParser(object):
         tokens = self._lab_tokenizer.tokenize(text)
         return len(tokens) > 0 and self._get_token_value(tokens[0]).lower() == keyword.lower()
 
-    def is_experiment_id(self, text, lab_names={}):
+    def is_experiment_id(self, text: str, lab_names: Tuple = {}) -> bool:
         tokens = self._experiment_id_tokenizer.tokenize(text)
         if len(tokens) != 5:
             return False
@@ -104,7 +104,7 @@ class CellParser(object):
         return True
 
 
-    def is_name(self, text):
+    def is_name(self, text: str) -> bool:
         """
         Check if the content of a cell is alpha-numeric.
         Args:
@@ -118,7 +118,7 @@ class CellParser(object):
             return True
         return False
 
-    def is_number(self, text):
+    def is_number(self, text: str) -> bool:
         """
         Determine if the text contain a number or a list of numbers.
         Args:
@@ -131,7 +131,7 @@ class CellParser(object):
         return cell_type == 'NUMBER' or cell_type == 'NUMBER_LIST'
 
 
-    def is_table_caption(self, text):
+    def is_table_caption(self, text: str) -> bool:
         """
         Determine if the text is a table caption. 
         A table caption must follow the format "Table" followed by some numerical value. 
@@ -144,7 +144,7 @@ class CellParser(object):
         tokens = self._table_tokenizer.tokenize(text)
         return len(tokens) > 0 and self._get_token_type(tokens[0]) == 'KEYWORD'
 
-    def is_valued_cell(self, text):
+    def is_valued_cell(self, text: str) -> bool:
         """
         Check if a string follows a valued-cell pattern.
         A valued-cell pattern can be a list of integer values propagated with units.
@@ -161,7 +161,7 @@ class CellParser(object):
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
         return cell_type == 'VALUES_UNIT' or cell_type == 'VALUE_UNIT_PAIRS'
 
-    def parse_content_item(self, text, text_with_uri, fluid_units={}, timepoint_units={}):
+    def parse_content_item(self, text: str, text_with_uri: Dict, fluid_units: Tuple = {}, timepoint_units: Tuple = {}):
         list_of_contents = []
         tokens = self._cell_tokenizer.tokenize(text, keep_skip=False)
         if len(tokens) < 1:
@@ -190,20 +190,19 @@ class CellParser(object):
             raise TableException('Unable to parse %s' % text)
         return list_of_contents
 
-    def process_boolean_flag(self, text):
-        tokens = self._cell_tokenizer.tokenize(text, keep_separator=False, keep_skip=False)
-        cell_type = self._get_token_type(self._cell_parser.parse(tokens))
-        if cell_type == 'BOOLEAN_FLAG':
-            token_type = self._get_token_type(tokens[0])
+    def process_boolean_flag(self, text: str) -> List[bool]:
+        tokens = self._cell_tokenizer.tokenize(text.lower(), keep_separator=False, keep_skip=False)
+        result = []
+        for token in tokens:
+            token_type = self._get_token_type(token)
             if token_type == 'BOOLEAN_FALSE':
-                return False
+                result.append(False)
             elif token_type == 'BOOLEAN_TRUE':
-                return True
-        if self._get_token_value(tokens[0]).lower() == 'false':
-            return False
-        elif self._get_token_value(tokens[0]).lower() == 'true':
-            return True
-        return None
+                result.append(True)
+            else:
+                raise TableException('%s is not boolean value' % text)
+
+        return result
 
     def process_content_item_unit(self, unit, fluid_units, timepoint_units):
         all_units = set()
@@ -215,10 +214,7 @@ class CellParser(object):
         abbrev_units.update(self._abbreviated_unit_dict['timepoints'] if 'timepoints' is not None else {})
         return self._determine_unit(unit, all_units, abbrev_units)
 
-    def process_datetime_format(self, text):
-        return datetime.strptime(text, '%Y/%m/%d %H:%M:%S')
-
-    def process_lab_name(self, text):
+    def process_lab_name(self, text: str) -> str:
         """
         Get lab name from a text
         Args:
@@ -261,7 +257,7 @@ class CellParser(object):
         return {dc_constants.LABEL: stripped_label,
                 dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY}
 
-    def process_numbers(self, text):
+    def process_numbers(self, text: str) -> List[str]:
         """
         Process a given string for a list of numbers, using commas as a delimiter.
         Args:
@@ -518,6 +514,10 @@ class _TableHeaderTokenizer(_Tokenizer):
             (constants.HEADER_LAST_UPDATED_TYPE, r'(Last|last)[ \t\n]*(Update|update)'),
             (constants.HEADER_MEASUREMENT_TYPE_TYPE, r'(Measurement|measurement)[ \t\n]*-[ \t\n]*(Type|type)'),
             (constants.HEADER_NOTES_TYPE, r'(Notes|notes)'),
+            (constants.HEADER_NUM_NEG_CONTROL_TYPE, r'([Nn]umber)[ \t\n]*([Oo]f)[ \t\n]*([Nn]egative)[ \t\n]*([Cc]ontrols)'),
+            (constants.HEADER_RNA_INHIBITOR_REACTION_TYPE, r'([Uu]se)[ \t\n]*([Rr][Nn][Aa]se)[ \t\n]*([Ii]nhibitor)[ \t\n]*([Ii]n)[ \t\n]*([Rr]eaction)'),
+            (constants.HEADER_DNA_REACTION_CONCENTRATION_TYPE, r'([Dd][Nn][Aa])[ \t\n]*([Rr]eaction)[ \t\n]*([Cc]oncentration)'),
+            (constants.HEADER_TEMPLATE_DNA_TYPE, r'([Tt]emplate)[ \t\n]*([Dd][Nn][Aa])'),
             (constants.HEADER_ODS_TYPE, r'(Ods|ods|ODS)'),
             (constants.HEADER_PATH_TYPE, r'([Oo]utput)[ \t\n]*([Ff]rom)[ \t\n]*([Pp]ipeline)'),
             (constants.HEADER_PARAMETER_TYPE, r'(Parameter|parameter)'),
