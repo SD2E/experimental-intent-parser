@@ -292,7 +292,7 @@ class IntentParserServer(object):
         if '_links' not in response_json and 'self' not in response_json['_links']:
             validation_errors.append('Intent Parser unable to get redirect link to TACC authentication webpage.')
 
-        if len(intent_parser.get_validation_errors()) > 0:
+        if len(validation_errors) > 0:
             return self._create_http_response(HTTPStatus.BAD_REQUEST,
                                               json.dumps({'errors': validation_errors, 'warnings': validation_warnings}),
                                               'application/json')
