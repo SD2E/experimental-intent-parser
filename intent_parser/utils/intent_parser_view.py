@@ -374,7 +374,7 @@ def valid_request_model_dialog(warnings, link=None):
     buttons = [('Ok', 'process_nop')] 
     return simple_modal_dialog(msg, buttons, title, 500, height)
 
-def create_execute_experiment_dialog(link, content=''):
+def create_execute_experiment_dialog(link):
     dialog_title = 'Submit Experiment'
     data = {'buttonId': 'process_experiment_execution_status'}
     html_message = '''
@@ -395,8 +395,7 @@ def create_execute_experiment_dialog(link, content=''):
         <input id=experimentStatus type="button", onclick="experimentStatusClick()" value="Check Status" />
     </center> 
     ''' % (link, data)
-    html_message = content
-    return modal_dialog(html_message, dialog_title, 300, 500)
+    return modal_dialog(html_message, dialog_title, 300, 200)
 
 def simple_modal_dialog(message, buttons, title, width, height):
     html_message = '<script>\n\n'

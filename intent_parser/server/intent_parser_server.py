@@ -314,11 +314,14 @@ class IntentParserServer(object):
             validation_errors.extend(intent_parser.get_validation_errors())
 
         action_list = []
+        request_data = intent_parser.get_experiment_request()
+        response, response_json = TACCGoAccessor().execute_experiment(request_data)
+        if '_links' not in response_json and 'self' not in response_json['_links']:
+            validation_errors.append('Intent Parser unable to get redirect link to TACC authentication webpage.')
+
         if len(validation_errors) == 0:
-            request_data = intent_parser.get_experiment_request()
-            response = TACCGoAccessor().execute_experiment(request_data)
-            link = response.url
-            action_list.append(intent_parser_view.create_execute_experiment_dialog(link, response.text))
+            link = response_json['_links']['self']
+            action_list.append(intent_parser_view.create_execute_experiment_dialog(link))
         else:
             all_messages = []
             all_messages.extend(validation_warnings)

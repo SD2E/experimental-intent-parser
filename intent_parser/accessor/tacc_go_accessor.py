@@ -42,7 +42,7 @@ class TACCGoAccessor(object):
         else:
             data = dump.dump_all(response)
             self.logger.error(data.decode('utf-8'))
-        return response
+        return response, response.json()
 
     def get_failure_experiment_result(self, execution_id: str):
         headers = {
