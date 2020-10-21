@@ -1,12 +1,12 @@
 var serverURL = 'http://intentparser.sd2e.org';
-var versionString = '2.9';
+var versionString = '2.10';
 
 function onOpen() {
 	const ui = DocumentApp.getUi();
 	const tablesMenu = ui.createMenu('Create table templates');
 	tablesMenu.addItem('Controls', 'createControlsTable');
-	tablesMenu.addItem('Parameters', 'createParameterTable');
 	tablesMenu.addItem('Measurements', 'createTableMeasurements');
+	tablesMenu.addItem('Parameters', 'createParameterTable');
 
 	const tableHelpMenu = ui.createMenu('Tables');
 	tableHelpMenu.addItem('Controls', 'reportControlsInfo');
@@ -18,18 +18,18 @@ function onOpen() {
 	helpMenu.addItem('About', 'showHelp');
 
 	const menu = ui.createMenu('Parse Intent');
-	menu.addItem('Analyze from top', 'sendAnalyzeFromTop');
-	menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor');
 	menu.addItem('Add to SynBioHub', 'addToSynBioHub');
+	menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor');
+	menu.addItem('Analyze from top', 'sendAnalyzeFromTop');
 	menu.addItem('Calculate samples for measurements table', 'calculateSamples');
-	menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest');
-	menu.addItem('Validate Structured Request', 'sendValidateStructuredRequest');
 	menu.addItem('Generate Report', 'sendGenerateReport');
-	menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling');
-	menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor');
-	menu.addItem('Update experimental results', 'updateExperimentalResults');
-	menu.addItem('Request Experiment Execution', 'executeExperiment');
+	menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest');
 	menu.addItem('Report Experiment Status', 'reportExperimentStatus');
+	menu.addItem('Request Experiment Execution', 'executeExperiment');
+	menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor');
+	menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling');
+	menu.addItem('Update experimental results', 'updateExperimentalResults');
+	menu.addItem('Validate Structured Request', 'sendValidateStructuredRequest');
 	menu.addSubMenu(tablesMenu);
 	menu.addItem('File Issues', 'reportIssues');
 	menu.addSubMenu(helpMenu);
