@@ -202,7 +202,7 @@ class IntentParserServer(object):
             response = self.process_document_report(http_message)
         elif resource == '/document_request':
             response = self.process_document_request(http_message)
-        elif resource =='/run_experiment':
+        elif resource == '/run_experiment':
             response = self.process_run_experiment(http_message)
         elif resource == '/experiment_request_documents':
             response = self.process_experiment_request_documents(http_message)
@@ -281,16 +281,24 @@ class IntentParserServer(object):
         document_id = resource.split('?')[1]
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_experiment_run_request()
-        if len(intent_parser.get_validation_errors()) > 0:
-            errors = [intent_parser.get_validation_errors()]
-            warnings = [intent_parser.get_validation_warnings()]
-            return self._create_http_response(HTTPStatus.BAD_REQUEST,
-                                              json.dumps({'errors': errors, 'warnings': warnings}),
-                                              'application/json')
+
+        validation_warnings = []
+        validation_errors = []
+        validation_warnings.extend(intent_parser.get_validation_warnings())
+        validation_errors.extend(intent_parser.get_validation_errors())
 
         request_data = intent_parser.get_experiment_request()
-        experiment_response = TACCGoAccessor().execute_experiment(request_data)
-        return self._create_http_response(HTTPStatus.OK, json.dumps({'result': experiment_response}),
+        response_json = TACCGoAccessor().execute_experiment(request_data)
+        if '_links' not in response_json and 'self' not in response_json['_links']:
+            validation_errors.append('Intent Parser unable to get redirect link to TACC authentication webpage.')
+
+        if len(intent_parser.get_validation_errors()) > 0:
+            return self._create_http_response(HTTPStatus.BAD_REQUEST,
+                                              json.dumps({'errors': validation_errors, 'warnings': validation_warnings}),
+                                              'application/json')
+
+        link = response_json['_links']['self']
+        return self._create_http_response(HTTPStatus.OK, json.dumps({'authenticationLink': link}),
                                           'application/json')
 
     def process_experiment_execution_status(self, json_body, client_state):
