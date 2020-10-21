@@ -47,18 +47,16 @@ class IntentParserServerTest(unittest.TestCase):
         http_message = HttpMessage()
         http_message.process_header('Host:%s' % http_host)
         document_id = 'foo'
-        expected_response = 'The request was successful'
         experiment_request = {'documentId': document_id}
-        expected_actions = {'actions': [intent_parser_view.message_dialog('Experiment Execution Status', expected_response)]}
+        expected_actions = {'actions': [intent_parser_view.create_execute_experiment_dialog('https://foo_submission.com')]}
         self.mock_intent_parser.get_experiment_request.return_value = experiment_request
         self.mock_intent_parser.get_validation_warnings.return_value = []
         self.mock_intent_parser.get_validation_errors.return_value = []
-        self.mock_tacc_go_accessor.execute_experiment.return_value = "The request was successful"
+        self.mock_tacc_go_accessor.execute_experiment.return_value = {'_links': {'self': 'https://foo_authentication.com'}}
         http_message.set_body(json.dumps(experiment_request).encode('utf-8'))
 
         response = self.ip_server.process_execute_experiment(http_message)
         self._verify_response_status(response, HTTPStatus.OK)
-        self._verify_response_body(response, expected_actions)
 
     def test_process_run_experiment(self):
         test_data = {ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
@@ -74,8 +72,7 @@ class IntentParserServerTest(unittest.TestCase):
                              ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: 'foo',
                              ip_constants.DEFAULT_PARAMETERS: {'exp_info.sample_time': '8:hour'}}
         self.mock_intent_parser.get_experiment_request.return_value = test_data
-        expected_message = 'The request was successful'
-        self.mock_tacc_go_accessor.execute_experiment.return_value = expected_message
+        self.mock_tacc_go_accessor.execute_experiment.return_value = {'_links': {'self': 'https://foo_authentication.com'}}
         self.mock_intent_parser.get_validation_warnings.return_value = []
         self.mock_intent_parser.get_validation_errors.return_value = []
 
@@ -83,7 +80,7 @@ class IntentParserServerTest(unittest.TestCase):
         http_message.resource = '/run_experiment?foo'
         response = self.ip_server.process_run_experiment(http_message)
         self._verify_response_status(response, HTTPStatus.OK)
-        self._verify_response_body(response, {'result': expected_message})
+        self.assertTrue('authenticationLink' in json.loads(response.get_body()))
 
     def test_process_document_report(self):
         expected_report = {'challenge_problem_id': 'undefined',
