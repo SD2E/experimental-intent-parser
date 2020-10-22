@@ -172,8 +172,7 @@ class ParameterTable(object):
         if parameter.lower() == intent_parser_constants.PARAMETER_PROTOCOL:
             return parameter.lower()
         if parameter not in self._parameter_fields:
-            error = ['Parameter table has invalid %s value: %s does not map to a TACC UID in the SBOL dictionary.' % (
-            intent_parser_constants.HEADER_PARAMETER_VALUE, parameter)]
+            error = 'Parameter table has invalid %s value: %s does not map to a TACC UID in the SBOL dictionary.' % (intent_parser_constants.HEADER_PARAMETER_VALUE, parameter)
             self._validation_errors.append(error)
             return ''
         return self._parameter_fields[parameter]

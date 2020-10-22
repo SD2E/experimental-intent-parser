@@ -404,7 +404,7 @@ class IntentParser(object):
     def _process_control_tables(self, control_tables, lab_name):
         ref_controls = {}
         if not control_tables:
-            self.validation_warnings.append('No controls table to parse from document.')
+            self.validation_warnings.append('Warning: No controls table to parse from document.')
             return ref_controls
         try:
             strain_mapping = self.sbol_dictionary.get_mapped_strain(lab_name)
