@@ -24,20 +24,20 @@ class StrateosAccessor(object):
 
         self.protocol_lock = threading.Lock()
         self.protocols = {}
-        self.protocol_as_original_schema = {}
+        self.protocol_as_opil = {}
         self._protocol_thread = threading.Thread(target=self._periodically_fetch_protocols)
 
     def get_protocol_as_opil(self, protocol_name):
         if not self._use_cache:
             self._fetch_protocols()
-            return self.protocol_as_original_schema[protocol_name]
+            return self.protocol_as_opil[protocol_name]
 
-        if protocol_name not in self.protocol_as_original_schema:
+        if protocol_name not in self.protocol_as_opil:
             raise IntentParserException('Unable to get %s from Strateos' % protocol_name)
 
-        return self.protocol_as_original_schema[protocol_name]
+        return self.protocol_as_opil[protocol_name]
 
-    def get_protocol(self, protocol):
+    def get_protocol_as_schema(self, protocol):
         """
         Get default parameter values for a given protocol.
 
@@ -55,6 +55,7 @@ class StrateosAccessor(object):
         self.protocol_lock.acquire()
         if protocol not in self.protocols:
             raise Exception('Unable to get %s from Strateos' % protocol)
+
         selected_protocol = self.protocols[protocol]
         self.protocol_lock.release()
         return selected_protocol
@@ -85,7 +86,7 @@ class StrateosAccessor(object):
             if protocol['name'] not in supported_protocols:
                 continue
             self.logger.info('Fetching protocol %s' % protocol['name'])
-            self.protocol_as_original_schema[protocol['name']] = self._convert_protocol_as_opil(protocol)
+            self.protocol_as_opil[protocol['name']] = self._convert_protocol_as_opil(protocol)
 
         self.protocol_lock.release()
 
@@ -102,8 +103,6 @@ class StrateosAccessor(object):
             raise IntentParserException('Unable to locate OPIL protocol interface when converting transcriptic protocols to OPIL')
 
         return targeted_interface
-
-
 
     def _parse_protocol(self, protocol):
         queue = []

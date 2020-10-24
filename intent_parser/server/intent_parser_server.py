@@ -1230,10 +1230,10 @@ class IntentParserServer(object):
                 actionList.append(dialog_action)
             elif table_type == ip_addon_constants.TABLE_TYPE_PARAMETERS:
                 protocol_names = list(intent_parser_constants.PROTOCOL_NAMES.values())
-                growth_curve_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.GROWTH_CURVE_PROTOCOL)
-                obstacle_course_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.OBSTACLE_COURSE_PROTOCOL)
-                time_series_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.TIME_SERIES_HTP_PROTOCOL)
-                cell_free_riboswitch_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL)
+                growth_curve_parameters = self.strateos_accessor.get_protocol_as_schema(intent_parser_constants.GROWTH_CURVE_PROTOCOL)
+                obstacle_course_parameters = self.strateos_accessor.get_protocol_as_schema(intent_parser_constants.OBSTACLE_COURSE_PROTOCOL)
+                time_series_parameters = self.strateos_accessor.get_protocol_as_schema(intent_parser_constants.TIME_SERIES_HTP_PROTOCOL)
+                cell_free_riboswitch_parameters = self.strateos_accessor.get_protocol_as_schema(intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL)
 
                 dialog_action = intent_parser_view.create_parameter_table_dialog(cursor_child_index,
                                                                                  protocol_names,
@@ -1675,7 +1675,7 @@ class IntentParserServer(object):
         selected_protocol = self._get_selected_protocol(data[ip_addon_constants.HTML_PROTOCOL])
         table_template.append([intent_parser_constants.PARAMETER_PROTOCOL, selected_protocol])
 
-        protocol = self.strateos_accessor.get_protocol(selected_protocol)
+        protocol = self.strateos_accessor.get_protocol_as_schema(selected_protocol)
         required_fields = self._add_required_parameters(protocol)
         table_template.extend(required_fields)
 
