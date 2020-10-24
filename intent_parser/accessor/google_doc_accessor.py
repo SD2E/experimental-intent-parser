@@ -1,5 +1,5 @@
 from googleapiclient.discovery import build
-import intent_parser.constants.google_doc_api_constants as doc_constants
+import intent_parser.constants.google_api_constants as doc_constants
 import logging
 import statistics
 

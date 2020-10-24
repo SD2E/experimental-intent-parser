@@ -46,3 +46,7 @@ TEXT_STYLE = 'textStyle'
 UNDERLINE = 'underline'
 URL = 'url'
 
+GOOGLE_DRIVE_EXPERIMENT_REQUEST_FOLDER = '1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'
+GOOGLE_DOC_URL_PREFIX = 'https://docs.google.com/document/d/'
+GOOGLE_DOC_MIMETYPE = 'application/vnd.google-apps.document'
+WORD_DOC_MIMETYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'

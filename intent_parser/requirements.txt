@@ -2,6 +2,7 @@ google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
 jsonschema
+opil==1.0a2.post1
 pymongo
 pyspellchecker
 python-docx
@@ -9,6 +10,7 @@ python-Levenshtein
 python-magic
 requests_oauthlib
 sbol2
+sbol3
 tenacity
 transcriptic
 flashtext

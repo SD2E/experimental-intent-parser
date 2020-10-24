@@ -1,10 +1,11 @@
 from collections import namedtuple as _namedtuple
-from intent_parser.intent_parser_exceptions import ConnectionException 
+from intent_parser.intent_parser_exceptions import ConnectionException
 from difflib import Match
 from http import HTTPStatus
 import json
 import Levenshtein
-import re 
+import re
+
 
 IPSMatch = _namedtuple('Match', 'a b size content_word_length')
 
@@ -13,8 +14,8 @@ def get_google_doc_id(doc_url):
     matched_pattern = re.match(url_pattern, doc_url)
     doc_id = matched_pattern.group('id')
     return doc_id
-        
-        
+
+
 def load_json_file(file_path):
     with open(file_path, 'r') as file:
         json_data = json.load(file)
@@ -95,7 +96,7 @@ def cull_overlapping(search_results):
             if idx not in ignore_idx:
                 new_results.append(search_results[idx])
     return new_results
-    
+
 def get_json_body(httpMessage):
     body = httpMessage.get_body()
     if body == None or len(body) == 0:
@@ -109,7 +110,7 @@ def get_json_body(httpMessage):
     except json.decoder.JSONDecodeError as e:
         errorMessage = 'Failed to decode JSON data: {}\n'.format(e);
         raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
-    
+
 def get_document_id_from_json_body(json_body):
     if 'documentId' not in json_body:
         raise ConnectionException(HTTPStatus.BAD_REQUEST, 'Missing documentId')
@@ -141,13 +142,13 @@ def analyze_term(entry):
     search_results = []
     for result in results:
         search_results.append(
-                        { 'paragraph_index' : result[0],
-                          'offset'          : result[1],
-                          'end_offset'      : result[2],
-                          'term'            : term,
-                          'uri'             : uri,
-                          'link'            : result[3],
-                          'text'            : result[4]})
+            { 'paragraph_index' : result[0],
+              'offset'          : result[1],
+              'end_offset'      : result[2],
+              'term'            : term,
+              'uri'             : uri,
+              'link'            : result[3],
+              'text'            : result[4]})
     return search_results
 
 def find_exact_text(text, starting_pos, paragraphs):
@@ -345,34 +346,33 @@ def find_common_substrings(content, dict_term, partial_match_min_size, partial_m
 
 
 def find_overlaps(start_idx, search_results, ignore_idx = set()):
-        """
-        Given a start index, find any entries in the results that overlap with the result at the start index
-        In the case where the amount of overlap is equal, we pick the one that has the lowest Levenshtein (edit) distance between the matched text and the dictionary term.
-        """
-        query = search_results[start_idx]
-        overlaps = [query]
-        overlap_idx = [start_idx]
-        best_overlap_idx = start_idx
-        best_overlap_len = query['end_offset'] - query['offset']
-        best_edit_dist = Levenshtein.distance(query['term'], query['text'])
-        for idx in range(start_idx + 1, len(search_results)):
+    """
+    Given a start index, find any entries in the results that overlap with the result at the start index
+    In the case where the amount of overlap is equal, we pick the one that has the lowest Levenshtein (edit) distance between the matched text and the dictionary term.
+    """
+    query = search_results[start_idx]
+    overlaps = [query]
+    overlap_idx = [start_idx]
+    best_overlap_idx = start_idx
+    best_overlap_len = query['end_offset'] - query['offset']
+    best_edit_dist = Levenshtein.distance(query['term'], query['text'])
+    for idx in range(start_idx + 1, len(search_results)):
 
-            if idx in ignore_idx:
-                continue;
-            comp = search_results[idx]
+        if idx in ignore_idx:
+            continue;
+        comp = search_results[idx]
 
-            if not comp['paragraph_index'] == query['paragraph_index']:
-                continue
-            overlap = max(0, min(comp['end_offset'], query['end_offset']) - max(comp['offset'], query['offset'])) > 0
-            if overlap:
-                overlaps.append(comp)
-                overlap_idx.append(idx)
-                dist = Levenshtein.distance(comp['term'], comp['text'])
-                overlap_amount = comp['end_offset'] - comp['offset']
-                if overlap_amount >= best_overlap_len or (overlap_amount == best_overlap_len and dist < best_edit_dist):
-                    best_overlap_idx = idx
-                    best_overlap_len = dist
+        if not comp['paragraph_index'] == query['paragraph_index']:
+            continue
+        overlap = max(0, min(comp['end_offset'], query['end_offset']) - max(comp['offset'], query['offset'])) > 0
+        if overlap:
+            overlaps.append(comp)
+            overlap_idx.append(idx)
+            dist = Levenshtein.distance(comp['term'], comp['text'])
+            overlap_amount = comp['end_offset'] - comp['offset']
+            if overlap_amount >= best_overlap_len or (overlap_amount == best_overlap_len and dist < best_edit_dist):
+                best_overlap_idx = idx
+                best_overlap_len = dist
 
-        return overlaps, best_overlap_idx, overlap_idx
-
+    return overlaps, best_overlap_idx, overlap_idx
 

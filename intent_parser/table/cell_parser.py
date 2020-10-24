@@ -249,6 +249,19 @@ class CellParser(object):
             else:
                 yield name, None
 
+    def process_value_unit_without_validation(self, text):
+        """Process given text for a value followed by a unit.
+        Note that unit in this function is defined by any alpha-numeric value and will not be validated.
+        """
+        tokens = self._cell_tokenizer.tokenize(text, keep_separator=False, keep_skip=False)
+        if not self.is_valued_cell(text):
+            raise TableException('%s does not contain a unit' % text)
+        if len(tokens) < 1:
+            raise TableException('Invalid value: %s does not contain a numerical value' % text)
+
+        values, unit = self._get_values_unit(tokens)
+        return values[0], unit
+
     def create_name_with_uri(self, label, uri_dictionary):
         stripped_label = label.strip()
         if stripped_label in uri_dictionary and uri_dictionary[stripped_label]:

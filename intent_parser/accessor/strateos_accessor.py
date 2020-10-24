@@ -2,7 +2,8 @@ from datetime import timedelta
 from intent_parser.intent_parser_exceptions import IntentParserException
 from transcriptic import Connection
 import logging
-import time 
+import opil
+import time
 import threading
 
 class StrateosAccessor(object):
@@ -11,28 +12,31 @@ class StrateosAccessor(object):
     """
     SYNC_PERIOD = timedelta(minutes=10)
     logger = logging.getLogger('intent_parser_strateos_accessor')
-    
-    def __init__(self, credential_path=None):
+
+    def __init__(self, credential_path=None, use_cache=True):
         if credential_path:
             self.strateos_api = Connection.from_file(credential_path)
         else:
             self.strateos_api = Connection.from_default_config()
 
+        self._use_cache = use_cache
+
         self.protocol_lock = threading.Lock()
         self.protocols = {}
+        self.protocol_as_original_schema = {}
         self._protocol_thread = threading.Thread(target=self._periodically_fetch_protocols)
-        
+
     def start_synchronize_protocols(self):
         self._fetch_protocols()
         self._protocol_thread.start()
-             
+
     def stop_synchronizing_protocols(self):
-        self._protocol_thread.join() 
-    
+        self._protocol_thread.join()
+
     def _periodically_fetch_protocols(self):
         while True:
             time.sleep(self.SYNC_PERIOD.total_seconds())
-            self._fetch_protocols() 
+            self._fetch_protocols()
 
     def _fetch_protocols(self):
         self.logger.info('Fetching strateos')
@@ -43,30 +47,45 @@ class StrateosAccessor(object):
             parameters = self._parse_protocol(protocol['inputs'])
             parameters['protocol_id'] = ParameterField(default_value=protocol['id'], required=True)
             self.protocols[protocol['name']] = parameters
+
+            self.protocol_as_original_schema[protocol['name']] = protocol
+
         self.protocol_lock.release()
-        
+
+
+
+    def get_protocol_as_schema(self, protocol_name):
+        if not self._use_cache:
+            self._fetch_protocols()
+            return self.protocol_as_original_schema[protocol_name]['inputs']
+
+        if protocol_name not in self.protocol_as_original_schema:
+            raise IntentParserException('Unable to get %s from Strateos' % protocol_name)
+
+        return self.protocol_as_original_schema[protocol_name]['inputs']
+
     def get_protocol(self, protocol):
         """
         Get default parameter values for a given protocol.
-        
+
         Args:
             protocol: name of protocol
-            
-        Return: 
+
+        Return:
             A dictionary. The key represent a parameter.
                 The value represents a parameter's default value.
-        
+
         Raises:
             An Exception to indicate if a given protocol does not exist when calling the Strateos API.
         """
-        
+
         self.protocol_lock.acquire()
         if protocol not in self.protocols:
             raise Exception('Unable to get %s from Strateos' % protocol)
         selected_protocol = self.protocols[protocol]
         self.protocol_lock.release()
         return selected_protocol
-    
+
     def _parse_protocol(self, protocol):
         queue = []
         parameters = {}

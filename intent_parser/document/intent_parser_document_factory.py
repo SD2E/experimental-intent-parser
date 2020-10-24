@@ -1,5 +1,5 @@
 from intent_parser.document.intent_parser_document import IntentParserDocument
-import intent_parser.constants.google_doc_api_constants as doc_constants
+import intent_parser.constants.google_api_constants as doc_constants
 
 class IntentParserDocumentFactory(object):
 
