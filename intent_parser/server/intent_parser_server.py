@@ -228,8 +228,9 @@ class IntentParserServer(object):
     def process_opil_GET_request(self, http_message):
         resource = http_message.get_resource()
         document_id = resource.split('?')[1]
+        lab_accessors = {dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor}
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-        intent_parser.process_opil_request({dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor})
+        intent_parser.process_opil_request(lab_accessors)
         sbol_doc = intent_parser.get_opil_request()
         if sbol_doc:
             xml_string = sbol_doc.write_string('xml')
@@ -243,7 +244,33 @@ class IntentParserServer(object):
                                               json.dumps({'errors': errors, 'warnings': warnings}),
                                               'application/json')
 
+    def process_opil_POST_request(self, http_message):
+        json_body = intent_parser_utils.get_json_body(http_message)
+        http_host = http_message.get_header('Host')
+        validation_errors = []
+        validation_warnings = []
+        if json_body is None or http_host is None:
+            validation_errors.append('Unable to get information from Google document.')
+        else:
+            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+            lab_accessors = {dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor}
+            intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+            intent_parser.process_opil_request(lab_accessors)
+            validation_warnings.extend(intent_parser.get_validation_warnings())
+            validation_errors.extend(intent_parser.get_validation_errors())
 
+        if len(validation_errors) == 0:
+            link = '<a href=http://' + http_host + '/opil_request?' + document_id + ' target=_blank>here</a>'
+            dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings, link)
+        else:
+            all_messages = []
+            all_messages.extend(validation_warnings)
+            all_messages.extend(validation_errors)
+            dialog_action = intent_parser_view.invalid_request_model_dialog('OPIL request validation: Failed!', all_messages)
+
+        action_list = [dialog_action]
+        actions = {'actions': action_list}
+        return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
 
     def process_document_report(self, http_message):
         """
@@ -384,6 +411,8 @@ class IntentParserServer(object):
             response = self.process_execute_experiment(http_message)
         elif resource == 'experimentExecutionStatus':
             response = self.process_experiment_execution_status(http_message)
+        elif resource == '/generateOpilRequest':
+            response = self.process_opil_POST_request(http_message)
         elif resource == '/generateStructuredRequest':
             response = self.process_generate_structured_request(http_message)
         elif resource == '/message':

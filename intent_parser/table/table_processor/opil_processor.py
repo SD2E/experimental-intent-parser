@@ -1,8 +1,7 @@
-from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, IntentParserException, TableException
+from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, TableException
 from intent_parser.table.lab_table import LabTable
 from intent_parser.table.parameter_table import ParameterTable
 from intent_parser.table.table_processor.processor import Processor
-from intent_parser.protocols.opil_factory import OpilFactory
 import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.protocols.opil_parameter_utils as opil_utils
@@ -63,41 +62,39 @@ class OPILProcessor(Processor):
         self.validation_warnings.extend(lab_table.get_validation_warnings())
 
     def _process_opil_protocol(self):
-        opil_factory = OpilFactory(self.lab_accessors[dc_constants.LAB_TRANSCRIPTIC])
-        try:
-            opil_protocol_interface = opil_factory.load_protocol_interface_from_lab(self.processed_lab_name,
-                                                                                    self.processed_experiment_intent.get_protocol_name())
-            namespace = self._get_namespace_from_lab()
-            opil.set_namespace(namespace)
-            sbol_doc = opil.Document()
-            experiment_param_fields, experiment_param_values = self.processed_experiment_intent.to_opil_for_experiment()
-            default_param_fields, default_param_values = self._process_default_parameters_as_opil(self.processed_experiment_intent.get_default_parameters(),
-                                                                                                  opil_protocol_interface)
-            experiment_param_fields.extend(default_param_fields)
-            experiment_param_values.extend(default_param_values)
-            for updated_param_value in experiment_param_values:
-                if type(updated_param_value) is opil.opil_factory.EnumeratedParameter:
-                    experiment_param_fields.append(updated_param_value)
-                else:
-                    sbol_doc.add(updated_param_value)
+        if self.processed_lab_name not in self.lab_accessors:
+            self.validation_errors.append('Intent Parser does not support fetching protocols from lab: %s.' % self.processed_lab_name)
+            return
 
-            opil_protocol_interface.has_parameter = experiment_param_fields
-            sbol_doc.add(opil_protocol_interface)
-            validation_report = sbol_doc.validate()
-            if validation_report.is_valid:
-                self.sbol_doc = sbol_doc
+        lab_protocol = self.lab_accessors[self.processed_lab_name]
+        opil_protocol_interface = lab_protocol.get_protocol_as_opil(self.processed_experiment_intent.get_protocol_name())
+        namespace = self._get_namespace_from_lab()
+        opil.set_namespace(namespace)
+        sbol_doc = opil.Document()
+        experiment_param_fields, experiment_param_values = self.processed_experiment_intent.to_opil_for_experiment()
+        default_param_fields, default_param_values = self._process_default_parameters_as_opil(self.processed_experiment_intent.get_default_parameters(),
+                                                                                              opil_protocol_interface)
+        experiment_param_fields.extend(default_param_fields)
+        experiment_param_values.extend(default_param_values)
+        for updated_param_value in experiment_param_values:
+            if type(updated_param_value) is opil.opil_factory.EnumeratedParameter:
+                experiment_param_fields.append(updated_param_value)
             else:
-                self.validation_errors.append(validation_report.results)
+                sbol_doc.add(updated_param_value)
 
-        except IntentParserException as err:
-                self.validation_errors.append(err.get_message())
+        opil_protocol_interface.has_parameter = experiment_param_fields
+        sbol_doc.add(opil_protocol_interface)
+        validation_report = sbol_doc.validate()
+        if validation_report.is_valid:
+            self.sbol_doc = sbol_doc
+        else:
+            self.validation_errors.append(validation_report.results)
 
-
-    def _process_default_parameters_as_opil(self, parameters, opil_protocol_inteface):
+    def _process_default_parameters_as_opil(self, parameters, opil_protocol_interface):
         opil_param_values = []
         opil_param_fields = []
         for param_key, param_value in parameters.items():
-            opil_param = self._get_opil_from_parameter_field(param_key, opil_protocol_inteface)
+            opil_param = self._get_opil_from_parameter_field(param_key, opil_protocol_interface)
             if opil_param is None:
                 continue
 
@@ -110,7 +107,7 @@ class OPILProcessor(Processor):
                 opil_param_values.append(opil_value)
             elif type(opil_param) is opil.opil_factory.EnumeratedParameter:
                 opil_value = opil_utils.create_opil_enumerated_parameter_value(value_id, param_value)
-                opil_param.allowed_value = [opil_value]
+                opil_param.default_value = [opil_value]
                 opil_param_values.append(opil_value)
             elif type(opil_param) is opil.opil_factory.IntegerParameter:
                 int_value = cell_parser.PARSER.process_numbers(param_value)
