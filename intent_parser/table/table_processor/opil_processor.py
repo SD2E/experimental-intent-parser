@@ -23,7 +23,6 @@ class OPILProcessor(Processor):
         self.lab_accessors = {}
         self.sbol_dictionary = sbol_dictionary
 
-
     def get_intent(self):
         return self.sbol_doc
 
@@ -67,7 +66,7 @@ class OPILProcessor(Processor):
             return
 
         lab_protocol = self.lab_accessors[self.processed_lab_name]
-        opil_protocol_interface = lab_protocol.get_protocol_as_opil(self.processed_experiment_intent.get_protocol_name())
+        opil_protocol_interface = lab_protocol.get_protocol_interface(self.processed_experiment_intent.get_protocol_name())
         namespace = self._get_namespace_from_lab()
         opil.set_namespace(namespace)
         sbol_doc = opil.Document()
@@ -94,38 +93,61 @@ class OPILProcessor(Processor):
         opil_param_values = []
         opil_param_fields = []
         for param_key, param_value in parameters.items():
-            opil_param = self._get_opil_from_parameter_field(param_key, opil_protocol_interface)
-            if opil_param is None:
+            param_field = self._get_opil_from_parameter_field(param_key, opil_protocol_interface)
+
+            if param_field is None:
                 continue
 
-            opil_param_fields.append(opil_param)
-            value_id = '%s_value_id' % opil_param.name.replace('.', '_')
-            if type(opil_param) is opil.opil_factory.BooleanParameter:
+            value_id = '%s_value_id' % param_field.name.replace('.', '_')
+            if type(param_field) is opil.opil_factory.BooleanParameter:
+                opil_param_field = opil_utils.clone_boolean_parameter_field(param_field)
+                opil_param_fields.append(opil_param_field)
+
                 boolean_value = cell_parser.PARSER.process_boolean_flag(param_value)
                 opil_value = opil_utils.create_opil_boolean_parameter_value(value_id, boolean_value[0])
-                opil_param.default_value = [opil_value]
+                param_field.default_value = [opil_value]
                 opil_param_values.append(opil_value)
-            elif type(opil_param) is opil.opil_factory.EnumeratedParameter:
+
+            elif type(param_field) is opil.opil_factory.EnumeratedParameter:
+                opil_param_field = opil_utils.clone_enumerated_parameter_field(param_field)
+                opil_param_fields.append(opil_param_field)
+
                 opil_value = opil_utils.create_opil_enumerated_parameter_value(value_id, param_value)
-                opil_param.default_value = [opil_value]
+                param_field.default_value = [opil_value]
                 opil_param_values.append(opil_value)
-            elif type(opil_param) is opil.opil_factory.IntegerParameter:
+
+            elif type(param_field) is opil.opil_factory.IntegerParameter:
+                opil_param_field = opil_utils.clone_integer_parameter_field(param_field)
+                opil_param_fields.append(opil_param_field)
+
                 int_value = cell_parser.PARSER.process_numbers(param_value)
                 opil_value = opil_utils.create_opil_integer_parameter_value(value_id, int(int_value[0]))
-                opil_param.default_value = [opil_value]
+                param_field.default_value = [opil_value]
                 opil_param_values.append(opil_value)
-            elif type(opil_param) is opil.opil_factory.MeasureParameter:
+
+            elif type(param_field) is opil.opil_factory.MeasureParameter:
+                opil_param_field = opil_utils.clone_measurement_parameter_field(param_field)
+                opil_param_fields.append(opil_param_field)
+
                 value, unit = cell_parser.PARSER.process_value_unit_without_validation(param_value)
                 opil_value = opil_utils.create_opil_measurement_parameter_value(value_id, value, unit)
-                opil_param.default_value = [opil_value]
+                param_field.default_value = [opil_value]
                 opil_param_values.append(opil_value)
-            elif type(opil_param) is opil.opil_factory.StringParameter:
+
+            elif type(param_field) is opil.opil_factory.StringParameter:
+                opil_param_field = opil_utils.clone_string_parameter_field(param_field)
+                opil_param_fields.append(opil_param_field)
+
                 opil_value = opil_utils.create_opil_string_parameter_value(value_id, param_value)
-                opil_param.default_value = [opil_value]
+                param_field.default_value = [opil_value]
                 opil_param_values.append(opil_value)
-            elif type(opil_param) is opil.opil_factory.URIParameter:
+
+            elif type(param_field) is opil.opil_factory.URIParameter:
+                opil_param_field = opil_utils.clone_uri_parameter_field(param_field)
+                opil_param_fields.append(opil_param_field)
+
                 opil_value = opil_utils.create_opil_URI_parameter_value(value_id, param_value)
-                opil_param.default_value = [opil_value]
+                param_field.default_value = [opil_value]
                 opil_param_values.append(opil_value)
 
         return opil_param_fields, opil_param_values

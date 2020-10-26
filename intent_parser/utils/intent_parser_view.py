@@ -31,7 +31,7 @@ def generate_results_pagination_html(offset, count):
 
     return html
 
-def create_optional_fields_table(optional_fields, table_field_id='optionalFieldTable'):
+def create_optional_fields_checkbox(optional_fields, table_field_id='optionalFieldTable'):
     html_rows = []
     html_table = '''<table id=%s>''' % table_field_id
     for index in range(len(optional_fields)):
@@ -68,20 +68,21 @@ def create_controls_table_dialog(cursor_index):
     dialog_action = modal_dialog(html, 'Create Controls Table', 600, 600)
     return dialog_action
 
-def create_parameter_table_dialog(cursor_child_index, protocol_names,
+def create_parameter_table_dialog(cursor_child_index,
+                                  protocol_names,
                                   timeseries_optional_fields=[],
                                   growthcurve_optional_fields=[],
                                   obstaclecourse_optional_fields=[],
-                                  cellfreeriboswitch_optional_fields=[]):
+                                  cellfreeriboswitch_options=[]):
     html_protocols = generate_html_options(protocol_names)
     builder = ParameterTableHtmlBuilder()
     builder.cursor_child_index_html(cursor_child_index)
     builder.protocol_names_html(html_protocols)
 
-    builder.growthcurve_optional_parameter_fields(create_optional_fields_table(growthcurve_optional_fields))
-    builder.obstaclecourse_optional_parameter_fields(create_optional_fields_table(obstaclecourse_optional_fields))
-    builder.timeseries_optional_parameter_fields(create_optional_fields_table(timeseries_optional_fields))
-    builder.cellfreeriboswitch_optional_parameter_fields(create_optional_fields_table(cellfreeriboswitch_optional_fields))
+    builder.growthcurve_optional_parameter_fields(create_optional_fields_checkbox(growthcurve_optional_fields))
+    builder.obstaclecourse_optional_parameter_fields(create_optional_fields_checkbox(obstaclecourse_optional_fields))
+    builder.timeseries_optional_parameter_fields(create_optional_fields_checkbox(timeseries_optional_fields))
+    builder.cellfreeriboswitch_optional_parameter_fields(create_optional_fields_checkbox(cellfreeriboswitch_options))
     html_parameter = builder.build() 
     dialog_action = modal_dialog(html_parameter, 'Create Parameters Table', 600, 600)
     return dialog_action

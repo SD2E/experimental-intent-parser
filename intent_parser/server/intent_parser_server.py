@@ -7,16 +7,18 @@ from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
 from intent_parser.intent_parser_exceptions import ConnectionException, DictionaryMaintainerException, IntentParserException, TableException
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.intent_parser_sbh import IntentParserSBH
+from intent_parser.protocols.protocol_factory import ProtocolFactory
 from intent_parser.table.intent_parser_table_type import TableType
 from intent_parser.table.table_creator import TableCreator
 from intent_parser.server.socket_manager import SocketManager
 from multiprocessing import Pool
 from operator import itemgetter
 from spellchecker import SpellChecker
-import intent_parser.server.http_message as http_message
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.ip_app_script_constants as ip_addon_constants
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.protocols.opil_parameter_utils as opil_util
+import intent_parser.server.http_message as http_message
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
 import argparse
@@ -1220,6 +1222,7 @@ class IntentParserServer(object):
             data = json_body['data']
             cursor_child_index = str(data['childIndex'])
             table_type = data[ip_addon_constants.TABLE_TYPE]
+            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
 
             actionList = []
             if table_type == ip_addon_constants.TABLE_TYPE_CONTROLS:
@@ -1229,18 +1232,39 @@ class IntentParserServer(object):
                 dialog_action = intent_parser_view.create_measurement_table_dialog(cursor_child_index)
                 actionList.append(dialog_action)
             elif table_type == ip_addon_constants.TABLE_TYPE_PARAMETERS:
-                protocol_names = list(intent_parser_constants.PROTOCOL_NAMES.values())
-                growth_curve_parameters = self.strateos_accessor.get_protocol_as_schema(intent_parser_constants.GROWTH_CURVE_PROTOCOL)
-                obstacle_course_parameters = self.strateos_accessor.get_protocol_as_schema(intent_parser_constants.OBSTACLE_COURSE_PROTOCOL)
-                time_series_parameters = self.strateos_accessor.get_protocol_as_schema(intent_parser_constants.TIME_SERIES_HTP_PROTOCOL)
-                cell_free_riboswitch_parameters = self.strateos_accessor.get_protocol_as_schema(intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL)
+                intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+                intent_parser.process_lab_name()
+                lab_name = intent_parser.get_lab_name()
+                protocol_factory = ProtocolFactory(lab_name=lab_name, transcriptic_accessor=self.strateos_accessor)
+                protocols = protocol_factory.load_protocols_from_lab()
+                protocol_names = [intent_parser_constants.PROTOCOL_PLACEHOLDER]
+                cell_free_riboswitch_parameters = []
+                growth_curve_parameters = []
+                obstacle_course_parameters = []
+                time_series_parameters = []
+                for protocol in protocols:
+                    parameters = protocol_factory.get_optional_parameter_fields(protocol)
+                    parameter_names = [parameter.name for parameter in parameters]
+                    if protocol.name == intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL:
+                        cell_free_riboswitch_parameters.extend(parameter_names)
+                        protocol_names.append(protocol.name)
+                    elif protocol.name == intent_parser_constants.GROWTH_CURVE_PROTOCOL:
+                        growth_curve_parameters.extend(parameter_names)
+                        protocol_names.append(protocol.name)
+                    elif protocol.name == intent_parser_constants.OBSTACLE_COURSE_PROTOCOL:
+                        obstacle_course_parameters.extend(parameter_names)
+                        protocol_names.append(protocol.name)
+                    elif protocol.name == intent_parser_constants.TIME_SERIES_HTP_PROTOCOL:
+                        time_series_parameters.extend(parameter_names)
+                        protocol_names.append(protocol.name)
+
 
                 dialog_action = intent_parser_view.create_parameter_table_dialog(cursor_child_index,
                                                                                  protocol_names,
-                                                                                 timeseries_optional_fields=self.get_common_names_for_optional_parameter_fields(time_series_parameters),
-                                                                                 growthcurve_optional_fields=self.get_common_names_for_optional_parameter_fields(growth_curve_parameters),
-                                                                                 obstaclecourse_optional_fields=self.get_common_names_for_optional_parameter_fields(obstacle_course_parameters),
-                                                                                 cellfreeriboswitch_optional_fields=self.get_common_names_for_optional_parameter_fields(cell_free_riboswitch_parameters))
+                                                                                 timeseries_optional_fields=time_series_parameters,
+                                                                                 growthcurve_optional_fields=growth_curve_parameters,
+                                                                                 obstaclecourse_optional_fields=obstacle_course_parameters,
+                                                                                 cellfreeriboswitch_options=cell_free_riboswitch_parameters)
                 actionList.append(dialog_action)
             else:
                 logger.warning('WARNING: unsupported table type: %s' % table_type)
@@ -1672,14 +1696,35 @@ class IntentParserServer(object):
                       intent_parser_constants.HEADER_PARAMETER_VALUE_VALUE]
         table_template.append(header_row)
 
-        selected_protocol = self._get_selected_protocol(data[ip_addon_constants.HTML_PROTOCOL])
-        table_template.append([intent_parser_constants.PARAMETER_PROTOCOL, selected_protocol])
+        selected_protocol = data[ip_addon_constants.HTML_PROTOCOL]
+        lab_name = data[ip_addon_constants.HTML_LAB]
+        table_template.append([intent_parser_constants.PARAMETER_PROTOCOL_NAME, selected_protocol])
 
-        protocol = self.strateos_accessor.get_protocol_as_schema(selected_protocol)
-        required_fields = self._add_required_parameters(protocol)
+        protocol_factory = ProtocolFactory(lab_name, self.strateos_accessor)
+        protocol = protocol_factory.get_protocol_interface(selected_protocol)
+        ref_required_id_to_name = {}
+        ref_optional_name_to_id = {}
+        for parameter in protocol.has_parameter:
+            if not parameter.default_value:
+                logger.warning('parameter %s does not have default value' % parameter.name)
+                continue
+
+            ref_id = str(parameter.default_value[0])
+            if parameter.required:
+                ref_required_id_to_name[ref_id] = parameter.name
+            else:
+                ref_optional_name_to_id[parameter.name] = ref_id
+
+        parameter_values = protocol_factory.load_parameter_values_from_protocol(selected_protocol)
+        param_value_mapping = {}
+        for param_val in parameter_values:
+            param_value_mapping[param_val.identity] = param_val
+
+        required_fields = self._add_required_parameters(ref_required_id_to_name, param_value_mapping)
         table_template.extend(required_fields)
 
-        optional_fields = self._add_optional_parameters(protocol, data[ip_addon_constants.HTML_OPTIONALPARAMETERS])
+        selected_optional_parameters = data[ip_addon_constants.HTML_OPTIONALPARAMETERS]
+        optional_fields = self._add_optional_parameters(ref_optional_name_to_id, param_value_mapping, selected_optional_parameters)
         table_template.extend(optional_fields)
 
         column_width = [len(header) for header in header_row]
@@ -1688,38 +1733,33 @@ class IntentParserServer(object):
                                                         ip_addon_constants.TABLE_TYPE_PARAMETERS,
                                                         column_width)
 
-    def _add_required_parameters(self, protocol):
+    def _add_required_parameters(self, ref_required_values, param_value_mapping):
         required_parameters = []
-        for parameter_id, parameter_field in protocol.items():
-            common_name = self.sbol_dictionary.get_common_name_from_transcriptic_id(parameter_id)
-            if common_name:
-                if parameter_field.is_required():
-                    required_parameters.append([common_name, parameter_field.get_default_value()])
+        for value_id, param_name in ref_required_values.items():
+            if value_id in param_value_mapping:
+                param_value = opil_util.get_param_value_as_string(param_value_mapping[value_id])
+                required_parameters.append([param_name, param_value])
+
             else:
-                logger.warning('Unable to locate %s as a Strateos UID in SBOL Dictionary.' % parameter_id)
+                required_parameters.append([param_name, ' '])
 
         return required_parameters
 
-    def _add_optional_parameters(self, protocol: dict, selected_optional_parameters: list) -> list:
+    def _add_optional_parameters(self, ref_optional_name_to_id, param_value_mapping, selected_options):
+        ref_uris = {}
         optional_parameters = []
-        for common_name in selected_optional_parameters:
-            transcriptic_id = self.sbol_dictionary.get_transcriptic_id_from_common_name(common_name)
-            if transcriptic_id:
-                parameter_field = protocol[transcriptic_id]
-                optional_parameters.append([common_name, parameter_field.get_default_value()])
+        for param_name in selected_options:
+            if param_name in ref_optional_name_to_id:
+                ref_uris[ref_optional_name_to_id[param_name]] = param_name
             else:
-                logger.warning('Unable to locate %s as a Strateos UID in SBOL Dictionary for common_name: %s' % (transcriptic_id, common_name))
+                optional_parameters.append([param_name, ' '])
+
+        for uri, param_name in ref_uris.items():
+            if uri in param_value_mapping:
+                param_value = opil_util.get_param_value_as_string(param_value_mapping[uri])
+                optional_parameters.append([param_name, param_value])
 
         return optional_parameters
-
-
-    def _get_selected_protocol(self, protocol_name):
-        selected_protocols = [key for key, value in intent_parser_constants.PROTOCOL_NAMES.items() if
-                                     value == protocol_name]
-        if len(selected_protocols) != 1:
-            raise ConnectionException(HTTPStatus.BAD_REQUEST, 'Invalid protocol specified.')
-
-        return selected_protocols[0]
 
     def get_client_state(self, http_message):
         json_body = intent_parser_utils.get_json_body(http_message)

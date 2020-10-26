@@ -47,11 +47,7 @@ CELL_FREE_RIBO_SWITCH_PROTOCOL = 'CellFreeRiboswitches'
 
 # Mapping protocols to human readible names
 PARAMETER_PROTOCOL_NAME = 'Protocol Name'
-PROTOCOL_NAMES = {'PLACEHOLDER': 'Select a protocol',
-                  GROWTH_CURVE_PROTOCOL: 'Growth Curves',
-                  OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course',
-                  TIME_SERIES_HTP_PROTOCOL: 'Time Series',
-                  CELL_FREE_RIBO_SWITCH_PROTOCOL: 'Cell Free Ribo Switch'}
+PROTOCOL_PLACEHOLDER = 'Select a protocol'
 
 PROTOCOL_FIELD_XPLAN_BASE_DIRECTORY = 'XPlan Base Directory'
 PROTOCOL_FIELD_XPLAN_REACTOR = 'XPlan Reactor'

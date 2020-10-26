@@ -6,6 +6,7 @@ from intent_parser.table.table_processor.opil_processor import OPILProcessor
 from intent_parser.table.experiment_specification_table import ExperimentSpecificationTable
 from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
+from intent_parser.table.lab_table import LabTable
 from intent_parser.table.intent_parser_table_type import TableType
 import intent_parser.constants.google_api_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
@@ -51,6 +52,7 @@ class IntentParser(object):
         self.tables_with_captions = {}
         self.experiment_status_tables = {}
         self.experiment_specification_tables = None
+        self.processed_lab_name = None
 
     def create_experiment_specification_table(self, experiment_id_with_indices={}, spec_table_index=None):
         spec_table = ExperimentSpecificationTable()
@@ -201,6 +203,9 @@ class IntentParser(object):
         """
         return self.experiment_status
 
+    def get_lab_name(self):
+        return self.processed_lab_name
+
     def get_largest_table_index(self):
         """
         Retrieve the largest table index in the document.
@@ -262,6 +267,26 @@ class IntentParser(object):
         self._generate_experiment_status_request(filtered_tables[TableType.LAB],
                                                  filtered_tables[TableType.EXPERIMENT_SPECIFICATION],
                                                  filtered_tables[TableType.EXPERIMENT_STATUS])
+
+    def process_lab_name(self):
+        filtered_tables = self.get_tables_by_type()
+        lab_tables = filtered_tables[TableType.LAB]
+        if not lab_tables:
+            message = 'No lab table specified in this experiment. Generated default values for lab contents.'
+            self.logger.warning(message)
+            lab_table = LabTable()
+        else:
+            if len(lab_tables) > 1:
+                message = ('There are more than one lab table specified in this experiment.'
+                           'Only the last lab table identified in the document will be used for generating a request.')
+                self.validation_warnings.extend([message])
+
+            table = lab_tables[-1]
+            lab_table = LabTable(intent_parser_table=table, lab_names=self.catalog_accessor.get_lab_ids())
+            lab_table.process_table()
+
+        lab_name = lab_table.get_intent().get_lab_name()
+        self.processed_lab_name = lab_name
 
     def process_opil_request(self, lab_accessors: dict):
         filtered_tables = self.get_tables_by_type()
