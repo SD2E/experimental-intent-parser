@@ -3,7 +3,6 @@ from intent_parser.server.http_message import HttpMessage
 from intent_parser.server.intent_parser_server import IntentParserServer
 from unittest.mock import Mock, patch
 import intent_parser.constants.ip_app_script_constants as addon_constants
-import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.utils.intent_parser_view as intent_parser_view
 import json
 import unittest
