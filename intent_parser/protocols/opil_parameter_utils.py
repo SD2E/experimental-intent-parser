@@ -11,7 +11,7 @@ MEASUREMENT_UNITS = {
 }
 
 def clone_boolean_parameter_field(boolean_parameter):
-    return create_opil_boolean_parameter_field(boolean_parameter.uri, boolean_parameter.name)
+    return create_opil_boolean_parameter_field(boolean_parameter.identity, boolean_parameter.name)
 
 def create_opil_boolean_parameter_field(field_id: str, field: str):
     parameter_field = opil.BooleanParameter(field_id)
@@ -24,7 +24,7 @@ def create_opil_boolean_parameter_value(value_id: str, value: bool):
     return parameter_value
 
 def clone_enumerated_parameter_field(enumerated_parameter):
-    return create_opil_enumerated_parameter_field(enumerated_parameter.uri, enumerated_parameter.name)
+    return create_opil_enumerated_parameter_field(enumerated_parameter.identity, enumerated_parameter.name)
 
 def create_opil_enumerated_parameter_field(field_id: str, field: str):
     parameter_field = opil.EnumeratedParameter(field_id)
@@ -37,7 +37,7 @@ def create_opil_enumerated_parameter_value(value_id: str, value: str):
     return parameter_value
 
 def clone_integer_parameter_field(integer_parameter):
-    return create_opil_integer_parameter_field(integer_parameter.uri, integer_parameter.name)
+    return create_opil_integer_parameter_field(integer_parameter.identity, integer_parameter.name)
 
 def create_opil_integer_parameter_field(field_id: str, field: str):
     parameter_field = opil.IntegerParameter(field_id)
@@ -50,10 +50,10 @@ def create_opil_integer_parameter_value(value_id: str, value: int):
     return parameter_value
 
 def clone_measurement_parameter_field(measurement_parameter):
-    return create_opil_measurement_parameter_field(measurement_parameter.uri, measurement_parameter.name)
+    return create_opil_measurement_parameter_field(measurement_parameter.identity, measurement_parameter.name)
 
 def create_opil_measurement_parameter_field(field_id: str, field: str):
-    parameter_field = opil.MeasurementParameter(field_id)
+    parameter_field = opil.MeasureParameter(field_id)
     parameter_field.name = field
     return parameter_field
 
@@ -69,7 +69,7 @@ def create_opil_measurement_parameter_value(value_id: str, value: str, unit: str
     return parameter_value
 
 def clone_string_parameter_field(string_parameter):
-    return create_opil_string_parameter_field(string_parameter.uri, string_parameter.name)
+    return create_opil_string_parameter_field(string_parameter.identity, string_parameter.name)
 
 def create_opil_string_parameter_field(field_id: str, field: str):
     parameter_field = opil.StringParameter(field_id)
@@ -82,7 +82,7 @@ def create_opil_string_parameter_value(value_id: str, value: str):
     return parameter_value
 
 def clone_uri_parameter_field(uri_parameter):
-    return create_opil_uri_parameter_field(uri_parameter.uri, uri_parameter.name)
+    return create_opil_uri_parameter_field(uri_parameter.identity, uri_parameter.name)
 
 def create_opil_uri_parameter_field(field_id: str, field: str):
     parameter_field = opil.URIParameter(field_id)
@@ -115,6 +115,9 @@ def get_measurement_unit(measure_unit):
     for unit, ontology in MEASUREMENT_UNITS.items():
         if measure_unit == ontology:
             return unit
+
+    if measure_unit == 'http://bbn.com/synbio/opil#pureNumber':
+        return ''
 
     return 'UNIDENTIFIED UNIT'
 
