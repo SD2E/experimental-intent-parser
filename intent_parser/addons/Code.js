@@ -22,6 +22,7 @@ function onOpen() {
 	menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor');
 	menu.addItem('Analyze from top', 'sendAnalyzeFromTop');
 	menu.addItem('Calculate samples for measurements table', 'calculateSamples');
+    menu.addItem('Generate OPIL', 'sendOpilRequest');
 	menu.addItem('Generate Report', 'sendGenerateReport');
 	menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest');
 	menu.addItem('Report Experiment Status', 'reportExperimentStatus');
@@ -658,6 +659,10 @@ function reportIssues(){
 		';
 		verFormattedHTML = Utilities.formatString(helpHTML, versionString);
 		showModalDialog(verFormattedHTML, 'Issues', 400, 200);
+}
+
+function sendOpilRequest(){
+    sendPost('/generateOpilRequest', getBookmarks());
 }
 
 function sendValidateStructuredRequest() {
