@@ -132,7 +132,7 @@ class ControlsTable(object):
                 timepoint = {dc_constants.VALUE: float(value_unit[dc_constants.VALUE]),
                              dc_constants.UNIT: value_unit[dc_constants.UNIT]}
                 result.append(timepoint)
-            control.add_field(dc_constants.TIMEPOINTS, timepoint)
+            control.add_field(dc_constants.TIMEPOINTS, result)
         except TableException as err:
             message = 'Controls table has invalid %s value: %s' % (intent_parser_constants.HEADER_CONTROL_TYPE_VALUE, err.get_message())
             self._validation_errors.append(message)
