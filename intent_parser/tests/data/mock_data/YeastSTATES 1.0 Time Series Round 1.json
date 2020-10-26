@@ -7,6 +7,10 @@
     "experiment_version": 1,
     "lab": "Transcriptic",
     "name": "YeastSTATES 1.0 Time Series Round 1",
+    "overnight_growth": {
+        "unit": "hour",
+        "value": 16.0
+    },
     "parameters": [
         {
             "incubation_info.shaking": "high_speed",
@@ -28,6 +32,8 @@
         }
     ],
     "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/YeastSTATES 1.0 Time Series Round 1.json",
+    "protocol": "TimeSeriesHTP",
+    "recovery_loops": [],
     "runs": [
         {
             "measurements": [
