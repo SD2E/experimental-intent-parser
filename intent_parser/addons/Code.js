@@ -87,6 +87,10 @@ function reportMeasurementsInfo(){
 		'\t<li><b>Column_id</b>: a list of one or more numerical values to signify which column of which run received which inducer concentration. <i>Example:</i> 2</li>\n' +
 		'\t<li><b>Row_id</b>: a list of one or more numerical values signify which row of which run received which inducer concentration. <i>Example:</i> 1</li>\n' +
 		'\t<li><b>lab_id</b>: a list of one or more text values to specify lab ids. <i>Example:</i> abc</li>\n' +
+		'\t<li><b>Number of Negative Controls</b>: a list of integers. <i>Example:</i> 1, 2, 3</li>\n' +
+		'\t<li><b>Use RNAse Inhibitor in Reaction</b>: a list of boolean values. <i>Example:</i> True, False</li>\n' +
+		'\t<li><b>DNA Reaction Concentration</b>: a list of integers. <i>Example:</i> 1, 2, 3</li>\n' +
+		'\t<li><b>Template DNA</b>: a list of string. <i>Example:</i> a, b, c</li>\n' +
 		'</ul>';
 	showSidebar(html_content);
 }
