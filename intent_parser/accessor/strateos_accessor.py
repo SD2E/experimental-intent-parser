@@ -2,6 +2,7 @@ from datetime import timedelta
 from intent_parser.intent_parser_exceptions import IntentParserException
 from transcriptic import Connection
 import intent_parser.constants.intent_parser_constants as ip_constants
+import intent_parser.utils.intent_parser_utils as ip_utils
 import logging
 import opil
 import time
@@ -93,15 +94,14 @@ class StrateosAccessor(object):
         protocol_list = self.strateos_api.get_protocols()
 
         self.protocol_lock.acquire()
-        supported_protocols = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
-                               ip_constants.GROWTH_CURVE_PROTOCOL,
-                               # ip_constants.OBSTACLE_COURSE_PROTOCOL,
-                               ip_constants.TIME_SERIES_HTP_PROTOCOL]
-
+        # supported_protocols = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
+        #                        ip_constants.GROWTH_CURVE_PROTOCOL,
+        #                        ip_constants.OBSTACLE_COURSE_PROTOCOL,
+        #                        ip_constants.TIME_SERIES_HTP_PROTOCOL]
+        supported_protocols = [ip_constants.OBSTACLE_COURSE_PROTOCOL]
         for protocol in protocol_list:
             if protocol['name'] not in supported_protocols:
                 continue
-
             self.logger.info('Fetching protocol %s' % protocol['name'])
             protocol_interface, sbol_doc = self._convert_protocol_as_opil(protocol)
             self._map_name_to_protocol_interface[protocol['name']] = protocol_interface
