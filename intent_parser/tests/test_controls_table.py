@@ -91,7 +91,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(1, len(control_result))
         timepoint = control_result[0][dc_constants.TIMEPOINTS]
         expected_timepoint = {dc_constants.VALUE: 8.0, dc_constants.UNIT: 'hour'}
-        self.assertEqual(timepoint, expected_timepoint)
+        self.assertEqual(expected_timepoint, timepoint[0])
 
     def test_strains_with_uris(self):
         ip_table = test_utils.create_fake_controls_table()
