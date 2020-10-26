@@ -129,10 +129,19 @@ class OPILProcessor(Processor):
                 opil_param_field = opil_utils.clone_measurement_parameter_field(param_field)
                 opil_param_fields.append(opil_param_field)
 
-                value, unit = cell_parser.PARSER.process_value_unit_without_validation(param_value)
-                opil_value = opil_utils.create_opil_measurement_parameter_value(value_id, value, unit)
-                param_field.default_value = [opil_value]
-                opil_param_values.append(opil_value)
+                if cell_parser.PARSER.is_number(param_value):
+                    value = cell_parser.PARSER.process_numbers(param_value)
+                    unit = 'http://bbn.com/synbio/opil#pureNumber'
+                    opil_value = opil_utils.create_opil_measurement_parameter_value(value_id, value[0], unit)
+                    param_field.default_value = [opil_value]
+                    opil_param_values.append(opil_value)
+                elif cell_parser.PARSER.is_valued_cell(param_value):
+                    value, unit = cell_parser.PARSER.process_value_unit_without_validation(param_value)
+                    opil_value = opil_utils.create_opil_measurement_parameter_value(value_id, value, unit)
+                    param_field.default_value = [opil_value]
+                    opil_param_values.append(opil_value)
+                else:
+                    self.validation_errors.append('Unable to create an OPIL Measurement ParameterValue. Expecting to get a  numerical value or a numerical value followed by a unit but got %s' % param_value)
 
             elif type(param_field) is opil.opil_factory.StringParameter:
                 opil_param_field = opil_utils.clone_string_parameter_field(param_field)
