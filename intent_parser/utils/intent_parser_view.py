@@ -183,13 +183,12 @@ def create_add_to_synbiohub_dialog(selection,
     dialog_action = modal_dialog(html, 'Add to SynBioHub', 600, 600)
     return dialog_action
     
-def invalid_request_model_dialog(title, messages):
+def invalid_request_model_dialog(title, messages, height=600, width=500):
     text_area_rows = 33
-    height = 600
     buttons = [('Ok', 'process_nop')]
     validation_message = '\n'.join(messages)
     msg = "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, validation_message)
-    return simple_modal_dialog(msg, buttons, title, 500, height)
+    return simple_modal_dialog(msg, buttons, title, width, height)
 
 def highlight_text(paragraph_index, offset, end_offset):
     return {'action': 'highlightText',

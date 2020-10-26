@@ -55,9 +55,6 @@ class ParameterTable(object):
                 self._validation_warnings.append('Parameter Table is missing a value for %s.' % key)
         return experiment_result
 
-    def get_protocol_name(self):
-        return self._experiment_intent
-
     def get_structured_request(self):
         return self._experiment_intent.to_structure_request()
 
