@@ -28,9 +28,9 @@ class StructuredRequestProcessor(Processor):
         self.catalog_accessor = catalog_accessor
         self.sbol_dictionary = sbol_dictionary
         self.processed_labs = {}
-        self.processed_measurements = {}
+        self.processed_measurements = []
         self.processed_controls = {}
-        self.processed_parameters = {}
+        self.processed_parameters = []
         self.processed_parameter_experiment = {}
 
     def get_intent(self):
@@ -127,7 +127,7 @@ class StructuredRequestProcessor(Processor):
 
             meas_table.process_table(control_tables=self.processed_controls, bookmarks=self.bookmark_ids)
 
-            self.processed_measurements = {dc_constants.MEASUREMENTS: meas_table.get_structured_request()}
+            self.processed_measurements.append({dc_constants.MEASUREMENTS: meas_table.get_structured_request()})
             self.validation_errors.extend(meas_table.get_validation_errors())
             self.validation_warnings.extend(meas_table.get_validation_warnings())
         except (DictionaryMaintainerException, TableException) as err:
@@ -150,7 +150,7 @@ class StructuredRequestProcessor(Processor):
             parameter_table.process_table()
 
             self.validation_errors.extend(parameter_table.get_validation_errors())
-            self.processed_parameters = parameter_table.get_structured_request()
+            self.processed_parameters.append(parameter_table.get_structured_request())
             self.processed_parameter_experiment = parameter_table.get_experiment()
         except (DictionaryMaintainerException, TableException) as err:
             self.validation_errors.extend([err.get_message()])
