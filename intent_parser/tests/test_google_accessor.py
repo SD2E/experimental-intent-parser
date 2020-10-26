@@ -1,5 +1,4 @@
 from intent_parser.accessor.google_accessor import GoogleAccessor
-import traceback
 import unittest
 
 class GoogleAccessorTest(unittest.TestCase):

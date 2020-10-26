@@ -42,46 +42,6 @@ class IntentParserServerTest(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_process_execute_experiment(self):
-        http_host = 'fake_host'
-        http_message = HttpMessage()
-        http_message.process_header('Host:%s' % http_host)
-        document_id = 'foo'
-        experiment_request = {'documentId': document_id}
-        expected_actions = {'actions': [intent_parser_view.create_execute_experiment_dialog('https://foo_submission.com')]}
-        self.mock_intent_parser.get_experiment_request.return_value = experiment_request
-        self.mock_intent_parser.get_validation_warnings.return_value = []
-        self.mock_intent_parser.get_validation_errors.return_value = []
-        self.mock_tacc_go_accessor.execute_experiment.return_value = {'_links': {'self': 'https://foo_authentication.com'}}
-        http_message.set_body(json.dumps(experiment_request).encode('utf-8'))
-
-        response = self.ip_server.process_execute_experiment(http_message)
-        self._verify_response_status(response, HTTPStatus.OK)
-
-    def test_process_run_experiment(self):
-        test_data = {ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
-                             ip_constants.PARAMETER_PLATE_SIZE: 96,
-                             ip_constants.PARAMETER_PROTOCOL: ip_constants.OBSTACLE_COURSE_PROTOCOL,
-                             ip_constants.PARAMETER_PLATE_NUMBER: 2,
-                             ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: ['ct1e3qc85mqwbz8', 'ct1e3qc85jc4gj5'],
-                             ip_constants.PARAMETER_STRAIN_PROPERTY: 'SD2_common_name',
-                             ip_constants.PARAMETER_XPLAN_PATH: 'data-sd2e-projects.sd2e-project-14/xplan-reactor/NOVEL_CHASSIS/experiments',
-                             ip_constants.PARAMETER_SUBMIT: True,
-                             ip_constants.PARAMETER_PROTOCOL_ID: 'pr1e5gw8bdekdxv',
-                             ip_constants.PARAMETER_TEST_MODE: False,
-                             ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: 'foo',
-                             ip_constants.DEFAULT_PARAMETERS: {'exp_info.sample_time': '8:hour'}}
-        self.mock_intent_parser.get_experiment_request.return_value = test_data
-        self.mock_tacc_go_accessor.execute_experiment.return_value = {'_links': {'self': 'https://foo_authentication.com'}}
-        self.mock_intent_parser.get_validation_warnings.return_value = []
-        self.mock_intent_parser.get_validation_errors.return_value = []
-
-        http_message = HttpMessage()
-        http_message.resource = '/run_experiment?foo'
-        response = self.ip_server.process_run_experiment(http_message)
-        self._verify_response_status(response, HTTPStatus.OK)
-        self.assertTrue('authenticationLink' in json.loads(response.get_body()))
-
     def test_process_document_report(self):
         expected_report = {'challenge_problem_id': 'undefined',
                             'experiment_reference_url': 'foo',

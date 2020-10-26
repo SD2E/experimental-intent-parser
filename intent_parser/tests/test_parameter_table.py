@@ -281,7 +281,7 @@ class ParameterTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         protocol_name = IntentParserCell()
-        protocol_name.add_paragraph('Protocol')
+        protocol_name.add_paragraph('protocol')
         parameter_value = IntentParserCell()
         parameter_value.add_paragraph('ObstacleCourse')
         data_row = test_utils.create_parameter_table_row(parameter_cell=protocol_name,
@@ -313,7 +313,7 @@ class ParameterTableTest(unittest.TestCase):
         ip_table.add_row(data_row)
 
         experiment_reference_url = IntentParserCell()
-        experiment_reference_url.add_paragraph('Experiment reference url for xplan')
+        experiment_reference_url.add_paragraph('Experiment Reference URL For XPlan')
         parameter_value = IntentParserCell()
         parameter_value.add_paragraph('path/foo/experiment_reference')
         data_row = test_utils.create_parameter_table_row(parameter_cell=experiment_reference_url,
@@ -344,7 +344,7 @@ class ParameterTableTest(unittest.TestCase):
         expected_experiment_result = {ip_constants.PARAMETER_BASE_DIR: None,
                                       ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
                                       ip_constants.PARAMETER_PLATE_SIZE: 96,
-                                      ip_constants.PARAMETER_PROTOCOL: 'ObstacleCourse',
+                                      ip_constants.PARAMETER_PROTOCOL_NAME: 'ObstacleCourse',
                                       ip_constants.PARAMETER_PLATE_NUMBER: 2,
                                       ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: ['Ct1e3qc85mqwbz8', 'ct1e3qc85jc4gj52'],
                                       ip_constants.PARAMETER_STRAIN_PROPERTY: 'SD2_common_name',
@@ -375,7 +375,7 @@ class ParameterTableTest(unittest.TestCase):
         expected_experiment_result = {ip_constants.PARAMETER_BASE_DIR: None,
                                       ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
                                       ip_constants.PARAMETER_PLATE_SIZE: 96,
-                                      ip_constants.PARAMETER_PROTOCOL: None,
+                                      ip_constants.PARAMETER_PROTOCOL_NAME: None,
                                       ip_constants.PARAMETER_PLATE_NUMBER: None,
                                       ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: dc_constants.GENERATE,
                                       ip_constants.PARAMETER_STRAIN_PROPERTY: None,
@@ -403,7 +403,7 @@ class ParameterTableTest(unittest.TestCase):
         expected_experiment_result = {ip_constants.PARAMETER_BASE_DIR: None,
                                       ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
                                       ip_constants.PARAMETER_PLATE_SIZE: None,
-                                      ip_constants.PARAMETER_PROTOCOL: None,
+                                      ip_constants.PARAMETER_PROTOCOL_NAME: None,
                                       ip_constants.PARAMETER_PLATE_NUMBER: None,
                                       ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: ['ct1et97fsbvt84h',
                                                                                        'ct1et97fs59aejp',
@@ -435,7 +435,7 @@ class ParameterTableTest(unittest.TestCase):
         expected_experiment_result = {ip_constants.PARAMETER_BASE_DIR: None,
                                       ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
                                       ip_constants.PARAMETER_PLATE_SIZE: None,
-                                      ip_constants.PARAMETER_PROTOCOL: None,
+                                      ip_constants.PARAMETER_PROTOCOL_NAME: None,
                                       ip_constants.PARAMETER_PLATE_NUMBER: None,
                                       ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: ['ct1et97fsbvt84h'],
                                       ip_constants.PARAMETER_STRAIN_PROPERTY: None,
@@ -463,7 +463,7 @@ class ParameterTableTest(unittest.TestCase):
         expected_experiment_result = {ip_constants.PARAMETER_BASE_DIR: None,
                                       ip_constants.PARAMETER_XPLAN_REACTOR: 'xplan',
                                       ip_constants.PARAMETER_PLATE_SIZE: None,
-                                      ip_constants.PARAMETER_PROTOCOL: None,
+                                      ip_constants.PARAMETER_PROTOCOL_NAME: None,
                                       ip_constants.PARAMETER_PLATE_NUMBER: None,
                                       ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: dc_constants.GENERATE,
                                       ip_constants.PARAMETER_STRAIN_PROPERTY: None,
