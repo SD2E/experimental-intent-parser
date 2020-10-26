@@ -4,6 +4,7 @@ from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccess
 from datetime import datetime
 from unittest.mock import patch
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.constants.google_api_constants as google_constants
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import os
 import json 
@@ -61,8 +62,8 @@ class GoldenFileTest(unittest.TestCase):
 
         doc_revision_id = golden_structured_request['doc_revision_id']
         
-        upload_mimetype = intent_parser_constants.GOOGLE_DOC_MIMETYPE
-        download_mimetype = intent_parser_constants.WORD_DOC_MIMETYPE
+        upload_mimetype = google_constants.GOOGLE_DOC_MIMETYPE
+        download_mimetype = google_constants.WORD_DOC_MIMETYPE
 
         response = self.drive_accessor.get_file_with_revision(doc_id, doc_revision_id, download_mimetype)
 

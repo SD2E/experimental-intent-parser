@@ -1,12 +1,16 @@
 {
     "challenge_problem": "YEAST_STATES",
-    "doc_revision_id": "442",
+    "doc_revision_id": "975",
     "experiment_id": "experiment.transcriptic.2020-07-10-YeastSTATES-1-0-Time-Series-Round-1",
     "experiment_reference": "YeastSTATES-1-0-Time-Series-Round-1",
     "experiment_reference_url": "https://docs.google.com/document/d/1Mba6kqDila4W32Z46NEqXZFx868A3O36I9GIVOvMQ70",
     "experiment_version": 1,
     "lab": "Transcriptic",
     "name": "YeastSTATES 1.0 Time Series Round 1",
+    "overnight_growth": {
+        "unit": "hour",
+        "value": 16.0
+    },
     "parameters": [
         {
             "incubation_info.shaking": "high_speed",
@@ -28,6 +32,8 @@
         }
     ],
     "parent_git_path": "https://gitlab.sd2e.org/sd2program/cp-request/blob/master/input/structured_requests/YeastSTATES 1.0 Time Series Round 1.json",
+    "protocol": "TimeSeriesHTP",
+    "recovery_loops": [],
     "runs": [
         {
             "measurements": [
@@ -75,7 +81,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                {
+                                    "lab_id": "name.transcriptic.W303",
+                                    "label": "W303",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -95,7 +105,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                {
+                                    "lab_id": "name.transcriptic.W303",
+                                    "label": "W303",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -115,7 +129,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                {
+                                    "lab_id": "name.transcriptic.W303",
+                                    "label": "W303",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -135,7 +153,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                {
+                                    "lab_id": "name.transcriptic.W303",
+                                    "label": "W303",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -156,7 +178,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                {
+                                    "lab_id": "name.transcriptic.UWBF_6390",
+                                    "label": "UWBF_6390",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -177,7 +203,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                {
+                                    "lab_id": "name.transcriptic.UWBF_6390",
+                                    "label": "UWBF_6390",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -198,7 +228,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                {
+                                    "lab_id": "name.transcriptic.UWBF_6390",
+                                    "label": "UWBF_6390",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -219,7 +253,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                {
+                                    "lab_id": "name.transcriptic.UWBF_6390",
+                                    "label": "UWBF_6390",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -320,7 +358,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                {
+                                    "lab_id": "name.transcriptic.W303",
+                                    "label": "W303",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -340,7 +382,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                {
+                                    "lab_id": "name.transcriptic.W303",
+                                    "label": "W303",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -360,7 +406,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                {
+                                    "lab_id": "name.transcriptic.W303",
+                                    "label": "W303",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -380,7 +430,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                {
+                                    "lab_id": "name.transcriptic.W303",
+                                    "label": "W303",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -401,7 +455,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                {
+                                    "lab_id": "name.transcriptic.UWBF_6390",
+                                    "label": "UWBF_6390",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -422,7 +480,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                {
+                                    "lab_id": "name.transcriptic.UWBF_6390",
+                                    "label": "UWBF_6390",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -443,7 +505,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                {
+                                    "lab_id": "name.transcriptic.UWBF_6390",
+                                    "label": "UWBF_6390",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -464,7 +530,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                {
+                                    "lab_id": "name.transcriptic.UWBF_6390",
+                                    "label": "UWBF_6390",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -925,7 +995,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                {
+                                    "lab_id": "name.transcriptic.W303",
+                                    "label": "W303",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -945,7 +1019,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                {
+                                    "lab_id": "name.transcriptic.W303",
+                                    "label": "W303",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -965,7 +1043,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                {
+                                    "lab_id": "name.transcriptic.W303",
+                                    "label": "W303",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -985,7 +1067,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                {
+                                    "lab_id": "name.transcriptic.W303",
+                                    "label": "W303",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/W303/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -1006,7 +1092,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                {
+                                    "lab_id": "name.transcriptic.UWBF_6390",
+                                    "label": "UWBF_6390",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -1027,7 +1117,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                {
+                                    "lab_id": "name.transcriptic.UWBF_6390",
+                                    "label": "UWBF_6390",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -1048,7 +1142,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                {
+                                    "lab_id": "name.transcriptic.UWBF_6390",
+                                    "label": "UWBF_6390",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                }
                             ],
                             "timepoints": [
                                 {
@@ -1069,7 +1167,11 @@
                                 }
                             ],
                             "strains": [
-                                "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                {
+                                    "lab_id": "name.transcriptic.UWBF_6390",
+                                    "label": "UWBF_6390",
+                                    "sbh_uri": "https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1"
+                                }
                             ],
                             "timepoints": [
                                 {
