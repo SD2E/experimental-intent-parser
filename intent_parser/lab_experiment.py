@@ -1,7 +1,7 @@
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.intent_parser_exceptions import ConnectionException
 from http import HTTPStatus
-import intent_parser.constants.google_doc_api_constants as doc_constants
+import intent_parser.constants.google_api_constants as doc_constants
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import logging
 import traceback

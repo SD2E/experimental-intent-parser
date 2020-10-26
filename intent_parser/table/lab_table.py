@@ -1,5 +1,5 @@
+from intent_parser.intent.lab_intent import LabIntent
 from intent_parser.table.intent_parser_table import IntentParserTable
-from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.table.cell_parser as cell_parser
@@ -17,11 +17,14 @@ class LabTable(object):
             self._intent_parser_table = IntentParserTable()
         else:
             self._intent_parser_table = intent_parser_table
-        self.lab_intent = _LabIntent()
+        self.lab_intent = LabIntent()
         self._lab_names = lab_names
         self._validation_errors = []
         self._validation_warnings = []
         self._table_caption = None
+
+    def get_intent(self):
+        return self.lab_intent
 
     def get_structured_request(self):
         return self.lab_intent.to_structured_request()
@@ -55,7 +58,7 @@ class LabTable(object):
             canonicalize_lab_names = [lab.lower() for lab in self._lab_names]
             processed_lab_name = lab_name.lower()
             if processed_lab_name in canonicalize_lab_names:
-                self.lab_intent.set_field(dc_constants.LAB, lab_name)
+                self.lab_intent.set_lab_id(lab_name)
             else:
                 err = '%s does not match one of the following lab names: \n %s' % (cell.get_text(), ' ,'.join((map(str, self._lab_names))))
                 message = 'Lab table has invalid %s value: %s' % (ip_constants.HEADER_LAB_VALUE, err)
@@ -68,23 +71,5 @@ class LabTable(object):
     def _process_experiment_id(self, cell):
         experiment_id = cell_parser.PARSER.process_lab_table_value(cell.get_text())
         if experiment_id:
-            self.lab_intent.set_field(dc_constants.EXPERIMENT_ID, experiment_id)
+            self.lab_intent.set_experiment_id(experiment_id)
 
-class _LabIntent(object):
-
-    def __init__(self):
-        self.intent = {
-            dc_constants.LAB: ip_constants.TACC_SERVER,
-            dc_constants.EXPERIMENT_ID: 'TBD'
-        }
-
-    def set_field(self, field, value):
-        if field not in self.intent:
-            raise TableException('Lab Table cannot identify row of type %s.' % field)
-
-        self.intent[field] = value
-
-    def to_structured_request(self):
-        return {dc_constants.LAB: self.intent[dc_constants.LAB],
-                dc_constants.EXPERIMENT_ID: 'experiment.%s.%s' % (self.intent[dc_constants.LAB].lower(),
-                                                                  self.intent[dc_constants.EXPERIMENT_ID])}

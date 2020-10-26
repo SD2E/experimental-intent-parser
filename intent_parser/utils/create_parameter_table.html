@@ -17,6 +17,7 @@
                         "formName" : theForm.formName.value,
                         "protocol" : theForm.protocols.value,
                         "optionalParameters": getSelectedOptionalParameters(),
+                        "lab": "Transcriptic"
                         };
         formInfo.extra = extra;
         google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);
@@ -37,19 +38,19 @@
         var theForm = this.createParameterTableForm;
         var selectedProtocol = theForm.protocols.value;
         resetOptionsTable();
-        if(selectedProtocol == "Growth Curves"){
+        if(selectedProtocol == "GrowthCurve"){
             var listOfOptions = self.growthCurve.split(",");
             createOptionTable(listOfOptions);
         }
-        else if(selectedProtocol == "Time Series"){
+        else if(selectedProtocol == "TimeSeriesHTP"){
             var listOfOptions = self.timeSeries.split(",");
             createOptionTable(listOfOptions);
         }
-        else if(selectedProtocol == "Obstacle Course"){
+        else if(selectedProtocol == "ObstacleCourse"){
             var listOfOptions = self.obstacleCourse.split(",");
             createOptionTable(listOfOptions);
         }
-        else if(selectedProtocol == "Cell Free Ribo Switch"){
+        else if(selectedProtocol == "CellFreeRiboswitches"){
           var listOfOptions = self.cellFreeRiboSwitch.split(",");
           createOptionTable(listOfOptions)
         }

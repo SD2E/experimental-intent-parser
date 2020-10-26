@@ -1,49 +1,43 @@
-from enum import Enum
-
 """
-List of constants used for reading and writing contents from intent parser 
+List of constants used for reading and writing contents from intent parser
 """
 
-RELEASE_VERSION = '2.10'
+RELEASE_VERSION = '2.9'
 
 LAB_IDS_LIST = sorted(['BioFAB UID',
-                            'Ginkgo UID',
-                            'Transcriptic UID',
-                            'LBNL UID',
-                            'EmeraldCloud UID',
-                            'CalTech UID',
-                            'PennState (Salis) UID'])
+                       'Ginkgo UID',
+                       'Transcriptic UID',
+                       'LBNL UID',
+                       'EmeraldCloud UID',
+                       'CalTech UID',
+                       'PennState (Salis) UID'])
 
 ITEM_TYPES = {
-            'component': {
-                'Bead'     : 'http://purl.obolibrary.org/obo/NCIT_C70671',
-                'CHEBI'    : 'http://identifiers.org/chebi/CHEBI:24431',
-                'DNA'      : 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
-                'Protein'  : 'http://www.biopax.org/release/biopax-level3.owl#Protein',
-                'RNA'      : 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
-            },
-            'module': {
-                'Strain'   : 'http://purl.obolibrary.org/obo/NCIT_C14419',
-                'Media'    : 'http://purl.obolibrary.org/obo/NCIT_C85504',
-                'Stain'    : 'http://purl.obolibrary.org/obo/NCIT_C841',
-                'Buffer'   : 'http://purl.obolibrary.org/obo/NCIT_C70815',
-                'Solution' : 'http://purl.obolibrary.org/obo/NCIT_C70830'
-            },
-            'collection': {
-                'Challenge Problem' : '',
-                'Collection' : ''
-            },
-            'external': {
-                'Attribute' : ''
-            }
-        }
+    'component': {
+        'Bead': 'http://purl.obolibrary.org/obo/NCIT_C70671',
+        'CHEBI': 'http://identifiers.org/chebi/CHEBI:24431',
+        'DNA': 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
+        'Protein': 'http://www.biopax.org/release/biopax-level3.owl#Protein',
+        'RNA': 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
+    },
+    'module': {
+        'Strain': 'http://purl.obolibrary.org/obo/NCIT_C14419',
+        'Media': 'http://purl.obolibrary.org/obo/NCIT_C85504',
+        'Stain': 'http://purl.obolibrary.org/obo/NCIT_C841',
+        'Buffer': 'http://purl.obolibrary.org/obo/NCIT_C70815',
+        'Solution': 'http://purl.obolibrary.org/obo/NCIT_C70830'
+    },
+    'collection': {
+        'Challenge Problem': '',
+        'Collection': ''
+    },
+    'external': {
+        'Attribute': ''
+    }
+}
 
 SPARQL_LIMIT = 5
-
-GOOGLE_DRIVE_EXPERIMENT_REQUEST_FOLDER = '1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'
-GOOGLE_DOC_URL_PREFIX = 'https://docs.google.com/document/d/'
-GOOGLE_DOC_MIMETYPE = 'application/vnd.google-apps.document'
-WORD_DOC_MIMETYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+SYNBIOHUB_SD2_PREFIX = 'https://hub.sd2e.org'
 
 # Stateos Protocols Supported in IP
 GROWTH_CURVE_PROTOCOL = 'GrowthCurve'
@@ -52,13 +46,22 @@ TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
 CELL_FREE_RIBO_SWITCH_PROTOCOL = 'CellFreeRiboswitches'
 
 # Mapping protocols to human readible names
-PARAMETER_PROTOCOL = 'protocol'
-PROTOCOL_NAMES = {'PLACEHOLDER': 'Select a protocol',
-                  GROWTH_CURVE_PROTOCOL: 'Growth Curves',
-                  OBSTACLE_COURSE_PROTOCOL: 'Obstacle Course',
-                  TIME_SERIES_HTP_PROTOCOL: 'Time Series',
-                  CELL_FREE_RIBO_SWITCH_PROTOCOL: 'Cell Free Ribo Switch'}
+PARAMETER_PROTOCOL_NAME = 'Protocol Name'
+PROTOCOL_PLACEHOLDER = 'Select a protocol'
 
+PROTOCOL_FIELD_XPLAN_BASE_DIRECTORY = 'XPlan Base Directory'
+PROTOCOL_FIELD_XPLAN_REACTOR = 'XPlan Reactor'
+PROTOCOL_FIELD_PLATE_SIZE = 'Plate Size'
+PROTOCOL_FIELD_PLATE_NUMBER = 'Plate Number'
+PROTOCOL_FIELD_CONTAINER_SEARCH_STRING = 'Container Search String'
+PROTOCOL_FIELD_STRAIN_PROPERTY = 'Strain Property'
+PROTOCOL_FIELD_XPLAN_PATH = 'XPlan Path'
+PROTOCOL_FIELD_PROTOCOL_ID = 'Protocol ID'
+PROTOCOL_FIELD_EXPERIMENT_REFERENCE_URL_FOR_XPLAN = 'Experiment Reference URL For XPlan'
+PROTOCOL_FIELD_SUBMIT = 'Submit'
+PROTOCOL_FIELD_TEST_MODE = 'Test Mode'
+
+PARAMETER_PROTOCOL_NAME = 'protocol'
 DEFAULT_PARAMETERS = 'default_parameters'
 PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN = 'experiment_reference_url_for_xplan'
 PARAMETER_TEST_MODE = 'test_mode'
@@ -92,9 +95,9 @@ PARAMETER_VALIDATE_SAMPLES = 'validate_samples'
 PARAMETER_RUN_INFO_INCUBATE_IN_READER = 'run_info.incubate_in_reader'
 PARAMETER_INDUCERS = 'inducers'
 
-SD2_SPREADSHEET_ID = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g' # Sd2 Program dict
-TEST_SPREADSHEET_ID = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk' # Intent parser test dict
-UNIT_TEST_SPREADSHEET_ID = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0' #sd2 unit test dictionary 
+SD2_SPREADSHEET_ID = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g'  # Sd2 Program dict
+TEST_SPREADSHEET_ID = '1wHX8etUZFMrvmsjvdhAGEVU1lYgjbuRX5mmYlKv7kdk'  # Intent parser test dict
+UNIT_TEST_SPREADSHEET_ID = '1r3CIyv75vV7A7ghkB0od-TM_16qSYd-byAbQ1DhRgB0'  #sd2 unit test dictionary
 
 # Table headers
 HEADER_BATCH_VALUE = 'batch'

@@ -7,16 +7,18 @@ from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
 from intent_parser.intent_parser_exceptions import ConnectionException, DictionaryMaintainerException, IntentParserException, TableException
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.intent_parser_sbh import IntentParserSBH
+from intent_parser.protocols.protocol_factory import ProtocolFactory
 from intent_parser.table.intent_parser_table_type import TableType
 from intent_parser.table.table_creator import TableCreator
 from intent_parser.server.socket_manager import SocketManager
 from multiprocessing import Pool
 from operator import itemgetter
 from spellchecker import SpellChecker
-import intent_parser.server.http_message as http_message
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.ip_app_script_constants as ip_addon_constants
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.protocols.opil_parameter_utils as opil_util
+import intent_parser.server.http_message as http_message
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
 import argparse
@@ -53,7 +55,7 @@ class IntentParserServer(object):
     PARTIAL_MATCH_THRESH = 0.75
 
     def __init__(self,
-                 sbh, 
+                 sbh,
                  sbol_dictionary,
                  strateos_accessor,
                  intent_parser_factory,
@@ -61,11 +63,11 @@ class IntentParserServer(object):
                  bind_ip):
         self.sbh = sbh
         self.sbol_dictionary = sbol_dictionary
-        self.strateos_accessor = strateos_accessor 
+        self.strateos_accessor = strateos_accessor
         self.intent_parser_factory = intent_parser_factory
         self.bind_port = bind_port
         self.bind_ip = bind_ip
-       
+
         self.socket = None
         self.shutdownThread = False
         self.event = threading.Event()
@@ -102,14 +104,14 @@ class IntentParserServer(object):
 
         self.socket.listen(5)
         logger.info('listening on {}:{}'.format(self.bind_ip, self.bind_port))
-        
+
         self.sbol_dictionary.start_synchronizing_spreadsheet()
         self.strateos_accessor.start_synchronize_protocols()
 
         if init_sbh:
             self.sbh.initialize_sbh()
         self.initialized = True
-        
+
     def start(self, *, background=False):
         if not self.initialized:
             raise RuntimeError('Server has not been initialized.')
@@ -138,20 +140,20 @@ class IntentParserServer(object):
                 return
             except Exception as e:
                 raise e
-            
+
             if self.shutdownThread:
                 return
-            
+
             client_handler = threading.Thread(
                 target=self.handle_client_connection,
                 args=(client_sock,)  # without comma you'd get a... TypeError: handle_client_connection() argument after * must be a sequence, not _socketobject
             )
             client_handler.start()
-            
+
             self.client_thread_lock.acquire()
             self.curr_running_threads[client_handler.ident] = client_handler
             self.client_thread_lock.release()
-            
+
     def handle_client_connection(self, client_socket):
         logger.info('Connection')
         socket_manager = SocketManager(client_socket)
@@ -185,23 +187,28 @@ class IntentParserServer(object):
 
         client_socket.close()
         client_socket.shutdown(socket.SHUT_RDWR)
-        
+
     def _create_http_response(self, http_status, content, content_type='text/html'):
         response = http_message.HttpMessage()
         response.set_response_code(http_status.value, http_status.name)
         response.set_header('content-type', content_type)
-        response.set_body(content.encode('utf-8'))
+        if content_type == 'text/xml':
+            response.set_body(content)
+        else:
+            response.set_body(content.encode('utf-8'))
         return response
-    
+
     def handle_GET(self, http_message, socket_manager):
         resource = http_message.get_path()
-        start = time.time() 
+        start = time.time()
         if resource == "/status":
             response = self._create_http_response(HTTPStatus.OK, 'Intent Parser Server is Up and Running\n')
         elif resource == '/document_report':
             response = self.process_document_report(http_message)
         elif resource == '/document_request':
             response = self.process_document_request(http_message)
+        elif resource == '/opil_request':
+            response = self.process_opil_GET_request(http_message)
         elif resource == '/run_experiment':
             response = self.process_run_experiment(http_message)
         elif resource == '/experiment_request_documents':
@@ -216,10 +223,57 @@ class IntentParserServer(object):
             response = self._create_http_response(HTTPStatus.NOT_FOUND, 'Resource Not Found')
             logger.warning('Did not find ' + resource)
         end = time.time()
-        
+
         response.send(socket_manager)
         logger.info('Generated GET request for %s in %0.2fms' %(resource, (end - start) * 1000))
-        
+
+    def process_opil_GET_request(self, http_message):
+        resource = http_message.get_resource()
+        document_id = resource.split('?')[1]
+        lab_accessors = {dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor}
+        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+        intent_parser.process_opil_request(lab_accessors)
+        sbol_doc = intent_parser.get_opil_request()
+        if sbol_doc:
+            xml_string = sbol_doc.write_string('xml')
+            return self._create_http_response(HTTPStatus.OK, xml_string,
+                                          'text/xml')
+        else:
+            errors = ['No opil output generated.']
+            errors.extend(intent_parser.get_validation_errors())
+            warnings = [intent_parser.get_validation_warnings()]
+            return self._create_http_response(HTTPStatus.BAD_REQUEST,
+                                              json.dumps({'errors': errors, 'warnings': warnings}),
+                                              'application/json')
+
+    def process_opil_POST_request(self, http_message):
+        json_body = intent_parser_utils.get_json_body(http_message)
+        http_host = http_message.get_header('Host')
+        validation_errors = []
+        validation_warnings = []
+        if json_body is None or http_host is None:
+            validation_errors.append('Unable to get information from Google document.')
+        else:
+            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+            lab_accessors = {dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor}
+            intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+            intent_parser.process_opil_request(lab_accessors)
+            validation_warnings.extend(intent_parser.get_validation_warnings())
+            validation_errors.extend(intent_parser.get_validation_errors())
+
+        if len(validation_errors) == 0:
+            link = '<a href=http://' + http_host + '/opil_request?' + document_id + ' target=_blank>here</a>'
+            dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings, link)
+        else:
+            all_messages = []
+            all_messages.extend(validation_warnings)
+            all_messages.extend(validation_errors)
+            dialog_action = intent_parser_view.invalid_request_model_dialog('OPIL request validation: Failed!', all_messages)
+
+        action_list = [dialog_action]
+        actions = {'actions': action_list}
+        return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
+
     def process_document_report(self, http_message):
         """
         Handles a request to generate a report
@@ -227,12 +281,12 @@ class IntentParserServer(object):
         resource = http_message.get_resource()
         document_id = resource.split('?')[1]
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-        report = intent_parser.generate_report() 
+        report = intent_parser.generate_report()
         return self._create_http_response(HTTPStatus.OK, json.dumps(report), 'application/json')
 
     def process_document_request(self, http_message):
         """
-        Handles a request to generate a structured request 
+        Handles a request to generate a structured request
         """
         resource = http_message.get_resource()
         document_id = resource.split('?')[1]
@@ -242,7 +296,7 @@ class IntentParserServer(object):
             return self._create_http_response(HTTPStatus.BAD_REQUEST,
                                               json.dumps({'errors': intent_parser.get_validation_errors()}),
                                               'application/json')
-        
+
         return self._create_http_response(HTTPStatus.OK, json.dumps(intent_parser.get_structured_request()), 'application/json')
 
     def process_experiment_request_documents(self, http_message):
@@ -359,6 +413,8 @@ class IntentParserServer(object):
             response = self.process_execute_experiment(http_message)
         elif resource == 'experimentExecutionStatus':
             response = self.process_experiment_execution_status(http_message)
+        elif resource == '/generateOpilRequest':
+            response = self.process_opil_POST_request(http_message)
         elif resource == '/generateStructuredRequest':
             response = self.process_generate_structured_request(http_message)
         elif resource == '/message':
@@ -435,7 +491,7 @@ class IntentParserServer(object):
         for search_result in search_results:
             term = search_result['term']
             link = search_result['link']
-            
+
             if link != item_map[term]:
                 document_id = client_state['document_id']
                 uri = search_result['uri']
@@ -444,32 +500,32 @@ class IntentParserServer(object):
                 offset = search_result['offset']
                 end_offset = search_result['end_offset']
                 return intent_parser_view.create_search_result_dialog(term, uri, content_term, document_id, paragraph_index, offset, end_offset)
-                
+
         return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
-        
+
     def process_update_exp_results(self, http_message):
         """
         This function will scan SynbioHub for experiments related to this document, and updated an
         "Experiment Results" section with information about completed experiments.
         """
         json_body = intent_parser_utils.get_json_body(http_message)
-        document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
+        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         experimental_results = intent_parser.update_experimental_results()
         actions = {'actions': [experimental_results]}
         return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-        
+
     def process_calculate_samples(self, http_message):
         """
         Find all measurements tables and update the samples columns, or add the samples column if it doesn't exist.
         """
         json_body = intent_parser_utils.get_json_body(http_message)
-        document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
+        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         samples = intent_parser.calculate_samples()
-        actions = {'actions': [samples]} 
+        actions = {'actions': [samples]}
         return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-    
+
     def process_submit_form(self, http_message):
         (json_body, client_state) = self.get_client_state(http_message)
         try:
@@ -821,7 +877,7 @@ class IntentParserServer(object):
         document_id = data['documentId']
         lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
         lab_experiment.load_from_google_doc()
-        paragraphs = lab_experiment.paragraphs() 
+        paragraphs = lab_experiment.paragraphs()
         selected_term = data['selectedTerm']
         uri = data['extra']['link']
 
@@ -879,18 +935,18 @@ class IntentParserServer(object):
             raise e
         finally:
             self.release_connection(client_state)
-            
+
     def process_nop(self, http_message, sm):
         http_message # Fix unused warning
         sm # Fix unused warning
         return []
-            
+
     def process_message(self, http_message):
         json_body = self.get_json_body(http_message)
         if 'message' in json_body:
             logger.info(json_body['message'])
         return self._create_http_response(HTTPStatus.OK, '{}', 'application/json')
-    
+
     def process_validate_structured_request(self, http_message):
         """
         Generate a structured request from a given document, then run it against the validation.
@@ -901,7 +957,7 @@ class IntentParserServer(object):
         if json_body is None:
             validation_errors.append('Unable to get information from Google document.')
         else:
-            document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
+            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
             if 'data' in json_body and 'bookmarks' in json_body['data']:
                 intent_parser = self.intent_parser_factory.create_intent_parser(document_id, bookmarks=json_body['data']['bookmarks'])
             else:
@@ -909,17 +965,17 @@ class IntentParserServer(object):
             intent_parser.process_structure_request()
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
-        
+
         if len(validation_errors) == 0:
             dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings)
         else:
             all_errors = validation_warnings + validation_errors
             dialog_action = intent_parser_view.invalid_request_model_dialog('Structured request validation: Failed!', all_errors)
-            
+
         actionList = [dialog_action]
         actions = {'actions': actionList}
         return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
-    
+
     def process_generate_structured_request(self, http_message):
         """
         Validates then generates an HTML link to retrieve a structured request.
@@ -931,7 +987,7 @@ class IntentParserServer(object):
         if json_body is None or http_host is None:
             validation_errors.append('Unable to get information from Google document.')
         else:
-            document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
+            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
             if 'data' in json_body and 'bookmarks' in json_body['data']:
                 intent_parser = self.intent_parser_factory.create_intent_parser(document_id, bookmarks=json_body['data']['bookmarks'])
             else:
@@ -939,7 +995,7 @@ class IntentParserServer(object):
             intent_parser.process_structure_request()
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
-       
+
         if len(validation_errors) == 0:
             dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings, intent_parser_view.get_download_link(http_host, document_id))
         else:
@@ -1107,7 +1163,7 @@ class IntentParserServer(object):
         client_state['search_result_index'] = new_idx
 
         return self.report_search_results(client_state)
-    
+
     def process_search_syn_bio_hub(self, http_message):
         json_body = intent_parser_utils.get_json_body(http_message)
         data = json_body['data']
@@ -1156,7 +1212,7 @@ class IntentParserServer(object):
             return self._create_http_response(HTTPStatus.OK, json.dumps(intent_parser_view.operation_failed('Failed to search SynBioHub')), 'application/json')
 
         return self._create_http_response(HTTPStatus.OK, json.dumps(response), 'application/json')
-        
+
     def process_create_table_template(self, http_message):
         """
         Process create table templates.
@@ -1166,6 +1222,7 @@ class IntentParserServer(object):
             data = json_body['data']
             cursor_child_index = str(data['childIndex'])
             table_type = data[ip_addon_constants.TABLE_TYPE]
+            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
 
             actionList = []
             if table_type == ip_addon_constants.TABLE_TYPE_CONTROLS:
@@ -1175,18 +1232,39 @@ class IntentParserServer(object):
                 dialog_action = intent_parser_view.create_measurement_table_dialog(cursor_child_index)
                 actionList.append(dialog_action)
             elif table_type == ip_addon_constants.TABLE_TYPE_PARAMETERS:
-                protocol_names = list(intent_parser_constants.PROTOCOL_NAMES.values())
-                growth_curve_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.GROWTH_CURVE_PROTOCOL)
-                obstacle_course_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.OBSTACLE_COURSE_PROTOCOL)
-                time_series_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.TIME_SERIES_HTP_PROTOCOL)
-                cell_free_riboswitch_parameters = self.strateos_accessor.get_protocol(intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL)
+                intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+                intent_parser.process_lab_name()
+                lab_name = intent_parser.get_lab_name()
+                protocol_factory = ProtocolFactory(lab_name=lab_name, transcriptic_accessor=self.strateos_accessor)
+                protocols = protocol_factory.load_protocols_from_lab()
+                protocol_names = [intent_parser_constants.PROTOCOL_PLACEHOLDER]
+                cell_free_riboswitch_parameters = []
+                growth_curve_parameters = []
+                obstacle_course_parameters = []
+                time_series_parameters = []
+                for protocol in protocols:
+                    parameters = protocol_factory.get_optional_parameter_fields(protocol)
+                    parameter_names = [parameter.name for parameter in parameters]
+                    if protocol.name == intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL:
+                        cell_free_riboswitch_parameters.extend(parameter_names)
+                        protocol_names.append(protocol.name)
+                    elif protocol.name == intent_parser_constants.GROWTH_CURVE_PROTOCOL:
+                        growth_curve_parameters.extend(parameter_names)
+                        protocol_names.append(protocol.name)
+                    elif protocol.name == intent_parser_constants.OBSTACLE_COURSE_PROTOCOL:
+                        obstacle_course_parameters.extend(parameter_names)
+                        protocol_names.append(protocol.name)
+                    elif protocol.name == intent_parser_constants.TIME_SERIES_HTP_PROTOCOL:
+                        time_series_parameters.extend(parameter_names)
+                        protocol_names.append(protocol.name)
+
 
                 dialog_action = intent_parser_view.create_parameter_table_dialog(cursor_child_index,
                                                                                  protocol_names,
-                                                                                 timeseries_optional_fields=self.get_common_names_for_optional_parameter_fields(time_series_parameters),
-                                                                                 growthcurve_optional_fields=self.get_common_names_for_optional_parameter_fields(growth_curve_parameters),
-                                                                                 obstaclecourse_optional_fields=self.get_common_names_for_optional_parameter_fields(obstacle_course_parameters),
-                                                                                 cellfreeriboswitch_optional_fields=self.get_common_names_for_optional_parameter_fields(cell_free_riboswitch_parameters))
+                                                                                 timeseries_optional_fields=time_series_parameters,
+                                                                                 growthcurve_optional_fields=growth_curve_parameters,
+                                                                                 obstaclecourse_optional_fields=obstacle_course_parameters,
+                                                                                 cellfreeriboswitch_options=cell_free_riboswitch_parameters)
                 actionList.append(dialog_action)
             else:
                 logger.warning('WARNING: unsupported table type: %s' % table_type)
@@ -1212,7 +1290,7 @@ class IntentParserServer(object):
             data = json_body['data']
             start = data['start']
             end = data['end']
-            document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
+            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
 
             start_paragraph = start['paragraphIndex'];
             end_paragraph = end['paragraphIndex'];
@@ -1228,7 +1306,7 @@ class IntentParserServer(object):
 
         except Exception as e:
             raise e
-    
+
     def _add_to_syn_bio_hub(self, document_id, start_paragraph, end_paragraph, start_offset, end_offset, isSpellcheck=False):
         try:
 
@@ -1242,21 +1320,21 @@ class IntentParserServer(object):
 
             ip = self.intent_parser_factory.create_intent_parser(document_id)
             selection, display_id = ip.generate_displayId_from_selection(start_paragraph, start_offset, end_offset)
-            return intent_parser_view.create_add_to_synbiohub_dialog(selection, 
-                                   display_id, 
-                                   start_paragraph, 
-                                   start_offset, 
-                                   end_paragraph, 
-                                   end_offset, 
+            return intent_parser_view.create_add_to_synbiohub_dialog(selection,
+                                   display_id,
+                                   start_paragraph,
+                                   start_offset,
+                                   end_paragraph,
+                                   end_offset,
                                    item_types_html,
-                                   lab_ids_html, 
-                                   document_id, 
+                                   lab_ids_html,
+                                   document_id,
                                    isSpellcheck)
         except Exception as e:
             raise e
 
     def process_add_by_spelling(self, http_message):
-        """ 
+        """
         Function that sets up the results for additions by spelling
         This will start from a given offset (generally 0) and searches the rest of the
         document, looking for words that are not in the dictionary.  Any words that
@@ -1269,7 +1347,7 @@ class IntentParserServer(object):
         try:
             client_state = None
             json_body = intent_parser_utils.get_json_body(http_message)
-            document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
+            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
             user = json_body['user']
             userEmail = json_body['userEmail']
 
@@ -1289,7 +1367,7 @@ class IntentParserServer(object):
 
             lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
             doc = lab_experiment.load_from_google_doc()
-            paragraphs = lab_experiment.paragraphs() 
+            paragraphs = lab_experiment.paragraphs()
             if 'data' in json_body:
                 data = json_body['data']
                 paragraph_index = data['paragraphIndex']
@@ -1400,7 +1478,7 @@ class IntentParserServer(object):
                 buttons = [('Ok', 'process_nop')]
                 dialog_action = intent_parser_view.simple_modal_dialog('Found no words not in spelling dictionary!', buttons, 'No misspellings!', 400, 450)
                 actionList = [dialog_action]
-                actions = {'actions': actionList}  
+                actions = {'actions': actionList}
                 return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
 
         except Exception as e:
@@ -1409,7 +1487,7 @@ class IntentParserServer(object):
         finally:
             if client_state is not None:
                 self.release_connection(client_state)
-                
+
     def process_create_measurement_table(self, data):
         lab_data = self.process_lab_table(data)
         table_template = []
@@ -1481,7 +1559,7 @@ class IntentParserServer(object):
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_table_indices()
         return intent_parser.get_largest_table_index()+1
-    
+
     def process_controls_table(self, data, document_id):
         table_index = self._process_new_table_index(document_id)
         table_template = []
@@ -1493,7 +1571,7 @@ class IntentParserServer(object):
             header_row.append(intent_parser_constants.HEADER_CONTENTS_VALUE)
         if data[ip_addon_constants.HTML_TIMEPOINT]:
             header_row.append(intent_parser_constants.HEADER_TIMEPOINT_VALUE)
-        
+
         # column_offset = column size - # of columns with generated default value
         column_offset = len(header_row) - 1
         if data[ip_addon_constants.HTML_CAPTION]:
@@ -1618,14 +1696,35 @@ class IntentParserServer(object):
                       intent_parser_constants.HEADER_PARAMETER_VALUE_VALUE]
         table_template.append(header_row)
 
-        selected_protocol = self._get_selected_protocol(data[ip_addon_constants.HTML_PROTOCOL])
-        table_template.append([intent_parser_constants.PARAMETER_PROTOCOL, selected_protocol])
+        selected_protocol = data[ip_addon_constants.HTML_PROTOCOL]
+        lab_name = data[ip_addon_constants.HTML_LAB]
+        table_template.append([intent_parser_constants.PARAMETER_PROTOCOL_NAME, selected_protocol])
 
-        protocol = self.strateos_accessor.get_protocol(selected_protocol)
-        required_fields = self._add_required_parameters(protocol)
+        protocol_factory = ProtocolFactory(lab_name, self.strateos_accessor)
+        protocol = protocol_factory.get_protocol_interface(selected_protocol)
+        ref_required_id_to_name = {}
+        ref_optional_name_to_id = {}
+        for parameter in protocol.has_parameter:
+            if not parameter.default_value:
+                logger.warning('parameter %s does not have default value' % parameter.name)
+                continue
+
+            ref_id = str(parameter.default_value[0])
+            if parameter.required:
+                ref_required_id_to_name[ref_id] = parameter.name
+            else:
+                ref_optional_name_to_id[parameter.name] = ref_id
+
+        parameter_values = protocol_factory.load_parameter_values_from_protocol(selected_protocol)
+        param_value_mapping = {}
+        for param_val in parameter_values:
+            param_value_mapping[param_val.identity] = param_val
+
+        required_fields = self._add_required_parameters(ref_required_id_to_name, param_value_mapping)
         table_template.extend(required_fields)
 
-        optional_fields = self._add_optional_parameters(protocol, data[ip_addon_constants.HTML_OPTIONALPARAMETERS])
+        selected_optional_parameters = data[ip_addon_constants.HTML_OPTIONALPARAMETERS]
+        optional_fields = self._add_optional_parameters(ref_optional_name_to_id, param_value_mapping, selected_optional_parameters)
         table_template.extend(optional_fields)
 
         column_width = [len(header) for header in header_row]
@@ -1634,38 +1733,33 @@ class IntentParserServer(object):
                                                         ip_addon_constants.TABLE_TYPE_PARAMETERS,
                                                         column_width)
 
-    def _add_required_parameters(self, protocol):
+    def _add_required_parameters(self, ref_required_values, param_value_mapping):
         required_parameters = []
-        for parameter_id, parameter_field in protocol.items():
-            common_name = self.sbol_dictionary.get_common_name_from_transcriptic_id(parameter_id)
-            if common_name:
-                if parameter_field.is_required():
-                    required_parameters.append([common_name, parameter_field.get_default_value()])
+        for value_id, param_name in ref_required_values.items():
+            if value_id in param_value_mapping:
+                param_value = opil_util.get_param_value_as_string(param_value_mapping[value_id])
+                required_parameters.append([param_name, param_value])
+
             else:
-                logger.warning('Unable to locate %s as a Strateos UID in SBOL Dictionary.' % parameter_id)
+                required_parameters.append([param_name, ' '])
 
         return required_parameters
 
-    def _add_optional_parameters(self, protocol: dict, selected_optional_parameters: list) -> list:
+    def _add_optional_parameters(self, ref_optional_name_to_id, param_value_mapping, selected_options):
+        ref_uris = {}
         optional_parameters = []
-        for common_name in selected_optional_parameters:
-            transcriptic_id = self.sbol_dictionary.get_transcriptic_id_from_common_name(common_name)
-            if transcriptic_id:
-                parameter_field = protocol[transcriptic_id]
-                optional_parameters.append([common_name, parameter_field.get_default_value()])
+        for param_name in selected_options:
+            if param_name in ref_optional_name_to_id:
+                ref_uris[ref_optional_name_to_id[param_name]] = param_name
             else:
-                logger.warning('Unable to locate %s as a Strateos UID in SBOL Dictionary for common_name: %s' % (transcriptic_id, common_name))
+                optional_parameters.append([param_name, ' '])
+
+        for uri, param_name in ref_uris.items():
+            if uri in param_value_mapping:
+                param_value = opil_util.get_param_value_as_string(param_value_mapping[uri])
+                optional_parameters.append([param_name, param_value])
 
         return optional_parameters
-
-
-    def _get_selected_protocol(self, protocol_name):
-        selected_protocols = [key for key, value in intent_parser_constants.PROTOCOL_NAMES.items() if
-                                     value == protocol_name]
-        if len(selected_protocols) != 1:
-            raise ConnectionException(HTTPStatus.BAD_REQUEST, 'Invalid protocol specified.')
-
-        return selected_protocols[0]
 
     def get_client_state(self, http_message):
         json_body = intent_parser_utils.get_json_body(http_message)
@@ -1679,7 +1773,7 @@ class IntentParserServer(object):
             client_state = None
 
         return (json_body, client_state)
-    
+
     def add_link(self, search_result, new_link=None):
         """ Add a hyperlink to the desired search_result
         """
@@ -1696,7 +1790,7 @@ class IntentParserServer(object):
                                 end_offset, link)
 
         return [action]
-    
+
     def _initiate_document_analysis(self, http_message):
         """
         This function does the actual work of analyzing the document, and is designed to be run in a separate thread.
@@ -1705,11 +1799,11 @@ class IntentParserServer(object):
         results are ready.
         """
         json_body = intent_parser_utils.get_json_body(http_message)
-        document_id = intent_parser_utils.get_document_id_from_json_body(json_body) 
-        
+        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+
         lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
         doc = lab_experiment.load_from_google_doc()
-         
+
         self.analyze_processing_lock[document_id] = threading.Lock()
         self.analyze_processing_lock[document_id].acquire()
 
@@ -1727,7 +1821,7 @@ class IntentParserServer(object):
         client_state['doc'] = doc
         client_state['user_id'] = userId
 
-        paragraphs = lab_experiment.paragraphs() 
+        paragraphs = lab_experiment.paragraphs()
         if 'data' in json_body:
             data = json_body['data']
             paragraph_index = data['paragraphIndex']
@@ -1802,7 +1896,7 @@ class IntentParserServer(object):
         self.analyze_processing_map_lock.acquire()
         self.analyze_processing_map[client_state['document_id']] = 100
         self.analyze_processing_map_lock.release()
-    
+
     def new_connection(self, document_id):
         self.client_state_lock.acquire()
         if document_id in self.client_state_map:
@@ -1880,7 +1974,7 @@ class IntentParserServer(object):
                 client_thread = self.curr_running_threads[key]
                 if client_thread.is_alive():
                     client_thread.join()
-                    
+
         logger.info('Shutdown complete')
 
     def spellcheck_remove_term(self, client_state):
@@ -1909,7 +2003,7 @@ class IntentParserServer(object):
         client_state['spelling_size'] = len(new_spelling_results)
         return True
 
-  
+
     def simple_syn_bio_hub_search(self, term, offset=0, filter_uri=None):
         """
         Search for similar terms in SynbioHub, using the cached sparql similarity query.
@@ -1956,7 +2050,7 @@ def setup_logging(
         logging.config.dictConfig(config)
     else:
         logging.basicConfig(level=default_level, format="[%(levelname)-8s] %(asctime)-24s %(filename)-23s line:%(lineno)-4s  %(message)s")
-    
+
     logger.addHandler(logging.FileHandler('intent_parser_server.log'))
     logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.CRITICAL)
     logging.getLogger("googleapiclient.discovery").setLevel(logging.CRITICAL)
@@ -1965,44 +2059,44 @@ def main():
     parser = argparse.ArgumentParser(description='Processes an experimental design.')
     parser.add_argument('-a', '--authn', nargs='?',
                             required=True, help='Authorization token for data catalog.')
-    
+
     parser.add_argument('-b', '--bind-host', nargs='?', default='0.0.0.0',
                             required=False, help='IP address to bind to.')
-    
+
     parser.add_argument('-c', '--collection', nargs='?',
                             required=True, help='Collection url.')
-    
+
     parser.add_argument('-i', '--spreadsheet-id', nargs='?', default=intent_parser_constants.SD2_SPREADSHEET_ID,
                             required=False, help='Dictionary spreadsheet id.')
-    
-    parser.add_argument('-l', '--bind-port', nargs='?', type=int, default=8081, 
+
+    parser.add_argument('-l', '--bind-port', nargs='?', type=int, default=8081,
                             required=False, help='TCP Port to listen on.')
-    
-    parser.add_argument('-p', '--password', nargs='?', 
+
+    parser.add_argument('-p', '--password', nargs='?',
                             required=True, help='SynBioHub password.')
-    
-    parser.add_argument('-s', '--spoofing-prefix', nargs='?', 
+
+    parser.add_argument('-s', '--spoofing-prefix', nargs='?',
                             required=False, help='SBH spoofing prefix.')
 
-    parser.add_argument('-t', '--transcriptic', nargs='?', 
+    parser.add_argument('-t', '--transcriptic', nargs='?',
                             required=False, help='Path to transcriptic configuration file.')
 
     parser.add_argument('-e', '--execute_experiment', nargs='?',
                         required=False, help='Nonce credential used for authorizing an API endpoint to execute an experiment.')
 
-    parser.add_argument('-u', '--username', nargs='?', 
+    parser.add_argument('-u', '--username', nargs='?',
                             required=True, help='SynBioHub username.')
-    
+
     input_args = parser.parse_args()
     setup_logging()
     intent_parser_server = None
     try:
         sbh = IntentParserSBH(sbh_collection_uri=input_args.collection,
                  spreadsheet_id=intent_parser_constants.SD2_SPREADSHEET_ID,
-                 sbh_username=input_args.username, 
+                 sbh_username=input_args.username,
                  sbh_password=input_args.password,
                  sbh_spoofing_prefix=input_args.spoofing_prefix)
-        sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, sbh) 
+        sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, sbh)
         datacatalog_config = {"mongodb": {"database": "catalog_staging", "authn": input_args.authn}}
         strateos_accessor = StrateosAccessor(input_args.transcriptic)
         intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
@@ -2010,7 +2104,7 @@ def main():
                                                   bind_ip=input_args.bind_host,
                                                   bind_port=input_args.bind_port)
         intent_parser_server.initialize_server()
-        intent_parser_server.start() 
+        intent_parser_server.start()
     except (KeyboardInterrupt, SystemExit) as ex:
         return
     except Exception as ex:
