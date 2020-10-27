@@ -4,7 +4,7 @@ import intent_parser.constants.intent_parser_constants as ip_constants
 
 class ExperimentIntent(object):
 
-    def __init__(self, submit_experiment: bool = False, xplan_reactor: str = 'xplan', test_mode: bool = True):
+    def __init__(self, submit_experiment: bool = True, xplan_reactor: str = 'xplan', test_mode: bool = False):
         self._base_dir = None
         self._xplan_reactor = xplan_reactor
         self._plate_size = None
