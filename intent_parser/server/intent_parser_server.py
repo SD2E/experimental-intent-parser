@@ -356,7 +356,7 @@ class IntentParserServer(object):
         return self._create_http_response(HTTPStatus.OK, json.dumps({'authenticationLink': link}),
                                           'application/json')
 
-    def process_experiment_execution_status(self, json_body, client_state):
+    def process_experiment_execution_status(self, json_body):
         execution_id = 'ZzL5p65NgyXw' # TODO: placeholder to assume authentication was successful. Will need to update to correct execution_id
         tacc_accessor = TACCGoAccessor()
         status = tacc_accessor.get_status_of_experiment(execution_id)
@@ -600,7 +600,7 @@ class IntentParserServer(object):
                           'results': {'operationSucceeded': True}
                 }
             elif action == 'createParameterTable':
-                actions = self.process_create_parameter_table(data)
+                actions = self.process_create_parameter_table(data, json_body['documentId'])
                 result = {'actions': actions,
                           'results': {'operationSucceeded': True}
                 }
@@ -1691,7 +1691,7 @@ class IntentParserServer(object):
         column_width = [len(header) for header in header_row]
         return table_template, column_width
 
-    def process_create_parameter_table(self, data):
+    def process_create_parameter_table(self, data, document_id):
         table_template = []
         header_row = [intent_parser_constants.HEADER_PARAMETER_VALUE,
                       intent_parser_constants.HEADER_PARAMETER_VALUE_VALUE]
@@ -1721,7 +1721,11 @@ class IntentParserServer(object):
         for param_val in parameter_values:
             param_value_mapping[param_val.identity] = param_val
 
-        required_fields = self._add_required_parameters(ref_required_id_to_name, param_value_mapping)
+        protocol_id = opil_util.get_protocol_id_from_annotaton(protocol)
+        required_fields = self._add_required_parameters(ref_required_id_to_name,
+                                                        param_value_mapping,
+                                                        google_constants.GOOGLE_DOC_URL_PREFIX + document_id,
+                                                        protocol_id)
         table_template.extend(required_fields)
 
         selected_optional_parameters = data[ip_addon_constants.HTML_OPTIONALPARAMETERS]
@@ -1734,13 +1738,23 @@ class IntentParserServer(object):
                                                         ip_addon_constants.TABLE_TYPE_PARAMETERS,
                                                         column_width)
 
-    def _add_required_parameters(self, ref_required_values, param_value_mapping):
-        required_parameters = []
+    def _add_required_parameters(self, ref_required_values, param_value_mapping, experiment_ref_url, protocol_id):
+        required_parameters = [[intent_parser_constants.PROTOCOL_FIELD_XPLAN_BASE_DIRECTORY, ''],
+                               [intent_parser_constants.PROTOCOL_FIELD_XPLAN_REACTOR, 'xplan'],
+                               [intent_parser_constants.PROTOCOL_FIELD_PLATE_SIZE, ''],
+                               [intent_parser_constants.PARAMETER_PLATE_NUMBER, ' '],
+                               [intent_parser_constants.PROTOCOL_FIELD_CONTAINER_SEARCH_STRING, ' '],
+                               [intent_parser_constants.PARAMETER_STRAIN_PROPERTY, ' '],
+                               [intent_parser_constants.PARAMETER_XPLAN_PATH, ''],
+                               [intent_parser_constants.PARAMETER_SUBMIT, 'False'],
+                               [intent_parser_constants.PARAMETER_PROTOCOL_ID, protocol_id],
+                               [intent_parser_constants.PARAMETER_TEST_MODE, 'True'],
+                               [intent_parser_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN, experiment_ref_url]]
+
         for value_id, param_name in ref_required_values.items():
             if value_id in param_value_mapping:
                 param_value = opil_util.get_param_value_as_string(param_value_mapping[value_id])
                 required_parameters.append([param_name, param_value])
-
             else:
                 required_parameters.append([param_name, ' '])
 

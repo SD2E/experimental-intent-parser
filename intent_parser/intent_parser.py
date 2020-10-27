@@ -8,7 +8,7 @@ from intent_parser.table.experiment_status_table import ExperimentStatusTablePar
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
 from intent_parser.table.lab_table import LabTable
 from intent_parser.table.intent_parser_table_type import TableType
-import intent_parser.constants.google_api_constants
+import intent_parser.constants.google_api_constants as google_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.table.table_utils as table_utils
@@ -405,7 +405,7 @@ class IntentParser(object):
             return dc_constants.UNDEFINED
 
     def _get_experiment_reference_url(self):
-        return intent_parser.constants.google_api_constants.GOOGLE_DOC_URL_PREFIX + self.lab_experiment.document_id()
+        return google_constants.GOOGLE_DOC_URL_PREFIX + self.lab_experiment.document_id()
 
     def _get_experiment_reference(self):
         try:

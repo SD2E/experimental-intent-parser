@@ -94,6 +94,12 @@ def create_opil_URI_parameter_value(value_id: str, value: str):
     parameter_value.value = value
     return parameter_value
 
+def get_protocol_id_from_annotaton(protocol):
+    namespace = 'http://strateos.com/'
+    id_annotation = sbol3.TextProperty(protocol, namespace + 'strateos_id', 0, 1)
+
+    return id_annotation.property_owner.strateos_id
+
 def get_param_value_as_string(parameter_value):
     if type(parameter_value) is opil.opil_factory.BooleanValue:
         return str(parameter_value.value)

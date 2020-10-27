@@ -14,6 +14,12 @@ class ProtocolFactory(object):
         else:
             raise IntentParserException('Intent Parser does not support fetching protocols from lab: %s.' % self.lab_name)
 
+    def get_protocol_id(self, protocol_name):
+        if self.lab_name == dc_constants.LAB_TRANSCRIPTIC:
+            return self.transcriptic_accessor.get_protocol_id(protocol_name)
+        else:
+            raise IntentParserException('Intent Parser unable to get protocol id for %s.' % self.lab_name)
+
     def get_protocol_interface(self, selected_protocol):
         if self.lab_name == dc_constants.LAB_TRANSCRIPTIC:
             protocol = self.transcriptic_accessor.get_protocol_interface(selected_protocol)

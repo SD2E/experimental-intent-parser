@@ -2,7 +2,7 @@ google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
 jsonschema
-opil==1.0a2.post1
+opil==1.0a4
 pymongo
 pyspellchecker
 python-docx
