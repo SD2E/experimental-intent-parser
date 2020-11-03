@@ -349,9 +349,9 @@ class ParameterTableTest(unittest.TestCase):
                                       ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: ['Ct1e3qc85mqwbz8', 'ct1e3qc85jc4gj52'],
                                       ip_constants.PARAMETER_STRAIN_PROPERTY: 'SD2_common_name',
                                       ip_constants.PARAMETER_XPLAN_PATH: 'path/foo/xplan_path',
-                                      ip_constants.PARAMETER_SUBMIT: False,
+                                      ip_constants.PARAMETER_SUBMIT: True,
                                       ip_constants.PARAMETER_PROTOCOL_ID: 'pr1e5gw8bdekdxv',
-                                      ip_constants.PARAMETER_TEST_MODE: True,
+                                      ip_constants.PARAMETER_TEST_MODE: False,
                                       ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: 'path/foo/experiment_reference',
                                       ip_constants.DEFAULT_PARAMETERS: {'inoc_info.inoc_vol': '5:microliter'}}
         self.assertEqual(1, len(expected_sr_result))
@@ -380,9 +380,9 @@ class ParameterTableTest(unittest.TestCase):
                                       ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: dc_constants.GENERATE,
                                       ip_constants.PARAMETER_STRAIN_PROPERTY: None,
                                       ip_constants.PARAMETER_XPLAN_PATH: None,
-                                      ip_constants.PARAMETER_SUBMIT: False,
+                                      ip_constants.PARAMETER_SUBMIT: True,
                                       ip_constants.PARAMETER_PROTOCOL_ID: None,
-                                      ip_constants.PARAMETER_TEST_MODE: True,
+                                      ip_constants.PARAMETER_TEST_MODE: False,
                                       ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: None,
                                       ip_constants.DEFAULT_PARAMETERS: {}}
         self.assertEqual(13, len(param_table.get_experiment()))
@@ -412,9 +412,9 @@ class ParameterTableTest(unittest.TestCase):
                                                                                        'ct1et97frgr528g'],
                                       ip_constants.PARAMETER_STRAIN_PROPERTY: None,
                                       ip_constants.PARAMETER_XPLAN_PATH: None,
-                                      ip_constants.PARAMETER_SUBMIT: False,
+                                      ip_constants.PARAMETER_SUBMIT: True,
                                       ip_constants.PARAMETER_PROTOCOL_ID: None,
-                                      ip_constants.PARAMETER_TEST_MODE: True,
+                                      ip_constants.PARAMETER_TEST_MODE: False,
                                       ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: None,
                                       ip_constants.DEFAULT_PARAMETERS: {}}
         self.assertEqual(13, len(param_table.get_experiment()))
@@ -440,9 +440,9 @@ class ParameterTableTest(unittest.TestCase):
                                       ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: ['ct1et97fsbvt84h'],
                                       ip_constants.PARAMETER_STRAIN_PROPERTY: None,
                                       ip_constants.PARAMETER_XPLAN_PATH: None,
-                                      ip_constants.PARAMETER_SUBMIT: False,
+                                      ip_constants.PARAMETER_SUBMIT: True,
                                       ip_constants.PARAMETER_PROTOCOL_ID: None,
-                                      ip_constants.PARAMETER_TEST_MODE: True,
+                                      ip_constants.PARAMETER_TEST_MODE: False,
                                       ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: None,
                                       ip_constants.DEFAULT_PARAMETERS: {}}
         self.assertEqual(13, len(param_table.get_experiment()))
@@ -468,9 +468,9 @@ class ParameterTableTest(unittest.TestCase):
                                       ip_constants.PARAMETER_CONTAINER_SEARCH_STRING: dc_constants.GENERATE,
                                       ip_constants.PARAMETER_STRAIN_PROPERTY: None,
                                       ip_constants.PARAMETER_XPLAN_PATH: None,
-                                      ip_constants.PARAMETER_SUBMIT: False,
+                                      ip_constants.PARAMETER_SUBMIT: True,
                                       ip_constants.PARAMETER_PROTOCOL_ID: None,
-                                      ip_constants.PARAMETER_TEST_MODE: True,
+                                      ip_constants.PARAMETER_TEST_MODE: False,
                                       ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: None,
                                       ip_constants.DEFAULT_PARAMETERS: {}}
         self.assertEqual(13, len(param_table.get_experiment()))
