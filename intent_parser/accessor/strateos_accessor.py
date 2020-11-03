@@ -1,6 +1,7 @@
 from datetime import timedelta
 from intent_parser.intent_parser_exceptions import IntentParserException
 from transcriptic import Connection
+from typing import Dict
 import intent_parser.constants.intent_parser_constants as ip_constants
 import logging
 import opil
@@ -46,7 +47,8 @@ class StrateosAccessor(object):
 
     def get_protocol_id(self, protocol_name):
         if protocol_name not in self._map_name_to_protocol_id:
-            raise IntentParserException('Unable to get protocol id: %s is not a supported protocol in Strateos.' % protocol_name)
+            raise IntentParserException(
+                'Unable to get protocol id: %s is not a supported protocol in Strateos.' % protocol_name)
         return self._map_name_to_protocol_id[protocol_name]
 
     def get_protocol_interface(self, protocol_name):
@@ -59,26 +61,16 @@ class StrateosAccessor(object):
 
         return self._map_name_to_protocol_interface[protocol_name]
 
-    def get_protocol_as_schema(self, protocol):
-        """
-        Get default parameter values for a given protocol.
+    def get_protocol_as_schema(self, protocol_name):
+        protocol_list = self.strateos_api.get_protocols()
+        selected_protocol = None
+        for protocol in protocol_list:
+            if protocol['name'] == protocol_name:
+                selected_protocol = protocol
 
-        Args:
-            protocol: name of protocol
+        if not selected_protocol:
+            raise IntentParserException('Strateos does not support %s as a protocol' % protocol_name)
 
-        Return:
-            A dictionary. The key represent a parameter.
-                The value represents a parameter's default value.
-
-        Raises:
-            An Exception to indicate if a given protocol does not exist when calling the Strateos API.
-        """
-        self.protocol_lock.acquire()
-        if protocol not in self._map_name_protocol_docs:
-            raise Exception('Unable to get %s from Strateos' % protocol)
-
-        selected_protocol = self._map_name_protocol_docs[protocol]
-        self.protocol_lock.release()
         return selected_protocol
 
     def start_synchronize_protocols(self):
@@ -107,13 +99,13 @@ class StrateosAccessor(object):
                 continue
 
             self.logger.info('Fetching protocol %s' % protocol['name'])
-            protocol_interface, sbol_doc = self._convert_protocol_as_opil(protocol)
+            protocol_interface, sbol_doc = self.convert_protocol_to_opil(protocol)
             self._map_name_to_protocol_id[protocol['name']] = protocol['id']
             self._map_name_to_protocol_interface[protocol['name']] = protocol_interface
             self._map_name_protocol_docs[protocol['name']] = sbol_doc
         self.protocol_lock.release()
 
-    def _convert_protocol_as_opil(self, protocol):
+    def convert_protocol_to_opil(self, protocol):
         strateos_namespace = 'http://strateos.com/'
         sg = opil.StrateosOpilGenerator()
         sbol_doc = sg.parse_strateos_json(strateos_namespace,
@@ -126,7 +118,70 @@ class StrateosAccessor(object):
                 protocol_interface = obj
 
         if not protocol_interface:
-            raise IntentParserException('Unable to locate OPIL protocol interface when converting transcriptic protocols to OPIL')
+            raise IntentParserException(
+                'Unable to locate OPIL protocol interface when converting transcriptic protocols to OPIL')
 
         return protocol_interface, sbol_doc
 
+    def convert_protocol_to_ip_parameters(self, protocol):
+        queue = []
+        parameters = {}
+        for key, value in protocol.items():
+            queue.append(([key], value))
+
+        while len(queue) > 0:
+            names, protocol_field = queue.pop(0)
+            id = '.'.join(names)
+
+            if 'inputs' in protocol_field:
+                for key, value in protocol_field['inputs'].items():
+                    queue.append((names + [key], value))
+            else:
+                parameter_field = ParameterField()
+                if 'default' in protocol_field:
+                    parameter_field.set_default_value(protocol_field['default'])
+                if 'required' in protocol_field:
+                    parameter_field.set_required(protocol_field['required'])
+                if 'options' in protocol_field:
+                    for option in protocol_field['options']:
+                        if 'name' in option and 'value' in option:
+                            parameter_field.add_option(option['name'], option['value'])
+                parameters[id] = parameter_field
+
+        return parameters
+
+
+class ParameterField(object):
+
+    def __init__(self, default_value=None, required=False):
+        self._default_value = default_value
+        self._required = required
+        self._options = []
+
+    def add_option(self, name, value):
+        option = ParameterFieldOption(name, value)
+        self._options.append(option)
+
+    def get_default_value(self):
+        if self._default_value is None:
+            return ' '
+        return str(self._default_value)
+
+    def is_required(self):
+        return self._required
+
+    def set_default_value(self, value):
+        if self._default_value:
+            raise IntentParserException(
+                'Conflict setting %s as a default value when it is currently set to %s' % (value, self._default_value))
+        self._default_value = value
+
+    def set_required(self, value: bool):
+        self._required = value
+
+
+class ParameterFieldOption(object):
+
+    def __init__(self, name, value):
+        self._name = name
+        self._value = value

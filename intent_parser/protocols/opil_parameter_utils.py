@@ -94,11 +94,15 @@ def create_opil_URI_parameter_value(value_id: str, value: str):
     parameter_value.value = value
     return parameter_value
 
-def get_protocol_id_from_annotaton(protocol):
-    namespace = 'http://strateos.com/'
-    id_annotation = sbol3.TextProperty(protocol, namespace + 'strateos_id', 0, 1)
+def get_measurement_unit(measure_unit):
+    for unit, ontology in MEASUREMENT_UNITS.items():
+        if measure_unit == ontology:
+            return unit
 
-    return id_annotation.property_owner.strateos_id
+    if measure_unit == 'http://bbn.com/synbio/opil#pureNumber':
+        return ''
+
+    return 'UNIDENTIFIED UNIT'
 
 def get_param_value_as_string(parameter_value):
     if type(parameter_value) is opil.opil_factory.BooleanValue:
@@ -117,14 +121,19 @@ def get_param_value_as_string(parameter_value):
     elif type(parameter_value) is opil.opil_factory.URIValue:
         return str(parameter_value.value)
 
-def get_measurement_unit(measure_unit):
-    for unit, ontology in MEASUREMENT_UNITS.items():
-        if measure_unit == ontology:
-            return unit
+def get_protocol_id_from_annotaton(protocol):
+    namespace = 'http://strateos.com/'
+    id_annotation = sbol3.TextProperty(protocol, namespace + 'strateos_id', 0, 1)
 
-    if measure_unit == 'http://bbn.com/synbio/opil#pureNumber':
-        return ''
+    return id_annotation.property_owner.strateos_id
 
-    return 'UNIDENTIFIED UNIT'
+def get_parameters_from_protocol_interface(protocol_interface):
+   return [parameter for parameter in protocol_interface.has_parameter]
 
+def get_optional_parameter_fields(protocol):
+    parameters = []
+    for parameter in protocol.has_parameter:
+        if not parameter.required:
+            parameters.append(parameter)
 
+    return parameters

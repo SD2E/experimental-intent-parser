@@ -33,10 +33,3 @@ class ProtocolFactory(object):
         else:
             raise IntentParserException('Unable to get protocol values from %s: %s is not a supported protocol' % (self.lab_name, protocol_name))
 
-    def get_optional_parameter_fields(self, protocol):
-        parameters = []
-        for parameter in protocol.has_parameter:
-            if not parameter.required:
-                parameters.append(parameter)
-
-        return parameters

@@ -7,6 +7,7 @@ from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
 from intent_parser.intent_parser_exceptions import ConnectionException, DictionaryMaintainerException, IntentParserException, TableException
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.intent_parser_sbh import IntentParserSBH
+from intent_parser.protocols.opil_parameter_utils import get_optional_parameter_fields
 from intent_parser.protocols.protocol_factory import ProtocolFactory
 from intent_parser.table.intent_parser_table_type import TableType
 from intent_parser.table.table_creator import TableCreator
@@ -1244,7 +1245,7 @@ class IntentParserServer(object):
                 obstacle_course_parameters = []
                 time_series_parameters = []
                 for protocol in protocols:
-                    parameters = protocol_factory.get_optional_parameter_fields(protocol)
+                    parameters = get_optional_parameter_fields(protocol)
                     parameter_names = [parameter.name for parameter in parameters]
                     if protocol.name == intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL:
                         cell_free_riboswitch_parameters.extend(parameter_names)
