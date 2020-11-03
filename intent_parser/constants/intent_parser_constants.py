@@ -93,6 +93,7 @@ PARAMETER_RUN_INFO_SAVE_FOR_RNASEQ = 'run_info.save_for_rnaseq'
 PARAMETER_RUN_INFO_SKIP_FIRST_FLOW = 'run_info.skip_first_flow'
 PARAMETER_VALIDATE_SAMPLES = 'validate_samples'
 PARAMETER_RUN_INFO_INCUBATE_IN_READER = 'run_info.incubate_in_reader'
+PARAMETER_RXN_INFO_RXN_GROUP_INFO_MG_GLU2 = 'rxn_info.rxn_group.rxn_info.mg_glu2'
 PARAMETER_INDUCERS = 'inducers'
 
 SD2_SPREADSHEET_ID = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g'  # Sd2 Program dict

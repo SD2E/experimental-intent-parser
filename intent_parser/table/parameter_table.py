@@ -20,7 +20,8 @@ class ParameterTable(object):
                                 intent_parser_constants.PARAMETER_RUN_INFO_SKIP_FIRST_FLOW,
                                 intent_parser_constants.PARAMETER_RUN_INFO_ONLY_ENDPOINT_FLOW,
                                 intent_parser_constants.PARAMETER_VALIDATE_SAMPLES,
-                                intent_parser_constants.PARAMETER_RUN_INFO_INCUBATE_IN_READER]
+                                intent_parser_constants.PARAMETER_RUN_INFO_INCUBATE_IN_READER,
+                                intent_parser_constants.PARAMETER_RXN_INFO_RXN_GROUP_INFO_MG_GLU2]
 
     FIELD_WITH_FLOAT_VALUE = [intent_parser_constants.PARAMETER_PLATE_READER_INFO_GAIN]
 
