@@ -1,6 +1,6 @@
 from http import HTTPStatus
 from intent_parser.server.http_message import HttpMessage
-from intent_parser.server.intent_parser_server import IntentParserServer
+from intent_parser.server.intent_parser_processor import IntentParserServer
 from unittest.mock import Mock, patch
 import intent_parser.constants.ip_app_script_constants as addon_constants
 import intent_parser.utils.intent_parser_view as intent_parser_view
