@@ -100,33 +100,6 @@ class IntentParserProcessor(object):
             response.set_body(content.encode('utf-8'))
         return response
 
-    def handle_GET(self, http_message, socket_manager):
-        resource = http_message.get_path()
-        start = time.time()
-        if resource == "/status":
-            response = self._create_http_response(HTTPStatus.OK, 'Intent Parser Server is Up and Running\n')
-        elif resource == '/document_report':
-            response = self.process_document_report(http_message)
-        elif resource == '/document_request':
-            response = self.process_document_request(http_message)
-        elif resource == '/opil_request':
-            response = self.process_opil_GET_request(http_message)
-        elif resource == '/run_experiment':
-            response = self.process_run_experiment(http_message)
-        elif resource == '/experiment_request_documents':
-            response = self.process_experiment_request_documents(http_message)
-        elif resource == '/experiment_status':
-            response = self.process_experiment_status(http_message)
-        elif resource == '/update_experiment_status':
-            response = self.process_update_experiment_status(http_message)
-        else:
-            response = self._create_http_response(HTTPStatus.NOT_FOUND, 'Resource Not Found')
-            logger.warning('Did not find ' + resource)
-        end = time.time()
-
-        response.send(socket_manager)
-        logger.info('Generated GET request for %s in %0.2fms' %(resource, (end - start) * 1000))
-
     def process_opil_GET_request(self, document_id):
         lab_accessors = {dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor}
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
