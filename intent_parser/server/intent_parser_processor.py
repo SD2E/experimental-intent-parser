@@ -1,16 +1,12 @@
 from http import HTTPStatus
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
-from intent_parser.accessor.strateos_accessor import StrateosAccessor
-from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
-from intent_parser.intent_parser_exceptions import ConnectionException, DictionaryMaintainerException, IntentParserException, TableException
-from intent_parser.intent_parser_factory import IntentParserFactory
-from intent_parser.intent_parser_sbh import IntentParserSBH
+from intent_parser.intent_parser_exceptions import ConnectionException, RequestErrorException
+from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, IntentParserException, TableException
 from intent_parser.protocols.protocol_factory import ProtocolFactory
 from intent_parser.table.intent_parser_table_type import TableType
 from intent_parser.table.table_creator import TableCreator
-from intent_parser.server.socket_manager import SocketManager
 from multiprocessing import Pool
 from operator import itemgetter
 from spellchecker import SpellChecker
@@ -22,12 +18,10 @@ import intent_parser.protocols.opil_parameter_utils as opil_util
 import intent_parser.server.http_message as http_message
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
-import argparse
 import inspect
 import json
 import logging.config
 import os
-import socket
 import threading
 import time
 import traceback
@@ -35,7 +29,7 @@ import traceback
 logger = logging.getLogger(__name__)
 
 
-class IntentParserServer(object):
+class IntentParserProcessor(object):
 
     dict_path = 'dictionaries'
     link_pref_path = 'link_pref'
@@ -59,21 +53,12 @@ class IntentParserServer(object):
                  sbh,
                  sbol_dictionary,
                  strateos_accessor,
-                 intent_parser_factory,
-                 bind_port,
-                 bind_ip):
+                 intent_parser_factory
+                 ):
         self.sbh = sbh
         self.sbol_dictionary = sbol_dictionary
         self.strateos_accessor = strateos_accessor
         self.intent_parser_factory = intent_parser_factory
-        self.bind_port = bind_port
-        self.bind_ip = bind_ip
-
-        self.socket = None
-        self.shutdownThread = False
-        self.event = threading.Event()
-        self.curr_running_threads = {}
-        self.client_thread_lock = threading.Lock()
 
         if not os.path.exists(self.dict_path):
             os.makedirs(self.dict_path)
@@ -98,96 +83,12 @@ class IntentParserServer(object):
         """
         Initialize the server.
         """
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        self.socket.bind((self.bind_ip, self.bind_port))
-
-        self.socket.listen(5)
-        logger.info('listening on {}:{}'.format(self.bind_ip, self.bind_port))
-
         self.sbol_dictionary.start_synchronizing_spreadsheet()
-        self.strateos_accessor.start_synchronize_protocols()
+        # self.strateos_accessor.start_synchronize_protocols() # TODO: uncomment for production
 
         if init_sbh:
             self.sbh.initialize_sbh()
         self.initialized = True
-
-    def start(self, *, background=False):
-        if not self.initialized:
-            raise RuntimeError('Server has not been initialized.')
-        if background:
-            run_thread = threading.Thread(target=self.start)
-            logger.info('Start background thread')
-            run_thread.start()
-            return
-
-        logger.info('Start Listener')
-
-        while True:
-            try:
-                if self.shutdownThread:
-                    return
-
-                client_sock, __ = self.socket.accept()
-            except ConnectionAbortedError:
-                # Shutting down
-                return
-            except OSError:
-                # Shutting down
-                return
-            except InterruptedError:
-                # Received when server is shutting down
-                return
-            except Exception as e:
-                raise e
-
-            if self.shutdownThread:
-                return
-
-            client_handler = threading.Thread(
-                target=self.handle_client_connection,
-                args=(client_sock,)  # without comma you'd get a... TypeError: handle_client_connection() argument after * must be a sequence, not _socketobject
-            )
-            client_handler.start()
-
-            self.client_thread_lock.acquire()
-            self.curr_running_threads[client_handler.ident] = client_handler
-            self.client_thread_lock.release()
-
-    def handle_client_connection(self, client_socket):
-        logger.info('Connection')
-        socket_manager = SocketManager(client_socket)
-        try:
-            while True:
-                httpMessage = http_message.HttpMessage(socket_manager)
-
-                if httpMessage.get_state() == http_message.State.ERROR:
-                    client_socket.close()
-                    return
-
-                method = httpMessage.get_method()
-
-                try:
-                    if method == 'POST':
-                        self.handle_POST(httpMessage, socket_manager)
-                    elif method == 'GET':
-                        self.handle_GET(httpMessage, socket_manager)
-                    else:
-                        response = self._create_http_response(HTTPStatus.NOT_IMPLEMENTED, 'Unrecognized request method\n')
-                        response.send(socket_manager)
-                except ConnectionException as ex:
-                    response = self._create_http_response(ex.http_status, ex.content)
-                    response.send(socket_manager)
-                except Exception as ex:
-                    logger.info(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
-                    response = self._create_http_response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Internal Server Error\n')
-                    response.send(socket_manager)
-        except Exception as e:
-            logger.info(''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__)))
-
-        client_socket.close()
-        client_socket.shutdown(socket.SHUT_RDWR)
 
     def _create_http_response(self, http_status, content, content_type='text/html'):
         response = http_message.HttpMessage()
@@ -218,8 +119,6 @@ class IntentParserServer(object):
             response = self.process_experiment_status(http_message)
         elif resource == '/update_experiment_status':
             response = self.process_update_experiment_status(http_message)
-        elif resource == '/insert_table_hints':
-            response = self.process_table_hints(http_message)
         else:
             response = self._create_http_response(HTTPStatus.NOT_FOUND, 'Resource Not Found')
             logger.warning('Did not find ' + resource)
@@ -228,24 +127,19 @@ class IntentParserServer(object):
         response.send(socket_manager)
         logger.info('Generated GET request for %s in %0.2fms' %(resource, (end - start) * 1000))
 
-    def process_opil_GET_request(self, http_message):
-        resource = http_message.get_resource()
-        document_id = resource.split('?')[1]
+    def process_opil_GET_request(self, document_id):
         lab_accessors = {dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor}
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_opil_request(lab_accessors)
         sbol_doc = intent_parser.get_opil_request()
-        if sbol_doc:
-            xml_string = sbol_doc.write_string('xml')
-            return self._create_http_response(HTTPStatus.OK, xml_string,
-                                          'text/xml')
-        else:
+        if not sbol_doc:
             errors = ['No opil output generated.']
             errors.extend(intent_parser.get_validation_errors())
             warnings = [intent_parser.get_validation_warnings()]
-            return self._create_http_response(HTTPStatus.BAD_REQUEST,
-                                              json.dumps({'errors': errors, 'warnings': warnings}),
-                                              'application/json')
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=errors, warnings=warnings)
+
+        xml_string = sbol_doc.write_string('xml')
+        return xml_string
 
     def process_opil_POST_request(self, http_message):
         json_body = intent_parser_utils.get_json_body(http_message)
@@ -275,61 +169,59 @@ class IntentParserServer(object):
         actions = {'actions': action_list}
         return self._create_http_response(HTTPStatus.OK, json.dumps(actions), 'application/json')
 
-    def process_document_report(self, http_message):
+    def process_document_report(self, document_id):
         """
         Handles a request to generate a report
         """
-        resource = http_message.get_resource()
-        document_id = resource.split('?')[1]
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         report = intent_parser.generate_report()
-        return self._create_http_response(HTTPStatus.OK, json.dumps(report), 'application/json')
+        return report
 
-    def process_document_request(self, http_message):
+    def process_document_request(self, document_id):
         """
         Handles a request to generate a structured request
         """
-        resource = http_message.get_resource()
-        document_id = resource.split('?')[1]
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_structure_request()
         if len(intent_parser.get_validation_errors()) > 0:
-            return self._create_http_response(HTTPStatus.BAD_REQUEST,
-                                              json.dumps({'errors': intent_parser.get_validation_errors()}),
-                                              'application/json')
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST,
+                                        errors=intent_parser.get_validation_errors(),
+                                        warnings=intent_parser.get_validation_warnings())
 
-        return self._create_http_response(HTTPStatus.OK, json.dumps(intent_parser.get_structured_request()), 'application/json')
+        return intent_parser.get_structured_request()
 
-    def process_experiment_request_documents(self, http_message):
+    def process_experiment_request_documents(self):
         """
         Retrieve experiment request documents.
         """
         drive_accessor = GoogleAccessor().get_google_drive_accessor(version=3)
         er_docs = drive_accessor.get_all_docs(intent_parser_constants.GOOGLE_DRIVE_EXPERIMENT_REQUEST_FOLDER)
-        return self._create_http_response(HTTPStatus.OK,
-                                          json.dumps({'docId': er_docs}),
-                                          'application/json')
+        return {'docId': er_docs}
 
-    def process_experiment_status(self, http_message):
+    def process_experiment_status(self, document_id):
         """
         Retrieve the statuses of an experiment from a google document.
         """
-        resource = http_message.get_resource()
-        document_id = resource.split('?')[1]
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_experiment_status_request()
         if len(intent_parser.get_validation_errors()) > 0:
-            return self._create_http_response(HTTPStatus.BAD_REQUEST,
-                                              json.dumps({'errors': intent_parser.get_validation_errors()}),
-                                              'application/json')
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST,
+                                        errors=intent_parser.get_validation_errors(),
+                                        warnings=intent_parser.get_validation_warnings())
+
         experiment_status = intent_parser.get_experiment_status_request()
         result = {dc_constants.LAB: experiment_status[dc_constants.LAB],
                   dc_constants.EXPERIMENT_ID: experiment_status[dc_constants.EXPERIMENT_ID]}
         for table_id, status_table in experiment_status[dc_constants.STATUS_ELEMENT].items():
             result[table_id] = status_table.to_dict()
-        return self._create_http_response(HTTPStatus.OK,
-                                          json.dumps(result),
-                                          'application/json')
+
+        return result
+
+    def get_status(self):
+        if not self.initialized:
+            raise RequestErrorException(HTTPStatus.SERVICE_UNAVAILABLE,
+                                        errors=['Intent Parser not initialized to properly accept incoming requests.'])
+        return 'Intent Parser Server is Up and Running'
 
     def process_run_experiment(self, http_message):
         resource = http_message.get_resource()
@@ -1967,8 +1859,7 @@ class IntentParserServer(object):
         """
         self.initialized = False
         logger.info('Signaling shutdown...')
-        self.shutdownThread = True
-        self.event.set()
+
         if self.sbh is not None:
             self.sbh.stop()
             logger.info('Stopped SynBioHub')
@@ -1978,17 +1869,6 @@ class IntentParserServer(object):
         if self.strateos_accessor is not None:
             self.strateos_accessor.stop_synchronizing_protocols()
             logger.info('Stopped caching Strateos protocols.')
-        if self.socket is not None:
-            logger.info('Closing server...')
-            try:
-                self.socket.shutdown(socket.SHUT_RDWR)
-                self.socket.close()
-            except OSError:
-                return
-            for key in self.curr_running_threads.keys():
-                client_thread = self.curr_running_threads[key]
-                if client_thread.is_alive():
-                    client_thread.join()
 
         logger.info('Shutdown complete')
 
@@ -2047,86 +1927,3 @@ class IntentParserServer(object):
             search_results.append({'title': title, 'target': target})
 
         return search_results, self.sparql_similar_count_cache[term]
-
-def setup_logging(
-    default_path='logging.json',
-    default_level=logging.INFO,
-    env_key='LOG_CFG'):
-    """
-    Setup logging configuration
-    """
-    path = default_path
-    value = os.getenv(env_key, None)
-    if value:
-        path = value
-    if os.path.exists(path):
-        with open(path, 'r') as f:
-            config = json.load(f)
-        logging.config.dictConfig(config)
-    else:
-        logging.basicConfig(level=default_level, format="[%(levelname)-8s] %(asctime)-24s %(filename)-23s line:%(lineno)-4s  %(message)s")
-
-    logger.addHandler(logging.FileHandler('intent_parser_server.log'))
-    logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.CRITICAL)
-    logging.getLogger("googleapiclient.discovery").setLevel(logging.CRITICAL)
-
-def main():
-    parser = argparse.ArgumentParser(description='Processes an experimental design.')
-    parser.add_argument('-a', '--authn', nargs='?',
-                            required=True, help='Authorization token for data catalog.')
-
-    parser.add_argument('-b', '--bind-host', nargs='?', default='0.0.0.0',
-                            required=False, help='IP address to bind to.')
-
-    parser.add_argument('-c', '--collection', nargs='?',
-                            required=True, help='Collection url.')
-
-    parser.add_argument('-i', '--spreadsheet-id', nargs='?', default=intent_parser_constants.SD2_SPREADSHEET_ID,
-                            required=False, help='Dictionary spreadsheet id.')
-
-    parser.add_argument('-l', '--bind-port', nargs='?', type=int, default=8081,
-                            required=False, help='TCP Port to listen on.')
-
-    parser.add_argument('-p', '--password', nargs='?',
-                            required=True, help='SynBioHub password.')
-
-    parser.add_argument('-s', '--spoofing-prefix', nargs='?',
-                            required=False, help='SBH spoofing prefix.')
-
-    parser.add_argument('-t', '--transcriptic', nargs='?',
-                            required=False, help='Path to transcriptic configuration file.')
-
-    parser.add_argument('-e', '--execute_experiment', nargs='?',
-                        required=False, help='Nonce credential used for authorizing an API endpoint to execute an experiment.')
-
-    parser.add_argument('-u', '--username', nargs='?',
-                            required=True, help='SynBioHub username.')
-
-    input_args = parser.parse_args()
-    setup_logging()
-    intent_parser_server = None
-    try:
-        sbh = IntentParserSBH(sbh_collection_uri=input_args.collection,
-                 spreadsheet_id=intent_parser_constants.SD2_SPREADSHEET_ID,
-                 sbh_username=input_args.username,
-                 sbh_password=input_args.password,
-                 sbh_spoofing_prefix=input_args.spoofing_prefix)
-        sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, sbh)
-        datacatalog_config = {"mongodb": {"database": "catalog_staging", "authn": input_args.authn}}
-        strateos_accessor = StrateosAccessor(input_args.transcriptic)
-        intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
-        intent_parser_server = IntentParserServer(sbh, sbol_dictionary, strateos_accessor, intent_parser_factory,
-                                                  bind_ip=input_args.bind_host,
-                                                  bind_port=input_args.bind_port)
-        intent_parser_server.initialize_server()
-        intent_parser_server.start()
-    except (KeyboardInterrupt, SystemExit) as ex:
-        return
-    except Exception as ex:
-        logger.warning(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
-    finally:
-        if intent_parser_server is not None:
-            intent_parser_server.stop()
-
-if __name__ == "__main__":
-    main()

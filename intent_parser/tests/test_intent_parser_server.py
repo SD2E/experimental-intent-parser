@@ -1,6 +1,6 @@
 from http import HTTPStatus
 from intent_parser.server.http_message import HttpMessage
-from intent_parser.server.intent_parser_processor import IntentParserServer
+from intent_parser.server.intent_parser_processor import IntentParserProcessor
 from unittest.mock import Mock, patch
 import intent_parser.constants.ip_app_script_constants as addon_constants
 import intent_parser.utils.intent_parser_view as intent_parser_view
@@ -32,11 +32,11 @@ class IntentParserServerTest(unittest.TestCase):
         self.mock_ta4_db_accessor = mock_ta4_db_accessor
         self.mock_intent_parser = Mock()
         self.mock_intent_parser_factory.create_intent_parser.return_value = self.mock_intent_parser
-        self.ip_server = IntentParserServer(self.mock_intent_parser_sbh,
-                                            self.mock_sbol_dictionary_accessor,
-                                            self.mock_strateos_accessor,
-                                            self.mock_intent_parser_factory,
-                                            bind_ip='localhost', bind_port=8081)
+        self.ip_server = IntentParserProcessor(self.mock_intent_parser_sbh,
+                                               self.mock_sbol_dictionary_accessor,
+                                               self.mock_strateos_accessor,
+                                               self.mock_intent_parser_factory,
+                                               bind_ip='localhost', bind_port=8081)
     
     def tearDown(self):
         pass
