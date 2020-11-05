@@ -1,4 +1,4 @@
-from flask import Flask, g, jsonify
+from flask import Flask, g, jsonify, request
 from http import HTTPStatus
 from intent_parser.server.intent_parser_processor import IntentParserProcessor
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
@@ -6,6 +6,7 @@ from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccess
 from intent_parser.intent_parser_exceptions import RequestErrorException
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.intent_parser_sbh import IntentParserSBH
+from werkzeug.exceptions import HTTPException
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import argparse
 import json
@@ -13,7 +14,7 @@ import logging.config
 import os
 import traceback
 
-"""A script in charge of listening into HTTP Requests.
+"""A script in charge of listening for HTTP Requests.
 """
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
@@ -26,6 +27,30 @@ def request_error_exception_handler(error):
 @app.errorhandler(HTTPStatus.NOT_FOUND)
 def page_not_found(error):
     return 'Request not identified by Intent Parser', HTTPStatus.NOT_FOUND
+
+@app.errorhandler(HTTPException)
+def handle_exception(error):
+    """Return JSON instead of HTML for HTTP errors."""
+    # start with the correct headers and status code from the error
+    response = error.get_response()
+    # replace the body with JSON
+    response.data = json.dumps({
+        "code": error.code,
+        "name": error.name,
+        "description": error.description,
+    })
+    response.content_type = "application/json"
+    return response
+
+@app.errorhandler(Exception)
+def handle_exception(error):
+    # pass through HTTP errors
+    if isinstance(error, HTTPException):
+        return error
+
+    # now you're handling non-HTTP exceptions only
+    logger.error(str(error))
+    return str(error), HTTPStatus.INTERNAL_SERVER_ERROR
 
 @app.route('/status')
 def status():
@@ -63,88 +88,116 @@ def opil_request(doc_id):
     opil_output = intent_parser_processor.process_opil_GET_request(doc_id)
     return opil_output, HTTPStatus.OK
 
-@app.route('/run_experiment', methods=['GET'])
-def run_experiment():
-    pass
+@app.route('/run_experiment/<doc_id>', methods=['GET'])
+def run_experiment(doc_id):
+    intent_parser_processor = get_processor()
+    experiment_data = intent_parser_processor.process_run_experiment(doc_id)
+    return jsonify(experiment_data), HTTPStatus.OK
 
-@app.route('/update_experiment_status', methods=['GET'])
-def update_experiment_status():
-    pass
+@app.route('/update_experiment_status/<doc_id>', methods=['GET'])
+def update_experiment_status(doc_id):
+    intent_parser_processor = get_processor()
+    status_data = intent_parser_processor.process_update_experiment_status(doc_id)
+    return jsonify(status_data), HTTPStatus.OK
 
-@app.route('/analyzeDocument')
-def analyzeDocument():
-    pass
+@app.route('/analyzeDocument/<doc_id>', methods=['POST'])
+def analyze_document(doc_id):
+    intent_parser_processor = get_processor()
+    analyze_data = intent_parser_processor.process_analyze_document(doc_id)
+    return jsonify(analyze_data), HTTPStatus.OK
 
+@app.route('/addBySpelling', methods=['POST'])
+def add_by_spelling():
+    intent_parser_processor = get_processor()
+    spelling_data = intent_parser_processor.process_add_by_spelling(request.json)
+    return jsonify(spelling_data), HTTPStatus.OK
 
-@app.route('/addBySpelling')
-def addBySpelling():
-    pass
+@app.route('/addToSynBioHub', methods=['POST'])
+def add_to_synbiohub():
+    intent_parser_processor = get_processor()
+    sbh_data = intent_parser_processor.process_add_to_syn_bio_hub(request.json)
+    return jsonify(sbh_data), HTTPStatus.OK
 
+@app.route('/buttonClick', methods=['POST'])
+def button_click():
+    intent_parser_processor = get_processor()
+    button_response = intent_parser_processor.process_button_click(request.json)
+    return jsonify(button_response), HTTPStatus.OK
 
-@app.route('/addToSynBioHub')
-def addToSynBioHub():
-    pass
+@app.route('/calculateSamples', methods=['POST'])
+def calculate_samples():
+    intent_parser_processor = get_processor()
+    samples = intent_parser_processor.process_calculate_samples(request.json)
+    return jsonify(samples), HTTPStatus.OK
 
+@app.route('/createTableTemplate', methods=['POST'])
+def create_table_template():
+    intent_parser_processor = get_processor()
+    table_template = intent_parser_processor.process_create_table_template(request.json)
+    return jsonify(table_template), HTTPStatus.OK
 
-@app.route('/buttonClick')
-def buttonClick():
-    pass
+@app.route('/executeExperiment', methods=['POST'])
+def execute_experiment():
+    intent_parser_processor = get_processor()
+    experiment_data = intent_parser_processor.process_execute_experiment(request.json)
+    return jsonify(experiment_data), HTTPStatus.OK
 
+@app.route('/experimentExecutionStatus', methods=['POST'])
+def experiment_execution_status():
+    intent_parser_processor = get_processor()
+    experiment_data = intent_parser_processor.process_experiment_execution_status(request.json)
+    return jsonify(experiment_data), HTTPStatus.OK
 
-@app.route('/calculateSamples')
-def calculateSamples():
-    pass
+@app.route('/generateOpilRequest', methods=['POST'])
+def generate_opil_post_request():
+    intent_parser_processor = get_processor()
+    opil_data = intent_parser_processor.process_opil_POST_request(request.host_url, request.json)
+    return jsonify(opil_data), HTTPStatus.OK
 
+@app.route('/generateStructuredRequest', methods=['POST'])
+def generate_structured_request():
+    intent_parser_processor = get_processor()
+    sr_data = intent_parser_processor.process_generate_structured_request(request.host_url, request.json)
+    return jsonify(sr_data), HTTPStatus.OK
 
-@app.route('/createTableTemplate')
-def createTableTemplate():
-    pass
-
-
-@app.route('/executeExperiment')
-def executeExperiment():
-    pass
-
-
-@app.route('/generateStructuredRequest')
-def generateStructuredRequest():
-    pass
-
-
-
-@app.route('/message')
+@app.route('/message', methods=['POST'])
 def message():
-    pass
+    intent_parser_processor = get_processor()
+    result = intent_parser_processor.process_message(request.json)
+    return result, HTTPStatus.OK
 
+@app.route('/reportExperimentStatus', methods=['POST'])
+def report_experiment_status():
+    intent_parser_processor = get_processor()
+    exp_status = intent_parser_processor.process_report_experiment_status(request.json)
+    return jsonify(exp_status), HTTPStatus.OK
 
-@app.route('/reportExperimentStatus')
-def reportExperimentStatus():
-    pass
+@app.route('/searchSynBioHub', methods=['POST'])
+def search_SynBioHub():
+    intent_parser_processor = get_processor()
+    search_result = intent_parser_processor.process_search_syn_bio_hub(request.json)
+    return jsonify(search_result), HTTPStatus.OK
 
+@app.route('/submitForm', methods=['POST'])
+def submit_form():
+    intent_parser_processor = get_processor()
+    form_result = intent_parser_processor.process_submit_form(request.json)
+    return jsonify(form_result), HTTPStatus.OK
 
-@app.route('/searchSynBioHub')
-def searchSynBioHub():
-    pass
+@app.route('/updateExperimentalResults', methods=['POST'])
+def update_experimental_results():
+    intent_parser_processor = get_processor()
+    exp_result = intent_parser_processor.process_update_exp_results(request.json)
+    return jsonify(exp_result), HTTPStatus.OK
 
-
-@app.route('/submitForm')
-def submitForm():
-    pass
-
-
-@app.route('/updateExperimentalResults')
-def updateExperimentalResults():
-    pass
-
-
-@app.route('/validateStructuredRequest')
-def validateStructuredRequest():
-    pass
-
+@app.route('/validateStructuredRequest', methods=['POST'])
+def validate_structured_request():
+    intent_parser_processor = get_processor()
+    sr_result = intent_parser_processor.process_validate_structured_request(request.json)
+    return jsonify(sr_result), HTTPStatus.OK
 
 def initialize_intent_parser_processor():
     pass
-
 
 def get_processor():
     return g.processor
