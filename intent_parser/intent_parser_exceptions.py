@@ -5,12 +5,6 @@ Exceptions supported by Intent Parser
 class Error(Exception):
     pass
 
-class ConnectionException(Exception):
-    # TODO: this class must be deleted. Use RequestErrorExceptin to handle this.
-    def __init__(self, http_status, content=""):
-        self.http_status = http_status
-        self.content = content
-
 class RequestErrorException(Exception):
     def __init__(self, http_status, errors=[], warnings=[]):
         self.http_status = http_status

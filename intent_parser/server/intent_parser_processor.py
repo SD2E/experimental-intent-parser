@@ -2,7 +2,7 @@ from http import HTTPStatus
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
 from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
-from intent_parser.intent_parser_exceptions import ConnectionException, RequestErrorException
+from intent_parser.intent_parser_exceptions import RequestErrorException
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, IntentParserException, TableException
 from intent_parser.protocols.protocol_factory import ProtocolFactory
 from intent_parser.table.intent_parser_table_type import TableType
@@ -26,11 +26,9 @@ import threading
 import time
 import traceback
 
-logger = logging.getLogger(__name__)
-
-
 class IntentParserProcessor(object):
 
+    logger = logging.getLogger('intent_parser_processor')
     dict_path = 'dictionaries'
     link_pref_path = 'link_pref'
 
@@ -105,7 +103,6 @@ class IntentParserProcessor(object):
         return xml_string
 
     def process_opil_POST_request(self, http_host, json_body):
-        json_body = intent_parser_utils.get_json_body(http_message)
         validation_errors = []
         validation_warnings = []
         if json_body is None or http_host is None:
@@ -507,9 +504,9 @@ class IntentParserProcessor(object):
                 errorMessage = (''.join(traceback.format_exception(etype=type(ex),
                                                          value=ex,
                                                          tb=ex.__traceback__)))
-                raise ConnectionException(HTTPStatus.NOT_FOUND, errorMessage)
+                raise RequestErrorException(HTTPStatus.NOT_FOUND, errors=[errorMessage])
 
-            body = doc.get('body');
+            body = doc.get('body')
             doc_content = body.get('content')
             paragraphs = self.get_paragraphs(doc_content)
 
@@ -703,8 +700,8 @@ class IntentParserProcessor(object):
 
     def _get_button_id(self, data):
         if ip_addon_constants.BUTTON_ID not in data:
-            error_message = 'Expected to get %s assigned to this HTTP data: %s but none was found.' % (ip_addon_constants.BUTTON_ID, data)
-            raise ConnectionException(HTTPStatus.BAD_REQUEST, error_message)
+            error_message = ['Expected to get %s assigned to this HTTP data: %s but none was found.' % (ip_addon_constants.BUTTON_ID, data)]
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=error_message)
 
         if type(data[ip_addon_constants.BUTTON_ID]) is dict:
             buttonDat = data[ip_addon_constants.BUTTON_ID]
@@ -716,8 +713,8 @@ class IntentParserProcessor(object):
         client_state = self.get_client_state(json_body)
 
         if 'data' not in json_body:
-            error_message = 'Missing data'
-            raise ConnectionException(HTTPStatus.BAD_REQUEST, error_message)
+            error_message = ['Missing data']
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=error_message)
         data = json_body['data']
 
         button_id = self._get_button_id(data)
@@ -1673,7 +1670,7 @@ class IntentParserProcessor(object):
         if document_id in self.client_state_map:
             if self.client_state_map[document_id]['locked']:
                 self.client_state_lock.release()
-                raise ConnectionException(HTTPStatus.SERVICE_UNAVAILABLE, 'This document is busy')
+                raise RequestErrorException(HTTPStatus.SERVICE_UNAVAILABLE, errors=['This document is busy'])
 
         client_state = {}
         client_state['document_id'] = document_id
