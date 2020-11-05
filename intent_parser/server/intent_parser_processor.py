@@ -256,47 +256,6 @@ class IntentParserProcessor(object):
         actions = {'actions': action_list}
         return actions
 
-    def handle_POST(self, http_message, socket_manager):
-        resource = http_message.get_resource()
-        start = time.time()
-        if resource == '/analyzeDocument':
-            response = self.process_analyze_document(http_message)
-        elif resource == '/addBySpelling':
-            response = self.process_add_by_spelling(http_message)
-        elif resource == '/addToSynBioHub':
-            response = self.process_add_to_syn_bio_hub(http_message)
-        elif resource == '/buttonClick':
-            response = self.process_button_click(http_message)
-        elif resource == '/calculateSamples':
-            response = self.process_calculate_samples(http_message)
-        elif resource == '/createTableTemplate':
-            response = self.process_create_table_template(http_message)
-        elif resource == '/executeExperiment':
-            response = self.process_execute_experiment(http_message)
-        elif resource == 'experimentExecutionStatus':
-            response = self.process_experiment_execution_status(http_message)
-        elif resource == '/generateOpilRequest':
-            response = self.process_opil_POST_request(http_message)
-        elif resource == '/generateStructuredRequest':
-            response = self.process_generate_structured_request(http_message)
-        elif resource == '/message':
-            response = self.process_message(http_message)
-        elif resource == '/reportExperimentStatus':
-            response = self.process_report_experiment_status(http_message)
-        elif resource == '/searchSynBioHub':
-            response = self.process_search_syn_bio_hub(http_message)
-        elif resource == '/submitForm':
-            response = self.process_submit_form(http_message)
-        elif resource == '/updateExperimentalResults':
-            response = self.process_update_exp_results(http_message)
-        elif resource == '/validateStructuredRequest':
-            response = self.process_validate_structured_request(http_message)
-        else:
-            response = self._create_http_response(HTTPStatus.NOT_FOUND, 'Resource Not Found\n')
-        end = time.time()
-        response.send(socket_manager)
-        logger.info('Generated POST request in %0.2fms, %s' %((end - start) * 1000, time.time()))
-
     def process_analyze_document(self, json_body):
         """
         This function will initiate an analysis if the document isn't currently being analyzed and
