@@ -90,16 +90,6 @@ class IntentParserProcessor(object):
             self.sbh.initialize_sbh()
         self.initialized = True
 
-    def _create_http_response(self, http_status, content, content_type='text/html'):
-        response = http_message.HttpMessage()
-        response.set_response_code(http_status.value, http_status.name)
-        response.set_header('content-type', content_type)
-        if content_type == 'text/xml':
-            response.set_body(content)
-        else:
-            response.set_body(content.encode('utf-8'))
-        return response
-
     def process_opil_GET_request(self, document_id):
         lab_accessors = {dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor}
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
@@ -422,17 +412,16 @@ class IntentParserProcessor(object):
             else:
                 logger.error('Unsupported form action: {}'.format(action))
             logger.info('Action: %s' % result)
-            return self._create_http_response(HTTPStatus.OK, json.dumps(result), 'application/json')
-        except (Exception, DictionaryMaintainerException) as err:
+            return result
+        except DictionaryMaintainerException as err:
             logger.info('Action: %s resulted in exception %s' % (action, err))
-            return self._create_http_response(HTTPStatus.INTERNAL_SERVER_ERROR, json.dumps(result), 'application/json')
+            raise RequestErrorException(HTTPStatus.INTERNAL_SERVER_ERROR, errors=[err.get_message()])
         finally:
             self.release_connection(client_state)
 
     def spellcheck_add_ignore(self, json_body, client_state):
         """ Ignore button action for additions by spelling
         """
-        json_body  # Remove unused warning
         client_state['spelling_index'] += 1
         if client_state['spelling_index'] >= client_state['spelling_size']:
             # We are at the end, nothing else to do
@@ -443,14 +432,12 @@ class IntentParserProcessor(object):
     def spellcheck_add_ignore_all(self, json_body, client_state):
         """ Ignore All button action for additions by spelling
         """
-        json_body  # Remove unused warning
         if self.spellcheck_remove_term(client_state):
             return intent_parser_view.report_spelling_results(client_state)
 
     def spellcheck_add_dictionary(self, json_body, client_state):
         """ Add to spelling dictionary button action for additions by spelling
         """
-        json_body  # Remove unused warning
         user_id = client_state['user_id']
 
         spell_index = client_state['spelling_index']
@@ -478,8 +465,6 @@ class IntentParserProcessor(object):
     def spellcheck_add_synbiohub(self, json_body, client_state):
         """ Add to SBH button action for additions by spelling
         """
-        json_body  # Remove unused warning
-
         doc_id = client_state['document_id']
         spell_index = client_state['spelling_index']
         spell_check_result = client_state['spelling_results'][spell_index]
@@ -506,7 +491,6 @@ class IntentParserProcessor(object):
 
     def internal_add_to_syn_bio_hub(self, document_id, start_paragraph, end_paragraph, start_offset, end_offset):
         try:
-
             item_type_list = []
             for sbol_type in intent_parser_constants.ITEM_TYPES:
                 item_type_list += intent_parser_constants.ITEM_TYPES[sbol_type].keys()
@@ -589,7 +573,7 @@ class IntentParserProcessor(object):
         starting_pos = spell_check_result[select_key]['cursor_index']
         para_index = spell_check_result[select_key]['paragraph_index']
         doc = client_state['doc']
-        body = doc.get('body');
+        body = doc.get('body')
         doc_content = body.get('content')
         paragraphs = self.get_paragraphs(doc_content)
         # work on the paragraph text directly
@@ -668,25 +652,21 @@ class IntentParserProcessor(object):
     def spellcheck_add_select_previous(self, json_body, client_state):
         """ Select previous word button action for additions by spelling
         """
-        json_body  # Remove unused warning
         return self.spellcheck_select_word_from_text(client_state, True, True)
 
     def spellcheck_add_select_next(self, json_body, client_state):
         """ Select next word button action for additions by spelling
         """
-        json_body  # Remove unused warning
         return self.spellcheck_select_word_from_text(client_state, False, True)
 
     def spellcheck_add_drop_first(self, json_body, client_state):
         """ Remove selection previous word button action for additions by spelling
         """
-        json_body  # Remove unused warning
         return self.spellcheck_select_word_from_text(client_state, True, False)
 
     def spellcheck_add_drop_last(self, json_body, client_state):
         """ Remove selection next word button action for additions by spelling
         """
-        json_body  # Remove unused warning
         return self.spellcheck_select_word_from_text(client_state, False, False)
 
     def process_form_link_all(self, data):
@@ -706,13 +686,13 @@ class IntentParserProcessor(object):
             if result is None:
                 break
 
-            search_result = { 'paragraph_index' : result[0],
-                              'offset'          : result[1],
-                              'end_offset'      : result[1] + len(selected_term) - 1,
-                              'term'            : selected_term,
-                              'uri'             : uri,
-                              'link'            : result[3],
-                              'text'            : result[4]}
+            search_result = { 'paragraph_index': result[0],
+                              'offset': result[1],
+                              'end_offset': result[1] + len(selected_term) - 1,
+                              'term': selected_term,
+                              'uri': uri,
+                              'link': result[3],
+                              'text': result[4]}
             # Only link terms that don't already have links
             if  search_result['link'] is None:
                 actions += self.add_link(search_result)
@@ -1415,7 +1395,7 @@ class IntentParserProcessor(object):
 
         db_exp_id_to_statuses = TA4DBAccessor().get_experiment_status(document_id, lab_name)
         if not db_exp_id_to_statuses:
-            experiment_ref = intent_parser_constants.GOOGLE_DOC_URL_PREFIX + document_id
+            experiment_ref = google_constants.GOOGLE_DOC_URL_PREFIX + document_id
             raise IntentParserException(
                 'TA4\'s pipeline has no information to report for %s under experiment %s.' % (lab_name, experiment_ref))
 
