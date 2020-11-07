@@ -10,6 +10,7 @@ from intent_parser.table.table_creator import TableCreator
 from multiprocessing import Pool
 from operator import itemgetter
 from spellchecker import SpellChecker
+import inspect
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.ip_app_script_constants as ip_addon_constants
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
@@ -18,7 +19,6 @@ import intent_parser.protocols.opil_parameter_utils as opil_util
 import intent_parser.server.http_message as http_message
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
-import inspect
 import json
 import logging.config
 import os
@@ -407,11 +407,11 @@ class IntentParserProcessor(object):
                           'results': {'operationSucceeded': True}
                 }
             else:
-                logger.error('Unsupported form action: {}'.format(action))
-            logger.info('Action: %s' % result)
+                self.logger.error('Unsupported form action: {}'.format(action))
+            self.logger.info('Action: %s' % result)
             return result
         except DictionaryMaintainerException as err:
-            logger.info('Action: %s resulted in exception %s' % (action, err))
+            self.logger.info('Action: %s resulted in exception %s' % (action, err))
             raise RequestErrorException(HTTPStatus.INTERNAL_SERVER_ERROR, errors=[err.get_message()])
         finally:
             self.release_connection(client_state)
@@ -534,17 +534,11 @@ class IntentParserProcessor(object):
     def get_paragraph_text(self, paragraph):
         elements = paragraph['elements']
         paragraph_text = ''
-
         for element_index in range(len(elements)):
             element = elements[element_index]
-
             if 'textRun' not in element:
                 continue
             text_run = element['textRun']
-
-            # end_index = element['endIndex']
-            # start_index = element['startIndex']
-
             paragraph_text += text_run['content']
 
         return paragraph_text
@@ -732,7 +726,7 @@ class IntentParserProcessor(object):
 
     def process_message(self, json_body):
         if 'message' in json_body:
-            logger.info(json_body['message'])
+            self.logger.info(json_body['message'])
         return '{}'
 
     def process_validate_structured_request(self, json_body):
@@ -904,9 +898,9 @@ class IntentParserProcessor(object):
                 try:
                     with open(link_pref_file, 'r') as fin:
                         self.analyze_never_link[userId] = json.load(fin)
-                        logger.info('Loaded link preferences for userId, path: %s' % link_pref_file)
+                        self.logger.info('Loaded link preferences for userId, path: %s' % link_pref_file)
                 except Exception as e:
-                    logger.error('ERROR: Failed to load link preferences file!')
+                    self.logger.error('ERROR: Failed to load link preferences file!')
             else:
                 self.analyze_never_link[userId] = {}
 
@@ -923,7 +917,7 @@ class IntentParserProcessor(object):
             with open(link_pref_file, 'w') as fout:
                 json.dump(self.analyze_never_link[userId], fout)
         except Exception as e:
-            logger.error('ERROR: Failed to write link preferences file!')
+            self.logger.error('ERROR: Failed to write link preferences file!')
 
         # Remove all of these associations from the results
         # This is different from "No to All", because that's only termed based
@@ -989,7 +983,7 @@ class IntentParserProcessor(object):
                                     }
                         }
         except Exception as err:
-            logger.error(str(err))
+            self.logger.error(str(err))
             return intent_parser_view.operation_failed('Failed to search SynBioHub')
 
         return response
@@ -1045,7 +1039,7 @@ class IntentParserProcessor(object):
                                                                              cellfreeriboswitch_options=cell_free_riboswitch_parameters)
             action_list.append(dialog_action)
         else:
-            logger.warning('WARNING: unsupported table type: %s' % table_type)
+            self.logger.warning('WARNING: unsupported table type: %s' % table_type)
 
         actions = {'actions': action_list}
         return actions
@@ -1130,7 +1124,7 @@ class IntentParserProcessor(object):
                 self.spellCheckers[userId] = SpellChecker()
                 dict_path = os.path.join(self.dict_path, userId + '.json')
                 if os.path.exists(dict_path):
-                    logger.info('Loaded dictionary for userId, path: %s' % dict_path)
+                    self.logger.info('Loaded dictionary for userId, path: %s' % dict_path)
                     self.spellCheckers[userId].word_frequency.load_dictionary(dict_path)
 
             lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
@@ -1422,7 +1416,7 @@ class IntentParserProcessor(object):
     def process_report_experiment_status(self, json_body):
         """Report the status of an experiment by inserting experiment specification and status tables."""
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-        logger.warning('Processing document id: %s' % document_id)
+        self.logger.warning('Processing document id: %s' % document_id)
 
         action_list = []
         try:
@@ -1465,7 +1459,7 @@ class IntentParserProcessor(object):
         ref_optional_name_to_id = {}
         for parameter in protocol.has_parameter:
             if not parameter.default_value:
-                logger.warning('parameter %s does not have default value' % parameter.name)
+                self.logger.warning('parameter %s does not have default value' % parameter.name)
                 continue
 
             ref_id = str(parameter.default_value[0])
@@ -1554,8 +1548,7 @@ class IntentParserProcessor(object):
             link = new_link
         search_result[ip_addon_constants.ANALYZE_LINK] = link
 
-        action = intent_parser_view.link_text(paragraph_index, offset,
-                                end_offset, link)
+        action = intent_parser_view.link_text(paragraph_index, offset, end_offset, link)
 
         return [action]
 
@@ -1708,7 +1701,7 @@ class IntentParserProcessor(object):
         if document_id in self.client_state_map:
             client_state = self.client_state_map[document_id]
             if not client_state['locked']:
-                logger.error('Error: releasing client_state, but it is not locked! doc_id: %s, called by %s' % (document_id, inspect.currentframe().f_back.f_code.co_name))
+                self.logger.error('Error: releasing client_state, but it is not locked! doc_id: %s, called by %s' % (document_id, inspect.currentframe().f_back.f_code.co_name))
             client_state['locked'] = False
 
         self.client_state_lock.release()
@@ -1717,19 +1710,19 @@ class IntentParserProcessor(object):
         """Stop all jobs running on intent table server
         """
         self.initialized = False
-        logger.info('Signaling shutdown...')
+        self.logger.info('Signaling shutdown...')
 
         if self.sbh is not None:
             self.sbh.stop()
-            logger.info('Stopped SynBioHub')
+            self.logger.info('Stopped SynBioHub')
         if self.sbol_dictionary is not None:
             self.sbol_dictionary.stop_synchronizing_spreadsheet()
-            logger.info('Stopped caching SBOL Dictionary.')
+            self.logger.info('Stopped caching SBOL Dictionary.')
         if self.strateos_accessor is not None:
             self.strateos_accessor.stop_synchronizing_protocols()
-            logger.info('Stopped caching Strateos protocols.')
+            self.logger.info('Stopped caching Strateos protocols.')
 
-        logger.info('Shutdown complete')
+        self.logger.info('Shutdown complete')
 
     def spellcheck_remove_term(self, client_state):
         """ Removes the current term from the result set, returning True if a term was removed else False.

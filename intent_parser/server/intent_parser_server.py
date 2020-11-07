@@ -1,12 +1,12 @@
-from flask import Flask, g, jsonify, request
+from flask import Flask, jsonify, request
 from http import HTTPStatus
+from intent_parser.intent_parser_exceptions import RequestErrorException
+from werkzeug.exceptions import HTTPException
 from intent_parser.server.intent_parser_processor import IntentParserProcessor
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
-from intent_parser.intent_parser_exceptions import RequestErrorException
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.intent_parser_sbh import IntentParserSBH
-from werkzeug.exceptions import HTTPException
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import argparse
 import json
@@ -16,20 +16,23 @@ import traceback
 
 """A script in charge of listening for HTTP Requests.
 """
+
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
+ip_processor = None
 
 @app.errorhandler(RequestErrorException)
-def request_error_exception_handler(error):
+def handle_request_error_exception(error):
     return (jsonify({'errors': error.get_errors(), 'warnings': error.get_warnings()}),
             error.get_http_status())
 
 @app.errorhandler(HTTPStatus.NOT_FOUND)
-def page_not_found(error):
+def handle_page_not_found(error):
+    logger.error(str(error))
     return 'Request not identified by Intent Parser', HTTPStatus.NOT_FOUND
 
 @app.errorhandler(HTTPException)
-def handle_exception(error):
+def handle_http_exception(error):
     """Return JSON instead of HTML for HTTP errors."""
     # start with the correct headers and status code from the error
     response = error.get_response()
@@ -58,7 +61,7 @@ def status():
     ip_status = intent_parser_processor.get_status()
     return ip_status, HTTPStatus.OK
 
-@app.route('/document_report/<doc_id>', methods=['GET'])
+@app.route('/document_report/d/<doc_id>', methods=['GET'])
 def document_report(doc_id):
     intent_parser_processor = get_processor()
     report = intent_parser_processor.process_document_report(doc_id)
@@ -196,20 +199,31 @@ def validate_structured_request():
     sr_result = intent_parser_processor.process_validate_structured_request(request.json)
     return jsonify(sr_result), HTTPStatus.OK
 
-def initialize_intent_parser_processor():
-    pass
+def setup_ip_processor(input_args=None):
+    try:
+        sbh = IntentParserSBH(sbh_collection_uri=input_args.collection,
+                              spreadsheet_id=intent_parser_constants.SD2_SPREADSHEET_ID,
+                              sbh_username=input_args.username,
+                              sbh_password=input_args.password,
+                              sbh_spoofing_prefix=input_args.spoofing_prefix)
+        sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, sbh)
+        datacatalog_config = {"mongodb": {"database": "catalog_staging", "authn": input_args.authn}}
+        strateos_accessor = StrateosAccessor(input_args.transcriptic)
+        intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
+        ip_processor = IntentParserProcessor(sbh, sbol_dictionary, strateos_accessor, intent_parser_factory)
+        ip_processor.initialize_server()
+        return ip_processor
+    except (KeyboardInterrupt, SystemExit):
+        return
+    except Exception as ex:
+        logger.warning(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
 
 def get_processor():
-    return g.processor
-
-
-@app.teardown_appcontext
-def teardown_processor(exception):
-    intent_server_processor = g.pop('processor', None)
-
-    if intent_server_processor is not None:
-        intent_server_processor.stop()
-
+    global ip_processor
+    if ip_processor is None:
+        raise RequestErrorException(HTTPStatus.INTERNAL_SERVER_ERROR,
+                                    errors=['Intent Parser Processor unsuccessfully initialized.'])
+    return ip_processor
 
 def setup_logging(
         default_path='logging.json',
@@ -261,16 +275,12 @@ def main():
     parser.add_argument('-t', '--transcriptic', nargs='?',
                         required=False, help='Path to transcriptic configuration file.')
 
-    parser.add_argument('-e', '--execute_experiment', nargs='?',
-                        required=False,
-                        help='Nonce credential used for authorizing an API endpoint to execute an experiment.')
-
     parser.add_argument('-u', '--username', nargs='?',
                         required=True, help='SynBioHub username.')
 
     input_args = parser.parse_args()
     setup_logging()
-    ip_processor = None
+    global ip_processor
     try:
         sbh = IntentParserSBH(sbh_collection_uri=input_args.collection,
                               spreadsheet_id=intent_parser_constants.SD2_SPREADSHEET_ID,
@@ -283,15 +293,12 @@ def main():
         intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
         ip_processor = IntentParserProcessor(sbh, sbol_dictionary, strateos_accessor, intent_parser_factory)
         ip_processor.initialize_server()
-        g.processor = ip_processor
         app.run(host=input_args.bind_host, port=input_args.bind_port)
-    except (KeyboardInterrupt, SystemExit) as ex:
+    except (KeyboardInterrupt, SystemExit):
         return
     except Exception as ex:
         logger.warning(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
-    finally:
-        if ip_processor is not None:
-            ip_processor.stop()
+
 
 if __name__ == "__main__":
     main()
