@@ -172,7 +172,7 @@ class Message(Resource):
 
     def post(self):
         message = self._ip_processor.process_message(request.get_json())
-        return message, HTTPStatus.OK  # TODO
+        return message, HTTPStatus.OK  
 
 class SearchSynBioHub(Resource):
     def __init__(self, ip_processor):
