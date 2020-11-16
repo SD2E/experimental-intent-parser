@@ -785,7 +785,9 @@ class IntentParserProcessor(object):
             validation_errors.extend(intent_parser.get_validation_errors())
 
         if len(validation_errors) == 0:
-            dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings)
+            if len(validation_warnings) == 0:
+                validation_warnings.append('No warnings found.')
+            dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings, width=600)
         else:
             all_errors = validation_warnings + validation_errors
             dialog_action = intent_parser_view.invalid_request_model_dialog('Structured request validation: Failed!', all_errors)

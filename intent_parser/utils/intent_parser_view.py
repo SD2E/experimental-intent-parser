@@ -460,16 +460,15 @@ def message_dialog(title, message):
     buttons = [('Ok', 'process_nop')]
     return simple_modal_dialog(message, buttons, title, 200, height)
 
-def valid_request_model_dialog(warnings, link=None):
+def valid_request_model_dialog(warnings, link=None, height=300, width=500):
     text_area_rows = 15
-    height = 300
     title = 'Structured request validation: Passed!'
     msg = ''
     if link:
         msg = 'Download Structured Request ' + link
-    msg += "<textarea cols='80' rows='%d'> %s </textarea>" % (text_area_rows, '\n'.join(warnings))
+    msg += "<textarea cols='70' rows='%d'> %s </textarea>" % (text_area_rows, '\n'.join(warnings))
     buttons = [('Ok', 'process_nop')] 
-    return simple_modal_dialog(msg, buttons, title, 500, height)
+    return simple_modal_dialog(msg, buttons, title, width, height)
 
 def create_execute_experiment_dialog(link):
     dialog_title = 'Submit Experiment'

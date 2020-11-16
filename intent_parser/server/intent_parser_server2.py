@@ -43,6 +43,7 @@ class DocumentRequest(Resource):
         return jsonify(structure_request), HTTPStatus.OK
 
     def post(self):
+        # previously called generateStructuredRequest
         structure_request = self._ip_processor.process_generate_structured_request(request.get_json())
         return structure_request, HTTPStatus.OK # TODO
 
@@ -63,6 +64,7 @@ class ExperimentStatus(Resource):
         return experiment_status, HTTPStatus.OK
 
     def post(self):
+        # previously called reportExperimentStatus
         experiment_status = self._ip_processor.process_experiment_status_POST(request.get_json())
         return experiment_status, HTTPStatus.OK # TODO
 
@@ -75,6 +77,7 @@ class OpilRequest(Resource):
         return opil_output, HTTPStatus.OK
 
     def post(self):
+        # previously called generateOpilRequest
         opil_output = self._ip_processor.process_opil_POST_request(request.get_json())
         return opil_output, HTTPStatus.OK # TODO
 
@@ -87,6 +90,7 @@ class RunExperiment(Resource):
         return jsonify(experiment_data), HTTPStatus.OK
 
     def post(self):
+        # previously called executeExperiment
         experiment_data = self._ip_processor.process_run_experiment_POST(request.get_json())
         return experiment_data, HTTPStatus.OK # TODO
 
@@ -192,7 +196,7 @@ class UpdateExperimentResult(Resource):
 
     def post(self):
         experiment_result = self._ip_processor.process_update_exp_results(request.get_json())
-        return experiment_result, HTTPStatus.OK # TODO
+        return experiment_result, HTTPStatus.OK
 
 class ValidateStructuredRequest(Resource):
     def __init__(self, ip_processor):
@@ -200,7 +204,7 @@ class ValidateStructuredRequest(Resource):
 
     def post(self):
         sr_result = self._ip_processor.process_validate_structured_request(request.get_json())
-        return sr_result, HTTPStatus.OK # TODO
+        return sr_result, HTTPStatus.OK
 
 def setup_api_resources(ip_processor):
     api.add_resource(Status,
@@ -248,9 +252,6 @@ def setup_api_resources(ip_processor):
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(ExperimentExecutionStatus,
                      '/experimentExecutionStatus',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(ExperimentStatus,
-                     '/reportExperimentStatus',
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(Message,
                      '/message',
