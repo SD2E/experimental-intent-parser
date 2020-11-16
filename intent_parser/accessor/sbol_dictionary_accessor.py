@@ -28,12 +28,20 @@ class SBOLDictionaryAccessor(object):
     curr_path = os.path.dirname(os.path.realpath(__file__))
     ITEM_MAP_FILE = os.path.join(curr_path, 'item-map.json')
 
+    ANALYZE_TABS = [dictionary_constants.TAB_ATTRIBUTE,
+                    dictionary_constants.TAB_GENETIC_CONSTRUCTS,
+                    dictionary_constants.TAB_PROTEIN,
+                    dictionary_constants.TAB_REAGENT,
+                    dictionary_constants.TAB_STRAIN]
+
     SYNC_PERIOD = timedelta(minutes=30)
 
     def __init__(self, spreadsheet_id, sbh):
         self.google_accessor = GoogleAccessor().get_google_spreadsheet_accessor()
         self.sbh = sbh
-        
+
+        self.analyze_terms = {}
+        self.analyze_lock = threading.Lock()
         self.spreadsheet_lock = threading.Lock()
         self.spreadsheet_tab_data = {}
         self.spreadsheet_thread = threading.Thread(target=self._periodically_fetch_spreadsheet)
@@ -85,6 +93,17 @@ class SBOLDictionaryAccessor(object):
         self.spreadsheet_lock.release()
         return sheet_data
 
+    def get_analyzed_terms(self):
+        """
+        Retrieve terms from the dictionary with its corresponding SBH URI.
+        Returns:
+            A dictionary where key represents a dictionary term and value represents a SBH uri.
+        """
+        self.analyze_lock.acquire()
+        dictionary_terms = self.analyze_terms.copy()
+        self.analyze_lock.release()
+        return dictionary_terms
+
     def start_synchronizing_spreadsheet(self):
         self._fetch_spreadsheet_data()
         self.spreadsheet_thread.start()
@@ -108,6 +127,24 @@ class SBOLDictionaryAccessor(object):
             self.logger.info('Fetched data from tab ' + tab)
         self.spreadsheet_tab_data = update_spreadsheet_data
         self.spreadsheet_lock.release()
+
+        self.analyze_lock.acquire()
+        dictionary_terms = {}
+        for tab in self.ANALYZE_TABS:
+            dictionary_terms.update(self._get_dictionary_terms_from_tab(tab))
+        self.analyze_terms = dictionary_terms
+        self.analyze_lock.release()
+
+    def _get_dictionary_terms_from_tab(self, tab):
+        dictionary_terms = {}
+        tab_data = self.get_row_data(tab=tab)
+        for common_name, exp_var in self._create_experiment_variables_from_spreadsheet_tab(tab_data).items():
+            for name in exp_var.get_lab_names():
+                if len(name) > 2:
+                    dictionary_terms[name] = exp_var.get_sbh_uri()
+            if len(common_name) > 2:
+                dictionary_terms[exp_var.get_common_name()] = exp_var.get_sbh_uri()
+        return dictionary_terms
 
     def create_dictionary_entry(self, data, document_url, item_definition_uri):
         item_type = data['itemType']
@@ -408,10 +445,10 @@ class SBOLDictionaryAccessor(object):
                 mapped_strains[sbh_uri] = ExperimentVariable(sbh_uri, lab_name, common_name, lab_names=lab_strain_names)
         return mapped_strains
 
-    def create_experiment_variables_from_spreadsheet_tab(self, tab):
-        experiment_variables ={}
+    def _create_experiment_variables_from_spreadsheet_tab(self, tab):
+        experiment_variables = {}
         for row in tab:
-            if (dictionary_constants.COLUMN_COMMON_NAME in row and dictionary_constants.COLUMN_SYNBIOHUB_URI in row):
+            if dictionary_constants.COLUMN_COMMON_NAME in row and dictionary_constants.COLUMN_SYNBIOHUB_URI in row:
                 sbh_uri = row[dictionary_constants.COLUMN_SYNBIOHUB_URI]
                 common_name = row[dictionary_constants.COLUMN_COMMON_NAME]
                 for lab_name, lab_uid in dictionary_constants.MAPPED_LAB_UID.items():
@@ -429,10 +466,6 @@ class SBOLDictionaryAccessor(object):
             if transcriptic_id == value:
                 return key
         return None
-
-    def get_transcriptic_id_from_common_name(self, common_name):
-        mappings = self.map_common_names_and_transcriptic_id()
-        return mappings[common_name] if common_name in mappings else None
 
     def map_common_names_and_transcriptic_id(self):
         result = {}

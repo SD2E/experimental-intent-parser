@@ -1,4 +1,6 @@
 Flask==1.1.2
+flask-restful
+flashtext
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
@@ -14,5 +16,4 @@ sbol2
 sbol3
 tenacity
 transcriptic
-flashtext
 

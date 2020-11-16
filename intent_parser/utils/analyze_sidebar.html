@@ -1,28 +1,13 @@
 <!DOCTYPE html>
 <html>
-
 <head>
 <style>
-p    {word-break: break-all; white-space: normal;}\
+p    {word-break: break-all; white-space: normal;}
 </style>
 </head>
 
 <body>
-
   <script>
-
-    function EnterLinkClick() {
-        google.script.run.withSuccessHandler(enterLinkHandler).enterLinkPrompt('Manually enter a SynbioHub link for this term.', 'Enter URI:');
-    }
-
-    function enterLinkHandler(result) {
-        var shouldProcess = result[0];
-        var text = result[1];
-        if (shouldProcess) {
-            var theForm = this.analyzeResultsForm
-            linkItem(theForm, text)
-        }
-    }
 
     function onLoad() {
         refreshList(0)
@@ -36,22 +21,24 @@ p    {word-break: break-all; white-space: normal;}\
 
         // Operation Failed
         submitButtonTable.innerHTML = '<i><font color=red>' + result.message + '</font></i>'
-        var theForm = this.analyzeResultsForm
+        let theForm = this.analyzeResultsForm
         refreshList(0)
     }
 
     // Search SynBioHub
     // Currently just searches for commonName
     function refreshList(offset) {
-        var theForm = this.analyzeResultsForm
-        var commonName = theForm.contentTerm.value
-        var selectedURI = theForm.selectedURI.value
-        var searchParams = {'term': commonName, 'offset' : offset, 'analyze' : true, 'selected_uri' : selectedURI}
-        var postRequest = {'resource': '/searchSynBioHub',
+        let theForm = this.analyzeResultsForm
+        let commonName = theForm.contentTerm.value
+        let selectedURI = theForm.selectedURI.value
+        let searchParams = {'term': commonName,
+                            'offset' : offset,
+                            'analyze' : true,
+                            'selected_uri' : selectedURI}
+        let postRequest = {'resource': '/searchSynBioHub',
                            'data': searchParams}
 
-        var table = document.getElementById('existingLinksTable')
-
+        let table = document.getElementById('existingLinksTable')
         if(commonName == '') {
             table.innerHTML = ''
             return
@@ -60,17 +47,14 @@ p    {word-break: break-all; white-space: normal;}\
         table.innerHTML = '<i>Generating List...</i>'
         theForm.refreshListButton.style.visibility = 'hidden'
 
-        google.script.run.withSuccessHandler(searchResponse).
-            postFromClient(postRequest)
+        google.script.run.withSuccessHandler(searchResponse).postFromClient(postRequest)
     }
 
     function searchResponse(result) {
-        var theForm = this.analyzeResultsForm
-
+        let theForm = this.analyzeResultsForm
         theForm.refreshListButton.style.visibility = ''
 
-        var table = document.getElementById('existingLinksTable')
-
+        let table = document.getElementById('existingLinksTable')
         if(result.operationSucceeded) {
             table.innerHTML = result.table_html
         } else {
@@ -79,35 +63,16 @@ p    {word-break: break-all; white-space: normal;}\
     }
 
     function busy(message) {
-        var theForm = this.analyzeResultsForm
-        var submitButtonTable = document.getElementById('submitButtonTable')
-        var table = document.getElementById('existingLinksTable')
+        let theForm = this.analyzeResultsForm
+        let submitButtonTable = document.getElementById('submitButtonTable')
+        let table = document.getElementById('existingLinksTable')
 
         submitButtonTable.innerHTML = '<tr><td><i>' + message + '</i></td></tr>'
         table.innerHTML = ''
         theForm.refreshListButton.style.visibility = 'hidden'
     }
 
-    function linkItem(theForm, link) {
-        var data = {'buttonId' : 'process_analyze_yes',
-                     'link' : link}
-        busy('Linking to existing SynBioHub entry')
-
-        google.script.run.withSuccessHandler(onSuccess).
-            buttonClick(data)
-    }
-
-
-    function linkAll(theForm, link) {
-        var data = {'buttonId' : 'process_link_all',
-                     'link' : link}
-        busy('Linking all occurrences to exsiting SynBioHub entry')
-
-        google.script.run.withSuccessHandler(onSuccess).
-            buttonClick(data)
-    }
-
-    ${BUTTONS_SCRIPT}
+    // ${BUTTONS_SCRIPT}
 
     this.onload = onLoad
   </script>
@@ -136,7 +101,7 @@ p    {word-break: break-all; white-space: normal;}\
       <H4> Other suggestions:</H4>
 
       <script>
-        var thisForm = analyzeResultsForm
+        let thisForm = analyzeResultsForm
       </script>
 
       <table stype="width:100%" id="existingLinksTable">

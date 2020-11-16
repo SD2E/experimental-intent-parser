@@ -52,8 +52,8 @@ class GoogleDocumentParser(DocumentParser):
 
         if doc_constants.TABLE_CELLS in row_property:
             for cell_property in row_property[doc_constants.TABLE_CELLS]:
-               if doc_constants.CONTENT in cell_property:
-                   for content_property in cell_property[doc_constants.CONTENT]:
+                if doc_constants.CONTENT in cell_property:
+                    for content_property in cell_property[doc_constants.CONTENT]:
                         properties.append(content_property)
         return properties
 
@@ -66,7 +66,10 @@ class GoogleDocumentParser(DocumentParser):
                 link = text_run[doc_constants.TEXT_STYLE][doc_constants.LINK]
                 if doc_constants.URL in link:
                     url = link[doc_constants.URL]
-                    ip_element = self.Element(text, element[doc_constants.START_INDEX], element[doc_constants.END_INDEX], hyperlink=url)
+                    ip_element = self.Element(text,
+                                              element[doc_constants.START_INDEX],
+                                              element[doc_constants.END_INDEX],
+                                              hyperlink=url)
                     ip_paragraph.add_element(ip_element)
             else:
                 ip_element = self.Element(text, element[doc_constants.START_INDEX], element[doc_constants.END_INDEX])

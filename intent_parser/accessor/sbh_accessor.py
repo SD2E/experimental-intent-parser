@@ -4,6 +4,7 @@ import threading
 import traceback
 
 class SBHAccessor:
+
     def __init__(self, *, sbh_url):
         self.shutdownThread = False
         self.event = threading.Event()
@@ -12,8 +13,7 @@ class SBHAccessor:
         self.sbh_username = None
         self.sbh_password = None
 
-        self.housekeeping_thread = \
-            threading.Thread(target=self.housekeeping)
+        self.housekeeping_thread = threading.Thread(target=self.housekeeping)
         self.housekeeping_thread.start()
 
     # * Stop after trying 3 times
@@ -25,12 +25,10 @@ class SBHAccessor:
                     reraise=True)
     def login(self, sbh_username, sbh_password):
         self.lock.acquire()
-
         try:
             fret = self.sbh.login(sbh_username, sbh_password)
             self.sbh_username = sbh_username
             self.sbh_password = sbh_password
-
         except Exception as e:
             self.lock.release()
             raise e
@@ -40,10 +38,8 @@ class SBHAccessor:
 
     def spoof(self, sbh_spoofing_prefix):
         self.lock.acquire()
-
         try:
             fret = self.sbh.spoof(sbh_spoofing_prefix)
-
         except Exception as e:
             self.lock.release()
             raise e
@@ -60,7 +56,6 @@ class SBHAccessor:
                     reraise=True)
     def sparqlQuery(self, sparql_query):
         self.lock.acquire()
-
         try:
             fret = self.sbh.sparqlQuery(sparql_query)
 
@@ -71,10 +66,8 @@ class SBHAccessor:
         self.lock.release()
         return fret
 
-
     def exists(self, document_url):
         self.lock.acquire()
-
         try:
             fret = self.sbh.exists(document_url)
 
@@ -87,9 +80,9 @@ class SBHAccessor:
 
     def submit(self, document, collection, flags):
         self.lock.acquire()
-
         try:
-            fret = self.sbh.submit(document, collection,
+            fret = self.sbh.submit(document,
+                                   collection,
                                    flags)
 
         except Exception as e:
@@ -110,8 +103,6 @@ class SBHAccessor:
                 return
 
             self.lock.acquire()
-
-
             try:
                 if self.sbh_username is not None and \
                    self.sbh_password is not None:

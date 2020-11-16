@@ -149,7 +149,6 @@ function validate_uri(uri) {
 
 function enterLinkPrompt(title, msg) {
 	var ui = DocumentApp.getUi();
-
 	var result = ui.prompt(title, msg, ui.ButtonSet.OK_CANCEL);
 	// Process the user's response.
 	var button = result.getSelectedButton();
@@ -422,7 +421,8 @@ function sendPost(resource, data) {
 	var requestJSON = JSON.stringify(request);
 	var options = {
 			'method' : 'post',
-			'payload' : requestJSON
+			'payload' : requestJSON,
+			'contentType': 'application/json'
 	};
 
 	shouldProcessActions = true;
@@ -625,7 +625,6 @@ function sendAnalyzeFromTop() {
 
 function sendAnalyzeFromCursor() {
 	var cursorLocation = findCursor();
-
 	sendPost('/analyzeDocument', cursorLocation);
 }
 

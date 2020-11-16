@@ -2,6 +2,10 @@ from http import HTTPStatus
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
 from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
+from intent_parser.document.analyze_document_controller import AnalyzeDocumentController
+from intent_parser.document.document_location import DocumentLocation
+from intent_parser.document.intent_parser_document_factory import IntentParserDocumentFactory
+from intent_parser.intent_parser_factory import LabExperiment
 from intent_parser.intent_parser_exceptions import RequestErrorException
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, IntentParserException, TableException
 from intent_parser.protocols.protocol_factory import ProtocolFactory
@@ -11,10 +15,10 @@ from multiprocessing import Pool
 from operator import itemgetter
 from spellchecker import SpellChecker
 import inspect
-import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-import intent_parser.constants.ip_app_script_constants as ip_addon_constants
-import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.constants.google_api_constants as google_constants
+import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.constants.ip_app_script_constants as ip_addon_constants
+import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.protocols.opil_parameter_utils as opil_util
 import intent_parser.server.http_message as http_message
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
@@ -33,9 +37,6 @@ class IntentParserProcessor(object):
     link_pref_path = 'link_pref'
 
     _curr_path = os.path.dirname(os.path.realpath(__file__))
-
-    # Defines a period of time to wait to send analyze progress updates, in seconds
-    ANALYZE_PROGRESS_PERIOD = 2.5
 
     # Defines how many processes are in the pool, for parallelisocket_manager
     MULTIPROCESSING_POOL_SIZE = 8
@@ -69,19 +70,17 @@ class IntentParserProcessor(object):
 
         self.spellCheckers = {}
         # Dictionary per-user that stores analyze associations to ignore
-        self.analyze_never_link = {}
-        self.analyze_processing_map = {}
-        self.analyze_processing_map_lock = threading.Lock() # Used to lock the map
-        self.analyze_processing_lock = {} # Used to indicate if the processing thread has finished, mapped to each doc_id
+        self.analyze_controller = AnalyzeDocumentController()
         self.client_state_map = {}
         self.client_state_lock = threading.Lock()
         self.initialized = False
 
-    def initialize_server(self, init_sbh=True):
+    def initialize_intent_parser_processor(self, init_sbh=True):
         """
         Initialize the server.
         """
         self.sbol_dictionary.start_synchronizing_spreadsheet()
+        self.analyze_controller.start_analyze_controller()
         # self.strateos_accessor.start_synchronize_protocols() # TODO: uncomment for production
 
         if init_sbh:
@@ -157,7 +156,7 @@ class IntentParserProcessor(object):
         er_docs = drive_accessor.get_all_docs(intent_parser_constants.GOOGLE_DRIVE_EXPERIMENT_REQUEST_FOLDER)
         return {'docId': er_docs}
 
-    def process_experiment_status(self, document_id):
+    def process_experiment_status_GET(self, document_id):
         """
         Retrieve the statuses of an experiment from a google document.
         """
@@ -182,7 +181,16 @@ class IntentParserProcessor(object):
                                         errors=['Intent Parser not initialized to properly accept incoming requests.'])
         return 'Intent Parser Server is Up and Running'
 
-    def process_run_experiment(self, document_id):
+    def process_experiment_execution_status(self, json_body):
+        execution_id = 'ZzL5p65NgyXw' # TODO: placeholder to assume authentication was successful. Will need to update to correct execution_id
+        tacc_accessor = TACCGoAccessor()
+        status = tacc_accessor.get_status_of_experiment(execution_id)
+        action_list = [intent_parser_view.message_dialog('Submission Status', status)]
+
+        actions = {'actions': action_list}
+        return actions
+
+    def process_run_experiment_GET(self, document_id):
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_experiment_run_request()
 
@@ -202,16 +210,7 @@ class IntentParserProcessor(object):
         link = response_json['_links']['self']
         return {'authenticationLink': link}
 
-    def process_experiment_execution_status(self, json_body):
-        execution_id = 'ZzL5p65NgyXw' # TODO: placeholder to assume authentication was successful. Will need to update to correct execution_id
-        tacc_accessor = TACCGoAccessor()
-        status = tacc_accessor.get_status_of_experiment(execution_id)
-        action_list = [intent_parser_view.message_dialog('Submission Status', status)]
-
-        actions = {'actions': action_list}
-        return actions
-
-    def process_execute_experiment(self, json_body):
+    def process_run_experiment_POST(self, json_body):
         validation_errors = []
         validation_warnings = []
         response_json = {}
@@ -243,70 +242,58 @@ class IntentParserProcessor(object):
         actions = {'actions': action_list}
         return actions
 
+    def _get_user_id(self, json_body):
+        if ip_addon_constants.USER_EMAIL in json_body and json_body[ip_addon_constants.USER_EMAIL]:
+            return json_body[ip_addon_constants.USER_EMAIL]
+        if ip_addon_constants.USER in json_body and json_body[ip_addon_constants.USER]:
+            return json_body[ip_addon_constants.USER]
+        raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=['No user credential provided from request.'])
+
+    def _get_or_create_cursor_location(self, json_body):
+        doc_location = DocumentLocation()
+        if 'data' in json_body and 'paragraphIndex' in json_body['data'] and 'offset' in json_body['data']:
+            paragraph_index = json_body['data']['paragraphIndex']
+            start_offset = json_body['data']['offset']
+            doc_location.set_paragraph_index(paragraph_index)
+            doc_location.set_start_offset(start_offset)
+
+        return doc_location
+
     def process_analyze_document(self, json_body):
-        """
-        This function will initiate an analysis if the document isn't currently being analyzed and
-        then it will report on the progress of that document's analysis until it is done.  Once it's done
-        this function will notify the client that the document is ready.
-        """
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-        self.analyze_processing_map_lock.acquire()
-        doc_being_processed = document_id in self.analyze_processing_map
-        self.analyze_processing_map_lock.release()
+        intent_parser = LabExperiment(document_id)
+        doc_factory = IntentParserDocumentFactory()
+        ip_document = doc_factory.from_google_doc(intent_parser.load_from_google_doc())
+        self.analyze_controller.process_dictionary_terms(document_id,
+                                                         ip_document,
+                                                         self._get_user_id(json_body),
+                                                         self._get_or_create_cursor_location(json_body),
+                                                         self.sbol_dictionary.get_analyzed_terms())
 
-        if doc_being_processed:  # Doc being processed, check progress
-            time.sleep(self.ANALYZE_PROGRESS_PERIOD)
+        actions = [intent_parser_view.progress_sidebar_dialog()]
+        search_result_action = self._report_current_term(document_id)
+        actions.extend(search_result_action)
+        actions = {'actions': search_result_action}
+        return actions
 
-            self.analyze_processing_map_lock.acquire()
-            progress_percent = self.analyze_processing_map[document_id]
-            self.analyze_processing_map_lock.release()
+    def _report_current_term(self, document_id):
+        actions = []
+        current_result = self.analyze_controller.get_first_analyze_result(document_id)
+        if not current_result:
+            final_result_action = intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])
+            actions.append(final_result_action)
+        else:
+            search_result_actions = intent_parser_view.create_search_result_dialog(current_result.get_matching_term(),
+                                                                                   current_result.get_sbh_uri(),
+                                                                                   current_result.get_matching_term(),
+                                                                                   document_id,
+                                                                                   current_result.get_paragraph_index(),
+                                                                                   current_result.get_start_offset(),
+                                                                                   current_result.get_end_offset())
+            actions.extend(search_result_actions)
 
-            if progress_percent < 100:  # Not done yet, update client
-                action = {'action': 'updateProgress', 'progress': str(int(progress_percent * 100))}
-                actions = {'actions': [action]}
-                return actions
-            else:  # Document is analyzed, start navigating results
-                client_state = None
-                try:
-                    # This ensures we've waited for the processing thread to release the client connection
-                    self.analyze_processing_lock[document_id].acquire()
-                    client_state = self.get_client_state(json_body)
-                    actionList = self.report_search_results(client_state)
-                    actions = {'actions': actionList}
-                    return actions
-                finally:
-                    self.analyze_processing_map.pop(document_id)
-                    self.analyze_processing_lock[document_id].release()
-                    self.release_connection(client_state)
-        else:  # Doc not being processed, spawn new processing thread
-            self.analyze_processing_map[document_id] = 0
-            analyze_thread = threading.Thread(
-                target=self._initiate_document_analysis,
-                args=(http_message,)  # without comma you'd get a... TypeError
-            )
-            analyze_thread.start()
-            dialog_action = intent_parser_view.progress_sidebar_dialog()
-            actions = {'actions': [dialog_action]}
-            return actions
+        return actions
 
-    def report_search_results(self, client_state):
-        search_results = client_state['search_results']
-        item_map = self.sbol_dictionary.get_common_names_to_uri()
-
-        for search_result in search_results:
-            term = search_result['term']
-            link = search_result['link']
-
-            if link != item_map[term]:
-                document_id = client_state['document_id']
-                uri = search_result['uri']
-                content_term = search_result['text']
-                paragraph_index = search_result['paragraph_index']
-                offset = search_result['offset']
-                end_offset = search_result['end_offset']
-                return intent_parser_view.create_search_result_dialog(term, uri, content_term, document_id, paragraph_index, offset, end_offset)
-
-        return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
 
     def process_update_exp_results(self, json_body):
         """
@@ -330,6 +317,47 @@ class IntentParserProcessor(object):
         return actions
 
     def process_submit_form(self, json_body):
+        if 'data' not in json_body:
+            error_message = ['No data provided from button click.']
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=error_message)
+
+        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+        data = json_body['data']
+        action = data['extra']['action']
+
+        result = {}
+
+        if action == 'submit':
+            result = self.sbh.create_sbh_stub(data)
+            if result['results']['operationSucceeded'] and data['isSpellcheck'] == 'True':
+                # store the link for any other matching results
+                # curr_term = client_state['spelling_results'][client_state["spelling_index"]]['term']
+                # for r in client_state['spelling_results']:
+                #     if r['term'] == curr_term:
+                #         r['prev_link'] = result['actions'][0]['url']
+                #
+                # client_state["spelling_index"] += 1
+                # if client_state['spelling_index'] < client_state['spelling_size']:
+                for action in intent_parser_view.report_spelling_results(data):
+                    result['actions'].append(action)
+        elif action == 'createControlsTable':
+            actions = self.process_controls_table(data, json_body['documentId'])
+            result = {'actions': actions,
+                      'results': {'operationSucceeded': True}
+                      }
+        elif action == 'createMeasurementTable':
+            actions = self.process_create_measurement_table(data)
+            result = {'actions': actions,
+                      'results': {'operationSucceeded': True}
+                      }
+        elif action == 'createParameterTable':
+            actions = self.process_create_parameter_table(data, json_body['documentId'])
+            result = {'actions': actions,
+                      'results': {'operationSucceeded': True}
+                      }
+        return result
+
+    def process_submit_form_old(self, json_body):
         client_state = self.get_client_state(json_body)
         try:
             data = json_body['data']
@@ -704,22 +732,31 @@ class IntentParserProcessor(object):
         return data[ip_addon_constants.BUTTON_ID]
 
     def process_button_click(self, json_body):
-        client_state = self.get_client_state(json_body)
-
         if 'data' not in json_body:
-            error_message = ['Missing data']
+            error_message = ['No data provided from button click.']
             raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=error_message)
+
         data = json_body['data']
+        if ip_addon_constants.BUTTON_ID not in data:
+            error_message = ['Expected to get %s assigned: %s but none was found.' % (ip_addon_constants.BUTTON_ID, data)]
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=error_message)
 
-        button_id = self._get_button_id(data)
-        method = getattr(self, button_id)
+        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+        button_data = data[ip_addon_constants.BUTTON_ID]
+        button_id = button_data[ip_addon_constants.BUTTON_ID]
+        if button_id == intent_parser_constants.ANALYZE_YES:
+            return self.process_analyze_yes(document_id, button_data)
+        elif button_id == intent_parser_constants.ANALYZE_YES_TO_ALL:
+            return self.process_analyze_yes_to_all(document_id, button_data)
+        elif button_id == intent_parser_constants.ANALYZE_NO:
+            return self.process_analyze_no(document_id, button_data)
+        elif button_id == intent_parser_constants.ANALYZE_NO_TO_ALL:
+            return self.process_analyze_no_to_all(document_id, button_data)
+        elif button_id == intent_parser_constants.ANALYZE_NEVER_LINK:
+            return self.process_analyze_never_link(document_id,
+                                                   self._get_user_id(json_body),
+                                                   button_data)
 
-        try:
-            action_list = method(json_body, client_state)
-            actions = {'actions': action_list}
-            return actions
-        finally:
-            self.release_connection(client_state)
 
     def process_nop(self, http_message, sm):
         return []
@@ -786,162 +823,58 @@ class IntentParserProcessor(object):
         actions = {'actions': actionList}
         return actions
 
-    def process_analyze_yes(self, json_body, client_state):
-        """
-        Handle "Yes" button as part of analyze document.
-        """
-        search_results = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS]
-        search_result_index = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX]
-        search_result = search_results[search_result_index]
+    def process_analyze_yes(self, document_id, data):
+        self.analyze_controller.remove_analyze_result(document_id,
+                                                      data[intent_parser_constants.ANALYZE_PARAGRAPH_INDEX],
+                                                      data[intent_parser_constants.ANALYZE_CONTENT_TERM],
+                                                      data[intent_parser_constants.ANALYZE_LINK],
+                                                      data[intent_parser_constants.ANALYZE_OFFSET],
+                                                      data[intent_parser_constants.ANALYZE_END_OFFSET])
+        actions = [intent_parser_view.link_text(data[intent_parser_constants.ANALYZE_PARAGRAPH_INDEX],
+                                                data[intent_parser_constants.ANALYZE_OFFSET],
+                                                data[intent_parser_constants.ANALYZE_END_OFFSET],
+                                                data[intent_parser_constants.ANALYZE_LINK])]
+        actions.extend(self._report_current_term(document_id))
+        return {'actions': actions}
 
-        if type(json_body[ip_addon_constants.DATA][ip_addon_constants.BUTTON_ID]) is dict:
-            new_link = json_body[ip_addon_constants.DATA][ip_addon_constants.BUTTON_ID][ip_addon_constants.ANALYZE_LINK]
-        else:
-            new_link = None
+    def process_analyze_yes_to_all(self, document_id, data):
+        matching_terms = self.analyze_controller.remove_analyze_result_with_term(document_id,
+                                                                                 data[intent_parser_constants.ANALYZE_CONTENT_TERM])
+        actions = []
+        for term in matching_terms:
+            actions.append(intent_parser_view.link_text(term.get_paragraph_index(),
+                                                        term.get_start_offset(),
+                                                        term.get_end_offset(),
+                                                        term.get_sbh_uri()))
+        actions.extend(self._report_current_term(document_id))
+        return {'actions': actions}
 
-        actions = self.add_link(search_result, new_link)
-        curr_idx = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX]
-        next_idx = curr_idx + 1
-        new_search_results = search_results[1:]
-        if len(new_search_results) < 1:
-            return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
-        new_idx = new_search_results.index(search_results[next_idx])
-        # Update client state
-        client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS] = new_search_results
-        client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX] = new_idx
-        actions += self.report_search_results(client_state)
-        return actions
+    def process_analyze_no(self, document_id, data):
+        self.analyze_controller.remove_analyze_result(document_id,
+                                                      data[intent_parser_constants.ANALYZE_PARAGRAPH_INDEX],
+                                                      data[intent_parser_constants.ANALYZE_CONTENT_TERM],
+                                                      data[intent_parser_constants.ANALYZE_LINK],
+                                                      data[intent_parser_constants.ANALYZE_OFFSET],
+                                                      data[intent_parser_constants.ANALYZE_END_OFFSET])
+        actions = []
+        actions.extend(self._report_current_term(document_id))
+        return {'actions': actions}
 
-    def process_analyze_no(self, json_body, client_state):
-        """
-        Handle "No" button as part of analyze document.
-        """
-        # Find out what term to point to
-        curr_idx = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX]
-        next_idx = curr_idx + 1
-        search_results = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS]
+    def process_analyze_no_to_all(self, document_id, data):
+        self.analyze_controller.remove_analyze_result_with_term(document_id,
+                                                                data[intent_parser_constants.ANALYZE_CONTENT_TERM])
+        actions = []
+        actions.extend(self._report_current_term(document_id))
+        return {'actions': actions}
 
-        new_search_results = search_results[1:]
-        if len(new_search_results) < 1:
-            return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
-        new_idx = new_search_results.index(search_results[next_idx])
-        # Update client state
-        client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS] = new_search_results
-        client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX] = new_idx
-        return self.report_search_results(client_state)
-
-    def process_link_all(self, json_body, client_state):
-        """
-        Handle "Link all" button as part of analyze document.
-        """
-        search_results = client_state['search_results']
-        search_result_index = client_state['search_result_index']
-        search_result = search_results[search_result_index]
-        term = search_result['term']
-        term_search_results = list(filter(lambda x : x['term'] == term,
-                                          search_results))
-
-        if type(json_body['data']['buttonId']) is dict:
-            new_link = json_body['data']['buttonId']['link']
-        else:
-            new_link = None
+    def process_analyze_never_link(self, document_id: str, user_id: str, data: dict):
+        self.analyze_controller.remove_analyze_result_with_term(document_id,
+                                                                data[intent_parser_constants.ANALYZE_CONTENT_TERM])
+        self.analyze_controller.add_to_ignore_terms(user_id, data[intent_parser_constants.ANALYZE_CONTENT_TERM])
 
         actions = []
-        for term_result in term_search_results:
-            actions += self.add_link(term_result, new_link);
-
-        actions += self.report_search_results(client_state)
-        return actions
-
-    def process_no_to_all(self, json_body, client_state):
-        """
-        Handle "No to all" button as part of analyze document.
-        """
-        curr_idx = client_state['search_result_index']
-        next_idx = curr_idx + 1
-        search_results = client_state['search_results']
-        while next_idx < len(search_results) and search_results[curr_idx]['term'] == search_results[next_idx]['term']:
-            next_idx = next_idx + 1
-        # Are we at the end? Then just exit
-        if next_idx >= len(search_results):
-            return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
-
-        term_to_ignore = search_results[curr_idx]['term']
-        # Generate results without term to ignore
-        new_search_results = [r for r in search_results if r['term'] != term_to_ignore]
-
-        # Find out what term to point to
-        new_idx = new_search_results.index(search_results[next_idx])
-        # Update client state
-        client_state['search_results'] = new_search_results
-        client_state['search_result_index'] = new_idx
-
-        return self.report_search_results(client_state)
-
-    def process_never_link(self, json_body, client_state):
-        """
-        Handle "Never Link" button as part of analyze document.
-        This works like "No to all" but also stores the association to ignore it in subsequent runs.
-        """
-        curr_idx = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULT_INDEX]
-        search_results = client_state[ip_addon_constants.ANALYZE_SEARCH_RESULTS]
-
-        dict_term = search_results[curr_idx][ip_addon_constants.ANALYZE_TERM]
-        content_text = search_results[curr_idx]['text']
-
-        userId = client_state[ip_addon_constants.USER_ID]
-
-        # Make sure we have a list of link preferences for this userId
-        if userId not in self.analyze_never_link:
-            link_pref_file = os.path.join(self.link_pref_path, userId + '.json')
-            if os.path.exists(link_pref_file):
-                try:
-                    with open(link_pref_file, 'r') as fin:
-                        self.analyze_never_link[userId] = json.load(fin)
-                        self.logger.info('Loaded link preferences for userId, path: %s' % link_pref_file)
-                except Exception as e:
-                    self.logger.error('ERROR: Failed to load link preferences file!')
-            else:
-                self.analyze_never_link[userId] = {}
-
-        # Update link preferences
-        if dict_term in self.analyze_never_link[userId]:
-            # Append text to list of no-link preferences
-            self.analyze_never_link[userId][dict_term].append(content_text)
-        else:
-            # If no prefs for this dict term, start a new list with the current text
-            self.analyze_never_link[userId][dict_term] = [content_text]
-
-        link_pref_file = os.path.join(self.link_pref_path, userId + '.json')
-        try:
-            with open(link_pref_file, 'w') as fout:
-                json.dump(self.analyze_never_link[userId], fout)
-        except Exception as e:
-            self.logger.error('ERROR: Failed to write link preferences file!')
-
-        # Remove all of these associations from the results
-        # This is different from "No to All", because that's only termed based
-        # This depends on the term and the text
-        next_idx = curr_idx + 1
-        while next_idx < len(search_results) and search_results[curr_idx]['term'] == search_results[next_idx]['term'] and search_results[curr_idx]['text'] == search_results[next_idx]['text']:
-            next_idx = next_idx + 1
-
-        # Are we at the end? Then just exit
-        if next_idx >= len(search_results):
-            return [intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])]
-
-        term_to_ignore = search_results[curr_idx]['term']
-        text_to_ignore = search_results[curr_idx]['text']
-        # Generate results without term to ignore
-        new_search_results = [r for r in search_results if not r['term'] == term_to_ignore and not r['text'] == text_to_ignore]
-
-        # Find out what term to point to
-        new_idx = new_search_results.index(search_results[next_idx])
-        # Update client state
-        client_state['search_results'] = new_search_results
-        client_state['search_result_index'] = new_idx
-
-        return self.report_search_results(client_state)
+        actions.extend(self._report_current_term(document_id))
+        return {'actions': actions}
 
     def process_search_syn_bio_hub(self, json_body):
         data = json_body['data']
@@ -1413,7 +1346,7 @@ class IntentParserProcessor(object):
         new_spec_table = intent_parser.create_experiment_specification_table(experiment_id_with_indices=created_statuses)
         self._create_experiment_specification_table(document_id, new_spec_table)
 
-    def process_report_experiment_status(self, json_body):
+    def process_experiment_status_POST(self, json_body):
         """Report the status of an experiment by inserting experiment specification and status tables."""
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
         self.logger.warning('Processing document id: %s' % document_id)
@@ -1539,124 +1472,18 @@ class IntentParserProcessor(object):
     def add_link(self, search_result, new_link=None):
         """ Add a hyperlink to the desired search_result
         """
-        paragraph_index = search_result[ip_addon_constants.ANALYZE_PARAGRAPH_INDEX]
-        offset = search_result[ip_addon_constants.ANALYZE_OFFSET]
-        end_offset = search_result[ip_addon_constants.ANALYZE_END_OFFSET]
+        paragraph_index = search_result[intent_parser_constants.ANALYZE_PARAGRAPH_INDEX]
+        offset = search_result[intent_parser_constants.ANALYZE_OFFSET]
+        end_offset = search_result[intent_parser_constants.ANALYZE_END_OFFSET]
         if new_link is None:
             link = search_result['uri']
         else:
             link = new_link
-        search_result[ip_addon_constants.ANALYZE_LINK] = link
+        search_result[intent_parser_constants.ANALYZE_LINK] = link
 
         action = intent_parser_view.link_text(paragraph_index, offset, end_offset, link)
 
         return [action]
-
-    def _initiate_document_analysis(self, http_message):
-        """
-        This function does the actual work of analyzing the document, and is designed to be run in a separate thread.
-        This will process the document and update a status container.  The client will keep pinging the server for status
-        while the document is being analyzed and the server will either return the progress percentage, or indicate that the
-        results are ready.
-        """
-        json_body = intent_parser_utils.get_json_body(http_message)
-        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-
-        lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
-        doc = lab_experiment.load_from_google_doc()
-
-        self.analyze_processing_lock[document_id] = threading.Lock()
-        self.analyze_processing_lock[document_id].acquire()
-
-        user = json_body['user']
-        userEmail = json_body['userEmail']
-
-        if userEmail:
-            userId = userEmail
-        elif user:
-            userId = user
-        else:
-            userId = document_id
-
-        client_state = self.new_connection(document_id)
-        client_state['doc'] = doc
-        client_state['user_id'] = userId
-
-        paragraphs = lab_experiment.paragraphs()
-        if 'data' in json_body:
-            data = json_body['data']
-            paragraph_index = data['paragraphIndex']
-            offset = data['offset']
-            paragraph = paragraphs[ paragraph_index ]
-            first_element = paragraph['elements'][0]
-            paragraph_offset = first_element['startIndex']
-            start_offset = paragraph_offset + offset
-        else:
-            start_offset = 0
-
-        try:
-            self._analyze_document(client_state, start_offset)
-        except Exception as e:
-            raise e
-
-        finally:
-            # Just in case analyze_document failed and didn't finish
-            # this will prevent an endless wait
-            self.analyze_processing_map_lock.acquire()
-            self.analyze_processing_map[client_state['document_id']] = 100
-            self.analyze_processing_map_lock.release()
-
-            self.release_connection(client_state)
-            self.analyze_processing_lock[document_id].release()
-
-    def _analyze_document(self, client_state, start_offset):
-        self.analyze_processing_map_lock.acquire()
-        self.analyze_processing_map[client_state['document_id']] = 0
-        self.analyze_processing_map_lock.release()
-
-        doc_id = client_state['document_id']
-        lab_experiment = self.intent_parser_factory.create_lab_experiment(doc_id)
-        lab_experiment.load_from_google_doc()
-        paragraphs = lab_experiment.paragraphs()
-
-        item_map = self.sbol_dictionary.get_common_names_to_uri()
-
-        analyze_inputs = []
-        item_map_size = len(item_map) if len(item_map) > 0 else 1
-        progress_per_term = 1.0 / item_map_size
-        if client_state['user_id'] in self.analyze_never_link:
-            link_prefs = self.analyze_never_link[client_state['user_id']]
-        else:
-            link_prefs = {}
-        for term in item_map.keys():
-            analyze_inputs.append([term, start_offset, paragraphs, self.PARTIAL_MATCH_MIN_SIZE, self.PARTIAL_MATCH_THRESH, item_map[term]])
-        search_results = []
-        with Pool(self.MULTIPROCESSING_POOL_SIZE) as p:
-            for __, result in enumerate(p.imap_unordered(intent_parser_utils.analyze_term, analyze_inputs), 1):
-                if len(result) > 0:
-                    for r in result:
-                        do_not_link = False
-                        if r['term'] in link_prefs and r['text'] in link_prefs[r['term']]:
-                            do_not_link = True
-                        if not do_not_link:
-                            search_results.append(r)
-                self.analyze_processing_map_lock.acquire()
-                self.analyze_processing_map[doc_id] += progress_per_term
-                self.analyze_processing_map[doc_id] = min(100, self.analyze_processing_map[doc_id])
-                self.analyze_processing_map_lock.release()
-            p.close()
-            p.join()
-
-        # Remove any matches that overlap, taking the longest match
-        search_results = intent_parser_utils.cull_overlapping(search_results);
-        search_results = sorted(search_results,key=itemgetter('paragraph_index','offset'))
-
-        client_state['search_results'] = search_results
-        client_state['search_result_index'] = 0
-
-        self.analyze_processing_map_lock.acquire()
-        self.analyze_processing_map[client_state['document_id']] = 100
-        self.analyze_processing_map_lock.release()
 
     def new_connection(self, document_id):
         self.client_state_lock.acquire()
@@ -1715,6 +1542,9 @@ class IntentParserProcessor(object):
         if self.sbh is not None:
             self.sbh.stop()
             self.logger.info('Stopped SynBioHub')
+        if self.analyze_controller is not None:
+            self.analyze_controller.stop_synchronizing_ignored_terms()
+            self.logger.info('Stopped caching Analyze controller ignored terms.')
         if self.sbol_dictionary is not None:
             self.sbol_dictionary.stop_synchronizing_spreadsheet()
             self.logger.info('Stopped caching SBOL Dictionary.')

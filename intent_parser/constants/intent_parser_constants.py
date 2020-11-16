@@ -4,6 +4,35 @@ List of constants used for reading and writing contents from intent parser
 
 RELEASE_VERSION = '2.10'
 
+
+ANALYZE_CONTENT_TERM = 'content_term'
+ANALYZE_END_OFFSET = 'end_offset'
+ANALYZE_LINK = 'link'
+ANALYZE_NEVER_LINK = 'process_never_link'
+ANALYZE_NO = 'process_analyze_no'
+ANALYZE_NO_TO_ALL = 'process_no_to_all'
+ANALYZE_PARAGRAPH_INDEX = 'paragraph_index'
+ANALYZE_PROGRESS = 'progress'
+ANALYZE_OFFSET = 'offset'
+ANALYZE_SEARCH_RESULTS = 'search_results'
+ANALYZE_SEARCH_RESULT_INDEX = 'search_result_index'
+ANALYZE_TERM = 'term'
+ANALYZE_YES = 'process_analyze_yes'
+ANALYZE_YES_TO_ALL = 'process_link_all'
+
+SUBMIT_FORM_LINK = 'link'
+SUBMIT_FORM_LINK_ALL = 'linkAll'
+
+SPELLCHECK_ADD_IGNORE = 'spellcheck_add_ignore'
+SPELLCHECK_ADD_IGNORE_ALL = 'spellcheck_add_ignore_all'
+SPELLCHECK_ADD_DICTIONARY = 'spellcheck_add_dictionary'
+SPELLCHECK_ADD_SYNBIOHUB = 'spellcheck_add_synbiohub'
+SPELLCHECK_ENTERLINK = 'EnterLink'
+SPELLCHECK_ADD_SELECT_PREVIOUS = 'spellcheck_add_select_previous'
+SPELLCHECK_ADD_SELECT_NEXT = 'spellcheck_add_select_next'
+SPELLCHECK_ADD_DROP_FIRST = 'spellcheck_add_drop_first'
+SPELLCHECK_ADD_DROP_LAST = 'spellcheck_add_drop_last'
+
 LAB_IDS_LIST = sorted(['BioFAB UID',
                        'Ginkgo UID',
                        'Transcriptic UID',

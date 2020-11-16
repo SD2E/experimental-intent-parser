@@ -211,7 +211,7 @@ def setup_ip_processor(input_args=None):
         strateos_accessor = StrateosAccessor(input_args.transcriptic)
         intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
         ip_processor = IntentParserProcessor(sbh, sbol_dictionary, strateos_accessor, intent_parser_factory)
-        ip_processor.initialize_server()
+        ip_processor.initialize_intent_parser_processor()
         return ip_processor
     except (KeyboardInterrupt, SystemExit):
         return
@@ -292,7 +292,7 @@ def main():
         strateos_accessor = StrateosAccessor(input_args.transcriptic)
         intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
         ip_processor = IntentParserProcessor(sbh, sbol_dictionary, strateos_accessor, intent_parser_factory)
-        ip_processor.initialize_server()
+        ip_processor.initialize_intent_parser_processor()
         app.run(host=input_args.bind_host, port=input_args.bind_port)
     except (KeyboardInterrupt, SystemExit):
         return
