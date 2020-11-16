@@ -81,7 +81,7 @@ class IntentParserProcessor(object):
         """
         self.sbol_dictionary.start_synchronizing_spreadsheet()
         self.analyze_controller.start_analyze_controller()
-        # self.strateos_accessor.start_synchronize_protocols() # TODO: uncomment for production
+        self.strateos_accessor.start_synchronize_protocols() # TODO: uncomment for production
 
         if init_sbh:
             self.sbh.initialize_sbh()
@@ -96,7 +96,7 @@ class IntentParserProcessor(object):
             errors = ['No opil output generated.']
             errors.extend(intent_parser.get_validation_errors())
             warnings = [intent_parser.get_validation_warnings()]
-            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=errors, warnings=warnings)
+            return {'errors': errors, 'warnings': warnings}
 
         xml_string = sbol_doc.write_string('xml')
         return xml_string
@@ -115,8 +115,11 @@ class IntentParserProcessor(object):
             validation_errors.extend(intent_parser.get_validation_errors())
 
         if len(validation_errors) == 0:
-            link = '<a href=http://' + http_host + '/opil_request?' + document_id + ' target=_blank>here</a>'
-            dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings, link)
+            link = intent_parser_view.get_download_opil_link(http_host, document_id)
+            dialog_action = intent_parser_view.valid_request_model_dialog('OPIL Validation: Passed!',
+                                                                          'Download OPIL File',
+                                                                          validation_warnings,
+                                                                          link)
         else:
             all_messages = []
             all_messages.extend(validation_warnings)
@@ -819,8 +822,10 @@ class IntentParserProcessor(object):
         if len(validation_errors) == 0:
             if len(validation_warnings) == 0:
                 validation_warnings.append('No warnings found.')
-            dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings,
-                                                                          intent_parser_view.get_download_link(http_host, document_id),
+            dialog_action = intent_parser_view.valid_request_model_dialog('Structured request validation: Passed!',
+                                                                          'Download Structured Request ',
+                                                                          validation_warnings,
+                                                                          intent_parser_view.get_download_structured_request_link(http_host, document_id),
                                                                           width=600)
         else:
             all_messages = []

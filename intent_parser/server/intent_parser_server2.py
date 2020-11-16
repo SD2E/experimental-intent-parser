@@ -78,8 +78,8 @@ class OpilRequest(Resource):
 
     def post(self):
         # previously called generateOpilRequest
-        opil_output = self._ip_processor.process_opil_POST_request(request.get_json())
-        return opil_output, HTTPStatus.OK # TODO
+        opil_output = self._ip_processor.process_opil_POST_request(request.host_url, request.get_json())
+        return opil_output, HTTPStatus.OK
 
 class RunExperiment(Resource):
     def __init__(self, ip_processor):
@@ -108,7 +108,7 @@ class AddBySpelling(Resource):
 
     def post(self):
         spelling_data = self._ip_processor.process_add_by_spelling(request.get_json())
-        return jsonify(spelling_data), HTTPStatus.OK # TODO
+        return spelling_data, HTTPStatus.OK # TODO
 
 class AddToSynbiohub(Resource):
     def __init__(self, ip_processor):
@@ -155,8 +155,9 @@ class ExperimentExecutionStatus(Resource):
         self._ip_processor = ip_processor
 
     def post(self):
+        # TODO: Implement when addressing Issue #257
         experiment_data = self._ip_processor.process_experiment_execution_status(request.get_json())
-        return experiment_data, HTTPStatus.OK  # TODO
+        return experiment_data, HTTPStatus.OK
 
 class Message(Resource):
     def __init__(self, ip_processor):
@@ -217,7 +218,8 @@ def setup_api_resources(ip_processor):
                      '/experiment_status/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(OpilRequest,
-                     '/opil_request/d/<string:doc_id>',
+                     '/generateOpilRequest',
+                     '/generateOpilRequest/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(RunExperiment,
                      '/run_experiment',

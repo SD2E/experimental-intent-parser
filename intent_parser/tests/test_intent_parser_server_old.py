@@ -124,7 +124,7 @@ class IntentParserServerTest(unittest.TestCase):
         warnings = []
         errors = []
         
-        expected_actions = {'actions': [intent_parser_view.valid_request_model_dialog(warnings, intent_parser_view.get_download_link(http_host, document_id))]}
+        expected_actions = {'actions': [intent_parser_view.valid_request_model_dialog(warnings, intent_parser_view.get_download_structured_request_link(http_host, document_id))]}
         self.mock_intent_parser.process_structure_request.return_value = structured_request
         self.mock_intent_parser.get_validation_warnings.return_value = warnings
         self.mock_intent_parser.get_validation_errors.return_value = errors 

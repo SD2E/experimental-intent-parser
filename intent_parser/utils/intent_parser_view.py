@@ -143,8 +143,11 @@ def generate_html_options(options):
 
     return options_html
     
-def get_download_link(host, document_id):
+def get_download_structured_request_link(host: str, document_id: str):
     return '<a href=' + host + 'generateStructuredRequest/d/' + document_id + ' target=_blank>here</a>'
+
+def get_download_opil_link(host, document_id):
+    return '<a href=' + host + 'generateOpilRequest/d/' + document_id + ' target=_blank>here</a>'
 
 def create_add_to_synbiohub_dialog(selection,
                                    display_id,
@@ -460,12 +463,10 @@ def message_dialog(title, message):
     buttons = [('Ok', 'process_nop')]
     return simple_modal_dialog(message, buttons, title, 200, height)
 
-def valid_request_model_dialog(warnings, link=None, height=300, width=500):
+def valid_request_model_dialog(title, msg, warnings, link=None, height=300, width=500):
     text_area_rows = 15
-    title = 'Structured request validation: Passed!'
-    msg = ''
     if link:
-        msg = 'Download Structured Request ' + link
+        msg += link
     msg += "<textarea cols='70' rows='%d'> %s </textarea>" % (text_area_rows, '\n'.join(warnings))
     buttons = [('Ok', 'process_nop')] 
     return simple_modal_dialog(msg, buttons, title, width, height)
