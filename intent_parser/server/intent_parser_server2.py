@@ -32,7 +32,7 @@ class DocumentReport(Resource):
 
     def get(self, doc_id):
         report = self._ip_processor.process_document_report(doc_id)
-        return jsonify(report), HTTPStatus.OK
+        return report, HTTPStatus.OK
 
 class DocumentRequest(Resource):
     def __init__(self, ip_processor):
@@ -63,10 +63,10 @@ class ExperimentStatus(Resource):
         experiment_status = self._ip_processor.process_experiment_status_GET(doc_id)
         return experiment_status, HTTPStatus.OK
 
-    def post(self):
-        # previously called reportExperimentStatus
-        experiment_status = self._ip_processor.process_experiment_status_POST(request.get_json())
-        return experiment_status, HTTPStatus.OK # TODO
+    # def post(self, doc_id):
+    #     # previously called reportExperimentStatus
+    #     experiment_status = self._ip_processor.process_experiment_status_POST(request.get_json())
+    #     return experiment_status, HTTPStatus.OK # TODO
 
 class OpilRequest(Resource):
     def __init__(self, ip_processor):
@@ -172,7 +172,7 @@ class Message(Resource):
 
     def post(self):
         message = self._ip_processor.process_message(request.get_json())
-        return message, HTTPStatus.OK  
+        return message, HTTPStatus.OK
 
 class SearchSynBioHub(Resource):
     def __init__(self, ip_processor):
