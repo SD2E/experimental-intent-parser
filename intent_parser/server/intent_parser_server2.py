@@ -63,10 +63,10 @@ class ExperimentStatus(Resource):
         experiment_status = self._ip_processor.process_experiment_status_GET(doc_id)
         return experiment_status, HTTPStatus.OK
 
-    # def post(self, doc_id):
-    #     # previously called reportExperimentStatus
-    #     experiment_status = self._ip_processor.process_experiment_status_POST(request.get_json())
-    #     return experiment_status, HTTPStatus.OK # TODO
+    def post(self):
+        # previously called reportExperimentStatus
+        experiment_status = self._ip_processor.process_experiment_status_POST(request.get_json())
+        return experiment_status, HTTPStatus.OK
 
 class OpilRequest(Resource):
     def __init__(self, ip_processor):
@@ -158,14 +158,6 @@ class ExperimentExecutionStatus(Resource):
         experiment_data = self._ip_processor.process_experiment_execution_status(request.get_json())
         return experiment_data, HTTPStatus.OK  # TODO
 
-class ExperimentStatus(Resource):
-    def __init__(self, ip_processor):
-        self._ip_processor = ip_processor
-
-    def post(self):
-        experiment_data = self._ip_processor.process_experiment_status_POST(request.get_json())
-        return experiment_data, HTTPStatus.OK  # TODO
-
 class Message(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
@@ -220,6 +212,7 @@ def setup_api_resources(ip_processor):
                      '/experiment_request_documents',
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(ExperimentStatus,
+                     '/experiment_status',
                      '/experiment_status/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(OpilRequest,

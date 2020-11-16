@@ -406,10 +406,10 @@ class IntentParser(object):
             return dc_constants.UNKOWN
 
     def _generate_experiment_status_request(self, lab_tables, experiment_specification_tables, experiment_status_tables):
-        lab_content = self._process_lab_table(lab_tables)
+        self.process_lab_name()
         exp_id_to_status_table = self._process_experiment_specification_tables(experiment_specification_tables)
         table_id_to_statuses = self._process_experiment_status_tables(experiment_status_tables)
-        self.experiment_status[dc_constants.LAB] = lab_content[dc_constants.LAB]
+        self.experiment_status[dc_constants.LAB] = self.processed_lab_name
         self.experiment_status[dc_constants.EXPERIMENT_ID] = exp_id_to_status_table
         self.experiment_status[dc_constants.STATUS_ELEMENT] = table_id_to_statuses
 

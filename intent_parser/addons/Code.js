@@ -187,7 +187,7 @@ function reportExperimentStatus() {
 	}
 	const childIndex = doc.getBody().getChildIndex(el);
 	const data = {'childIndex' : childIndex};
-	sendPost('/reportExperimentStatus', data);
+	sendPost('/experiment_status', data);
 }
 
 function sendMessage(message) {
