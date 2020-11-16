@@ -87,12 +87,12 @@ class RunExperiment(Resource):
 
     def get(self, doc_id):
         experiment_data = self._ip_processor.process_run_experiment_GET(doc_id)
-        return jsonify(experiment_data), HTTPStatus.OK
+        return experiment_data, HTTPStatus.OK
 
     def post(self):
         # previously called executeExperiment
         experiment_data = self._ip_processor.process_run_experiment_POST(request.get_json())
-        return experiment_data, HTTPStatus.OK # TODO
+        return experiment_data, HTTPStatus.OK
 
 class UpdateExperimentStatus(Resource):
     def __init__(self, ip_processor):
@@ -219,6 +219,7 @@ def setup_api_resources(ip_processor):
                      '/opil_request/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(RunExperiment,
+                     '/run_experiment',
                      '/run_experiment/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(UpdateExperimentStatus,

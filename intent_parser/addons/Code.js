@@ -167,7 +167,7 @@ function enterLinkPrompt(title, msg) {
 }
 
 function executeExperiment() {
-	sendPost('/executeExperiment');
+	sendPost('/run_experiment');
 }
 
 function reportExperimentStatus() {
