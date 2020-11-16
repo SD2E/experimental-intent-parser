@@ -144,7 +144,7 @@ def generate_html_options(options):
     return options_html
     
 def get_download_link(host, document_id):
-    return '<a href=http://' + host + '/document_request?' + document_id + ' target=_blank>here</a>'
+    return '<a href=' + host + 'generateStructuredRequest/d/' + document_id + ' target=_blank>here</a>'
 
 def create_add_to_synbiohub_dialog(selection,
                                    display_id,

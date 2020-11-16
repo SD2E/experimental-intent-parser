@@ -34,18 +34,18 @@ class DocumentReport(Resource):
         report = self._ip_processor.process_document_report(doc_id)
         return report, HTTPStatus.OK
 
-class DocumentRequest(Resource):
+class GenerateStructuredRequest(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def get(self, doc_id):
+        # previously called document_request
         structure_request = self._ip_processor.process_document_request(doc_id)
-        return jsonify(structure_request), HTTPStatus.OK
+        return structure_request, HTTPStatus.OK
 
     def post(self):
-        # previously called generateStructuredRequest
-        structure_request = self._ip_processor.process_generate_structured_request(request.get_json())
-        return structure_request, HTTPStatus.OK # TODO
+        structure_request = self._ip_processor.process_generate_structured_request(request.host_url, request.get_json())
+        return structure_request, HTTPStatus.OK
 
 class ExperimentRequestDocuments(Resource):
     def __init__(self, ip_processor):
@@ -205,8 +205,9 @@ def setup_api_resources(ip_processor):
     api.add_resource(DocumentReport,
                      '/document_report/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(DocumentRequest,
-                     '/document_request/d/<string:doc_id>',
+    api.add_resource(GenerateStructuredRequest,
+                     '/generateStructuredRequest',
+                     '/generateStructuredRequest/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(ExperimentRequestDocuments,
                      '/experiment_request_documents',

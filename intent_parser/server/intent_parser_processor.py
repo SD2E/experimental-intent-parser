@@ -790,7 +790,8 @@ class IntentParserProcessor(object):
             dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings, width=600)
         else:
             all_errors = validation_warnings + validation_errors
-            dialog_action = intent_parser_view.invalid_request_model_dialog('Structured request validation: Failed!', all_errors)
+            dialog_action = intent_parser_view.invalid_request_model_dialog('Structured request validation: Failed!',
+                                                                            all_errors)
 
         actionList = [dialog_action]
         actions = {'actions': actionList}
@@ -807,7 +808,8 @@ class IntentParserProcessor(object):
             validation_errors.append('Missing an intent parser URL to generate a structured request on.')
 
         if 'data' in json_body and 'bookmarks' in json_body['data']:
-            intent_parser = self.intent_parser_factory.create_intent_parser(document_id, bookmarks=json_body['data']['bookmarks'])
+            intent_parser = self.intent_parser_factory.create_intent_parser(document_id,
+                                                                            bookmarks=json_body['data']['bookmarks'])
         else:
             intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_structure_request()
@@ -815,7 +817,11 @@ class IntentParserProcessor(object):
         validation_errors.extend(intent_parser.get_validation_errors())
 
         if len(validation_errors) == 0:
-            dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings, intent_parser_view.get_download_link(http_host, document_id))
+            if len(validation_warnings) == 0:
+                validation_warnings.append('No warnings found.')
+            dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings,
+                                                                          intent_parser_view.get_download_link(http_host, document_id),
+                                                                          width=600)
         else:
             all_messages = []
             all_messages.extend(validation_warnings)
