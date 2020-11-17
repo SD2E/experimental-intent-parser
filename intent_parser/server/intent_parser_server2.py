@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, request
 from flask_restful import Api, Resource, reqparse
 from http import HTTPStatus
 from intent_parser.server.intent_parser_processor import IntentParserProcessor
@@ -53,7 +53,7 @@ class ExperimentRequestDocuments(Resource):
 
     def get(self):
         er_documents = self._ip_processor.process_experiment_request_documents()
-        return jsonify(er_documents), HTTPStatus.OK
+        return er_documents, HTTPStatus.OK
 
 class ExperimentStatus(Resource):
     def __init__(self, ip_processor):
@@ -100,7 +100,7 @@ class UpdateExperimentStatus(Resource):
 
     def get(self, doc_id):
         status_data = self._ip_processor.process_update_experiment_status(doc_id)
-        return jsonify(status_data), HTTPStatus.OK
+        return status_data, HTTPStatus.OK
 
 class AddBySpelling(Resource):
     def __init__(self, ip_processor):

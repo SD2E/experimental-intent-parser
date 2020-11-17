@@ -5,7 +5,7 @@ Exceptions supported by Intent Parser
 class Error(Exception):
     pass
 
-class RequestErrorException(Exception):
+class RequestErrorException(Error):
     def __init__(self, http_status, errors=[], warnings=[]):
         self.http_status = http_status
         self.errors = errors
