@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from intent_parser.accessor.sbh_accessor import SBHAccessor
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
+from intent_parser.intent_parser_exceptions import IntentParserException
 import intent_parser.utils.intent_parser_view as intent_parser_view
 from datetime import datetime
 import logging
@@ -268,6 +269,8 @@ class IntentParserSBH(object):
 
     def query(self, query):
         response = self.sbh.sparqlQuery(query)
+        if response.status_code != HTTPStatus.OK:
+            raise IntentParserException('SBH response failed: %s' % str(response.status_code))
         return response.json()
 
     def query_experiments(self, target_collection):

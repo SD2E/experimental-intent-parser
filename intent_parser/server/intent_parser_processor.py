@@ -11,8 +11,6 @@ from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
 from intent_parser.protocols.protocol_factory import ProtocolFactory
 from intent_parser.table.intent_parser_table_type import TableType
 from intent_parser.table.table_creator import TableCreator
-from multiprocessing import Pool
-from operator import itemgetter
 from spellchecker import SpellChecker
 import inspect
 import intent_parser.constants.google_api_constants as google_constants
@@ -20,14 +18,11 @@ import intent_parser.constants.intent_parser_constants as intent_parser_constant
 import intent_parser.constants.ip_app_script_constants as ip_addon_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.protocols.opil_parameter_utils as opil_util
-import intent_parser.server.http_message as http_message
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
-import json
 import logging.config
 import os
 import threading
-import time
 import traceback
 
 class IntentParserProcessor(object):
@@ -81,7 +76,7 @@ class IntentParserProcessor(object):
         """
         self.sbol_dictionary.start_synchronizing_spreadsheet()
         self.analyze_controller.start_analyze_controller()
-        self.strateos_accessor.start_synchronize_protocols() # TODO: uncomment for production
+        self.strateos_accessor.start_synchronize_protocols()
 
         if init_sbh:
             self.sbh.initialize_sbh()
