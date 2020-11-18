@@ -434,9 +434,9 @@ class SBOLDictionaryAccessor(object):
 
         strain_tab = self.get_tab_sheet(dictionary_constants.TAB_STRAIN)
         for row in strain_tab:
-            if (dictionary_constants.COLUMN_COMMON_NAME in row
-                and dictionary_constants.COLUMN_SYNBIOHUB_URI in row
-                and lab_uid in row):
+            if (dictionary_constants.COLUMN_COMMON_NAME in row and
+                    dictionary_constants.COLUMN_SYNBIOHUB_URI in row and
+                    lab_uid in row):
                 sbh_uri = row[dictionary_constants.COLUMN_SYNBIOHUB_URI]
                 common_name = row[dictionary_constants.COLUMN_COMMON_NAME]
                 lab_strain_names = {}

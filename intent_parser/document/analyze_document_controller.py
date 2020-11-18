@@ -18,23 +18,23 @@ class AnalyzeDocumentController(object):
         self._ignore_terms = {}
         self.analyzed_documents = {}
         self._started = False
-        self.analyze_processing_lock = threading.Lock()
+        self._analyze_processing_lock = threading.Lock()
         self._analyze_thread = threading.Thread(target=self._periodically_write_user_ingored_terms)
 
     def start_analyze_controller(self):
         self.LOGGER.info('Fetching ignored terms from file.')
 
-        self.analyze_processing_lock.acquire()
+        self._analyze_processing_lock.acquire()
         ignore_terms = ip_utils.load_json_file(self.ANALYZE_IGNORE_TERMS_FILE)
         self._ignore_terms = ignore_terms
-        self.analyze_processing_lock.release()
+        self._analyze_processing_lock.release()
         self._started = True
         self._analyze_thread.start()
 
     def stop_synchronizing_ignored_terms(self):
-        self.analyze_processing_lock.acquire()
+        self._analyze_processing_lock.acquire()
         self._write_ignored_terms()
-        self.analyze_processing_lock.release()
+        self._analyze_processing_lock.release()
 
         self._started = False
         self._analyze_thread.join()
@@ -61,14 +61,14 @@ class AnalyzeDocumentController(object):
         return results[0]
 
     def add_to_ignore_terms(self, user_id, term):
-        self.analyze_processing_lock.acquire()
+        self._analyze_processing_lock.acquire()
         if user_id not in self._ignore_terms:
             self._ignore_terms[user_id] = [term]
         else:
             user_ignored_terms = self._ignore_terms[user_id]
             if term not in user_ignored_terms:
                 user_ignored_terms.append(term)
-        self.analyze_processing_lock.release()
+        self._analyze_processing_lock.release()
 
     def remove_analyze_result_with_term(self, document_id, matching_term):
         if document_id not in self.analyzed_documents:
@@ -92,24 +92,24 @@ class AnalyzeDocumentController(object):
 
     def _get_or_create_analyze_document(self, document_id, ip_document, dictionary_terms={}):
         analyze_document = None
-        self.analyze_processing_lock.acquire()
+        self._analyze_processing_lock.acquire()
         if document_id in self.analyzed_documents:
             analyze_document = self.analyzed_documents[document_id]
         else:
             analyze_document = _AnalyzeDocument(document_id, ip_document, dictionary_terms)
             self.analyzed_documents[document_id] = analyze_document
-        self.analyze_processing_lock.release()
+        self._analyze_processing_lock.release()
         return analyze_document
 
     def _filter_dictionary_terms(self, user_id, dictionary_terms):
-        self.analyze_processing_lock.acquire()
+        self._analyze_processing_lock.acquire()
         copied_dictionary = dictionary_terms.copy()
         if user_id in self._ignore_terms:
             for term in self._ignore_terms[user_id]:
                 if term in copied_dictionary:
                     copied_dictionary.pop(term)
 
-        self.analyze_processing_lock.release()
+        self._analyze_processing_lock.release()
         return copied_dictionary
 
 class AnalyzeResult(object):

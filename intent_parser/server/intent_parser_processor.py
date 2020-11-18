@@ -3,6 +3,7 @@ from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
 from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
 from intent_parser.document.analyze_document_controller import AnalyzeDocumentController
+from intent_parser.document.spellcheck_document_controller import SpellcheckDocumentController
 from intent_parser.document.document_location import DocumentLocation
 from intent_parser.document.intent_parser_document_factory import IntentParserDocumentFactory
 from intent_parser.intent_parser_factory import LabExperiment
@@ -66,6 +67,7 @@ class IntentParserProcessor(object):
         self.spellCheckers = {}
         # Dictionary per-user that stores analyze associations to ignore
         self.analyze_controller = AnalyzeDocumentController()
+        self.spellcheck_controller = SpellcheckDocumentController()
         self.client_state_map = {}
         self.client_state_lock = threading.Lock()
         self.initialized = False
@@ -76,7 +78,8 @@ class IntentParserProcessor(object):
         """
         self.sbol_dictionary.start_synchronizing_spreadsheet()
         self.analyze_controller.start_analyze_controller()
-        self.strateos_accessor.start_synchronize_protocols()
+        self.spellcheck_controller.start_spellcheck_controller()
+        # self.strateos_accessor.start_synchronize_protocols()
 
         if init_sbh:
             self.sbh.initialize_sbh()
@@ -88,7 +91,7 @@ class IntentParserProcessor(object):
         intent_parser.process_opil_request(lab_accessors)
         sbol_doc = intent_parser.get_opil_request()
         if not sbol_doc:
-            errors = ['No opil output generated.']
+            errors = ['No OPIL output generated.']
             errors.extend(intent_parser.get_validation_errors())
             warnings = [intent_parser.get_validation_warnings()]
             return {'errors': errors, 'warnings': warnings}
@@ -119,7 +122,8 @@ class IntentParserProcessor(object):
             all_messages = []
             all_messages.extend(validation_warnings)
             all_messages.extend(validation_errors)
-            dialog_action = intent_parser_view.invalid_request_model_dialog('OPIL request validation: Failed!', all_messages)
+            dialog_action = intent_parser_view.invalid_request_model_dialog('OPIL request validation: Failed!',
+                                                                            all_messages)
 
         action_list = [dialog_action]
         actions = {'actions': action_list}
@@ -324,35 +328,22 @@ class IntentParserProcessor(object):
         action = data['extra']['action']
 
         result = {}
-
+        actions = []
         if action == 'submit':
             result = self.sbh.create_sbh_stub(data)
             if result['results']['operationSucceeded'] and data['isSpellcheck'] == 'True':
-                # store the link for any other matching results
-                # curr_term = client_state['spelling_results'][client_state["spelling_index"]]['term']
-                # for r in client_state['spelling_results']:
-                #     if r['term'] == curr_term:
-                #         r['prev_link'] = result['actions'][0]['url']
-                #
-                # client_state["spelling_index"] += 1
-                # if client_state['spelling_index'] < client_state['spelling_size']:
                 for action in intent_parser_view.report_spelling_results(data):
                     result['actions'].append(action)
         elif action == 'createControlsTable':
             actions = self.process_controls_table(data, json_body['documentId'])
-            result = {'actions': actions,
-                      'results': {'operationSucceeded': True}
-                      }
         elif action == 'createMeasurementTable':
             actions = self.process_create_measurement_table(data)
-            result = {'actions': actions,
-                      'results': {'operationSucceeded': True}
-                      }
         elif action == 'createParameterTable':
             actions = self.process_create_parameter_table(data, json_body['documentId'])
-            result = {'actions': actions,
-                      'results': {'operationSucceeded': True}
-                      }
+
+        result = {'actions': actions,
+                  'results': {'operationSucceeded': True}
+                  }
         return result
 
     def process_submit_form_old(self, json_body):
@@ -703,7 +694,7 @@ class IntentParserProcessor(object):
             if result is None:
                 break
 
-            search_result = { 'paragraph_index': result[0],
+            search_result = {'paragraph_index': result[0],
                               'offset': result[1],
                               'end_offset': result[1] + len(selected_term) - 1,
                               'term': selected_term,
@@ -718,17 +709,6 @@ class IntentParserProcessor(object):
 
         return actions
 
-    def _get_button_id(self, data):
-        if ip_addon_constants.BUTTON_ID not in data:
-            error_message = ['Expected to get %s assigned to this HTTP data: %s but none was found.' % (ip_addon_constants.BUTTON_ID, data)]
-            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=error_message)
-
-        if type(data[ip_addon_constants.BUTTON_ID]) is dict:
-            buttonDat = data[ip_addon_constants.BUTTON_ID]
-            button_id = buttonDat[ip_addon_constants.BUTTON_ID]
-            return button_id
-        return data[ip_addon_constants.BUTTON_ID]
-
     def process_button_click(self, json_body):
         if 'data' not in json_body:
             error_message = ['No data provided from button click.']
@@ -736,7 +716,7 @@ class IntentParserProcessor(object):
 
         data = json_body['data']
         if ip_addon_constants.BUTTON_ID not in data:
-            error_message = ['Expected to get %s assigned: %s but none was found.' % (ip_addon_constants.BUTTON_ID, data)]
+            error_message = ['Expected to get %s assigned in %s.' % (ip_addon_constants.BUTTON_ID, data)]
             raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=error_message)
 
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
@@ -754,7 +734,6 @@ class IntentParserProcessor(object):
             return self.process_analyze_never_link(document_id,
                                                    self._get_user_id(json_body),
                                                    button_data)
-
 
     def process_nop(self, http_message, sm):
         return []
@@ -1038,6 +1017,9 @@ class IntentParserProcessor(object):
                                                                  is_spellcheck)
 
     def process_add_by_spelling(self, json_body):
+        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+
+    def process_add_by_spelling_old(self, json_body):
         """
         Function that sets up the results for additions by spelling
         This will start from a given offset (generally 0) and searches the rest of the
@@ -1552,7 +1534,10 @@ class IntentParserProcessor(object):
             self.logger.info('Stopped SynBioHub')
         if self.analyze_controller is not None:
             self.analyze_controller.stop_synchronizing_ignored_terms()
-            self.logger.info('Stopped caching Analyze controller ignored terms.')
+            self.logger.info('Stopped caching Analyze ignored terms.')
+        if self.spellcheck_controller is not None:
+            self.spellcheck_controller.stop_synchronizing_spellcheck_terms()
+            self.logger.info('Stopped caching Spellcheck terms.')
         if self.sbol_dictionary is not None:
             self.sbol_dictionary.stop_synchronizing_spreadsheet()
             self.logger.info('Stopped caching SBOL Dictionary.')

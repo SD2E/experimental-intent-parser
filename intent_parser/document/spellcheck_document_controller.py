@@ -41,7 +41,7 @@ class SpellcheckDocumentController(object):
         self._started = True
         self._spellcheck_thread.start()
 
-    def stop_synchronizing_ignored_terms(self):
+    def stop_synchronizing_spellcheck_terms(self):
         self._spellcheck_lock.acquire()
         self._write_spellcheck_terms()
         self._spellcheck_lock.release()

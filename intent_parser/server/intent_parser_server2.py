@@ -1,11 +1,11 @@
 from flask import Flask, request
 from flask_restful import Api, Resource, reqparse
 from http import HTTPStatus
-from intent_parser.server.intent_parser_processor import IntentParserProcessor
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.intent_parser_sbh import IntentParserSBH
+from intent_parser.server.intent_parser_processor import IntentParserProcessor
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import argparse
 import json
@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 api = Api(app)
 parser = reqparse.RequestParser()
+
 
 class Status(Resource):
     def __init__(self, ip_processor):
