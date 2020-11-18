@@ -23,8 +23,7 @@ class IntentParserSBH(object):
                  sbh_password,
                  sbh_spoofing_prefix=None,
                  item_map_cache=True,
-                 sbh_link_hosts=['hub-staging.sd2e.org',
-                                 'hub.sd2e.org']):
+                 sbh_link_hosts=['hub-staging.sd2e.org', 'hub.sd2e.org']):
         self.sbh_collection_uri = sbh_collection_uri
         self.sbh_spoofing_prefix = sbh_spoofing_prefix
         self.spreadsheet_id = spreadsheet_id
@@ -139,7 +138,7 @@ class IntentParserSBH(object):
         # Fix CHEBI URI
         if item_type == 'CHEBI':
             if len(item_definition_uri) == 0:
-                item_definition_uri = sbol_type_map[ item_type ]
+                item_definition_uri = sbol_type_map[item_type]
             else:
                 if not item_definition_uri.startswith('http://identifiers.org/chebi/CHEBI'):
                     item_definition_uri = 'http://identifiers.org/chebi/CHEBI:' + \
@@ -302,7 +301,7 @@ class IntentParserSBH(object):
                 ?entity dcterms:created ?timestamp .
                 ?entity dcterms:title ?title
         }
-        """ %(target_collection)
+        """ % target_collection
         response = self.sbh.sparqlQuery(query).json()
         experiments = []
         for m in response['results']['bindings']:
@@ -343,7 +342,7 @@ class IntentParserSBH(object):
         SELECT DISTINCT ?request_url WHERE {
                 <%s> sd2:experimentReferenceURL ?request_url .
         }
-        """ %(experiment_uri)
+        """ % experiment_uri
         response = self.sbh.sparqlQuery(query).json()
         request_url = [m['request_url']['value'] for m in response['results']['bindings']]
         
@@ -378,30 +377,31 @@ class IntentParserSBH(object):
         SELECT DISTINCT ?source WHERE {
                 <%s> prov:wasDerivedFrom ?source .
         }
-        """ %(experiment_uri)
+        """ % experiment_uri
         response = self.sbh.sparqlQuery(query).json()
-        source = [ m['source']['value'] for m in response['results']['bindings']]
+        source = [m['source']['value'] for m in response['results']['bindings']]
         return source
 
     def sanitize_name_to_display_id(self, name):
-        displayIDfirstChar = '[a-zA-Z_]'
-        displayIDlaterChar = '[a-zA-Z0-9_]'
+        display_id_first_char = '[a-zA-Z_]'
+        display_id_later_char = '[a-zA-Z0-9_]'
 
         sanitized = ''
         for i in range(len(name)):
             character = name[i]
-            if i==0:
-                if re.match(displayIDfirstChar, character):
+            if i == 0:
+                if re.match(display_id_first_char, character):
                     sanitized += character
                 else:
-                    sanitized += '_' # avoid starting with a number
-                    if re.match(displayIDlaterChar, character):
+                    # avoid starting with a number
+                    sanitized += '_'
+                    if re.match(display_id_later_char, character):
                         sanitized += character
                     else:
                         sanitized += '0x{:x}'.format(ord(character))
             else:
-                if re.match(displayIDlaterChar, character):
-                    sanitized += character;
+                if re.match(display_id_later_char, character):
+                    sanitized += character
                 else:
                     sanitized += '0x{:x}'.format(ord(character))
 
