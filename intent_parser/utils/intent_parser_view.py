@@ -2,7 +2,8 @@
 Functions for generating views related to intent parser
 """
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
-from intent_parser.utils.html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, ControlsTableHtmlBuilder, MeasurementTableHtmlBuilder, ParameterTableHtmlBuilder
+from intent_parser.utils.html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, SpellcheckHtmlBuilder
+from intent_parser.utils.html_builder import ControlsTableHtmlBuilder, MeasurementTableHtmlBuilder, ParameterTableHtmlBuilder
 import intent_parser.constants.ip_app_script_constants as addon_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 import logging
@@ -251,7 +252,34 @@ def progress_sidebar_dialog():
               'html': html_message}
     return action
 
-def create_search_result_dialog(term, uri, content_term, document_id, paragraph_index, offset, end_offset):
+def create_manual_link(manually_enter_link_button, paragraph_index, content_term, offset, end_offset):
+    manual_button_html = '''
+        <input id=%sButton value="%s" type="button" title="%s" onclick="EnterLinkClick()" /> 
+        ''' % (manually_enter_link_button[1], manually_enter_link_button[0], manually_enter_link_button[2])
+
+    manual_button_script = '''
+        function EnterLinkClick() {
+            google.script.run.withSuccessHandler(enterLinkHandler).enterLinkPrompt('Manually enter a SynbioHub link for this term.', 'Enter URI:');
+        }
+        function enterLinkHandler(result) {
+            let shouldProcess = result[0];
+            let text = result[1];
+            if (shouldProcess) {
+                let data = {};
+                data.paragraph_index = %d;
+                data.content_term = "%s";
+                data.link = text;
+                data.offset = %d;
+                data.end_offset = %d;
+                data.buttonId = "%s"; 
+                busy('Linking to existing SynBioHub entry');
+                google.script.run.withSuccessHandler(onSuccess).buttonClick(data);
+            }
+        }
+        ''' % (paragraph_index, content_term, offset, end_offset, manually_enter_link_button[1])
+    return manual_button_html, manual_button_script
+
+def create_analyze_result_dialog(term, uri, content_term, document_id, paragraph_index, offset, end_offset):
     """
     Args:
         term: term in document represented as a string
@@ -272,9 +300,9 @@ def create_search_result_dialog(term, uri, content_term, document_id, paragraph_
     buttons = [yes_button, no_button, yes_to_all_button, no_to_all_button, never_link_button]
 
     data = {ip_constants.ANALYZE_LINK: uri,
-            ip_constants.ANALYZE_PARAGRAPH_INDEX: paragraph_index,
-            ip_constants.ANALYZE_OFFSET: offset,
-            ip_constants.ANALYZE_END_OFFSET: end_offset,
+            ip_constants.PARAGRAPH_INDEX: paragraph_index,
+            ip_constants.START_OFFSET: offset,
+            ip_constants.END_OFFSET: end_offset,
             ip_constants.ANALYZE_CONTENT_TERM: content_term,
             ip_constants.ANALYZE_TERM: term}
 
@@ -291,7 +319,8 @@ def create_search_result_dialog(term, uri, content_term, document_id, paragraph_
             data.buttonId = "%s"; 
             busy('Linking to SynBioHub entry');
 
-            google.script.run.withSuccessHandler(onSuccess).buttonClick(data);}
+            google.script.run.withSuccessHandler(onSuccess).buttonClick(data);
+        }
         ''' % (button_id, data, button_id)
 
     manually_enter_link_button = ('Manually Enter Link', ip_constants.ANALYZE_YES, 'Enter a link for this term manually.')
@@ -315,8 +344,8 @@ def create_search_result_dialog(term, uri, content_term, document_id, paragraph_
             data.offset = %d;
             data.end_offset = %d;
             data.buttonId = "%s"; 
-            busy('Linking to existing SynBioHub entry')
-            google.script.run.withSuccessHandler(onSuccess).buttonClick(data)
+            busy('Linking to existing SynBioHub entry');
+            google.script.run.withSuccessHandler(onSuccess).buttonClick(data);
         }
     }
     ''' % (paragraph_index, content_term, offset, end_offset, manually_enter_link_button[1])
@@ -370,89 +399,82 @@ def create_search_result_dialog(term, uri, content_term, document_id, paragraph_
     actions.append(dialog_action)
     return actions
 
-def report_spelling_results(client_state):
-    """Generate actions for client, given the current spelling results index
-    """
-    spell_check_results = client_state['spelling_results']
-    result_idx = client_state['spelling_index']
-    start_par = spell_check_results[result_idx]['select_start']['paragraph_index']
-    start_cursor = spell_check_results[result_idx]['select_start']['cursor_index']
-    end_par = spell_check_results[result_idx]['select_end']['paragraph_index']
-    end_cursor = spell_check_results[result_idx]['select_end']['cursor_index']
-    
-    if not start_par == end_par:
-        logger.error('Received a highlight request across paragraphs, which is currently unsupported!')
+def report_spelling_results(start_par, end_par, start_cursor, end_cursor, term):
+    action_list = [highlight_text(start_par, start_cursor, end_cursor)]
 
-    highlight_text_action = highlight_text(start_par, start_cursor, end_cursor)
-    action_list = [highlight_text_action]
+    button_add_ignore = ('Ignore',
+                         ip_constants.SPELLCHECK_ADD_IGNORE,
+                         'Skip the current term.')
+    button_add_ignore_all = ('Ignore All',
+                             ip_constants.SPELLCHECK_ADD_IGNORE_ALL,
+                             'Skip the current term and any other instances of it.')
+    button_add_dictionary = ('Add to Spellchecker Dictionary',
+                             ip_constants.SPELLCHECK_ADD_DICTIONARY,
+                             'Add term to the spellchecking dictionary, so it won\'t be considered again.')
+    button_add_synbiohub = ('Add to SynBioHub',
+                            ip_constants.SPELLCHECK_ADD_SYNBIOHUB,
+                            'Bring up dialog to add current term to SynbioHub.')
 
-    html = '''
-    <center>
-        Term %s not found in dictionary, potential addition? 
-    </center> 
-    ''' % spell_check_results[result_idx]['term']
-
-    manual_link_script = '''
-    function EnterLinkClick() {
-        google.script.run.withSuccessHandler(enterLinkHandler).enterLinkPrompt('Manually enter a SynbioHub link for this term.', 'Enter URI:');
-    }
-
-    function enterLinkHandler(result) {
-        let shouldProcess = result[0];
-        let text = result[1];
-        if (shouldProcess) {
-            var data = {'buttonId': 'spellcheck_link',
-                        'link': text};
-            google.script.run.withSuccessHandler(onSuccess).buttonClick(data);
-        }
-    }
-    '''
-    button_add_ignore = {'value': 'Ignore',
-               'id': ip_constants.SPELLCHECK_ADD_IGNORE,
-               'title': 'Skip the current term.'}
-    button_add_ignore_all = {'value': 'Ignore All',
-               'id': ip_constants.SPELLCHECK_ADD_IGNORE_ALL,
-               'title': 'Skip the current term and any other instances of it.'}
-    button_add_dictionary = {'value': 'Add to Spellchecker Dictionary',
-               'id': ip_constants.SPELLCHECK_ADD_DICTIONARY,
-               'title': 'Add term to the spellchecking dictionary, so it won\'t be considered again.'}
-    button_add_synbiohub = {'value': 'Add to SynBioHub',
-               'id': ip_constants.SPELLCHECK_ADD_SYNBIOHUB,
-               'title': 'Bring up dialog to add current term to SynbioHub.'}
-    button_enterlink = {'value': 'Manually Enter Link',
-               'id': ip_constants.SPELLCHECK_ENTERLINK,
-               'click_script': manual_link_script,
-               'title': 'Manually enter URL to link for this term.'}
-    button_add_select_previous = {'value': 'Include Previous Word',
-               'id': ip_constants.SPELLCHECK_ADD_SELECT_PREVIOUS,
-               'title': 'Move highlighting to include the word before the highlighted word(s).'}
-    button_add_select_next = {'value': 'Include Next Word',
-               'id': ip_constants.SPELLCHECK_ADD_SELECT_NEXT,
-               'title': 'Move highlighting to include the word after the highlighted word(s).'}
-    button_add_drop_first = {'value': 'Remove First Word',
-               'id': ip_constants.SPELLCHECK_ADD_DROP_FIRST,
-               'title': 'Move highlighting to remove the word at the beggining of the highlighted words.'}
-    button_add_drop_last = {'value': 'Remove Last Word',
-               'id': ip_constants.SPELLCHECK_ADD_DROP_LAST,
-               'title': 'Move highlighting to remove the word at the end of the highlighted words.'}
+    button_add_select_previous = ('Include Previous Word',
+                                  ip_constants.SPELLCHECK_ADD_SELECT_PREVIOUS,
+                                  'Move highlighting to include the word before the highlighted word(s).')
+    button_add_select_next = ('Include Next Word',
+                              ip_constants.SPELLCHECK_ADD_SELECT_NEXT,
+                              'Move highlighting to include the word after the highlighted word(s).')
+    button_add_drop_first = ('Remove First Word',
+                             ip_constants.SPELLCHECK_ADD_DROP_FIRST,
+                             'Move highlighting to remove the word at the beggining of the highlighted words.')
+    button_add_drop_last = ('Remove Last Word',
+                            ip_constants.SPELLCHECK_ADD_DROP_LAST,
+                            'Move highlighting to remove the word at the end of the highlighted words.')
     buttons = [button_add_ignore,
                button_add_ignore_all,
                button_add_dictionary,
                button_add_synbiohub,
-               button_enterlink,
                button_add_select_previous,
                button_add_select_next,
                button_add_drop_first,
                button_add_drop_last]
 
-    # If this entry was previously linked, add a button to reuse that link
-    if 'prev_link' in spell_check_results[result_idx]:
-        buttons.insert(4, {'value': 'Reuse previous link',
-                           'id': 'spellcheck_reuse_link',
-                           'title': 'Reuse the previous link: %s' % spell_check_results[result_idx]['prev_link']})
-    dialog_action = simple_sidebar_dialog(html, buttons)
+    data = {ip_constants.PARAGRAPH_INDEX: start_par,
+            ip_constants.START_OFFSET: start_cursor,
+            ip_constants.END_OFFSET: end_cursor,
+            ip_constants.ANALYZE_CONTENT_TERM: term}
+    spellcheck_buttons_html = ''
+    spellcheck_buttons_script = ''
+    for button_label, button_id, button_description in buttons:
+        spellcheck_buttons_html += '''
+        <input id=%sButton value="%s" type="button" title="%s" onclick="%sClick()" /> 
+        ''' % (button_id, button_label, button_description, button_id)
+
+        spellcheck_buttons_script += '''
+        function %sClick() {
+            let data = %s;
+            data.buttonId = "%s"; 
+            google.script.run.withSuccessHandler(onSuccess).buttonClick(data);
+        }
+        ''' % (button_id, data, button_id)
+    button_enter_link = ('Manually Enter Link',
+                         ip_constants.SPELLCHECK_ENTERLINK,
+                         'Manually enter URL to link for this term.')
+    manual_link_html, manual_link_script = create_manual_link(button_enter_link,
+                                                              start_par,
+                                                              term,
+                                                              start_cursor,
+                                                              end_cursor)
+
+    all_button_script = spellcheck_buttons_script + manual_link_script
+    all_button_html = spellcheck_buttons_html + manual_link_html
+
+    html_builder = SpellcheckHtmlBuilder()
+    html_builder.content_term(term)
+    html_builder.button_script(all_button_script)
+    html_builder.button_html(all_button_html)
+
+    dialog_action = sidebar_dialog(html_builder.build())
     action_list.append(dialog_action)
     return action_list
+
 
 def sidebar_dialog(html_message):
     return {'action': 'showSidebar',

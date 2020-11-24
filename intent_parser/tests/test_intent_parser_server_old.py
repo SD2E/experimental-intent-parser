@@ -210,7 +210,7 @@ class IntentParserServerTest(unittest.TestCase):
                         'document_id': 'document_foo'}
         response = self.ip_server.process_analyze_yes(json_body=json_body, client_state=client_state)
         expected_actions = [intent_parser_view.link_text(text_paragraph_index, text_start_offset, text_end_offset, desired_sbh_link)]
-        expected_actions.extend(intent_parser_view.create_search_result_dialog('protein', 'https://hub.sd2e.org/user/sd2e/design/protein/1', 'protein', 'document_foo', 20, 15, 23))
+        expected_actions.extend(intent_parser_view.create_analyze_result_dialog('protein', 'https://hub.sd2e.org/user/sd2e/design/protein/1', 'protein', 'document_foo', 20, 15, 23))
         self.assertEqual(response, expected_actions)
 
     def test_process_analyze_no_for_search_results_size_1(self):
@@ -276,7 +276,7 @@ class IntentParserServerTest(unittest.TestCase):
                         addon_constants.ANALYZE_SEARCH_RESULT_INDEX: 0,
                         'document_id': 'document_foo'}
         response = self.ip_server.process_analyze_no(json_body=json_body, client_state=client_state)
-        expected_actions = intent_parser_view.create_search_result_dialog('protein', 'https://hub.sd2e.org/user/sd2e/design/protein/1', 'protein', 'document_foo', 20, 15, 23)
+        expected_actions = intent_parser_view.create_analyze_result_dialog('protein', 'https://hub.sd2e.org/user/sd2e/design/protein/1', 'protein', 'document_foo', 20, 15, 23)
         self.assertEqual(response, expected_actions)
 
     def test_process_analyze_no_to_all_for_1_term_occurrence_with_search_results_size_1(self):
@@ -466,7 +466,7 @@ class IntentParserServerTest(unittest.TestCase):
         response = self.ip_server.process_link_all(json_body=json_body, client_state=client_state)
         expected_actions = [intent_parser_view.link_text(text_paragraph_index, text_start_offset, text_end_offset, desired_sbh_link),
                             intent_parser_view.link_text(20, 200, 210, desired_sbh_link)]
-        expected_actions.extend(intent_parser_view.create_search_result_dialog('protein', 'https://hub.sd2e.org/user/sd2e/design/protein/1', 'protein', 'document_foo', 20, 15, 23))
+        expected_actions.extend(intent_parser_view.create_analyze_result_dialog('protein', 'https://hub.sd2e.org/user/sd2e/design/protein/1', 'protein', 'document_foo', 20, 15, 23))
         self.assertEqual(response, expected_actions)
 
     def test_process_analyze_never_link_terms_for_1_occurrence_with_search_results_size_1(self):
@@ -544,7 +544,7 @@ class IntentParserServerTest(unittest.TestCase):
             addon_constants.USER_ID: 'admin',
             'document_id': 'document_foo'}
         response = self.ip_server.process_never_link(json_body=json_body, client_state=client_state)
-        expected_actions = intent_parser_view.create_search_result_dialog('protein', 'https://hub.sd2e.org/user/sd2e/design/protein/1', 'protein', 'document_foo', 20, 15, 23)
+        expected_actions = intent_parser_view.create_analyze_result_dialog('protein', 'https://hub.sd2e.org/user/sd2e/design/protein/1', 'protein', 'document_foo', 20, 15, 23)
         self.assertEqual(response, expected_actions)
 
     def _verify_response_status(self, response, expected_status):

@@ -361,11 +361,6 @@ function processActions(response) {
 	return waitForMoreActions;
 }
 
-function getAnalyzeProgress() {
-	var p = PropertiesService.getDocumentProperties();
-	return p.getProperty("analyze_progress");
-}
-
 function showSidebar(html) {
 	var user = Session.getActiveUser();
 	var userEmail = user.getEmail();

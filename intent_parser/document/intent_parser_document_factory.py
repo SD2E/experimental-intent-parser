@@ -100,6 +100,10 @@ class GoogleDocumentParser(DocumentParser):
                     hyperlinked_elements.append(element)
             return hyperlinked_elements
 
+        def get_elements_with_text(self, text):
+            elements = [element for element in self.element if element.get_text() == text]
+            return elements
+
         def get_start_index(self):
             return self._start_index
 
@@ -121,3 +125,15 @@ class GoogleDocumentParser(DocumentParser):
             self.start_index = start_index
             self.end_index = end_index
             self.hyperlink = hyperlink
+
+        def get_text(self):
+            return self.text
+
+        def get_start_index(self):
+            return self.start_index
+
+        def get_end_index(self):
+            return self.end_index
+
+        def has_hyperlink(self):
+            return self.hyperlink is not None

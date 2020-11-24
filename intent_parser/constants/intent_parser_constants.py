@@ -4,16 +4,16 @@ List of constants used for reading and writing contents from intent parser
 
 RELEASE_VERSION = '2.10'
 
-
 ANALYZE_CONTENT_TERM = 'content_term'
-ANALYZE_END_OFFSET = 'end_offset'
+END_OFFSET = 'end_offset'
+PARAGRAPH_INDEX = 'paragraph_index'
+START_OFFSET = 'offset'
+
 ANALYZE_LINK = 'link'
 ANALYZE_NEVER_LINK = 'process_never_link'
 ANALYZE_NO = 'process_analyze_no'
 ANALYZE_NO_TO_ALL = 'process_no_to_all'
-ANALYZE_PARAGRAPH_INDEX = 'paragraph_index'
 ANALYZE_PROGRESS = 'progress'
-ANALYZE_OFFSET = 'offset'
 ANALYZE_SEARCH_RESULTS = 'search_results'
 ANALYZE_SEARCH_RESULT_INDEX = 'search_result_index'
 ANALYZE_TERM = 'term'
@@ -22,6 +22,10 @@ ANALYZE_YES_TO_ALL = 'process_link_all'
 
 SUBMIT_FORM_LINK = 'link'
 SUBMIT_FORM_LINK_ALL = 'linkAll'
+SUBMIT_FORM = 'submit'
+SUBMIT_FORM_CREATE_CONTROLS_TABLE = 'createControlsTable'
+SUBMIT_FORM_CREATE_MEASUREMENT_TABLE = 'createMeasurementTable'
+SUBMIT_FORM_CREATE_PARAMETER_TABLE = 'createParameterTable'
 
 SPELLCHECK_ADD_IGNORE = 'spellcheck_add_ignore'
 SPELLCHECK_ADD_IGNORE_ALL = 'spellcheck_add_ignore_all'

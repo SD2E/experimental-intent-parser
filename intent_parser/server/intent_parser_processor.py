@@ -273,29 +273,28 @@ class IntentParserProcessor(object):
                                                          self.sbol_dictionary.get_analyzed_terms())
 
         actions = [intent_parser_view.progress_sidebar_dialog()]
-        search_result_action = self._report_current_term(document_id)
+        search_result_action = self._report_current_analyze_term(document_id)
         actions.extend(search_result_action)
         actions = {'actions': search_result_action}
         return actions
 
-    def _report_current_term(self, document_id):
+    def _report_current_analyze_term(self, document_id):
         actions = []
         current_result = self.analyze_controller.get_first_analyze_result(document_id)
         if not current_result:
             final_result_action = intent_parser_view.simple_sidebar_dialog('Finished Analyzing Document.', [])
             actions.append(final_result_action)
         else:
-            search_result_actions = intent_parser_view.create_search_result_dialog(current_result.get_matching_term(),
-                                                                                   current_result.get_sbh_uri(),
-                                                                                   current_result.get_matching_term(),
-                                                                                   document_id,
-                                                                                   current_result.get_paragraph_index(),
-                                                                                   current_result.get_start_offset(),
-                                                                                   current_result.get_end_offset())
+            search_result_actions = intent_parser_view.create_analyze_result_dialog(current_result.get_matching_term(),
+                                                                                    current_result.get_sbh_uri(),
+                                                                                    current_result.get_matching_term(),
+                                                                                    document_id,
+                                                                                    current_result.get_paragraph_index(),
+                                                                                    current_result.get_start_offset(),
+                                                                                    current_result.get_end_offset())
             actions.extend(search_result_actions)
 
         return actions
-
 
     def process_update_exp_results(self, json_body):
         """
@@ -325,20 +324,20 @@ class IntentParserProcessor(object):
 
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
         data = json_body['data']
-        action = data['extra']['action']
+        action_type = data['extra']['action']
 
         result = {}
         actions = []
-        if action == 'submit':
+        if action_type == intent_parser_constants.SUBMIT_FORM:
             result = self.sbh.create_sbh_stub(data)
             if result['results']['operationSucceeded'] and data['isSpellcheck'] == 'True':
                 for action in intent_parser_view.report_spelling_results(data):
                     result['actions'].append(action)
-        elif action == 'createControlsTable':
+        elif action_type == intent_parser_constants.SUBMIT_FORM_CREATE_CONTROLS_TABLE:
             actions = self.process_controls_table(data, json_body['documentId'])
-        elif action == 'createMeasurementTable':
+        elif action_type == intent_parser_constants.SUBMIT_FORM_CREATE_MEASUREMENT_TABLE:
             actions = self.process_create_measurement_table(data)
-        elif action == 'createParameterTable':
+        elif action_type == intent_parser_constants.SUBMIT_FORM_CREATE_PARAMETER_TABLE:
             actions = self.process_create_parameter_table(data, json_body['documentId'])
 
         result = {'actions': actions,
@@ -734,6 +733,9 @@ class IntentParserProcessor(object):
             return self.process_analyze_never_link(document_id,
                                                    self._get_user_id(json_body),
                                                    button_data)
+        elif button_id == intent_parser_constants.SPELLCHECK_ADD_IGNORE:
+            return self.process_spellcheck_ignore(document_id,
+                                                  button_data)
 
     def process_nop(self, http_message, sm):
         return []
@@ -812,16 +814,16 @@ class IntentParserProcessor(object):
 
     def process_analyze_yes(self, document_id, data):
         self.analyze_controller.remove_analyze_result(document_id,
-                                                      data[intent_parser_constants.ANALYZE_PARAGRAPH_INDEX],
+                                                      data[intent_parser_constants.PARAGRAPH_INDEX],
                                                       data[intent_parser_constants.ANALYZE_CONTENT_TERM],
                                                       data[intent_parser_constants.ANALYZE_LINK],
-                                                      data[intent_parser_constants.ANALYZE_OFFSET],
-                                                      data[intent_parser_constants.ANALYZE_END_OFFSET])
-        actions = [intent_parser_view.link_text(data[intent_parser_constants.ANALYZE_PARAGRAPH_INDEX],
-                                                data[intent_parser_constants.ANALYZE_OFFSET],
-                                                data[intent_parser_constants.ANALYZE_END_OFFSET],
+                                                      data[intent_parser_constants.START_OFFSET],
+                                                      data[intent_parser_constants.END_OFFSET])
+        actions = [intent_parser_view.link_text(data[intent_parser_constants.PARAGRAPH_INDEX],
+                                                data[intent_parser_constants.START_OFFSET],
+                                                data[intent_parser_constants.END_OFFSET],
                                                 data[intent_parser_constants.ANALYZE_LINK])]
-        actions.extend(self._report_current_term(document_id))
+        actions.extend(self._report_current_analyze_term(document_id))
         return {'actions': actions}
 
     def process_analyze_yes_to_all(self, document_id, data):
@@ -833,25 +835,25 @@ class IntentParserProcessor(object):
                                                         term.get_start_offset(),
                                                         term.get_end_offset(),
                                                         term.get_sbh_uri()))
-        actions.extend(self._report_current_term(document_id))
+        actions.extend(self._report_current_analyze_term(document_id))
         return {'actions': actions}
 
     def process_analyze_no(self, document_id, data):
         self.analyze_controller.remove_analyze_result(document_id,
-                                                      data[intent_parser_constants.ANALYZE_PARAGRAPH_INDEX],
+                                                      data[intent_parser_constants.PARAGRAPH_INDEX],
                                                       data[intent_parser_constants.ANALYZE_CONTENT_TERM],
                                                       data[intent_parser_constants.ANALYZE_LINK],
-                                                      data[intent_parser_constants.ANALYZE_OFFSET],
-                                                      data[intent_parser_constants.ANALYZE_END_OFFSET])
+                                                      data[intent_parser_constants.START_OFFSET],
+                                                      data[intent_parser_constants.END_OFFSET])
         actions = []
-        actions.extend(self._report_current_term(document_id))
+        actions.extend(self._report_current_analyze_term(document_id))
         return {'actions': actions}
 
     def process_analyze_no_to_all(self, document_id, data):
         self.analyze_controller.remove_analyze_result_with_term(document_id,
                                                                 data[intent_parser_constants.ANALYZE_CONTENT_TERM])
         actions = []
-        actions.extend(self._report_current_term(document_id))
+        actions.extend(self._report_current_analyze_term(document_id))
         return {'actions': actions}
 
     def process_analyze_never_link(self, document_id: str, user_id: str, data: dict):
@@ -860,7 +862,7 @@ class IntentParserProcessor(object):
         self.analyze_controller.add_to_ignore_terms(user_id, data[intent_parser_constants.ANALYZE_CONTENT_TERM])
 
         actions = []
-        actions.extend(self._report_current_term(document_id))
+        actions.extend(self._report_current_analyze_term(document_id))
         return {'actions': actions}
 
     def process_search_syn_bio_hub(self, json_body):
@@ -1016,10 +1018,26 @@ class IntentParserProcessor(object):
                                                                  document_id,
                                                                  is_spellcheck)
 
-    def process_add_by_spelling(self, json_body):
-        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+    def _report_current_spellchecker_term(self, document_id):
+        actions = []
+        current_result = self.spellcheck_controller.get_first_spellchecker_result(document_id)
+        if not current_result:
+            buttons = [('Ok', 'process_nop')]
+            final_result_action = intent_parser_view.simple_modal_dialog('Found no words not in spelling dictionary!',
+                                                                         buttons,
+                                                                         'No misspellings!',
+                                                                         400,
+                                                                         450)
+            actions.append(final_result_action)
+        else:
+            actions = intent_parser_view.report_spelling_results(current_result.get_paragraph_index(),
+                                                                 current_result.get_paragraph_index(),
+                                                                 current_result.get_start_offset(),
+                                                                 current_result.get_end_offset(),
+                                                                 current_result.get_matching_term())
+        return actions
 
-    def process_add_by_spelling_old(self, json_body):
+    def process_add_by_spelling(self, json_body):
         """
         Function that sets up the results for additions by spelling
         This will start from a given offset (generally 0) and searches the rest of the
@@ -1030,148 +1048,21 @@ class IntentParserProcessor(object):
         This comes from the email address, but if that's not available the document id
         is used instead.
         """
-        client_state = None
-        try:
-            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-            user = json_body['user']
-            userEmail = json_body['userEmail']
+        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+        intent_parser = LabExperiment(document_id)
+        doc_factory = IntentParserDocumentFactory()
+        ip_document = doc_factory.from_google_doc(intent_parser.load_from_google_doc())
+        self.spellcheck_controller.process_spellchecker(document_id,
+                                                        ip_document,
+                                                        self._get_user_id(json_body),
+                                                        self._get_or_create_cursor_location(json_body))
+        search_result_action = self._report_current_spellchecker_term(document_id)
+        actions = {'actions': search_result_action}
+        return actions
 
-            if not userEmail:
-                userId = userEmail
-            elif user:
-                userId = user
-            else:
-                userId = document_id
-
-            if userId not in self.spellCheckers:
-                self.spellCheckers[userId] = SpellChecker()
-                dict_path = os.path.join(self.dict_path, userId + '.json')
-                if os.path.exists(dict_path):
-                    self.logger.info('Loaded dictionary for userId, path: %s' % dict_path)
-                    self.spellCheckers[userId].word_frequency.load_dictionary(dict_path)
-
-            lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
-            doc = lab_experiment.load_from_google_doc()
-            paragraphs = lab_experiment.paragraphs()
-            if 'data' in json_body:
-                data = json_body['data']
-                paragraph_index = data['paragraphIndex']
-                offset = data['offset']
-                paragraph = paragraphs[paragraph_index]
-                first_element = paragraph['elements'][0]
-                paragraph_offset = first_element['startIndex']
-                starting_pos = paragraph_offset + offset
-            else:
-                starting_pos = 0
-
-            # Used to store session information
-            client_state = self.new_connection(document_id)
-            client_state['doc'] = doc
-            client_state['user_id'] = userId
-
-            spellCheckResults = []  # Store results metadata
-            missedTerms = []  # keep track of lists of misspelt words
-            # Second list can help us remove results by word
-
-            for pIdx in range(0, len(paragraphs)):
-                paragraph = paragraphs[pIdx]
-                elements = paragraph['elements']
-                firstIdx = elements[0]['startIndex']
-                for element_index in range(len(elements)):
-                    element = elements[element_index]
-                    if 'textRun' not in element:
-                        continue
-
-                    text_run = element['textRun']
-                    end_index = element['endIndex']
-                    if end_index < starting_pos:
-                        continue
-
-                    start_index = element['startIndex']
-                    if start_index < starting_pos:
-                        wordStart = starting_pos - start_index
-                    else:
-                        wordStart = 0
-
-                    # If this text run is already linked, we don't need to process it
-                    if 'textStyle' in text_run and 'link' in text_run['textStyle']:
-                        continue
-
-                    content = text_run['content']
-                    endIdx = len(content)
-                    currIdx = wordStart + 1
-                    while currIdx < endIdx:
-                        # Check for end of word
-                        if intent_parser_utils.char_is_not_wordpart(content[currIdx]):
-                            word = content[wordStart:currIdx]
-                            word = intent_parser_utils.strip_leading_trailing_punctuation(word)
-                            word = word.lower()
-                            if word not in self.spellCheckers[userId] and not intent_parser_utils.should_ignore_token(word):
-                                # Convert from an index into the content string,
-                                # to an offset into the paragraph string
-                                absolute_idx = wordStart + (start_index - firstIdx)
-                                result = {
-                                   'term': word,
-                                   'select_start': {'paragraph_index': pIdx,
-                                                    'cursor_index': absolute_idx,
-                                                    'element_index': element_index},
-                                   'select_end': {'paragraph_index': pIdx,
-                                                  'cursor_index': absolute_idx + len(word) - 1,
-                                                  'element_index': element_index}
-                                   }
-                                spellCheckResults.append(result)
-                                missedTerms.append(word)
-                            # Find start of next word
-                            while currIdx < endIdx and intent_parser_utils.char_is_not_wordpart(content[currIdx]):
-                                currIdx += 1
-                            # Store word start
-                            wordStart = currIdx
-                            currIdx += 1
-                        else:  # continue until we find word end
-                            currIdx += 1
-
-                    # Check for tailing word that wasn't processed
-                    if currIdx - wordStart > 1:
-                        word = content[wordStart:currIdx]
-                        word = intent_parser_utils.strip_leading_trailing_punctuation(word)
-                        word = word.lower()
-                        if word not in self.spellCheckers[userId]:
-                            absolute_idx = wordStart + (start_index - firstIdx)
-                            result = {
-                               'term': word,
-                               'select_start': {'paragraph_index': pIdx,
-                                                'cursor_index': absolute_idx,
-                                                'element_index': element_index},
-                               'select_end': {'paragraph_index': pIdx,
-                                              'cursor_index': absolute_idx + len(word) - 1,
-                                              'element_index': element_index}
-                               }
-                            spellCheckResults.append(result)
-                            missedTerms.append(word)
-
-            # If we have a spelling mistake, highlight text and update user
-            if len(spellCheckResults) > 0:
-                client_state['spelling_results'] = spellCheckResults
-                client_state['spelling_index'] = 0
-                client_state['spelling_size'] = len(spellCheckResults)
-                action_list = intent_parser_view.report_spelling_results(client_state)
-                actions = {'actions': action_list}
-                return actions
-            else:  # No spelling mistakes!
-                buttons = [('Ok', 'process_nop')]
-                dialog_action = intent_parser_view.simple_modal_dialog('Found no words not in spelling dictionary!',
-                                                                       buttons,
-                                                                       'No misspellings!',
-                                                                       400,
-                                                                       450)
-                action_list = [dialog_action]
-                actions = {'actions': action_list}
-                return actions
-        except Exception as e:
-            raise e
-        finally:
-            if client_state is not None:
-                self.release_connection(client_state)
+    def process_spellcheck_ignore(self, document_id, button_data):
+        """ Ignore button action for additions by spelling"""
+        pass
 
     def process_create_measurement_table(self, data):
         lab_data = self.process_lab_table(data)
@@ -1404,7 +1295,9 @@ class IntentParserProcessor(object):
         table_template.extend(required_fields)
 
         selected_optional_parameters = data[ip_addon_constants.HTML_OPTIONALPARAMETERS]
-        optional_fields = self._add_optional_parameters(ref_optional_name_to_id, param_value_mapping, selected_optional_parameters)
+        optional_fields = self._add_optional_parameters(ref_optional_name_to_id,
+                                                        param_value_mapping,
+                                                        selected_optional_parameters)
         table_template.extend(optional_fields)
 
         column_width = [len(header) for header in header_row]
@@ -1462,9 +1355,9 @@ class IntentParserProcessor(object):
     def add_link(self, search_result, new_link=None):
         """ Add a hyperlink to the desired search_result
         """
-        paragraph_index = search_result[intent_parser_constants.ANALYZE_PARAGRAPH_INDEX]
-        offset = search_result[intent_parser_constants.ANALYZE_OFFSET]
-        end_offset = search_result[intent_parser_constants.ANALYZE_END_OFFSET]
+        paragraph_index = search_result[intent_parser_constants.PARAGRAPH_INDEX]
+        offset = search_result[intent_parser_constants.START_OFFSET]
+        end_offset = search_result[intent_parser_constants.END_OFFSET]
         if new_link is None:
             link = search_result['uri']
         else:
