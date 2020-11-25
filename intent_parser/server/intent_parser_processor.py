@@ -1128,7 +1128,59 @@ class IntentParserProcessor(object):
         return {'actions': actions}
 
     def process_spellcheck_add_previous_word(self, document_id, data):
-        pass
+        intent_parser = LabExperiment(document_id)
+        doc_factory = IntentParserDocumentFactory()
+        ip_document = doc_factory.from_google_doc(intent_parser.load_from_google_doc())
+        start_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
+        end_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
+        selected_paragraph = ip_document.get_paragraph(start_paragraph_index)
+        paragraph_text = selected_paragraph.get_text()
+
+        highlight_start_index = data[intent_parser_constants.START_OFFSET]
+        highlight_end_index = data[intent_parser_constants.END_OFFSET]
+        current_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index+1]
+        if highlight_start_index > len(paragraph_text):
+            raise IndexError('Start index %d of selected word %s not within range of selected paragraph.' % (highlight_start_index, current_highlighted_term))
+
+        cursor = highlight_start_index - 1
+        has_encountered_first_char = False
+        has_encountered_first_word = False
+        stopping_char = [' ', '\n']
+        while -1 < cursor < highlight_start_index:
+            if not has_encountered_first_char:
+                if paragraph_text[cursor] in stopping_char:
+                    cursor -= 1
+                else:
+                    has_encountered_first_char = True
+                    if cursor == 0:
+                        # if cursor at start of paragraph, then consider all characters detected so far as a single word
+                        has_encountered_first_word = True
+                        break
+            else:
+                if paragraph_text[cursor] in stopping_char:
+                    has_encountered_first_word = True
+                    break
+                elif cursor == 0:
+                    # if cursor at start of paragraph, then consider all characters detected so far as a single word
+                    has_encountered_first_word = True
+                    break
+                else:
+                    cursor -= 1
+
+        new_highlighted_term = current_highlighted_term
+        if not has_encountered_first_char:
+            self.logger.warning('No characters found before %s' % current_highlighted_term)
+        elif not has_encountered_first_word:
+            self.logger.warning('No word found before %s' % current_highlighted_term)
+        else:
+            new_highlighted_term = paragraph_text[cursor: highlight_end_index+1]
+
+        actions = intent_parser_view.report_spelling_results(start_paragraph_index,
+                                                             end_paragraph_index,
+                                                             cursor,
+                                                             highlight_end_index,
+                                                             new_highlighted_term)
+        return {'actions': actions}
 
     def process_create_measurement_table(self, data):
         lab_data = self.process_lab_table(data)
