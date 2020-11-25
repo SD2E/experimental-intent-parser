@@ -12,7 +12,6 @@ from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
 from intent_parser.protocols.protocol_factory import ProtocolFactory
 from intent_parser.table.intent_parser_table_type import TableType
 from intent_parser.table.table_creator import TableCreator
-from spellchecker import SpellChecker
 import inspect
 import intent_parser.constants.google_api_constants as google_constants
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
@@ -24,7 +23,6 @@ import intent_parser.utils.intent_parser_view as intent_parser_view
 import logging.config
 import os
 import threading
-import traceback
 
 class IntentParserProcessor(object):
 
@@ -335,14 +333,17 @@ class IntentParserProcessor(object):
                     result['actions'].append(action)
         elif action_type == intent_parser_constants.SUBMIT_FORM_CREATE_CONTROLS_TABLE:
             actions = self.process_controls_table(data, json_body['documentId'])
+            result['actions'] = actions
+            result['results'] = {'operationSucceeded': True}
         elif action_type == intent_parser_constants.SUBMIT_FORM_CREATE_MEASUREMENT_TABLE:
             actions = self.process_create_measurement_table(data)
+            result['actions'] = actions
+            result['results'] = {'operationSucceeded': True}
         elif action_type == intent_parser_constants.SUBMIT_FORM_CREATE_PARAMETER_TABLE:
             actions = self.process_create_parameter_table(data, json_body['documentId'])
+            result['actions'] = actions
+            result['results'] = {'operationSucceeded': True}
 
-        result = {'actions': actions,
-                  'results': {'operationSucceeded': True}
-                  }
         return result
 
     def process_submit_form_old(self, json_body):
@@ -490,8 +491,8 @@ class IntentParserProcessor(object):
         end_paragraph = select_end['cursor_index']
         end_offset = select_end['cursor_index'] + 1
 
-        dialog_action = self.internal_add_to_syn_bio_hub(doc_id, start_paragraph, end_paragraph,
-                                                         start_offset, end_offset)
+        dialog_action = self._internal_add_to_syn_bio_hub(doc_id, start_paragraph, end_paragraph,
+                                                          start_offset, end_offset)
 
         actionList = [dialog_action]
 
@@ -502,50 +503,37 @@ class IntentParserProcessor(object):
 
         return actionList
 
-    def internal_add_to_syn_bio_hub(self, document_id, start_paragraph, end_paragraph, start_offset, end_offset):
-        try:
-            item_type_list = []
-            for sbol_type in intent_parser_constants.ITEM_TYPES:
-                item_type_list += intent_parser_constants.ITEM_TYPES[sbol_type].keys()
+    def _internal_add_to_syn_bio_hub(self, document_id, start_paragraph, end_paragraph, start_offset, end_offset):
+        item_type_list = []
+        for sbol_type in intent_parser_constants.ITEM_TYPES:
+            item_type_list += intent_parser_constants.ITEM_TYPES[sbol_type].keys()
 
-            item_type_list = sorted(item_type_list)
-            item_types_html = intent_parser_view.generate_html_options(item_type_list)
+        item_type_list = sorted(item_type_list)
+        item_types_html = intent_parser_view.generate_html_options(item_type_list)
+        lab_ids_html = intent_parser_view.generate_html_options(intent_parser_constants.LAB_IDS_LIST)
 
-            lab_ids_html = intent_parser_view.generate_html_options(intent_parser_constants.LAB_IDS_LIST)
+        lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
+        doc = lab_experiment.load_from_google_doc()
 
-            try:
-                lab_experiment = self.intent_parser_factory.create_lab_experiment(document_id)
-                doc = lab_experiment.load_from_google_doc()
-            except Exception as ex:
-                errorMessage = (''.join(traceback.format_exception(etype=type(ex),
-                                                         value=ex,
-                                                         tb=ex.__traceback__)))
-                raise RequestErrorException(HTTPStatus.NOT_FOUND, errors=[errorMessage])
-
-            body = doc.get('body')
-            doc_content = body.get('content')
-            paragraphs = self.get_paragraphs(doc_content)
-
-            paragraph_text = self.get_paragraph_text(
-                paragraphs[start_paragraph])
-
-            selection = paragraph_text[start_offset:end_offset]
-            # Remove leading/trailing space
-            selection = selection.strip()
-            display_id = self.sbh.sanitize_name_to_display_id(selection)
-            dialog_action = intent_parser_view.create_add_to_synbiohub_dialog(selection,
-                                   display_id,
-                                   start_paragraph,
-                                   start_offset,
-                                   end_paragraph,
-                                   end_offset,
-                                   item_types_html,
-                                   lab_ids_html,
-                                   document_id,
-                                   False)
-            return dialog_action
-        except Exception as e:
-            raise e
+        body = doc.get('body')
+        doc_content = body.get('content')
+        paragraphs = self.get_paragraphs(doc_content)
+        paragraph_text = self.get_paragraph_text(paragraphs[start_paragraph])
+        selection = paragraph_text[start_offset:end_offset]
+        # Remove leading/trailing space
+        selection = selection.strip()
+        display_id = self.sbh.sanitize_name_to_display_id(selection)
+        dialog_action = intent_parser_view.create_add_to_synbiohub_dialog(selection,
+                                                                          display_id,
+                                                                          start_paragraph,
+                                                                          start_offset,
+                                                                          end_paragraph,
+                                                                          end_offset,
+                                                                          item_types_html,
+                                                                          lab_ids_html,
+                                                                          document_id,
+                                                                          False)
+        return dialog_action
 
     def get_paragraph_text(self, paragraph):
         elements = paragraph['elements']
@@ -734,8 +722,26 @@ class IntentParserProcessor(object):
                                                    self._get_user_id(json_body),
                                                    button_data)
         elif button_id == intent_parser_constants.SPELLCHECK_ADD_IGNORE:
-            return self.process_spellcheck_ignore(document_id,
-                                                  button_data)
+            return self.process_spellcheck_ignore(document_id, button_data)
+        elif button_id == intent_parser_constants.SPELLCHECK_ADD_IGNORE_ALL:
+            return self.process_spellcheck_ignore_all(document_id, button_data)
+        elif button_id == intent_parser_constants.SPELLCHECK_ADD_DICTIONARY:
+            return self.process_spellcheck_add_to_dictionary(document_id,
+                                                             self._get_user_id(json_body),
+                                                             button_data)
+        elif button_id == intent_parser_constants.SPELLCHECK_ADD_SYNBIOHUB:
+            return self.process_spellcheck_add_to_synbiohub(document_id, button_data)
+        elif button_id == intent_parser_constants.SPELLCHECK_ADD_SELECT_PREVIOUS:
+            return self.process_spellcheck_add_previous_word(document_id, button_data)
+        elif button_id == intent_parser_constants.SPELLCHECK_ADD_SELECT_NEXT:
+            return None
+        elif button_id == intent_parser_constants.SPELLCHECK_ADD_DROP_FIRST:
+            return None
+        elif button_id == intent_parser_constants.SPELLCHECK_ADD_DROP_LAST:
+            return None
+        else:
+            error_message = ['Button ID %s not recognized by Intent Parser.' % button_id]
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=error_message)
 
     def process_nop(self, http_message, sm):
         return []
@@ -756,7 +762,8 @@ class IntentParserProcessor(object):
         else:
             document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
             if 'data' in json_body and 'bookmarks' in json_body['data']:
-                intent_parser = self.intent_parser_factory.create_intent_parser(document_id, bookmarks=json_body['data']['bookmarks'])
+                intent_parser = self.intent_parser_factory.create_intent_parser(document_id,
+                                                                                bookmarks=json_body['data']['bookmarks'])
             else:
                 intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
             intent_parser.process_structure_request()
@@ -1018,7 +1025,7 @@ class IntentParserProcessor(object):
                                                                  document_id,
                                                                  is_spellcheck)
 
-    def _report_current_spellchecker_term(self, document_id):
+    def _report_current_spellchecker_term(self, document_id: str):
         actions = []
         current_result = self.spellcheck_controller.get_first_spellchecker_result(document_id)
         if not current_result:
@@ -1060,8 +1067,67 @@ class IntentParserProcessor(object):
         actions = {'actions': search_result_action}
         return actions
 
-    def process_spellcheck_ignore(self, document_id, button_data):
-        """ Ignore button action for additions by spelling"""
+    def process_spellcheck_ignore(self, document_id, data):
+        self.spellcheck_controller.remove_spellcheck_result(document_id,
+                                                            data[intent_parser_constants.PARAGRAPH_INDEX],
+                                                            data[intent_parser_constants.ANALYZE_CONTENT_TERM],
+                                                            data[intent_parser_constants.START_OFFSET],
+                                                            data[intent_parser_constants.END_OFFSET])
+        actions = []
+        actions.extend(self._report_current_spellchecker_term(document_id))
+        return {'actions': actions}
+
+    def process_spellcheck_ignore_all(self, document_id, data):
+        self.spellcheck_controller.remove_spellcheck_result_with_term(document_id,
+                                                                      data[intent_parser_constants.ANALYZE_CONTENT_TERM])
+        actions = self._report_current_spellchecker_term(document_id)
+        return {'actions': actions}
+
+    def process_spellcheck_add_to_dictionary(self, document_id, user_id, data):
+        self.spellcheck_controller.remove_spellcheck_result_with_term(document_id,
+                                                                      data[intent_parser_constants.ANALYZE_CONTENT_TERM])
+        self.spellcheck_controller.add_to_spellcheck_terms(user_id,
+                                                           data[intent_parser_constants.ANALYZE_CONTENT_TERM])
+
+        actions = []
+        actions.extend(self._report_current_spellchecker_term(document_id))
+        return {'actions': actions}
+
+    def process_spellcheck_add_to_synbiohub(self, document_id, data):
+        item_type_list = []
+        for sbol_type in intent_parser_constants.ITEM_TYPES:
+            item_type_list += intent_parser_constants.ITEM_TYPES[sbol_type].keys()
+
+        item_type_list = sorted(item_type_list)
+        item_types_html = intent_parser_view.generate_html_options(item_type_list)
+        lab_ids_html = intent_parser_view.generate_html_options(intent_parser_constants.LAB_IDS_LIST)
+
+        selection = data[intent_parser_constants.ANALYZE_CONTENT_TERM]
+        display_id = self.sbh.sanitize_name_to_display_id(selection)
+        start_paragraph = data[intent_parser_constants.PARAGRAPH_INDEX]
+        end_paragraph = data[intent_parser_constants.PARAGRAPH_INDEX]
+        start_offset = data[intent_parser_constants.START_OFFSET]
+        end_offset = data[intent_parser_constants.END_OFFSET]
+        dialog_action = intent_parser_view.create_add_to_synbiohub_dialog(selection,
+                                                                          display_id,
+                                                                          start_paragraph,
+                                                                          start_offset,
+                                                                          end_paragraph,
+                                                                          end_offset,
+                                                                          item_types_html,
+                                                                          lab_ids_html,
+                                                                          document_id,
+                                                                          False)
+        self.spellcheck_controller.remove_spellcheck_result(document_id,
+                                                            start_paragraph,
+                                                            selection,
+                                                            start_offset,
+                                                            end_offset)
+        actions = self._report_current_spellchecker_term(document_id)
+        actions.append(dialog_action)
+        return {'actions': actions}
+
+    def process_spellcheck_add_previous_word(self, document_id, data):
         pass
 
     def process_create_measurement_table(self, data):

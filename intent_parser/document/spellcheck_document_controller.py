@@ -1,5 +1,6 @@
 from datetime import timedelta
 from flashtext import KeywordProcessor
+from intent_parser.table.cell_parser import CellParser
 from intent_parser.intent_parser_exceptions import IntentParserException
 from spellchecker import SpellChecker
 import intent_parser.utils.intent_parser_utils as ip_utils
@@ -50,6 +51,20 @@ class SpellcheckDocumentController(object):
                 'Spellchecker was not initialized to load non misspelled terms from file.')
         spellchecker_document = self._get_or_create_spellchecker(document_id, ip_document, user_id)
         spellchecker_document.spellcheck(doc_location)
+
+    def remove_spellcheck_result(self, document_id, paragraph_index, matching_term, start_offset, end_offset):
+        if document_id not in self.spellcheck_documents:
+            return
+
+        spellcheck_document = self.spellcheck_documents[document_id]
+        spellcheck_document.remove_first_occurrence(paragraph_index, matching_term, start_offset, end_offset)
+
+    def remove_spellcheck_result_with_term(self, document_id, matching_term):
+        if document_id not in self.spellcheck_documents:
+            return
+
+        spellcheck_document = self.spellcheck_documents[document_id]
+        return spellcheck_document.remove_all(matching_term)
 
     def start_spellcheck_controller(self):
         self.LOGGER.info('Fetching spellcheck terms from file.')
@@ -125,6 +140,27 @@ class _SpellcheckDocument(object):
     def get_result(self):
         return self.result
 
+    def remove_all(self, term):
+        removed_item = []
+        for index in reversed(range(len(self.result))):
+            spellcheck_result = self.result[index]
+            if spellcheck_result.get_matching_term() == term:
+                self.result.pop(index)
+                removed_item.append(spellcheck_result)
+        return removed_item
+
+    def remove_first_occurrence(self, paragraph_index, matching_term, start_offset, end_offset):
+        for index in reversed(range(len(self.result))):
+            spellcheck_result = self.result[index]
+            if (spellcheck_result.get_paragraph_index() == paragraph_index
+                    and spellcheck_result.get_matching_term() == matching_term
+                    and spellcheck_result.get_start_offset() == start_offset
+                    and spellcheck_result.get_end_offset() == end_offset):
+
+                self.result.pop(index)
+                return True
+        return False
+
     def spellcheck(self, doc_location):
         spellchecker = SpellChecker()
         spellchecker.word_frequency.load_words(self.not_misspelled_terms)
@@ -134,7 +170,8 @@ class _SpellcheckDocument(object):
             text = ip_paragraph.get_text().strip()
             if not text:
                 continue
-            words = text.split()
+            cell_parser = CellParser()
+            words = [word for word in text.split() if cell_parser.is_name(word)]
             misspelled_words = list(spellchecker.unknown(words))
             if not misspelled_words:
                 continue
@@ -151,6 +188,6 @@ class _SpellcheckDocument(object):
             spellcheck_result = SpellcheckResult(ip_paragraph.get_paragraph_index(),
                                                  match,
                                                  start,
-                                                 end)
+                                                 end-1)
 
             self.result.append(spellcheck_result)

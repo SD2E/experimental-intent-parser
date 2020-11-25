@@ -37,13 +37,13 @@ SPELLCHECK_ADD_SELECT_NEXT = 'spellcheck_add_select_next'
 SPELLCHECK_ADD_DROP_FIRST = 'spellcheck_add_drop_first'
 SPELLCHECK_ADD_DROP_LAST = 'spellcheck_add_drop_last'
 
-LAB_IDS_LIST = sorted(['BioFAB UID',
-                       'Ginkgo UID',
-                       'Transcriptic UID',
-                       'LBNL UID',
-                       'EmeraldCloud UID',
-                       'CalTech UID',
-                       'PennState (Salis) UID'])
+LAB_IDS_LIST = ['BioFAB UID',
+                'CalTech UID',
+                'EmeraldCloud UID',
+                'Ginkgo UID',
+                'LBNL UID',
+                'PennState (Salis) UID',
+                'Transcriptic UID']
 
 ITEM_TYPES = {
     'component': {

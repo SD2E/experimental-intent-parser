@@ -414,7 +414,6 @@ def report_spelling_results(start_par, end_par, start_cursor, end_cursor, term):
     button_add_synbiohub = ('Add to SynBioHub',
                             ip_constants.SPELLCHECK_ADD_SYNBIOHUB,
                             'Bring up dialog to add current term to SynbioHub.')
-
     button_add_select_previous = ('Include Previous Word',
                                   ip_constants.SPELLCHECK_ADD_SELECT_PREVIOUS,
                                   'Move highlighting to include the word before the highlighted word(s).')
@@ -474,7 +473,6 @@ def report_spelling_results(start_par, end_par, start_cursor, end_cursor, term):
     dialog_action = sidebar_dialog(html_builder.build())
     action_list.append(dialog_action)
     return action_list
-
 
 def sidebar_dialog(html_message):
     return {'action': 'showSidebar',
