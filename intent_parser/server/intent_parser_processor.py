@@ -736,7 +736,7 @@ class IntentParserProcessor(object):
         elif button_id == intent_parser_constants.SPELLCHECK_ADD_SELECT_NEXT:
             return self.process_spellcheck_add_next_word(document_id, button_data)
         elif button_id == intent_parser_constants.SPELLCHECK_ADD_DROP_FIRST:
-            return None
+            return self.process_spellcheck_drop_previous_word(document_id, button_data)
         elif button_id == intent_parser_constants.SPELLCHECK_ADD_DROP_LAST:
             return None
         else:
@@ -1202,6 +1202,21 @@ class IntentParserProcessor(object):
             raise IndexError('Start index %d of selected word %s not within range of selected paragraph.' % (
                              highlight_start_index, current_highlighted_term))
 
+        new_highlight_start_index, new_highlight_end_index, new_highlighted_term = self._shift_cursor_right_one_word(highlight_start_index,
+                                                                                                                     highlight_end_index,
+                                                                                                                     paragraph_text)
+        actions = intent_parser_view.report_spelling_results(start_paragraph_index,
+                                                             end_paragraph_index,
+                                                             new_highlight_start_index,
+                                                             new_highlight_end_index,
+                                                             new_highlighted_term)
+
+        return {'actions': actions}
+
+    def process_spellcheck_drop_previous_word(self, document_id, data):
+        pass
+
+    def _shift_cursor_right_one_word(self, highlight_start_index, highlight_end_index, paragraph_text):
         cursor = highlight_end_index + 1
         has_encountered_first_char = False
         has_encountered_first_word = False
@@ -1228,23 +1243,15 @@ class IntentParserProcessor(object):
                 else:
                     cursor += 1
 
-        new_highlighted_term = current_highlighted_term
-        actions = []
+        current_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index + 1]
         if not has_encountered_first_char or not has_encountered_first_word:
             self.logger.warning('No word found after %s' % current_highlighted_term)
-            actions = intent_parser_view.report_spelling_results(start_paragraph_index,
-                                                                 end_paragraph_index,
-                                                                 highlight_start_index,
-                                                                 highlight_end_index,
-                                                                 new_highlighted_term)
-        else:
-            new_highlighted_term = paragraph_text[highlight_start_index: cursor]
-            actions = intent_parser_view.report_spelling_results(start_paragraph_index,
-                                                                 end_paragraph_index,
-                                                                 highlight_start_index,
-                                                                 cursor-1,
-                                                                 new_highlighted_term)
-        return {'actions': actions}
+            return highlight_start_index, highlight_end_index, current_highlighted_term
+
+        new_highlighted_term = paragraph_text[highlight_start_index: cursor]
+        new_highlight_start_index = highlight_start_index
+        new_highlight_end_index = cursor - 1
+        return new_highlight_start_index, new_highlight_end_index, new_highlighted_term
 
     def process_create_measurement_table(self, data):
         lab_data = self.process_lab_table(data)
