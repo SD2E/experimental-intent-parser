@@ -1143,47 +1143,14 @@ class IntentParserProcessor(object):
             raise IndexError('Start index %d of selected word %s not within range of selected paragraph.' % (
                              highlight_start_index, current_highlighted_term))
 
-        cursor = highlight_start_index - 1
-        has_encountered_first_char = False
-        has_encountered_first_word = False
-        stopping_char = [' ', '\n']
-        while -1 < cursor < highlight_start_index:
-            if not has_encountered_first_char:
-                if paragraph_text[cursor] in stopping_char:
-                    cursor -= 1
-                else:
-                    has_encountered_first_char = True
-                    if cursor == 0:
-                        # if cursor at start of paragraph, then consider all characters detected so far as a single word
-                        has_encountered_first_word = True
-                        break
-            else:
-                if paragraph_text[cursor] in stopping_char:
-                    has_encountered_first_word = True
-                    break
-                elif cursor == 0:
-                    # if cursor at start of paragraph, then consider all characters detected so far as a single word
-                    has_encountered_first_word = True
-                    break
-                else:
-                    cursor -= 1
-
-        new_highlighted_term = current_highlighted_term
-        actions = []
-        if not has_encountered_first_char or not has_encountered_first_word:
-            self.logger.warning('No word found before %s' % current_highlighted_term)
-            actions = intent_parser_view.report_spelling_results(start_paragraph_index,
-                                                                 end_paragraph_index,
-                                                                 highlight_start_index,
-                                                                 highlight_end_index,
-                                                                 new_highlighted_term)
-        else:
-            new_highlighted_term = paragraph_text[cursor: highlight_end_index+1]
-            actions = intent_parser_view.report_spelling_results(start_paragraph_index,
-                                                                 end_paragraph_index,
-                                                                 cursor,
-                                                                 highlight_end_index,
-                                                                 new_highlighted_term)
+        new_highlight_start_index, new_highlight_end_index, new_highlighted_term = self._extend_highlight_left_one_word(highlight_start_index,
+                                                                                                                        highlight_end_index,
+                                                                                                                        paragraph_text)
+        actions = intent_parser_view.report_spelling_results(start_paragraph_index,
+                                                             end_paragraph_index,
+                                                             new_highlight_start_index,
+                                                             new_highlight_end_index,
+                                                             new_highlighted_term)
         return {'actions': actions}
 
     def process_spellcheck_add_next_word(self, document_id, data):
@@ -1228,6 +1195,7 @@ class IntentParserProcessor(object):
         if highlight_start_index > len(paragraph_text):
             raise IndexError('Start index %d of selected word %s not within range of selected paragraph.' % (
                 highlight_start_index, current_highlighted_term))
+
         new_highlight_start_index, new_highlight_end_index, new_highlighted_term = self._trim_highlight_left_one_word(highlight_start_index,highlight_end_index,paragraph_text)
         actions = intent_parser_view.report_spelling_results(start_paragraph_index,
                                                              end_paragraph_index,
@@ -1264,12 +1232,48 @@ class IntentParserProcessor(object):
 
         return new_highlight_start_index, new_highlight_end_index, new_highlighted_term
 
+    def _extend_highlight_left_one_word(self, highlight_start_index, highlight_end_index, paragraph_text):
+        cursor = highlight_start_index - 1
+        has_encountered_first_char = False
+        has_encountered_first_word = False
+        stopping_char = [' ', '\n']
+        while -1 < cursor < highlight_start_index:
+            if not has_encountered_first_char:
+                if paragraph_text[cursor] in stopping_char:
+                    cursor -= 1
+                else:
+                    has_encountered_first_char = True
+                    if cursor == 0:
+                        # if cursor at start of paragraph, then consider all characters detected so far as a single word
+                        has_encountered_first_word = True
+                        break
+            else:
+                if paragraph_text[cursor] in stopping_char:
+                    has_encountered_first_word = True
+                    break
+                elif cursor == 0:
+                    # if cursor at start of paragraph, then consider all characters detected so far as a single word
+                    has_encountered_first_word = True
+                    break
+                else:
+                    cursor -= 1
+
+        current_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index + 1]
+        if not has_encountered_first_char or not has_encountered_first_word:
+            self.logger.info('No word found before %s' % current_highlighted_term)
+            return highlight_start_index, highlight_end_index, current_highlighted_term
+
+        new_highlighted_term = paragraph_text[cursor: highlight_end_index + 1]
+        new_highlight_start_index = cursor - 1
+        new_highlight_end_index = highlight_end_index
+        return new_highlight_start_index, new_highlight_end_index, new_highlighted_term
+
     def _extend_highlight_right_one_word(self, highlight_start_index, highlight_end_index, paragraph_text):
         cursor = highlight_end_index + 1
         has_encountered_first_char = False
         has_encountered_first_word = False
         stopping_char = [' ', '\n']
-        paragraph_last_char_index = len(paragraph_text) - 1
+        paragraph_last_char_index = len(paragraph_text)-1
         while highlight_end_index < cursor < len(paragraph_text):
             if not has_encountered_first_char:
                 if paragraph_text[cursor] in stopping_char:
@@ -1293,7 +1297,7 @@ class IntentParserProcessor(object):
 
         current_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index + 1]
         if not has_encountered_first_char or not has_encountered_first_word:
-            self.logger.warning('No word found after %s' % current_highlighted_term)
+            self.logger.info('No word found after %s' % current_highlighted_term)
             return highlight_start_index, highlight_end_index, current_highlighted_term
 
         new_highlighted_term = paragraph_text[highlight_start_index: cursor]
