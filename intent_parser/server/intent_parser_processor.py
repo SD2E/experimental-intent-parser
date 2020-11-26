@@ -1202,9 +1202,9 @@ class IntentParserProcessor(object):
             raise IndexError('Start index %d of selected word %s not within range of selected paragraph.' % (
                              highlight_start_index, current_highlighted_term))
 
-        new_highlight_start_index, new_highlight_end_index, new_highlighted_term = self._shift_cursor_right_one_word(highlight_start_index,
-                                                                                                                     highlight_end_index,
-                                                                                                                     paragraph_text)
+        new_highlight_start_index, new_highlight_end_index, new_highlighted_term = self._extend_highlight_right_one_word(highlight_start_index,
+                                                                                                                         highlight_end_index,
+                                                                                                                         paragraph_text)
         actions = intent_parser_view.report_spelling_results(start_paragraph_index,
                                                              end_paragraph_index,
                                                              new_highlight_start_index,
@@ -1214,9 +1214,57 @@ class IntentParserProcessor(object):
         return {'actions': actions}
 
     def process_spellcheck_drop_previous_word(self, document_id, data):
-        pass
+        intent_parser = LabExperiment(document_id)
+        doc_factory = IntentParserDocumentFactory()
+        ip_document = doc_factory.from_google_doc(intent_parser.load_from_google_doc())
+        start_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
+        end_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
+        selected_paragraph = ip_document.get_paragraph(start_paragraph_index)
+        paragraph_text = selected_paragraph.get_text()
 
-    def _shift_cursor_right_one_word(self, highlight_start_index, highlight_end_index, paragraph_text):
+        highlight_start_index = data[intent_parser_constants.START_OFFSET]
+        highlight_end_index = data[intent_parser_constants.END_OFFSET]
+        current_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index + 1]
+        if highlight_start_index > len(paragraph_text):
+            raise IndexError('Start index %d of selected word %s not within range of selected paragraph.' % (
+                highlight_start_index, current_highlighted_term))
+        new_highlight_start_index, new_highlight_end_index, new_highlighted_term = self._trim_highlight_left_one_word(highlight_start_index,highlight_end_index,paragraph_text)
+        actions = intent_parser_view.report_spelling_results(start_paragraph_index,
+                                                             end_paragraph_index,
+                                                             new_highlight_start_index,
+                                                             new_highlight_end_index,
+                                                             new_highlighted_term)
+
+        return {'actions': actions}
+
+    def _trim_highlight_left_one_word(self, highlight_start_index, highlight_end_index, paragraph_text):
+        new_highlight_start_index = highlight_start_index
+        new_highlight_end_index = highlight_end_index
+        new_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index+1]
+
+        cursor = highlight_start_index + 1
+        has_encountered_stopping_char = False
+        stopping_char = [' ', '\n']
+        while highlight_start_index < cursor < highlight_end_index:
+            if not has_encountered_stopping_char:
+                if paragraph_text[cursor] in stopping_char:
+                    has_encountered_stopping_char = True
+                    if cursor == highlight_end_index:
+                        # cursor reached end of highlighted text but no word was found. Set original highlight as new highlight.
+                        new_highlight_start_index = highlight_start_index
+                        new_highlight_end_index = highlight_end_index
+                        new_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index+1]
+                else:
+                    cursor += 1
+            else:
+                new_highlight_start_index = cursor+1
+                new_highlight_end_index = highlight_end_index
+                new_highlighted_term = paragraph_text[cursor: new_highlight_end_index+1]
+                break
+
+        return new_highlight_start_index, new_highlight_end_index, new_highlighted_term
+
+    def _extend_highlight_right_one_word(self, highlight_start_index, highlight_end_index, paragraph_text):
         cursor = highlight_end_index + 1
         has_encountered_first_char = False
         has_encountered_first_word = False
