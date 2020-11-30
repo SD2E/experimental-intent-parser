@@ -738,7 +738,7 @@ class IntentParserProcessor(object):
         elif button_id == intent_parser_constants.SPELLCHECK_ADD_DROP_FIRST:
             return self.process_spellcheck_drop_previous_word(document_id, button_data)
         elif button_id == intent_parser_constants.SPELLCHECK_ADD_DROP_LAST:
-            return None
+            return self.process_spellcheck_drop_next_word(document_id, button_data)
         else:
             error_message = ['Button ID %s not recognized by Intent Parser.' % button_id]
             raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=error_message)
@@ -773,7 +773,9 @@ class IntentParserProcessor(object):
         if len(validation_errors) == 0:
             if len(validation_warnings) == 0:
                 validation_warnings.append('No warnings found.')
-            dialog_action = intent_parser_view.valid_request_model_dialog(validation_warnings, width=600)
+            dialog_action = intent_parser_view.valid_request_model_dialog('Structured request validation: Passed!',
+                                                                          'Download Structured Request ',
+                                                                          validation_warnings, width=600)
         else:
             all_errors = validation_warnings + validation_errors
             dialog_action = intent_parser_view.invalid_request_model_dialog('Structured request validation: Failed!',
@@ -1205,12 +1207,36 @@ class IntentParserProcessor(object):
 
         return {'actions': actions}
 
+    def process_spellcheck_drop_next_word(self, document_id, data):
+        intent_parser = LabExperiment(document_id)
+        doc_factory = IntentParserDocumentFactory()
+        ip_document = doc_factory.from_google_doc(intent_parser.load_from_google_doc())
+        start_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
+        end_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
+        selected_paragraph = ip_document.get_paragraph(start_paragraph_index)
+        paragraph_text = selected_paragraph.get_text()
+
+        highlight_start_index = data[intent_parser_constants.START_OFFSET]
+        highlight_end_index = data[intent_parser_constants.END_OFFSET]
+        current_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index+1]
+        if highlight_start_index > len(paragraph_text):
+            raise IndexError('Start index %d of selected word %s not within range of selected paragraph.' % (
+                highlight_start_index, current_highlighted_term))
+
+        new_highlight_start_index, new_highlight_end_index, new_highlighted_term = self._trim_highlight_right_one_word(highlight_start_index, highlight_end_index, paragraph_text)
+        actions = intent_parser_view.report_spelling_results(start_paragraph_index,
+                                                             end_paragraph_index,
+                                                             new_highlight_start_index,
+                                                             new_highlight_end_index,
+                                                             new_highlighted_term)
+        return {'actions': actions}
+
     def _trim_highlight_left_one_word(self, highlight_start_index, highlight_end_index, paragraph_text):
         new_highlight_start_index = highlight_start_index
         new_highlight_end_index = highlight_end_index
         new_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index+1]
 
-        cursor = highlight_start_index + 1
+        cursor = highlight_start_index+1
         has_encountered_stopping_char = False
         stopping_char = [' ', '\n']
         while highlight_start_index < cursor < highlight_end_index:
@@ -1228,6 +1254,33 @@ class IntentParserProcessor(object):
                 new_highlight_start_index = cursor+1
                 new_highlight_end_index = highlight_end_index
                 new_highlighted_term = paragraph_text[cursor: new_highlight_end_index+1]
+                break
+
+        return new_highlight_start_index, new_highlight_end_index, new_highlighted_term
+
+    def _trim_highlight_right_one_word(self, highlight_start_index, highlight_end_index, paragraph_text):
+        new_highlight_start_index = highlight_start_index
+        new_highlight_end_index = highlight_end_index
+        new_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index]
+
+        cursor = highlight_end_index-1
+        has_encountered_stopping_char = False
+        stopping_char = [' ', '\n']
+        while highlight_start_index < cursor <= highlight_end_index:
+            if not has_encountered_stopping_char:
+                if paragraph_text[cursor] in stopping_char:
+                    has_encountered_stopping_char = True
+                    if cursor == highlight_start_index:
+                        # cursor reached start of highlighted text but no word was found. Set original highlight as new highlight.
+                        new_highlight_start_index = highlight_start_index
+                        new_highlight_end_index = highlight_end_index
+                        new_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index]
+                else:
+                    cursor -= 1
+            else:
+                new_highlight_start_index = highlight_start_index
+                new_highlight_end_index = cursor-1
+                new_highlighted_term = paragraph_text[new_highlight_start_index: cursor]
                 break
 
         return new_highlight_start_index, new_highlight_end_index, new_highlighted_term
@@ -1264,7 +1317,7 @@ class IntentParserProcessor(object):
             return highlight_start_index, highlight_end_index, current_highlighted_term
 
         new_highlighted_term = paragraph_text[cursor: highlight_end_index + 1]
-        new_highlight_start_index = cursor - 1
+        new_highlight_start_index = cursor if cursor == 0 else cursor+1
         new_highlight_end_index = highlight_end_index
         return new_highlight_start_index, new_highlight_end_index, new_highlighted_term
 
