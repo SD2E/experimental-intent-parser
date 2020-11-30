@@ -635,7 +635,7 @@ function sendGenerateReport() {
 		html += '<p>';
 		html += '<center>';
 		html += 'Download Report ';
-		html += '<a href=' + serverURL + '/document_report?';
+		html += '<a href=' + serverURL + '/document_report/d/';
 		html += docId + ' target=_blank>here</a>';
 		html += '</p>';
 		html += '\n';
