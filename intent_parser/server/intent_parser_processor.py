@@ -322,23 +322,6 @@ class IntentParserProcessor(object):
 
         return result
 
-    def get_element_type(self, element, element_type):
-        elements = []
-        if type(element) is dict:
-            for key in element:
-                if key == element_type:
-                    elements.append(element[key])
-
-                elements += self.get_element_type(element[key],
-                                                  element_type)
-
-        elif type(element) is list:
-            for entry in element:
-                elements += self.get_element_type(entry,
-                                                  element_type)
-
-        return elements
-
     def process_button_click(self, json_body):
         if 'data' not in json_body:
             error_message = ['No data provided from button click.']
