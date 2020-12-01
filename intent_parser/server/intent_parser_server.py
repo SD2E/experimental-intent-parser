@@ -1,12 +1,11 @@
-from flask import Flask, jsonify, request
+from flask import Flask, request
+from flask_restful import Api, Resource, reqparse
 from http import HTTPStatus
-from intent_parser.intent_parser_exceptions import RequestErrorException
-from werkzeug.exceptions import HTTPException
-from intent_parser.server.intent_parser_processor import IntentParserProcessor
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.intent_parser_sbh import IntentParserSBH
+from intent_parser.server.intent_parser_processor import IntentParserProcessor
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import argparse
 import json
@@ -14,216 +13,259 @@ import logging.config
 import os
 import traceback
 
-"""A script in charge of listening for HTTP Requests.
-"""
-
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
-ip_processor = None
+api = Api(app)
+parser = reqparse.RequestParser()
 
-@app.errorhandler(RequestErrorException)
-def handle_request_error_exception(error):
-    return (jsonify({'errors': error.get_errors(), 'warnings': error.get_warnings()}),
-            error.get_http_status())
 
-@app.errorhandler(HTTPStatus.NOT_FOUND)
-def handle_page_not_found(error):
-    logger.error(str(error))
-    return 'Request not identified by Intent Parser', HTTPStatus.NOT_FOUND
+class Status(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
 
-@app.errorhandler(HTTPException)
-def handle_http_exception(error):
-    """Return JSON instead of HTML for HTTP errors."""
-    # start with the correct headers and status code from the error
-    response = error.get_response()
-    # replace the body with JSON
-    response.data = json.dumps({
-        "code": error.code,
-        "name": error.name,
-        "description": error.description,
-    })
-    response.content_type = "application/json"
-    return response
+    def get(self):
+        ip_status = self._ip_processor.get_status()
+        return ip_status, HTTPStatus.OK
 
-@app.errorhandler(Exception)
-def handle_exception(error):
-    # pass through HTTP errors
-    if isinstance(error, HTTPException):
-        return error
+class DocumentReport(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
 
-    # now you're handling non-HTTP exceptions only
-    logger.error(str(error))
-    return str(error), HTTPStatus.INTERNAL_SERVER_ERROR
+    def get(self, doc_id):
+        report = self._ip_processor.process_document_report(doc_id)
+        return report, HTTPStatus.OK
 
-@app.route('/status')
-def status():
-    intent_parser_processor = get_processor()
-    ip_status = intent_parser_processor.get_status()
-    return ip_status, HTTPStatus.OK
+class GenerateStructuredRequest(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
 
-@app.route('/document_report/d/<doc_id>', methods=['GET'])
-def document_report(doc_id):
-    intent_parser_processor = get_processor()
-    report = intent_parser_processor.process_document_report(doc_id)
-    return jsonify(report), HTTPStatus.OK
+    def get(self, doc_id):
+        # previously called document_request
+        structure_request = self._ip_processor.process_document_request(doc_id)
+        return structure_request, HTTPStatus.OK
 
-@app.route('/document_request/<doc_id>', methods=['GET'])
-def document_request(doc_id):
-    intent_parser_processor = get_processor()
-    structure_request = intent_parser_processor.process_document_request(doc_id)
-    return jsonify(structure_request), HTTPStatus.OK
+    def post(self):
+        structure_request = self._ip_processor.process_generate_structured_request(request.host_url, request.get_json())
+        return structure_request, HTTPStatus.OK
 
-@app.route('/experiment_request_documents', methods=['GET'])
-def experiment_request_documents():
-    intent_parser_processor = get_processor()
-    er_documents = intent_parser_processor.process_experiment_request_documents()
-    return jsonify(er_documents), HTTPStatus.OK
+class ExperimentRequestDocuments(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
 
-@app.route('/experiment_status/<doc_id>', methods=['GET'])
-def experiment_status(doc_id):
-    intent_parser_processor = get_processor()
-    experiment_status = intent_parser_processor.process_experiment_status(doc_id)
-    return experiment_status, HTTPStatus.OK
+    def get(self):
+        er_documents = self._ip_processor.process_experiment_request_documents()
+        return er_documents, HTTPStatus.OK
 
-@app.route('/opil_request/<doc_id>', methods=['GET'])
-def opil_request(doc_id):
-    intent_parser_processor = get_processor()
-    opil_output = intent_parser_processor.process_opil_GET_request(doc_id)
-    return opil_output, HTTPStatus.OK
+class ExperimentStatus(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
 
-@app.route('/run_experiment/<doc_id>', methods=['GET'])
-def run_experiment(doc_id):
-    intent_parser_processor = get_processor()
-    experiment_data = intent_parser_processor.process_run_experiment(doc_id)
-    return jsonify(experiment_data), HTTPStatus.OK
+    def get(self, doc_id):
+        experiment_status = self._ip_processor.process_experiment_status_GET(doc_id)
+        return experiment_status, HTTPStatus.OK
 
-@app.route('/update_experiment_status/<doc_id>', methods=['GET'])
-def update_experiment_status(doc_id):
-    intent_parser_processor = get_processor()
-    status_data = intent_parser_processor.process_update_experiment_status(doc_id)
-    return jsonify(status_data), HTTPStatus.OK
+    def post(self):
+        # previously called reportExperimentStatus
+        experiment_status = self._ip_processor.process_experiment_status_POST(request.get_json())
+        return experiment_status, HTTPStatus.OK
 
-@app.route('/analyzeDocument/<doc_id>', methods=['POST'])
-def analyze_document(doc_id):
-    intent_parser_processor = get_processor()
-    analyze_data = intent_parser_processor.process_analyze_document(doc_id)
-    return jsonify(analyze_data), HTTPStatus.OK
+class OpilRequest(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
 
-@app.route('/addBySpelling', methods=['POST'])
-def add_by_spelling():
-    intent_parser_processor = get_processor()
-    spelling_data = intent_parser_processor.process_add_by_spelling(request.json)
-    return jsonify(spelling_data), HTTPStatus.OK
+    def get(self, doc_id):
+        opil_output = self._ip_processor.process_opil_GET_request(doc_id)
+        return opil_output, HTTPStatus.OK
 
-@app.route('/addToSynBioHub', methods=['POST'])
-def add_to_synbiohub():
-    intent_parser_processor = get_processor()
-    sbh_data = intent_parser_processor.process_add_to_syn_bio_hub(request.json)
-    return jsonify(sbh_data), HTTPStatus.OK
+    def post(self):
+        # previously called generateOpilRequest
+        opil_output = self._ip_processor.process_opil_POST_request(request.host_url, request.get_json())
+        return opil_output, HTTPStatus.OK
 
-@app.route('/buttonClick', methods=['POST'])
-def button_click():
-    intent_parser_processor = get_processor()
-    button_response = intent_parser_processor.process_button_click(request.json)
-    return jsonify(button_response), HTTPStatus.OK
+class RunExperiment(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
 
-@app.route('/calculateSamples', methods=['POST'])
-def calculate_samples():
-    intent_parser_processor = get_processor()
-    samples = intent_parser_processor.process_calculate_samples(request.json)
-    return jsonify(samples), HTTPStatus.OK
+    def get(self, doc_id):
+        experiment_data = self._ip_processor.process_run_experiment_GET(doc_id)
+        return experiment_data, HTTPStatus.OK
 
-@app.route('/createTableTemplate', methods=['POST'])
-def create_table_template():
-    intent_parser_processor = get_processor()
-    table_template = intent_parser_processor.process_create_table_template(request.json)
-    return jsonify(table_template), HTTPStatus.OK
+    def post(self):
+        # previously called executeExperiment
+        experiment_data = self._ip_processor.process_run_experiment_POST(request.get_json())
+        return experiment_data, HTTPStatus.OK
 
-@app.route('/executeExperiment', methods=['POST'])
-def execute_experiment():
-    intent_parser_processor = get_processor()
-    experiment_data = intent_parser_processor.process_execute_experiment(request.json)
-    return jsonify(experiment_data), HTTPStatus.OK
+class UpdateExperimentStatus(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
 
-@app.route('/experimentExecutionStatus', methods=['POST'])
-def experiment_execution_status():
-    intent_parser_processor = get_processor()
-    experiment_data = intent_parser_processor.process_experiment_execution_status(request.json)
-    return jsonify(experiment_data), HTTPStatus.OK
+    def get(self, doc_id):
+        status_data = self._ip_processor.process_update_experiment_status(doc_id)
+        return status_data, HTTPStatus.OK
 
-@app.route('/generateOpilRequest', methods=['POST'])
-def generate_opil_post_request():
-    intent_parser_processor = get_processor()
-    opil_data = intent_parser_processor.process_opil_POST_request(request.host_url, request.json)
-    return jsonify(opil_data), HTTPStatus.OK
+class AddBySpelling(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
 
-@app.route('/generateStructuredRequest', methods=['POST'])
-def generate_structured_request():
-    intent_parser_processor = get_processor()
-    sr_data = intent_parser_processor.process_generate_structured_request(request.host_url, request.json)
-    return jsonify(sr_data), HTTPStatus.OK
+    def post(self):
+        spelling_data = self._ip_processor.process_add_by_spelling(request.get_json())
+        return spelling_data, HTTPStatus.OK # TODO
 
-@app.route('/message', methods=['POST'])
-def message():
-    intent_parser_processor = get_processor()
-    result = intent_parser_processor.process_message(request.json)
-    return result, HTTPStatus.OK
+class AddToSynbiohub(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
 
-@app.route('/reportExperimentStatus', methods=['POST'])
-def report_experiment_status():
-    intent_parser_processor = get_processor()
-    exp_status = intent_parser_processor.process_report_experiment_status(request.json)
-    return jsonify(exp_status), HTTPStatus.OK
+    def post(self):
+        sbh_data = self._ip_processor.process_add_to_syn_bio_hub(request.get_json())
+        return sbh_data, HTTPStatus.OK # TODO
 
-@app.route('/searchSynBioHub', methods=['POST'])
-def search_SynBioHub():
-    intent_parser_processor = get_processor()
-    search_result = intent_parser_processor.process_search_syn_bio_hub(request.json)
-    return jsonify(search_result), HTTPStatus.OK
+class AnalyzeDocument(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
 
-@app.route('/submitForm', methods=['POST'])
-def submit_form():
-    intent_parser_processor = get_processor()
-    form_result = intent_parser_processor.process_submit_form(request.json)
-    return jsonify(form_result), HTTPStatus.OK
+    def post(self):
+        analyze_data = self._ip_processor.process_analyze_document(request.get_json())
+        return analyze_data, HTTPStatus.OK
 
-@app.route('/updateExperimentalResults', methods=['POST'])
-def update_experimental_results():
-    intent_parser_processor = get_processor()
-    exp_result = intent_parser_processor.process_update_exp_results(request.json)
-    return jsonify(exp_result), HTTPStatus.OK
+class ButtonClick(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
 
-@app.route('/validateStructuredRequest', methods=['POST'])
-def validate_structured_request():
-    intent_parser_processor = get_processor()
-    sr_result = intent_parser_processor.process_validate_structured_request(request.json)
-    return jsonify(sr_result), HTTPStatus.OK
+    def post(self):
+        button_response = self._ip_processor.process_button_click(request.get_json())
+        return button_response, HTTPStatus.OK # TODO
 
-def setup_ip_processor(input_args=None):
-    try:
-        sbh = IntentParserSBH(sbh_collection_uri=input_args.collection,
-                              spreadsheet_id=intent_parser_constants.SD2_SPREADSHEET_ID,
-                              sbh_username=input_args.username,
-                              sbh_password=input_args.password,
-                              sbh_spoofing_prefix=input_args.spoofing_prefix)
-        sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, sbh)
-        datacatalog_config = {"mongodb": {"database": "catalog_staging", "authn": input_args.authn}}
-        strateos_accessor = StrateosAccessor(input_args.transcriptic)
-        intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
-        ip_processor = IntentParserProcessor(sbh, sbol_dictionary, strateos_accessor, intent_parser_factory)
-        ip_processor.initialize_intent_parser_processor()
-        return ip_processor
-    except (KeyboardInterrupt, SystemExit):
-        return
-    except Exception as ex:
-        logger.warning(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+class CalculateSamples(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
 
-def get_processor():
-    global ip_processor
-    if ip_processor is None:
-        raise RequestErrorException(HTTPStatus.INTERNAL_SERVER_ERROR,
-                                    errors=['Intent Parser Processor unsuccessfully initialized.'])
-    return ip_processor
+    def post(self):
+        table_template = self._ip_processor.process_calculate_samples(request.get_json())
+        return table_template, HTTPStatus.OK
+
+class CreateTableTemplate(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        table_template = self._ip_processor.process_create_table_template(request.get_json())
+        return table_template, HTTPStatus.OK
+
+class ExperimentExecutionStatus(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        # TODO: Implement when addressing Issue #257
+        experiment_data = self._ip_processor.process_experiment_execution_status(request.get_json())
+        return experiment_data, HTTPStatus.OK
+
+class Message(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        message = self._ip_processor.process_message(request.get_json())
+        return message, HTTPStatus.OK
+
+class SearchSynBioHub(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        sbh_data = self._ip_processor.process_search_syn_bio_hub(request.get_json())
+        return sbh_data, HTTPStatus.OK # TODO
+
+class SubmitForm(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        submit_form_data = self._ip_processor.process_submit_form(request.get_json())
+        return submit_form_data, HTTPStatus.OK # TODO
+
+class UpdateExperimentResult(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        experiment_result = self._ip_processor.process_update_exp_results(request.get_json())
+        return experiment_result, HTTPStatus.OK
+
+class ValidateStructuredRequest(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        sr_result = self._ip_processor.process_validate_structured_request(request.get_json())
+        return sr_result, HTTPStatus.OK
+
+def setup_api_resources(ip_processor):
+    api.add_resource(Status,
+                     '/status',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(DocumentReport,
+                     '/document_report/d/<string:doc_id>',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(GenerateStructuredRequest,
+                     '/generateStructuredRequest',
+                     '/generateStructuredRequest/d/<string:doc_id>',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(ExperimentRequestDocuments,
+                     '/experiment_request_documents',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(ExperimentStatus,
+                     '/experiment_status',
+                     '/experiment_status/d/<string:doc_id>',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(OpilRequest,
+                     '/generateOpilRequest',
+                     '/generateOpilRequest/d/<string:doc_id>',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(RunExperiment,
+                     '/run_experiment',
+                     '/run_experiment/d/<string:doc_id>',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(UpdateExperimentStatus,
+                     '/update_experiment_status/d/<string:doc_id>',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+
+    api.add_resource(AddBySpelling,
+                     '/addBySpelling',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(AddToSynbiohub,
+                     '/addToSynBioHub',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(AnalyzeDocument,
+                     '/analyzeDocument',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(ButtonClick,
+                     '/buttonClick',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(CalculateSamples,
+                     '/calculateSamples',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(CreateTableTemplate,
+                     '/createTableTemplate',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(ExperimentExecutionStatus,
+                     '/experimentExecutionStatus',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(Message,
+                     '/message',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(SearchSynBioHub,
+                     '/searchSynBioHub',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(SubmitForm,
+                     '/submitForm',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(UpdateExperimentResult,
+                     '/updateExperimentalResults',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(ValidateStructuredRequest,
+                     '/validateStructuredRequest',
+                     resource_class_kwargs={'ip_processor': ip_processor})
 
 def setup_logging(
         default_path='logging.json',
@@ -280,7 +322,7 @@ def main():
 
     input_args = parser.parse_args()
     setup_logging()
-    global ip_processor
+    ip_processor = None
     try:
         sbh = IntentParserSBH(sbh_collection_uri=input_args.collection,
                               spreadsheet_id=intent_parser_constants.SD2_SPREADSHEET_ID,
@@ -293,12 +335,16 @@ def main():
         intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
         ip_processor = IntentParserProcessor(sbh, sbol_dictionary, strateos_accessor, intent_parser_factory)
         ip_processor.initialize_intent_parser_processor()
+        setup_api_resources(ip_processor)
         app.run(host=input_args.bind_host, port=input_args.bind_port)
     except (KeyboardInterrupt, SystemExit):
+        logger.info('Shutting down Intent Parser Server.')
         return
     except Exception as ex:
         logger.warning(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
-
+    finally:
+        if ip_processor:
+            ip_processor.stop()
 
 if __name__ == "__main__":
     main()

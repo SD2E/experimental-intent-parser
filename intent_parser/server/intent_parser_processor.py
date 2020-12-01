@@ -1161,19 +1161,6 @@ class IntentParserProcessor(object):
         actions = {'actions': action_list}
         return actions
 
-    def process_create_experiment_specification_table(self, status_tables, table_index=None):
-        table_template = []
-        table_caption = ['Table %d: Experiment Specification' % table_index]
-        table_caption.extend(['' for _ in range(1)])
-        header_row = [intent_parser_constants.HEADER_EXPERIMENT_ID_VALUE,
-                      intent_parser_constants.HEADER_EXPERIMENT_STATUS_VALUE]
-        table_template.append(header_row)
-
-        for experiment_id, status_table_index in status_tables.items():
-            table_template.append([experiment_id, 'Table %d' % status_table_index])
-        column_width = [len(header) for header in header_row]
-        return table_template, column_width
-
     def process_create_parameter_table(self, data, document_id):
         table_template = []
         header_row = [intent_parser_constants.HEADER_PARAMETER_VALUE,
