@@ -112,14 +112,18 @@ class SpellcheckDocumentController(object):
                                     self.SPELLCHECK_TERMS_FILE)
 
 class SpellcheckResult(object):
-    def __init__(self, paragraph_index, matching_term, start_offset, end_offset):
+    def __init__(self, paragraph_index, paragraph_text, matching_term, start_offset, end_offset):
         self.paragraph_index = paragraph_index
+        self.paragraph_text = paragraph_text
         self.matching_term = matching_term
         self.start_offset = start_offset
         self.end_offset = end_offset
 
     def get_paragraph_index(self):
         return self.paragraph_index
+
+    def get_paragraph_text(self):
+        return self.paragraph_text
 
     def get_matching_term(self):
         return self.matching_term
@@ -147,6 +151,9 @@ class _SpellcheckDocument(object):
             if spellcheck_result.get_matching_term() == term:
                 self.result.pop(index)
                 removed_item.append(spellcheck_result)
+            elif term in spellcheck_result.get_paragraph_text():
+                self.result.pop(index)
+                removed_item.append(spellcheck_result)
         return removed_item
 
     def remove_first_occurrence(self, paragraph_index, matching_term, start_offset, end_offset):
@@ -156,7 +163,9 @@ class _SpellcheckDocument(object):
                     and spellcheck_result.get_matching_term() == matching_term
                     and spellcheck_result.get_start_offset() == start_offset
                     and spellcheck_result.get_end_offset() == end_offset):
-
+                self.result.pop(index)
+                return True
+            elif matching_term in spellcheck_result.get_paragraph_text():
                 self.result.pop(index)
                 return True
         return False
@@ -186,6 +195,7 @@ class _SpellcheckDocument(object):
                 if start < doc_location.get_start_offset():
                     continue
             spellcheck_result = SpellcheckResult(ip_paragraph.get_paragraph_index(),
+                                                 ip_paragraph.get_text(),
                                                  match,
                                                  start,
                                                  end-1)

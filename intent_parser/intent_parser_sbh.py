@@ -22,15 +22,15 @@ class IntentParserSBH(object):
                  sbh_username, 
                  sbh_password,
                  sbh_spoofing_prefix=None,
-                 item_map_cache=True,
-                 sbh_link_hosts=['hub-staging.sd2e.org', 'hub.sd2e.org']):
+                 item_map_cache=True):
+
         self.sbh_collection_uri = sbh_collection_uri
         self.sbh_spoofing_prefix = sbh_spoofing_prefix
         self.spreadsheet_id = spreadsheet_id
         self.item_map_cache = item_map_cache
         self.sbh_username = sbh_username
         self.sbh_password = sbh_password
-        self.sbh_link_hosts = sbh_link_hosts
+        self.sbh_link_hosts = ['hub-staging.sd2e.org', 'hub.sd2e.org']
         self.sbh = None
     
     def initialize_sbh(self):

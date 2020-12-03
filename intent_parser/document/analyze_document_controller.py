@@ -170,12 +170,12 @@ class _AnalyzeDocument(object):
     def remove_first_occurrence(self, paragraph_index, matching_term, sbh_uri, start_offset, end_offset):
         for index in reversed(range(len(self.result))):
             analyze_result = self.result[index]
+            # if users want to manually enter in a sbh_uri then allow users  to remove current result
+            # as long as the term and position where the term occurs in the document matches.
             if (analyze_result.get_paragraph_index() == paragraph_index
                     and analyze_result.get_matching_term() == matching_term
                     and analyze_result.get_start_offset() == start_offset
                     and analyze_result.get_end_offset() == end_offset):
-                # no need to match sbh_uri because users can manually enter own sbh URI and it does not have to match
-                # with analyze_result.get_sbh_uri()
                 self.result.pop(index)
                 return True
         return False
