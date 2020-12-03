@@ -32,7 +32,8 @@ class ParameterTable(object):
                                    intent_parser_constants.PARAMETER_REAGENT_INFO_INDUCER_INFO,
                                    intent_parser_constants.PARAMETER_REAGENT_INFO_KILL_SWITCH,
                                    intent_parser_constants.PARAMETER_RECOVERY_INFO,
-                                   intent_parser_constants.PARAMETER_INDUCERS]
+                                   intent_parser_constants.PARAMETER_INDUCERS,
+                                   intent_parser_constants.PARAMETER_READER_INFO_LIST_OF_GAINS]
 
     FIELD_WITH_STRING_COMMAS = [intent_parser_constants.PARAMETER_EXP_INFO_MEDIA_WELL_STRINGS]
 
