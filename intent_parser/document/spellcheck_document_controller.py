@@ -165,7 +165,8 @@ class _SpellcheckDocument(object):
                     and spellcheck_result.get_end_offset() == end_offset):
                 self.result.pop(index)
                 return True
-            elif matching_term in spellcheck_result.get_paragraph_text():
+            elif (spellcheck_result.get_paragraph_index() == paragraph_index
+                    and matching_term in spellcheck_result.get_paragraph_text()):
                 self.result.pop(index)
                 return True
         return False
