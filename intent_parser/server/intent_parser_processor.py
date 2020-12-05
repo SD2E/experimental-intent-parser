@@ -76,15 +76,13 @@ class IntentParserProcessor(object):
     def process_opil_POST_request(self, http_host, json_body):
         validation_errors = []
         validation_warnings = []
-        if json_body is None or http_host is None:
-            validation_errors.append('Unable to get information from Google document.')
-        else:
-            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-            lab_accessors = {dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor}
-            intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-            intent_parser.process_opil_request(lab_accessors)
-            validation_warnings.extend(intent_parser.get_validation_warnings())
-            validation_errors.extend(intent_parser.get_validation_errors())
+
+        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+        lab_accessors = {dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor}
+        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+        intent_parser.process_opil_request(lab_accessors)
+        validation_warnings.extend(intent_parser.get_validation_warnings())
+        validation_errors.extend(intent_parser.get_validation_errors())
 
         if len(validation_errors) == 0:
             link = intent_parser_view.get_download_opil_link(http_host, document_id)
@@ -446,21 +444,21 @@ class IntentParserProcessor(object):
 
     def process_analyze_yes(self, document_id, data):
         self.analyze_controller.remove_analyze_result(document_id,
-                                                      data[intent_parser_constants.PARAGRAPH_INDEX],
-                                                      data[intent_parser_constants.ANALYZE_CONTENT_TERM],
+                                                      data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX],
+                                                      data[intent_parser_constants.SELECTED_CONTENT_TERM],
                                                       data[intent_parser_constants.ANALYZE_LINK],
-                                                      data[intent_parser_constants.START_OFFSET],
-                                                      data[intent_parser_constants.END_OFFSET])
-        actions = [intent_parser_view.link_text(data[intent_parser_constants.PARAGRAPH_INDEX],
-                                                data[intent_parser_constants.START_OFFSET],
-                                                data[intent_parser_constants.END_OFFSET],
+                                                      data[intent_parser_constants.SELECTED_START_OFFSET],
+                                                      data[intent_parser_constants.SELECTED_END_OFFSET])
+        actions = [intent_parser_view.link_text(data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX],
+                                                data[intent_parser_constants.SELECTED_START_OFFSET],
+                                                data[intent_parser_constants.SELECTED_END_OFFSET],
                                                 data[intent_parser_constants.ANALYZE_LINK])]
         actions.extend(self._report_current_analyze_term(document_id))
         return {'actions': actions}
 
     def process_analyze_yes_to_all(self, document_id, data):
         matching_terms = self.analyze_controller.remove_analyze_result_with_term(document_id,
-                                                                                 data[intent_parser_constants.ANALYZE_CONTENT_TERM])
+                                                                                 data[intent_parser_constants.SELECTED_CONTENT_TERM])
         actions = []
         for term in matching_terms:
             actions.append(intent_parser_view.link_text(term.get_paragraph_index(),
@@ -472,26 +470,26 @@ class IntentParserProcessor(object):
 
     def process_analyze_no(self, document_id, data):
         self.analyze_controller.remove_analyze_result(document_id,
-                                                      data[intent_parser_constants.PARAGRAPH_INDEX],
-                                                      data[intent_parser_constants.ANALYZE_CONTENT_TERM],
+                                                      data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX],
+                                                      data[intent_parser_constants.SELECTED_CONTENT_TERM],
                                                       data[intent_parser_constants.ANALYZE_LINK],
-                                                      data[intent_parser_constants.START_OFFSET],
-                                                      data[intent_parser_constants.END_OFFSET])
+                                                      data[intent_parser_constants.SELECTED_START_OFFSET],
+                                                      data[intent_parser_constants.SELECTED_END_OFFSET])
         actions = []
         actions.extend(self._report_current_analyze_term(document_id))
         return {'actions': actions}
 
     def process_analyze_no_to_all(self, document_id, data):
         self.analyze_controller.remove_analyze_result_with_term(document_id,
-                                                                data[intent_parser_constants.ANALYZE_CONTENT_TERM])
+                                                                data[intent_parser_constants.SELECTED_CONTENT_TERM])
         actions = []
         actions.extend(self._report_current_analyze_term(document_id))
         return {'actions': actions}
 
     def process_analyze_never_link(self, document_id: str, user_id: str, data: dict):
         self.analyze_controller.remove_analyze_result_with_term(document_id,
-                                                                data[intent_parser_constants.ANALYZE_CONTENT_TERM])
-        self.analyze_controller.add_to_ignore_terms(user_id, data[intent_parser_constants.ANALYZE_CONTENT_TERM])
+                                                                data[intent_parser_constants.SELECTED_CONTENT_TERM])
+        self.analyze_controller.add_to_ignore_terms(user_id, data[intent_parser_constants.SELECTED_CONTENT_TERM])
 
         actions = []
         actions.extend(self._report_current_analyze_term(document_id))
@@ -694,25 +692,25 @@ class IntentParserProcessor(object):
 
     def process_spellcheck_ignore(self, document_id, data):
         self.spellcheck_controller.remove_spellcheck_result(document_id,
-                                                            data[intent_parser_constants.PARAGRAPH_INDEX],
-                                                            data[intent_parser_constants.ANALYZE_CONTENT_TERM],
-                                                            data[intent_parser_constants.START_OFFSET],
-                                                            data[intent_parser_constants.END_OFFSET])
+                                                            data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX],
+                                                            data[intent_parser_constants.SELECTED_CONTENT_TERM],
+                                                            data[intent_parser_constants.SELECTED_START_OFFSET],
+                                                            data[intent_parser_constants.SELECTED_END_OFFSET])
         actions = []
         actions.extend(self._report_current_spellchecker_term(document_id))
         return {'actions': actions}
 
     def process_spellcheck_ignore_all(self, document_id, data):
         self.spellcheck_controller.remove_spellcheck_result_with_term(document_id,
-                                                                      data[intent_parser_constants.ANALYZE_CONTENT_TERM])
+                                                                      data[intent_parser_constants.SELECTED_CONTENT_TERM])
         actions = self._report_current_spellchecker_term(document_id)
         return {'actions': actions}
 
     def process_spellcheck_add_to_dictionary(self, document_id, user_id, data):
         self.spellcheck_controller.remove_spellcheck_result_with_term(document_id,
-                                                                      data[intent_parser_constants.ANALYZE_CONTENT_TERM])
+                                                                      data[intent_parser_constants.SELECTED_CONTENT_TERM])
         self.spellcheck_controller.add_to_spellcheck_terms(user_id,
-                                                           data[intent_parser_constants.ANALYZE_CONTENT_TERM])
+                                                           data[intent_parser_constants.SELECTED_CONTENT_TERM])
 
         actions = []
         actions.extend(self._report_current_spellchecker_term(document_id))
@@ -727,12 +725,12 @@ class IntentParserProcessor(object):
         item_types_html = intent_parser_view.generate_html_options(item_type_list)
         lab_ids_html = intent_parser_view.generate_html_options(intent_parser_constants.LAB_IDS_LIST)
 
-        selection = data[intent_parser_constants.ANALYZE_CONTENT_TERM]
-        display_id = self.sbh.sanitize_name_to_display_id(selection)
-        start_paragraph = data[intent_parser_constants.PARAGRAPH_INDEX]
-        end_paragraph = data[intent_parser_constants.PARAGRAPH_INDEX]
-        start_offset = data[intent_parser_constants.START_OFFSET]
-        end_offset = data[intent_parser_constants.END_OFFSET]
+        selection = data[intent_parser_constants.SELECTED_CONTENT_TERM]
+        display_id = self.sbh.generate_display_id(selection)
+        start_paragraph = data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX]
+        end_paragraph = data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX]
+        start_offset = data[intent_parser_constants.SELECTED_START_OFFSET]
+        end_offset = data[intent_parser_constants.SELECTED_END_OFFSET]
         dialog_action = intent_parser_view.create_add_to_synbiohub_dialog(selection,
                                                                           display_id,
                                                                           start_paragraph,
@@ -756,13 +754,13 @@ class IntentParserProcessor(object):
         intent_parser = LabExperiment(document_id)
         doc_factory = IntentParserDocumentFactory()
         ip_document = doc_factory.from_google_doc(intent_parser.load_from_google_doc())
-        start_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
-        end_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
+        start_paragraph_index = data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX]
+        end_paragraph_index = data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX]
         selected_paragraph = ip_document.get_paragraph(start_paragraph_index)
         paragraph_text = selected_paragraph.get_text()
 
-        highlight_start_index = data[intent_parser_constants.START_OFFSET]
-        highlight_end_index = data[intent_parser_constants.END_OFFSET]
+        highlight_start_index = data[intent_parser_constants.SELECTED_START_OFFSET]
+        highlight_end_index = data[intent_parser_constants.SELECTED_END_OFFSET]
         current_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index+1]
         if highlight_start_index > len(paragraph_text):
             raise IndexError('Start index %d of selected word %s not within range of selected paragraph.' % (
@@ -782,13 +780,13 @@ class IntentParserProcessor(object):
         intent_parser = LabExperiment(document_id)
         doc_factory = IntentParserDocumentFactory()
         ip_document = doc_factory.from_google_doc(intent_parser.load_from_google_doc())
-        start_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
-        end_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
+        start_paragraph_index = data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX]
+        end_paragraph_index = data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX]
         selected_paragraph = ip_document.get_paragraph(start_paragraph_index)
         paragraph_text = selected_paragraph.get_text()
 
-        highlight_start_index = data[intent_parser_constants.START_OFFSET]
-        highlight_end_index = data[intent_parser_constants.END_OFFSET]
+        highlight_start_index = data[intent_parser_constants.SELECTED_START_OFFSET]
+        highlight_end_index = data[intent_parser_constants.SELECTED_END_OFFSET]
         current_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index + 1]
         if highlight_start_index > len(paragraph_text):
             raise IndexError('Start index %d of selected word %s not within range of selected paragraph.' % (
@@ -809,13 +807,13 @@ class IntentParserProcessor(object):
         intent_parser = LabExperiment(document_id)
         doc_factory = IntentParserDocumentFactory()
         ip_document = doc_factory.from_google_doc(intent_parser.load_from_google_doc())
-        start_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
-        end_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
+        start_paragraph_index = data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX]
+        end_paragraph_index = data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX]
         selected_paragraph = ip_document.get_paragraph(start_paragraph_index)
         paragraph_text = selected_paragraph.get_text()
 
-        highlight_start_index = data[intent_parser_constants.START_OFFSET]
-        highlight_end_index = data[intent_parser_constants.END_OFFSET]
+        highlight_start_index = data[intent_parser_constants.SELECTED_START_OFFSET]
+        highlight_end_index = data[intent_parser_constants.SELECTED_END_OFFSET]
         current_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index + 1]
         if highlight_start_index > len(paragraph_text):
             raise IndexError('Start index %d of selected word %s not within range of selected paragraph.' % (
@@ -834,13 +832,13 @@ class IntentParserProcessor(object):
         intent_parser = LabExperiment(document_id)
         doc_factory = IntentParserDocumentFactory()
         ip_document = doc_factory.from_google_doc(intent_parser.load_from_google_doc())
-        start_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
-        end_paragraph_index = data[intent_parser_constants.PARAGRAPH_INDEX]
+        start_paragraph_index = data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX]
+        end_paragraph_index = data[intent_parser_constants.SELECTED_PARAGRAPH_INDEX]
         selected_paragraph = ip_document.get_paragraph(start_paragraph_index)
         paragraph_text = selected_paragraph.get_text()
 
-        highlight_start_index = data[intent_parser_constants.START_OFFSET]
-        highlight_end_index = data[intent_parser_constants.END_OFFSET]
+        highlight_start_index = data[intent_parser_constants.SELECTED_START_OFFSET]
+        highlight_end_index = data[intent_parser_constants.SELECTED_END_OFFSET]
         current_highlighted_term = paragraph_text[highlight_start_index: highlight_end_index+1]
         if highlight_start_index > len(paragraph_text):
             raise IndexError('Start index %d of selected word %s not within range of selected paragraph.' % (

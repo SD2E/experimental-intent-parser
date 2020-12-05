@@ -104,6 +104,16 @@ class SBOLDictionaryAccessor(object):
         self.analyze_lock.release()
         return dictionary_terms
 
+    def get_tab_name_from_item_type(self, targeted_item_type):
+        result = None
+        for tab_name, item_types in self.type_tabs.items():
+            if targeted_item_type in item_types:
+                result = tab_name
+
+        if result is None:
+            raise DictionaryMaintainerException('Unable to locate tab name in SBOL Dictionary for item type: %s' % targeted_item_type)
+        return result
+
     def start_synchronizing_spreadsheet(self):
         self._fetch_spreadsheet_data()
         self.spreadsheet_thread.start()

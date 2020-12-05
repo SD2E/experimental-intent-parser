@@ -5,11 +5,11 @@ import traceback
 
 class SBHAccessor:
 
-    def __init__(self, *, sbh_url):
+    def __init__(self, sbh_url, spoofed_url):
         self.shutdownThread = False
         self.event = threading.Event()
         self.lock = threading.Lock()
-        self.sbh = sbol.PartShop(sbh_url)
+        self.sbh = sbol.PartShop(sbh_url, spoofed_url=spoofed_url)
         self.sbh_username = None
         self.sbh_password = None
 

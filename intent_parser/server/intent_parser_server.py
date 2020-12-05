@@ -4,7 +4,7 @@ from http import HTTPStatus
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.intent_parser_factory import IntentParserFactory
-from intent_parser.intent_parser_sbh import IntentParserSBH
+from intent_parser.accessor.intent_parser_sbh import IntentParserSBH
 from intent_parser.server.intent_parser_processor import IntentParserProcessor
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import argparse
@@ -324,12 +324,8 @@ def main():
     setup_logging()
     ip_processor = None
     try:
-        sbh = IntentParserSBH(sbh_collection_uri=input_args.collection,
-                              spreadsheet_id=intent_parser_constants.SD2_SPREADSHEET_ID,
-                              sbh_username=input_args.username,
-                              sbh_password=input_args.password,
-                              sbh_spoofing_prefix=input_args.spoofing_prefix)
         sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, sbh)
+        sbh = IntentParserSBH(sbol_dictionary)
         datacatalog_config = {"mongodb": {"database": "catalog_staging", "authn": input_args.authn}}
         strateos_accessor = StrateosAccessor(input_args.transcriptic)
         intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)

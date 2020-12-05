@@ -300,10 +300,10 @@ def create_analyze_result_dialog(term, uri, content_term, document_id, paragraph
     buttons = [yes_button, no_button, yes_to_all_button, no_to_all_button, never_link_button]
 
     data = {ip_constants.ANALYZE_LINK: uri,
-            ip_constants.PARAGRAPH_INDEX: paragraph_index,
-            ip_constants.START_OFFSET: offset,
-            ip_constants.END_OFFSET: end_offset,
-            ip_constants.ANALYZE_CONTENT_TERM: content_term,
+            ip_constants.SELECTED_PARAGRAPH_INDEX: paragraph_index,
+            ip_constants.SELECTED_START_OFFSET: offset,
+            ip_constants.SELECTED_END_OFFSET: end_offset,
+            ip_constants.SELECTED_CONTENT_TERM: content_term,
             ip_constants.ANALYZE_TERM: term}
 
     analyze_buttons_script = ''
@@ -435,10 +435,10 @@ def report_spelling_results(start_par, end_par, start_cursor, end_cursor, term):
                button_add_drop_first,
                button_add_drop_last]
 
-    data = {ip_constants.PARAGRAPH_INDEX: start_par,
-            ip_constants.START_OFFSET: start_cursor,
-            ip_constants.END_OFFSET: end_cursor,
-            ip_constants.ANALYZE_CONTENT_TERM: term}
+    data = {ip_constants.SELECTED_PARAGRAPH_INDEX: start_par,
+            ip_constants.SELECTED_START_OFFSET: start_cursor,
+            ip_constants.SELECTED_END_OFFSET: end_cursor,
+            ip_constants.SELECTED_CONTENT_TERM: term}
     spellcheck_buttons_html = ''
     spellcheck_buttons_script = ''
     for button_label, button_id, button_description in buttons:

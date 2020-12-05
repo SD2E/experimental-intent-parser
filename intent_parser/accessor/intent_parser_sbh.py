@@ -1,10 +1,13 @@
+from datetime import datetime
 from http import HTTPStatus
 from intent_parser.accessor.sbh_accessor import SBHAccessor
+from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, IntentParserException
+from sbol2 import SBOLError
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
-from intent_parser.intent_parser_exceptions import IntentParserException
+import intent_parser.utils.intent_parser_utils as ip_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
-from datetime import datetime
 import logging
+import os
 import re
 import sbol2 as sbol
 import traceback
@@ -14,81 +17,34 @@ class IntentParserSBH(object):
     An accessor to a SynBioHub instance for Intent Parser
     """
     
-    logger = logging.getLogger('intent_parser_sbh')
+    _LOGGER = logging.getLogger('intent_parser_sbh')
+    _CREDENTIAL_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                    'intent_parser_api_keys.json')
 
-    def __init__(self, 
-                 sbh_collection_uri,
-                 spreadsheet_id,
-                 sbh_username, 
-                 sbh_password,
-                 sbh_spoofing_prefix=None,
-                 item_map_cache=True):
+    def __init__(self, sbol_dictionary, item_map_cache=True):
+        self._sbol_dictionary = sbol_dictionary
 
-        self.sbh_collection_uri = sbh_collection_uri
-        self.sbh_spoofing_prefix = sbh_spoofing_prefix
-        self.spreadsheet_id = spreadsheet_id
-        self.item_map_cache = item_map_cache
-        self.sbh_username = sbh_username
-        self.sbh_password = sbh_password
-        self.sbh_link_hosts = ['hub-staging.sd2e.org', 'hub.sd2e.org']
+        self.sbh_url = intent_parser_constants.SYNBIOHUB_DEPLOYED_DATABASE_URL
+        self.sbh_spoofing_prefix = intent_parser_constants.SYNBIOHUB_DEPLOYED_DATABASE_URL
+
+        self._is_item_map_cache = item_map_cache
+
         self.sbh = None
-    
+        self.sbh_collection = intent_parser_constants.SYBIOHUB_COLLECTION_NAME_DESIGN
+        self.sbh_uri_prefix = intent_parser_constants.SYNBIOHUB_DESIGN_COLLECTION_PREFIX
+        self.sbh_collection_uri = intent_parser_constants.SYNBIOHUB_DESIGN_COLLECTION_URI
+        self.sbh_collection_user = intent_parser_constants.SYNBIOHUB_DESIGN_COLLECTION_USER
+
     def initialize_sbh(self):
-        """
-        Initialize the connection to SynbioHub.
-        """
+        try:
+            if self.sbh is None:
+                self.sbh = SBHAccessor(self.sbh_url, self.sbh_spoofing_prefix)
+                self.sbh.login(ip_utils.load_json_file(self._CREDENTIAL_FILE)['sbh_username'],
+                               ip_utils.load_json_file(self._CREDENTIAL_FILE)['sbh_password'])
+                self._LOGGER.info('Logged into {}'.format(self.sbh_url))
+        except SBOLError as err:
+            self._LOGGER.error('Failed logging into SynBioHub.')
 
-        if self.sbh_collection_uri[:8] == 'https://':
-            sbh_url_protocol = 'https://'
-            sbh_collection_path = self.sbh_collection_uri[8:]
-        elif self.sbh_collection_uri[:7] == 'http://':
-            sbh_url_protocol = 'http://'
-            sbh_collection_path = self.sbh_collection_uri[7:]
-        else:
-            raise Exception('Invalid collection url: ' + self.sbh_collection_uri)
-
-        sbh_collection_path_parts = sbh_collection_path.split('/')
-        if len(sbh_collection_path_parts) != 6:
-            raise Exception('Invalid collection url: ' + self.sbh_collection_uri)
-
-        sbh_collection = sbh_collection_path_parts[3]
-        sbh_collection_user = sbh_collection_path_parts[2]
-        sbh_collection_version = sbh_collection_path_parts[5]
-        sbh_url = sbh_url_protocol + sbh_collection_path_parts[0]
-
-        if sbh_collection_path_parts[4] != (sbh_collection + '_collection'):
-            raise Exception('Invalid collection url: ' + self.sbh_collection_uri)
-
-        self.sbh = SBHAccessor(sbh_url=sbh_url)
-        self.sbh_collection = sbh_collection
-        self.sbh_collection_user = sbh_collection_user
-        self.sbh_spoofing_prefix = self.sbh_spoofing_prefix
-        self.sbh_url = sbh_url
-        self.sbh_link_hosts = self.sbh_link_hosts
-
-        if self.sbh_spoofing_prefix is not None:
-            self.sbh.spoof(self.sbh_spoofing_prefix)
-            self.sbh_collection_uri = self.sbh_spoofing_prefix \
-                + '/user/' + sbh_collection_user \
-                + '/' + sbh_collection + '/' \
-                + sbh_collection + '_collection/' \
-                + sbh_collection_version
-        else:
-            self.sbh_collection_uri = sbh_url + '/'
-            self.sbh_collection_uri = sbh_url \
-                + '/user/' + sbh_collection_user \
-                + '/' + sbh_collection + '/' \
-                + sbh_collection + '_collection/' \
-                + sbh_collection_version
-
-        self.sbh_uri_prefix = sbh_url \
-            + '/user/' + sbh_collection_user \
-            + '/' + sbh_collection + '/'
-
-        if self.sbh is not None:
-            self.sbh.login(self.sbh_username, self.sbh_password)
-            self.logger.info('Logged into {}'.format(sbh_url))
-            
     def stop(self):
         if self.sbh is not None:
             self.sbh.stop()
@@ -100,7 +56,6 @@ class IntentParserSBH(object):
             item_name = data['commonName']
             item_definition_uri = data['definitionURI']
             item_display_id = data['displayId']
-
         except Exception as e:
             return intent_parser_view.operation_failed('Form submission missing key: ' + str(e))
 
@@ -110,30 +65,28 @@ class IntentParserSBH(object):
 
         # Sanitize the display id
         if len(item_display_id) > 0:
-            display_id = self.sanitize_name_to_display_id(item_display_id)
+            display_id = self.generate_display_id(item_display_id)
             if display_id != item_display_id:
                 return intent_parser_view.operation_failed('Illegal display_id')
         else:
-            display_id = self.sanitize_name_to_display_id(item_name)
+            display_id = self.generate_display_id(item_name)
 
         # Derive document URL
         document_url = self.sbh_uri_prefix + display_id + '/1'
 
         # Make sure document does not already exist
-        try:
-            if self.sbh.exists(document_url):
-                return intent_parser_view.operation_failed('"' + display_id +
-                                             '" already exists in SynBioHub')
-        except:
-            return intent_parser_view.operation_failed('Failed to access SynBioHub')
+        if self.sbh.exists(document_url):
+            message = '"' + display_id + '" already exists in SynBioHub'
+            return intent_parser_view.operation_failed(message)
 
         # Look up sbol type uri
         sbol_type = None
+        sbol_type_map = {}
         for sbol_type_key in intent_parser_constants.ITEM_TYPES:
-            sbol_type_map = intent_parser_constants.ITEM_TYPES[ sbol_type_key ]
+            sbol_type_map = intent_parser_constants.ITEM_TYPES[sbol_type_key]
             if item_type in sbol_type_map:
                 sbol_type = sbol_type_key
-                break;
+                break
 
         # Fix CHEBI URI
         if item_type == 'CHEBI':
@@ -141,8 +94,7 @@ class IntentParserSBH(object):
                 item_definition_uri = sbol_type_map[item_type]
             else:
                 if not item_definition_uri.startswith('http://identifiers.org/chebi/CHEBI'):
-                    item_definition_uri = 'http://identifiers.org/chebi/CHEBI:' + \
-                        item_definition_uri
+                    item_definition_uri = 'http://identifiers.org/chebi/CHEBI:' + item_definition_uri
 
         # Create a dictionary entry for the item
         try:
@@ -162,7 +114,7 @@ class IntentParserSBH(object):
                 if item_type == 'CHEBI':
                     item_sbol_type = item_definition_uri
                 else:
-                    item_sbol_type = sbol_type_map[ item_type ]
+                    item_sbol_type = sbol_type_map[item_type]
 
                 component = sbol.ComponentDefinition(display_id, item_sbol_type)
 
@@ -175,7 +127,7 @@ class IntentParserSBH(object):
                 module = sbol.ModuleDefinition(display_id)
                 sbol.TextProperty(module, 'http://sd2e.org#stub_object', '0', '1', 'true')
 
-                module.roles = sbol_type_map[ item_type ]
+                module.roles = sbol_type_map[item_type]
                 self.set_item_properties(module, data)
 
                 document.addModuleDefinition(module)
@@ -191,37 +143,31 @@ class IntentParserSBH(object):
                 self.set_item_properties(collection, data)
                 document.addCollection(collection)
 
-            else:
-                raise Exception()
-
             self.sbh.submit(document, self.sbh_collection_uri, 3)
 
             paragraph_index = data['selectionStartParagraph']
             offset = data['selectionStartOffset']
             end_offset = data['selectionEndOffset']
 
-            action = intent_parser_view.link_text(paragraph_index, offset,
-                                    end_offset, document_url)
+            action = intent_parser_view.link_text(paragraph_index, offset, end_offset, document_url)
 
         except Exception as e:
-            self.logger.error(''.join(traceback.format_exception(etype=type(e),
-                                                     value=e,
-                                                     tb=e.__traceback__)))
+            self._LOGGER.error(''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__)))
 
             message = 'Failed to add "' + display_id + '" to SynBioHub'
             return intent_parser_view.operation_failed(message)
 
         return_info = {'actions': [action],
-                       'results': {'operationSucceeded': True}
-                      }
+                       'results': {'operationSucceeded': True}}
 
         return return_info  
     
     def get_sbh_collection_user(self):
         return self.sbh_collection_user
     
-    def get_sbh_link_host(self):
-        return self.sbh_link_hosts 
+    def get_sbh_link_hosts(self):
+        return [intent_parser_constants.SYNBIOHUB_STAGING_DATABASE,
+                intent_parser_constants.SYNBIOHUB_DEPLOYED_DATABASE]
     
     def get_sbh_spoofing_prefix(self):
         return self.sbh_spoofing_prefix
@@ -250,8 +196,7 @@ class IntentParserSBH(object):
         if len(item_definition_uri) > 0:
             if item_type == 'CHEBI':
                 if not item_definition_uri.startswith('http://identifiers.org/chebi/CHEBI'):
-                    item_definition_uri = 'http://identifiers.org/chebi/CHEBI:' + \
-                        item_definition_uri
+                    item_definition_uri = 'http://identifiers.org/chebi/CHEBI:' + item_definition_uri
             else:
                 sbol.URIProperty(entity, 'http://www.w3.org/ns/prov#wasDerivedFrom',
                                  '0', '1', item_definition_uri)
@@ -309,7 +254,8 @@ class IntentParserSBH(object):
             timestamp = m['timestamp']['value']
             title = m['title']['value']
             
-            if self.sbh_spoofing_prefix is not None: # We need to re-spoof the URL
+            if self.sbh_spoofing_prefix is not None:
+                # We need to re-spoof the URL
                 uri = uri.replace(self.sbh_spoofing_prefix, self.sbh_url)
             
             experiments.append({'uri': uri, 'timestamp': timestamp, 'title': title})
@@ -382,7 +328,7 @@ class IntentParserSBH(object):
         source = [m['source']['value'] for m in response['results']['bindings']]
         return source
 
-    def sanitize_name_to_display_id(self, name):
+    def generate_display_id(self, name):
         display_id_first_char = '[a-zA-Z_]'
         display_id_later_char = '[a-zA-Z0-9_]'
 
@@ -406,3 +352,49 @@ class IntentParserSBH(object):
                     sanitized += '0x{:x}'.format(ord(character))
 
         return sanitized
+
+    def create_dictionary_entry(self, data, document_url, item_definition_uri):
+        item_type = data['itemType']
+        item_name = data['commonName']
+        item_lab_ids = data['labId']
+        item_lab_id_tag = data['labIdSelect']
+
+        # sbh_uri_prefix = self.sbh_uri_prefix
+        if self.sbh_spoofing_prefix is not None:
+            item_uri = document_url.replace(self.sbh_url,
+                                            self.sbh_spoofing_prefix)
+        else:
+            item_uri = document_url
+
+        tab_name = self._sbol_dictionary.get_tab_name_from_item_type(item_type)
+        tab_data = self._sbol_dictionary.get_row_data(tab=tab_name)
+
+        # Get common names
+        item_map = {}
+        for row_data in tab_data:
+            common_name = row_data['Common Name']
+            if common_name is None or len(common_name) == 0:
+                continue
+            item_map[common_name] = row_data
+
+        if item_name in item_map:
+            raise DictionaryMaintainerException('"' + item_name + '" already exists in dictionary spreadsheet')
+
+        dictionary_entry = {'tab': tab_name,
+                            'row': len(tab_data) + 3,
+                            'Common Name': item_name,
+                            'Type': item_type}
+        if tab_name == 'Reagent':
+            dictionary_entry['Definition URI / CHEBI ID'] = item_definition_uri
+        else:
+            dictionary_entry['Definition URI'] = item_definition_uri
+
+        if item_type != 'Attribute':
+            dictionary_entry['Stub Object?'] = 'YES'
+
+        dictionary_entry[item_lab_id_tag] = item_lab_ids
+        dictionary_entry['SynBioHub URI'] = item_uri
+
+        self._sbol_dictionary.set_row_data(dictionary_entry)
+
+

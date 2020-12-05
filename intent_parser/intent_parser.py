@@ -144,7 +144,7 @@ class IntentParser(object):
         selection = paragraph_text[start_offset:end_offset + 1]
         # Remove leading/trailing space
         selection = selection.strip()
-        return selection, self.sbh.sanitize_name_to_display_id(selection)
+        return selection, self.sbh.generate_display_id(selection)
 
     def generate_report(self):
         links_info = self.lab_experiment.links_info()
@@ -162,7 +162,7 @@ class IntentParser(object):
                         continue
 
                 url_host = url.split('/')[2]
-                if url_host not in self.sbh.get_sbh_link_host():
+                if url_host not in self.sbh.get_sbh_link_hosts():
                     continue
 
                 term_map[term] = url
