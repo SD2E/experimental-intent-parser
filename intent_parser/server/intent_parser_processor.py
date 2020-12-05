@@ -46,7 +46,7 @@ class IntentParserProcessor(object):
         self.spellcheck_controller = SpellcheckDocumentController()
         self.initialized = False
 
-    def initialize_intent_parser_processor(self, init_sbh=True):
+    def initialize_intent_parser_processor(self):
         """
         Initialize the server.
         """
@@ -55,8 +55,9 @@ class IntentParserProcessor(object):
         self.spellcheck_controller.start_spellcheck_controller()
         # self.strateos_accessor.start_synchronize_protocols()
 
-        if init_sbh:
-            self.sbh.initialize_sbh()
+        self.sbh.initialize_sbh()
+        self.sbh.set_sbol_dictionary(self.sbol_dictionary)
+
         self.initialized = True
 
     def process_opil_GET_request(self, document_id):
@@ -287,6 +288,29 @@ class IntentParserProcessor(object):
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         samples = intent_parser.calculate_samples()
         actions = {'actions': [samples]}
+        return actions
+
+    def process_submit_to_synbiohub(self, data):
+        if 'commonName' not in data:
+            return intent_parser_view.operation_failed('Common Name must be specified')
+
+        actions = []
+        try:
+            item_type = data['itemType']
+            item_name = data['commonName']
+            item_definition_uri = data['definitionURI']
+            item_display_id = data['displayId']
+            item_lab_ids = data['labId']
+            item_lab_id_tag = data['labIdSelect']
+
+            paragraph_index = data['selectionStartParagraph']
+            offset = data['selectionStartOffset']
+            end_offset = data['selectionEndOffset']
+            document_url = self.sbh.create_sbh_stub(item_type, item_name, item_definition_uri, item_display_id, item_lab_ids, item_lab_id_tag)
+            link_text_action = intent_parser_view.link_text(paragraph_index, offset, end_offset, document_url)
+            actions.append(link_text_action)
+        except Exception as e:
+            intent_parser_view.operation_failed('Form submission missing key: ' + str(e))
         return actions
 
     def process_submit_form(self, json_body):

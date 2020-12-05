@@ -3,6 +3,7 @@ from flask_restful import Api, Resource, reqparse
 from http import HTTPStatus
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
+from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.accessor.intent_parser_sbh import IntentParserSBH
 from intent_parser.server.intent_parser_processor import IntentParserProcessor
@@ -324,8 +325,8 @@ def main():
     setup_logging()
     ip_processor = None
     try:
+        sbh = IntentParserSBH()
         sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, sbh)
-        sbh = IntentParserSBH(sbol_dictionary)
         datacatalog_config = {"mongodb": {"database": "catalog_staging", "authn": input_args.authn}}
         strateos_accessor = StrateosAccessor(input_args.transcriptic)
         intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
@@ -335,6 +336,8 @@ def main():
         app.run(host=input_args.bind_host, port=input_args.bind_port)
     except (KeyboardInterrupt, SystemExit):
         logger.info('Shutting down Intent Parser Server.')
+        return
+    except IntentParserException:
         return
     except Exception as ex:
         logger.warning(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
