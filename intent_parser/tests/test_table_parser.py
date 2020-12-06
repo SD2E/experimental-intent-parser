@@ -1,7 +1,6 @@
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
 import unittest
 
-
 class TableParserTest(unittest.TestCase):
     """
     Test Intent Parser when parsing content from tables.

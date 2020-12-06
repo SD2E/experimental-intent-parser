@@ -1,7 +1,6 @@
-from flask import Flask, request
+from flask import Flask, request, redirect
 from flask_restful import Api, Resource, reqparse
 from flasgger import Swagger, swag_from
-
 from http import HTTPStatus
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
@@ -22,23 +21,28 @@ api = Api(app)
 
 # Create an APISpec
 template = {
-  "swagger": "2.0",
-    "info": {
-    "title": "Flask Restful Swagger Demo",
-    "description": "A Demof for the Flask-Restful Swagger Demo",
-    "version": "0.1.1"
-    }
+  'swagger': '2.0',
+        'info': {
+            'title': 'Intent Parser API',
+            'description': 'API for access features supported in Intent Parser.',
+            'version': '3.0'
+        }
 }
 
 app.config['SWAGGER'] = {
-    'title': 'My API',
+    'title': 'Intent Parser API',
     'uiversion': 3,
-    "specs_route": "/swagger/"
+    'specs_route': '/api/'
 }
 swagger = Swagger(app, template=template)
-
-
 parser = reqparse.RequestParser()
+
+class IntentParserHome(Resource):
+    def __init__(self):
+        pass
+
+    def get(self):
+        return redirect("http://www.google.com", code=302)
 
 class Status(Resource):
     def __init__(self, ip_processor):
@@ -248,6 +252,8 @@ class ValidateStructuredRequest(Resource):
         return sr_result, HTTPStatus.OK
 
 def setup_api_resources(ip_processor):
+    api.add_resource(IntentParserHome,
+                     '/home')
     api.add_resource(Status,
                      '/status',
                      resource_class_kwargs={'ip_processor': ip_processor})
