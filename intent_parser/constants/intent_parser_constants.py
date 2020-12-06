@@ -45,28 +45,35 @@ LAB_IDS_LIST = ['BioFAB UID',
                 'PennState (Salis) UID',
                 'Transcriptic UID']
 
+SBOL_COMPONENT_MAPPINGS = {
+    'Bead': 'http://purl.obolibrary.org/obo/NCIT_C70671',
+    'CHEBI': 'http://identifiers.org/chebi/CHEBI:24431',
+    'DNA': 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
+    'Protein': 'http://www.biopax.org/release/biopax-level3.owl#Protein',
+    'RNA': 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
+}
+
+SBOL_MODULE_MAPPINGS = {
+    'Strain': 'http://purl.obolibrary.org/obo/NCIT_C14419',
+    'Media': 'http://purl.obolibrary.org/obo/NCIT_C85504',
+    'Stain': 'http://purl.obolibrary.org/obo/NCIT_C841',
+    'Buffer': 'http://purl.obolibrary.org/obo/NCIT_C70815',
+    'Solution': 'http://purl.obolibrary.org/obo/NCIT_C70830'
+}
+
+SBOL_COLLECTION_MAPPING = {
+    'Challenge Problem': '',
+    'Collection': ''
+}
+
+SBOL_EXTERNAL_MAPPINGS = {
+    'Attribute': ''
+}
 ITEM_TYPES = {
-    'component': {
-        'Bead': 'http://purl.obolibrary.org/obo/NCIT_C70671',
-        'CHEBI': 'http://identifiers.org/chebi/CHEBI:24431',
-        'DNA': 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
-        'Protein': 'http://www.biopax.org/release/biopax-level3.owl#Protein',
-        'RNA': 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
-    },
-    'module': {
-        'Strain': 'http://purl.obolibrary.org/obo/NCIT_C14419',
-        'Media': 'http://purl.obolibrary.org/obo/NCIT_C85504',
-        'Stain': 'http://purl.obolibrary.org/obo/NCIT_C841',
-        'Buffer': 'http://purl.obolibrary.org/obo/NCIT_C70815',
-        'Solution': 'http://purl.obolibrary.org/obo/NCIT_C70830'
-    },
-    'collection': {
-        'Challenge Problem': '',
-        'Collection': ''
-    },
-    'external': {
-        'Attribute': ''
-    }
+    'component': SBOL_COMPONENT_MAPPINGS,
+    'module': SBOL_MODULE_MAPPINGS,
+    'collection': SBOL_COLLECTION_MAPPING,
+    'external': SBOL_EXTERNAL_MAPPINGS
 }
 
 SPARQL_LIMIT = 5
@@ -78,7 +85,6 @@ TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
 CELL_FREE_RIBO_SWITCH_PROTOCOL = 'CellFreeRiboswitches'
 
 # Mapping protocols to human readible names
-PARAMETER_PROTOCOL_NAME = 'Protocol Name'
 PROTOCOL_PLACEHOLDER = 'Select a protocol'
 
 PROTOCOL_FIELD_XPLAN_BASE_DIRECTORY = 'XPlan Base Directory'

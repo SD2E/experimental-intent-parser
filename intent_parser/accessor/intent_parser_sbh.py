@@ -5,12 +5,10 @@ from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
 from sbol2 import SBOLError
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.utils.intent_parser_utils as ip_utils
-import intent_parser.utils.intent_parser_view as intent_parser_view
 import logging
 import os
 import re
 import sbol2 as sbol
-import traceback
 
 class IntentParserSBH(object):
     """
@@ -53,101 +51,133 @@ class IntentParserSBH(object):
     def stop(self):
         if self.sbh is not None:
             self.sbh.stop()
-    
-    def create_sbh_stub(self, item_type, item_name, item_definition_uri, item_display_id, item_lab_ids, item_lab_id_tag):
-        # Sanitize the display id
-        if len(item_display_id) > 0:
-            display_id = self.generate_display_id(item_display_id)
-            if display_id != item_display_id:
-                return intent_parser_view.operation_failed('Illegal display_id')
-        else:
-            display_id = self.generate_display_id(item_name)
 
-        # Derive document URL
-        document_url = self.sbh_uri_prefix + display_id + '/1'
+    def get_or_create_display_id(self, item_name, item_display_id):
+        if len(item_display_id) == 0:
+            return self.generate_display_id(item_name)
 
-        # Make sure document does not already exist
-        if self.sbh.exists(document_url):
-            message = '"' + display_id + '" already exists in SynBioHub'
-            return intent_parser_view.operation_failed(message)
+        display_id = self.generate_display_id(item_display_id)
+        if display_id != item_display_id:
+            raise IntentParserException('Illegal display_id')
+        return display_id
 
-        # Look up sbol type uri
-        sbol_type = None
+    def get_sbol_type(self):
         sbol_type_map = {}
-        for sbol_type_key in intent_parser_constants.ITEM_TYPES:
-            sbol_type_map = intent_parser_constants.ITEM_TYPES[sbol_type_key]
-            if item_type in sbol_type_map:
-                sbol_type = sbol_type_key
-                break
+        for sbol_type_key in intent_parser_constants.ITEM_TYPES.keys():
+            sbol_type_map.update(intent_parser_constants.ITEM_TYPES[sbol_type_key])
+        return sbol_type_map
 
-        # Fix CHEBI URI
+    def get_or_create_new_item_definition_uri(self, item_type, item_definition_uri, sbol_type_map):
+        targeted_item_definition_uri = item_definition_uri
+        # Check for item type not supported in sbol and assign them an appropriate definition uri
         if item_type == 'CHEBI':
             if len(item_definition_uri) == 0:
-                item_definition_uri = sbol_type_map[item_type]
+                targeted_item_definition_uri = sbol_type_map[item_type]
             else:
                 if not item_definition_uri.startswith('http://identifiers.org/chebi/CHEBI'):
-                    item_definition_uri = 'http://identifiers.org/chebi/CHEBI:' + item_definition_uri
+                    targeted_item_definition_uri = 'http://identifiers.org/chebi/CHEBI:' + item_definition_uri
+        return targeted_item_definition_uri
 
-        # Create a dictionary entry for the item
-        try:
-            self.create_dictionary_entry(item_type,
-                                         item_name,
-                                         item_lab_ids,
-                                         item_lab_id_tag,
-                                         document_url,
-                                         item_definition_uri)
+    def create_synbiohub_entry(self,
+                               sbol_type,
+                               sbol_type_map,
+                               display_id,
+                               item_type,
+                               item_name,
+                               item_definition_uri,
+                               item_lab_ids,
+                               item_lab_id_tag):
 
-        except Exception as e:
-            return intent_parser_view.operation_failed(str(e))
+        document = sbol.Document()
+        document.addNamespace('http://sd2e.org#', 'sd2')
+        document.addNamespace('http://purl.org/dc/terms/', 'dcterms')
+        document.addNamespace('http://www.w3.org/ns/prov#', 'prov')
 
-        # Create an entry in SynBioHub
-        try:
-            document = sbol.Document()
-            document.addNamespace('http://sd2e.org#', 'sd2')
-            document.addNamespace('http://purl.org/dc/terms/', 'dcterms')
-            document.addNamespace('http://www.w3.org/ns/prov#', 'prov')
+        if sbol_type == 'component':
+            if item_type == 'CHEBI':
+                item_sbol_type = item_definition_uri
+            else:
+                item_sbol_type = sbol_type_map[item_type]
 
-            if sbol_type == 'component':
-                if item_type == 'CHEBI':
-                    item_sbol_type = item_definition_uri
-                else:
-                    item_sbol_type = sbol_type_map[item_type]
+            component = sbol.ComponentDefinition(display_id, item_sbol_type)
+            sbol.TextProperty(component, 'http://sd2e.org#stub_object', '0', '1', 'true')
+            self.set_item_properties(component,
+                                     item_type,
+                                     item_name,
+                                     item_definition_uri,
+                                     item_lab_ids,
+                                     item_lab_id_tag)
+            document.addComponentDefinition(component)
+        elif sbol_type == 'module':
+            module = sbol.ModuleDefinition(display_id)
+            sbol.TextProperty(module, 'http://sd2e.org#stub_object', '0', '1', 'true')
 
-                component = sbol.ComponentDefinition(display_id, item_sbol_type)
+            module.roles = sbol_type_map[item_type]
+            self.set_item_properties(module,
+                                     item_type,
+                                     item_name,
+                                     item_definition_uri,
+                                     item_lab_ids,
+                                     item_lab_id_tag)
+            document.addModuleDefinition(module)
+        elif sbol_type == 'external':
+            top_level = sbol.TopLevel('http://sd2e.org/types/#attribute', display_id)
+            self.set_item_properties(top_level,
+                                     item_type,
+                                     item_name,
+                                     item_definition_uri,
+                                     item_lab_ids,
+                                     item_lab_id_tag)
+            document.addTopLevel(top_level)
+        elif sbol_type == 'collection':
+            collection = sbol.Collection(display_id)
+            self.set_item_properties(collection,
+                                     item_type,
+                                     item_name,
+                                     item_definition_uri,
+                                     item_lab_ids,
+                                     item_lab_id_tag)
+            document.addCollection(collection)
+        else:
+            raise IntentParserException('Failed to create a SynBioHub entry: %s as a supported sbol type in Intent Parser' % sbol_type)
 
-                sbol.TextProperty(component, 'http://sd2e.org#stub_object', '0', '1', 'true')
+        return document
 
-                self.set_item_properties(component, item_type, item_name, item_definition_uri, item_lab_ids, item_lab_id_tag)
+    def create_sbh_stub_new(self, item_type, item_name, item_definition_uri, item_display_id, item_lab_ids, item_lab_id_tag):
+        display_id = self.get_or_create_display_id(item_name, item_display_id)
+        # Derive document URL
+        document_url = self.sbh_uri_prefix + display_id + '/1'
+        if self.sbh.exists(document_url):
+            message = '%s already exists in SynBioHub'
+            raise IntentParserException(message)
 
-                document.addComponentDefinition(component)
+        sbol_type_map = self.get_sbol_type()
+        if item_type not in sbol_type_map.keys():
+            err = '%s does not match one of the following sbol types: \n %s' % (item_type, ' ,'.join((map(str, sbol_type_map.keys()))))
+            raise IntentParserException(err)
 
-            elif sbol_type == 'module':
-                module = sbol.ModuleDefinition(display_id)
-                sbol.TextProperty(module, 'http://sd2e.org#stub_object', '0', '1', 'true')
+        sbol_type = sbol_type_map[item_type]
+        new_item_definition_uri = self.get_or_create_new_item_definition_uri(item_type,
+                                                                             item_definition_uri,
+                                                                             sbol_type_map)
+        self.create_dictionary_entry(item_type,
+                                     item_name,
+                                     item_lab_ids,
+                                     item_lab_id_tag,
+                                     document_url,
+                                     new_item_definition_uri)
 
-                module.roles = sbol_type_map[item_type]
-                self.set_item_properties(module, item_type, item_name, item_definition_uri, item_lab_ids, item_lab_id_tag)
+        sbh_document = self.create_synbiohub_entry(sbol_type,
+                                                   sbol_type_map,
+                                                   display_id,
+                                                   item_type,
+                                                   item_name,
+                                                   item_definition_uri,
+                                                   item_lab_ids,
+                                                   item_lab_id_tag)
 
-                document.addModuleDefinition(module)
-
-            elif sbol_type == 'external':
-                top_level = sbol.TopLevel('http://sd2e.org/types/#attribute', display_id)
-                self.set_item_properties(top_level, item_type, item_name, item_definition_uri, item_lab_ids, item_lab_id_tag)
-
-                document.addTopLevel(top_level)
-
-            elif sbol_type == 'collection':
-                collection = sbol.Collection(display_id)
-                self.set_item_properties(collection, item_type, item_name, item_definition_uri, item_lab_ids, item_lab_id_tag)
-                document.addCollection(collection)
-
-            self.sbh.submit(document, self.sbh_collection_uri, 3)
-            return document_url
-
-        except Exception as e:
-            self._LOGGER.error(''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__)))
-            message = 'Failed to add "' + display_id + '" to SynBioHub'
-            return intent_parser_view.operation_failed(message)
+        self.sbh.submit(sbh_document, self.sbh_collection_uri, 3)
+        return document_url
 
     def get_sbh_collection_user(self):
         return self.sbh_collection_user

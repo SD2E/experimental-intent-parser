@@ -292,7 +292,7 @@ class IntentParserProcessor(object):
 
     def process_submit_to_synbiohub(self, data):
         if 'commonName' not in data:
-            return intent_parser_view.operation_failed('Common Name must be specified')
+            return intent_parser_view.operation_failed('Common Name must be specified when submitting an entry to SynBioHub')
 
         actions = []
         try:
@@ -302,16 +302,26 @@ class IntentParserProcessor(object):
             item_display_id = data['displayId']
             item_lab_ids = data['labId']
             item_lab_id_tag = data['labIdSelect']
+            document_url = self.sbh.create_sbh_stub_new(item_type,
+                                                        item_name,
+                                                        item_definition_uri,
+                                                        item_display_id,
+                                                        item_lab_ids,
+                                                        item_lab_id_tag)
 
             paragraph_index = data['selectionStartParagraph']
             offset = data['selectionStartOffset']
             end_offset = data['selectionEndOffset']
-            document_url = self.sbh.create_sbh_stub(item_type, item_name, item_definition_uri, item_display_id, item_lab_ids, item_lab_id_tag)
             link_text_action = intent_parser_view.link_text(paragraph_index, offset, end_offset, document_url)
             actions.append(link_text_action)
-        except Exception as e:
-            intent_parser_view.operation_failed('Form submission missing key: ' + str(e))
-        return actions
+        except IntentParserException as err:
+            message = err.get_message()
+            result = intent_parser_view.operation_failed(message)
+            return result
+
+        return {'actions': actions,
+                'results': {'operationSucceeded': True}
+                }
 
     def process_submit_form(self, json_body):
         if 'data' not in json_body:
@@ -323,12 +333,8 @@ class IntentParserProcessor(object):
         action_type = data['extra']['action']
 
         result = {}
-        actions = []
         if action_type == intent_parser_constants.SUBMIT_FORM:
-            result = self.sbh.create_sbh_stub(data)
-            if result['results']['operationSucceeded'] and data['isSpellcheck'] == 'True':
-                for action in intent_parser_view.report_spelling_results(data):
-                    result['actions'].append(action)
+            result = self.sbh.process_submit_to_synbiohub(data)
         elif action_type == intent_parser_constants.SUBMIT_FORM_CREATE_CONTROLS_TABLE:
             actions = self.process_controls_table(data, json_body['documentId'])
             result['actions'] = actions
@@ -341,6 +347,9 @@ class IntentParserProcessor(object):
             actions = self.process_create_parameter_table(data, json_body['documentId'])
             result['actions'] = actions
             result['results'] = {'operationSucceeded': True}
+        else:
+            message = 'Request %s not supported in Intent Parser' % action_type
+            result = intent_parser_view.operation_failed(message)
 
         return result
 

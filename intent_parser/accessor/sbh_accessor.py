@@ -1,10 +1,11 @@
+import logging
 import sbol2 as sbol
 import tenacity
 import threading
 import traceback
 
 class SBHAccessor:
-
+    _LOGGER = logging.getLogger('sbh_accessor')
     def __init__(self, sbh_url, spoofed_url):
         self.shutdownThread = False
         self.event = threading.Event()
@@ -69,8 +70,7 @@ class SBHAccessor:
     def exists(self, document_url):
         self.lock.acquire()
         try:
-            fret = self.sbh.exists(document_url)
-
+            fret = self.sbh.exists(document_url) # TODO: replace with valid call to exists
         except Exception as e:
             self.lock.release()
             raise e
@@ -87,6 +87,7 @@ class SBHAccessor:
 
         except Exception as e:
             self.lock.release()
+            self._LOGGER.error(''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__)))
             raise e
 
         self.lock.release()
