@@ -1,5 +1,7 @@
 from flask import Flask, request
 from flask_restful import Api, Resource, reqparse
+from flasgger import Swagger, swag_from
+
 from http import HTTPStatus
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
@@ -17,8 +19,26 @@ import traceback
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
 api = Api(app)
-parser = reqparse.RequestParser()
 
+# Create an APISpec
+template = {
+  "swagger": "2.0",
+    "info": {
+    "title": "Flask Restful Swagger Demo",
+    "description": "A Demof for the Flask-Restful Swagger Demo",
+    "version": "0.1.1"
+    }
+}
+
+app.config['SWAGGER'] = {
+    'title': 'My API',
+    'uiversion': 3,
+    "specs_route": "/swagger/"
+}
+swagger = Swagger(app, template=template)
+
+
+parser = reqparse.RequestParser()
 
 class Status(Resource):
     def __init__(self, ip_processor):
@@ -41,11 +61,37 @@ class GenerateStructuredRequest(Resource):
         self._ip_processor = ip_processor
 
     def get(self, doc_id):
+        """
+        GET endpoint
+        ---
+        tags:
+            - restful
+        parameters:
+            - in: path
+              name: doc_id
+              type: string
+              required: true
+              description: ID of document
+        """
         # previously called document_request
         structure_request = self._ip_processor.process_document_request(doc_id)
         return structure_request, HTTPStatus.OK
 
+    @swag_from(endpoint='generateStructuredRequest', methods=['POST'])
     def post(self):
+        """
+        POST endpoint for sr
+        ---
+        tags:
+            - restful
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+        """
         structure_request = self._ip_processor.process_generate_structured_request(request.host_url, request.get_json())
         return structure_request, HTTPStatus.OK
 
