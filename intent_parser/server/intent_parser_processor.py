@@ -334,7 +334,7 @@ class IntentParserProcessor(object):
 
         result = {}
         if action_type == intent_parser_constants.SUBMIT_FORM:
-            result = self.sbh.process_submit_to_synbiohub(data)
+            result = self.process_submit_to_synbiohub(data)
         elif action_type == intent_parser_constants.SUBMIT_FORM_CREATE_CONTROLS_TABLE:
             actions = self.process_controls_table(data, json_body['documentId'])
             result['actions'] = actions
