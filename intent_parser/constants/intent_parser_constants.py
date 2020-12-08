@@ -2,7 +2,7 @@
 List of constants used for reading and writing contents from intent parser
 """
 
-RELEASE_VERSION = '2.10'
+RELEASE_VERSION = '3.0'
 
 SELECTED_CONTENT_TERM = 'content_term'
 SELECTED_END_OFFSET = 'end_offset'
