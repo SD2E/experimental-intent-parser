@@ -54,14 +54,14 @@ class IntentParserProcessor(object):
         self.sbol_dictionary.start_synchronizing_spreadsheet()
         self.analyze_controller.start_analyze_controller()
         self.spellcheck_controller.start_spellcheck_controller()
-        # self.strateos_accessor.start_synchronize_protocols()
+        self.strateos_accessor.start_synchronize_protocols()
 
         self.sbh.initialize_sbh()
         self.sbh.set_sbol_dictionary(self.sbol_dictionary)
 
         self.initialized = True
 
-    def process_opil_GET_request(self, document_id):
+    def process_opil_get_request(self, document_id):
         lab_accessors = {dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor}
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_opil_request(lab_accessors)
@@ -75,7 +75,7 @@ class IntentParserProcessor(object):
         xml_string = sbol_doc.write_string('xml')
         return xml_string
 
-    def process_opil_POST_request(self, http_host, json_body):
+    def process_opil_post_request(self, http_host, json_body):
         validation_errors = []
         validation_warnings = []
 
@@ -132,7 +132,7 @@ class IntentParserProcessor(object):
         er_docs = drive_accessor.get_all_docs(intent_parser_constants.GOOGLE_DRIVE_EXPERIMENT_REQUEST_FOLDER)
         return {'docId': er_docs}
 
-    def process_experiment_status_GET(self, document_id):
+    def process_experiment_status_get(self, document_id):
         """
         Retrieve the statuses of an experiment from a google document.
         """
@@ -166,7 +166,7 @@ class IntentParserProcessor(object):
         actions = {'actions': action_list}
         return actions
 
-    def process_run_experiment_GET(self, document_id):
+    def process_run_experiment_get(self, document_id):
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_experiment_run_request()
 
@@ -186,7 +186,7 @@ class IntentParserProcessor(object):
         link = response_json['_links']['self']
         return {'authenticationLink': link}
 
-    def process_run_experiment_POST(self, json_body):
+    def process_run_experiment_post(self, json_body):
         validation_errors = []
         validation_warnings = []
         response_json = {}
@@ -569,9 +569,9 @@ class IntentParserProcessor(object):
                                     }
                         }
         except Exception as err:
-            self.logger.error(''.join(traceback.format_exception(etype=type(e),
-                                                                  value=e,
-                                                                  tb=e.__traceback__)))
+            self.logger.error(''.join(traceback.format_exception(etype=type(err),
+                                                                  value=err,
+                                                                  tb=err.__traceback__)))
             return intent_parser_view.operation_failed('Failed to search SynBioHub')
 
         return response
@@ -855,7 +855,9 @@ class IntentParserProcessor(object):
             raise IndexError('Start index %d of selected word %s not within range of selected paragraph.' % (
                 highlight_start_index, current_highlighted_term))
 
-        new_highlight_start_index, new_highlight_end_index, new_highlighted_term = self._trim_highlight_left_one_word(highlight_start_index,highlight_end_index,paragraph_text)
+        new_highlight_start_index, new_highlight_end_index, new_highlighted_term = self._trim_highlight_left_one_word(highlight_start_index,
+                                                                                                                      highlight_end_index,
+                                                                                                                      paragraph_text)
         actions = intent_parser_view.report_spelling_results(start_paragraph_index,
                                                              end_paragraph_index,
                                                              new_highlight_start_index,
@@ -880,7 +882,9 @@ class IntentParserProcessor(object):
             raise IndexError('Start index %d of selected word %s not within range of selected paragraph.' % (
                 highlight_start_index, current_highlighted_term))
 
-        new_highlight_start_index, new_highlight_end_index, new_highlighted_term = self._trim_highlight_right_one_word(highlight_start_index, highlight_end_index, paragraph_text)
+        new_highlight_start_index, new_highlight_end_index, new_highlighted_term = self._trim_highlight_right_one_word(highlight_start_index,
+                                                                                                                       highlight_end_index,
+                                                                                                                       paragraph_text)
         actions = intent_parser_view.report_spelling_results(start_paragraph_index,
                                                              end_paragraph_index,
                                                              new_highlight_start_index,
@@ -1178,7 +1182,7 @@ class IntentParserProcessor(object):
         new_spec_table = intent_parser.create_experiment_specification_table(experiment_id_with_indices=created_statuses)
         self._create_experiment_specification_table(document_id, new_spec_table)
 
-    def process_experiment_status_POST(self, json_body):
+    def process_experiment_status_post(self, json_body):
         """Report the status of an experiment by inserting experiment specification and status tables."""
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
         self.logger.warning('Processing document id: %s' % document_id)

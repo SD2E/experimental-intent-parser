@@ -112,12 +112,12 @@ class ExperimentStatus(Resource):
         self._ip_processor = ip_processor
 
     def get(self, doc_id):
-        experiment_status = self._ip_processor.process_experiment_status_GET(doc_id)
+        experiment_status = self._ip_processor.process_experiment_status_get(doc_id)
         return experiment_status, HTTPStatus.OK
 
     def post(self):
         # previously called reportExperimentStatus
-        experiment_status = self._ip_processor.process_experiment_status_POST(request.get_json())
+        experiment_status = self._ip_processor.process_experiment_status_post(request.get_json())
         return experiment_status, HTTPStatus.OK
 
 class OpilRequest(Resource):
@@ -125,12 +125,12 @@ class OpilRequest(Resource):
         self._ip_processor = ip_processor
 
     def get(self, doc_id):
-        opil_output = self._ip_processor.process_opil_GET_request(doc_id)
+        opil_output = self._ip_processor.process_opil_get_request(doc_id)
         return opil_output, HTTPStatus.OK
 
     def post(self):
         # previously called generateOpilRequest
-        opil_output = self._ip_processor.process_opil_POST_request(request.host_url, request.get_json())
+        opil_output = self._ip_processor.process_opil_post_request(request.host_url, request.get_json())
         return opil_output, HTTPStatus.OK
 
 class RunExperiment(Resource):
@@ -138,12 +138,12 @@ class RunExperiment(Resource):
         self._ip_processor = ip_processor
 
     def get(self, doc_id):
-        experiment_data = self._ip_processor.process_run_experiment_GET(doc_id)
+        experiment_data = self._ip_processor.process_run_experiment_get(doc_id)
         return experiment_data, HTTPStatus.OK
 
     def post(self):
         # previously called executeExperiment
-        experiment_data = self._ip_processor.process_run_experiment_POST(request.get_json())
+        experiment_data = self._ip_processor.process_run_experiment_post(request.get_json())
         return experiment_data, HTTPStatus.OK
 
 class UpdateExperimentStatus(Resource):
