@@ -45,7 +45,7 @@ class IntentParserSBH(object):
         if self.sbh is not None:
             self.sbh.stop()
 
-    def get_or_create_display_id(self, item_name, item_display_id):
+    def _get_or_create_display_id(self, item_name, item_display_id):
         if len(item_display_id) == 0:
             return self.generate_display_id(item_name)
 
@@ -149,7 +149,7 @@ class IntentParserSBH(object):
 
         if sbol_type is None:
             err = '%s does not match one of the following sbol types: \n %s' % (
-            item_type, ' ,'.join((map(str, intent_parser_constants.ITEM_TYPES.keys()))))
+                item_type, ' ,'.join((map(str, intent_parser_constants.ITEM_TYPES.keys()))))
             raise IntentParserException(err)
         return sbol_type
 
@@ -160,7 +160,7 @@ class IntentParserSBH(object):
         new_item_definition_uri = self.get_or_create_new_item_definition_uri(item_type,
                                                                              item_definition_uri,
                                                                              sbol_type_map)
-        display_id = self.get_or_create_display_id(item_name, item_display_id)
+        display_id = self._get_or_create_display_id(item_name, item_display_id)
         sbh_document = self.create_synbiohub_entry(sbol_type,
                                                    sbol_type_map,
                                                    display_id,
@@ -173,7 +173,7 @@ class IntentParserSBH(object):
         # Derive document URL
         document_url = self.sbh_uri_prefix + display_id + '/1'
         if self.sbh.exists(sbh_document, document_url):
-            message = '%s already exists in SynBioHub'
+            message = '%s already exists in SynBioHub' % document_url
             raise IntentParserException(message)
         sbh_merge_collection_flag = 2
         self.sbh.submit(sbh_document, self.sbh_collection_uri, sbh_merge_collection_flag)
