@@ -160,7 +160,7 @@ class AddBySpelling(Resource):
 
     def post(self):
         spelling_data = self._ip_processor.process_add_by_spelling(request.get_json())
-        return spelling_data, HTTPStatus.OK # TODO
+        return spelling_data, HTTPStatus.OK
 
 class AddToSynbiohub(Resource):
     def __init__(self, ip_processor):
@@ -168,7 +168,7 @@ class AddToSynbiohub(Resource):
 
     def post(self):
         sbh_data = self._ip_processor.process_add_to_syn_bio_hub(request.get_json())
-        return sbh_data, HTTPStatus.OK # TODO
+        return sbh_data, HTTPStatus.OK
 
 class AnalyzeDocument(Resource):
     def __init__(self, ip_processor):
@@ -184,7 +184,7 @@ class ButtonClick(Resource):
 
     def post(self):
         button_response = self._ip_processor.process_button_click(request.get_json())
-        return button_response, HTTPStatus.OK # TODO
+        return button_response, HTTPStatus.OK
 
 class CalculateSamples(Resource):
     def __init__(self, ip_processor):
@@ -233,7 +233,7 @@ class SubmitForm(Resource):
 
     def post(self):
         submit_form_data = self._ip_processor.process_submit_form(request.get_json())
-        return submit_form_data, HTTPStatus.OK # TODO
+        return submit_form_data, HTTPStatus.OK
 
 class UpdateExperimentResult(Resource):
     def __init__(self, ip_processor):
@@ -389,7 +389,8 @@ def main():
     except (KeyboardInterrupt, SystemExit):
         logger.info('Shutting down Intent Parser Server.')
         return
-    except IntentParserException:
+    except IntentParserException as ip_err:
+        logger.info(ip_err.get_message())
         return
     except Exception as ex:
         logger.warning(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
