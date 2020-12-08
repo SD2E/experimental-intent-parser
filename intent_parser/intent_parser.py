@@ -346,7 +346,9 @@ class IntentParser(object):
             request_doc = self.sbh.query_experiment_request(exp_uri)
             if source_doc_uri == request_doc:
                 source_uri = self.sbh.query_experiment_source(exp_uri)  # Get the reference to the source document with lab data
-                data[exp_uri] = {'timestamp' : timestamp, 'agave' : source_uri[0], 'title': title}
+                data[exp_uri] = {'timestamp': timestamp,
+                                 'agave': source_uri[0],
+                                 'title': title}
 
         exp_data = []
         exp_links = []

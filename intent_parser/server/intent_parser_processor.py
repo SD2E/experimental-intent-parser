@@ -1329,8 +1329,6 @@ class IntentParserProcessor(object):
         for binding in bindings:
             title = binding['title']['value']
             target = binding['member']['value']
-            if self.sbh.get_sbh_spoofing_prefix() is not None:
-                target = target.replace(self.sbh.get_sbh_spoofing_prefix(), self.sbh.get_sbh_url())
             search_results.append({'title': title, 'target': target})
 
         return search_results, self.sparql_similar_count_cache[term]

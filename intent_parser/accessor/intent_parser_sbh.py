@@ -2,7 +2,6 @@ from datetime import datetime
 from http import HTTPStatus
 from intent_parser.accessor.sbh_accessor import SBHAccessor
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, IntentParserException
-from sbol2 import SBOLError
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.utils.intent_parser_utils as ip_utils
 import logging
@@ -21,8 +20,6 @@ class IntentParserSBH(object):
 
     def __init__(self, item_map_cache=True):
         self.sbh_url = intent_parser_constants.SYNBIOHUB_DEPLOYED_DATABASE_URL
-        self.sbh_spoofing_prefix = intent_parser_constants.SYNBIOHUB_DEPLOYED_DATABASE_URL
-
         self._is_item_map_cache = item_map_cache
         self._sbol_dictionary = None
 
@@ -34,16 +31,12 @@ class IntentParserSBH(object):
 
     def initialize_sbh(self):
         if self.sbh is None:
-            self.sbh = SBHAccessor(self.sbh_url, self.sbh_spoofing_prefix)
+            self.sbh = SBHAccessor(self.sbh_url)
 
-        try:
-            self.sbh.login(ip_utils.load_json_file(self._CREDENTIAL_FILE)['sbh_username'],
-                           ip_utils.load_json_file(self._CREDENTIAL_FILE)['sbh_password'])
-            self._LOGGER.info('Logged into {}'.format(self.sbh_url))
-        except SBOLError as err:
-            message = 'Failed logging into SynBioHub.'
-            self._LOGGER.error(message)
-            raise IntentParserException(message)
+        self.sbh.login(ip_utils.load_json_file(self._CREDENTIAL_FILE)['sbh_username'],
+                       ip_utils.load_json_file(self._CREDENTIAL_FILE)['sbh_password'])
+
+        self._LOGGER.info('Logged into {}'.format(self.sbh_url))
 
     def set_sbol_dictionary(self, sbol_dictionary):
         self._sbol_dictionary = sbol_dictionary
@@ -168,7 +161,6 @@ class IntentParserSBH(object):
                                                                              item_definition_uri,
                                                                              sbol_type_map)
         display_id = self.get_or_create_display_id(item_name, item_display_id)
-
         sbh_document = self.create_synbiohub_entry(sbol_type,
                                                    sbol_type_map,
                                                    display_id,
@@ -199,9 +191,6 @@ class IntentParserSBH(object):
     def get_sbh_link_hosts(self):
         return [intent_parser_constants.SYNBIOHUB_STAGING_DATABASE,
                 intent_parser_constants.SYNBIOHUB_DEPLOYED_DATABASE]
-    
-    def get_sbh_spoofing_prefix(self):
-        return self.sbh_spoofing_prefix
     
     def get_sbh_url(self):
         return self.sbh_url
@@ -249,17 +238,9 @@ class IntentParserSBH(object):
     
         Parameters
         ----------
-        synbiohub : SynBioHubQuery
-            An instance of a SynBioHubQuery SPARQL wrapper from synbiohub_adapter
         target_collection : str
             A URI for a target collection
         """
-    
-        # Correct the target collection URI in case the user specifies the wrong synbiohub namespace
-        # (a common mistake that can be hard to debug)
-        if self.sbh_spoofing_prefix is not None:
-            target_collection = target_collection.replace(self.sbh_url, self.sbh_spoofing_prefix)
-    
         query = """
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX sbol: <http://sbols.org/v2#>
@@ -279,13 +260,10 @@ class IntentParserSBH(object):
             uri = m['entity']['value']
             timestamp = m['timestamp']['value']
             title = m['title']['value']
-            
-            if self.sbh_spoofing_prefix is not None:
-                # We need to re-spoof the URL
-                uri = uri.replace(self.sbh_spoofing_prefix, self.sbh_url)
-            
-            experiments.append({'uri': uri, 'timestamp': timestamp, 'title': title})
-        
+            experiments.append({'uri': uri,
+                                'timestamp': timestamp,
+                                'title': title})
+
         return experiments
     
     def query_experiment_request(self, experiment_uri):
@@ -294,17 +272,9 @@ class IntentParserSBH(object):
 
         Parameters
         ----------
-        synbiohub : SynBioHubQuery
-            An instance of a SynBioHubQuery SPARQL wrapper from synbiohub_adapter
         experiment_uri : str
             A URI for an Experiment object
         """
-
-        # Correct the experiment_uri in case the user specifies the wrong synbiohub namespace
-        # (a common mistake that can be hard to debug)
-        if self.sbh_spoofing_prefix is not None:
-            experiment_uri = experiment_uri.replace(self.sbh_url, self.sbh_spoofing_prefix)
-
         query = """
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX sbol: <http://sbols.org/v2#>
@@ -329,17 +299,9 @@ class IntentParserSBH(object):
 
         Parameters
         ----------
-        synbiohub : SynBioHubQuery
-            An instance of a SynBioHubQuery SPARQL wrapper from synbiohub_adapter
         experiment_uri : str
             A URI for an Experiment object
         """
-
-        # Correct the experiment_uri in case the user specifies the wrong synbiohub namespace
-        # (a common mistake that can be hard to debug)
-        if self.sbh_spoofing_prefix is not None:
-            experiment_uri = experiment_uri.replace(self.sbh_url, self.sbh_spoofing_prefix)
-
         query = """
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX sbol: <http://sbols.org/v2#>
@@ -386,13 +348,7 @@ class IntentParserSBH(object):
                                 item_lab_id_tag,
                                 document_url,
                                 item_definition_uri):
-        # sbh_uri_prefix = self.sbh_uri_prefix
-        if self.sbh_spoofing_prefix is not None:
-            item_uri = document_url.replace(self.sbh_url,
-                                            self.sbh_spoofing_prefix)
-        else:
-            item_uri = document_url
-
+        item_uri = document_url
         tab_name = self._sbol_dictionary.get_tab_name_from_item_type(item_type)
         tab_data = self._sbol_dictionary.get_row_data(tab=tab_name)
 
@@ -423,5 +379,4 @@ class IntentParserSBH(object):
         dictionary_entry['SynBioHub URI'] = item_uri
 
         self._sbol_dictionary.set_row_data(dictionary_entry)
-
 

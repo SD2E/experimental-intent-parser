@@ -9,11 +9,11 @@ import traceback
 class SBHAccessor:
     _LOGGER = logging.getLogger('sbh_accessor')
 
-    def __init__(self, sbh_url, spoofed_url):
+    def __init__(self, sbh_url):
         self.shutdownThread = False
         self.event = threading.Event()
         self.lock = threading.Lock()
-        self.sbh = sbol.PartShop(sbh_url, spoofed_url=spoofed_url)
+        self.sbh = sbol.PartShop(sbh_url)
         self.sbh_username = None
         self.sbh_password = None
 
@@ -41,18 +41,17 @@ class SBHAccessor:
         finally:
             self.lock.release()
 
-    def spoof(self, sbh_spoofing_prefix):
+    def set_spoof_uri(self, spoof_uri):
+        # Spoof URI can only be set when running on test server, not production server
         self.lock.acquire()
         try:
-            fret = self.sbh.spoof(sbh_spoofing_prefix)
-            return fret
+            self.sbh.spoof(spoof_uri)
         except SBOLError as e:
-            message = 'Failed to setup SynBioHub spoof value.'
+            message = 'Failed set spoof URI.'
             self._LOGGER.error(message)
             raise IntentParserException(message)
         finally:
             self.lock.release()
-
 
     # * Stop after trying 3 times
     # * Wait 3 seconds between retries

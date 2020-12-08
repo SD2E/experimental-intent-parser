@@ -162,12 +162,7 @@ class SBOLDictionaryAccessor(object):
         item_lab_ids = data['labId']
         item_lab_id_tag = data['labIdSelect']
 
-        if self.sbh.get_sbh_spoofing_prefix() is not None:
-            item_uri = document_url.replace(self.sbh.get_sbh_url(),
-                                            self.sbh.get_sbh_spoofing_prefix())
-        else:
-            item_uri = document_url
-        
+        item_uri = document_url
         type2tab = self.load_type2tab()
         tab_name = type2tab[item_type]
 
