@@ -21,12 +21,12 @@ api = Api(app)
 
 # Create an APISpec
 template = {
-  'swagger': '2.0',
-        'info': {
-            'title': 'Intent Parser API',
-            'description': 'API for access features supported in Intent Parser.',
-            'version': '3.0'
-        }
+    'swagger': '2.0',
+    'info': {
+        'title': 'Intent Parser API',
+        'description': 'API for access features supported in Intent Parser.',
+        'version': '3.0'
+    }
 }
 
 app.config['SWAGGER'] = {
@@ -345,35 +345,35 @@ def setup_logging(
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Processes an experimental design.')
-    parser.add_argument('-a', '--authn', nargs='?',
-                        required=True, help='Authorization token for data catalog.')
+    cmd_parser = argparse.ArgumentParser(description='Processes an experimental design.')
+    cmd_parser.add_argument('-a', '--authn', nargs='?',
+                            required=True, help='Authorization token for data catalog.')
 
-    parser.add_argument('-b', '--bind-host', nargs='?', default='0.0.0.0',
-                        required=False, help='IP address to bind to.')
+    cmd_parser.add_argument('-b', '--bind-host', nargs='?', default='0.0.0.0',
+                            required=False, help='IP address to bind to.')
 
-    parser.add_argument('-c', '--collection', nargs='?',
-                        required=True, help='Collection url.')
+    cmd_parser.add_argument('-c', '--collection', nargs='?',
+                            required=True, help='Collection url.')
 
-    parser.add_argument('-i', '--spreadsheet-id', nargs='?', default=intent_parser_constants.SD2_SPREADSHEET_ID,
-                        required=False, help='Dictionary spreadsheet id.')
+    cmd_parser.add_argument('-i', '--spreadsheet-id', nargs='?', default=intent_parser_constants.SD2_SPREADSHEET_ID,
+                            required=False, help='Dictionary spreadsheet id.')
 
-    parser.add_argument('-l', '--bind-port', nargs='?', type=int, default=8081,
-                        required=False, help='TCP Port to listen on.')
+    cmd_parser.add_argument('-l', '--bind-port', nargs='?', type=int, default=8081,
+                            required=False, help='TCP Port to listen on.')
 
-    parser.add_argument('-p', '--password', nargs='?',
-                        required=True, help='SynBioHub password.')
+    cmd_parser.add_argument('-p', '--password', nargs='?',
+                            required=True, help='SynBioHub password.')
 
-    parser.add_argument('-s', '--spoofing-prefix', nargs='?',
-                        required=False, help='SBH spoofing prefix.')
+    cmd_parser.add_argument('-s', '--spoofing-prefix', nargs='?',
+                            required=False, help='SBH spoofing prefix.')
 
-    parser.add_argument('-t', '--transcriptic', nargs='?',
-                        required=False, help='Path to transcriptic configuration file.')
+    cmd_parser.add_argument('-t', '--transcriptic', nargs='?',
+                            required=False, help='Path to transcriptic configuration file.')
 
-    parser.add_argument('-u', '--username', nargs='?',
-                        required=True, help='SynBioHub username.')
+    cmd_parser.add_argument('-u', '--username', nargs='?',
+                            required=True, help='SynBioHub username.')
 
-    input_args = parser.parse_args()
+    input_args = cmd_parser.parse_args()
     setup_logging()
     ip_processor = None
     try:
