@@ -52,8 +52,8 @@ class GoogleDocumentParser(DocumentParser):
 
         if doc_constants.TABLE_CELLS in row_property:
             for cell_property in row_property[doc_constants.TABLE_CELLS]:
-               if doc_constants.CONTENT in cell_property:
-                   for content_property in cell_property[doc_constants.CONTENT]:
+                if doc_constants.CONTENT in cell_property:
+                    for content_property in cell_property[doc_constants.CONTENT]:
                         properties.append(content_property)
         return properties
 
@@ -66,7 +66,10 @@ class GoogleDocumentParser(DocumentParser):
                 link = text_run[doc_constants.TEXT_STYLE][doc_constants.LINK]
                 if doc_constants.URL in link:
                     url = link[doc_constants.URL]
-                    ip_element = self.Element(text, element[doc_constants.START_INDEX], element[doc_constants.END_INDEX], hyperlink=url)
+                    ip_element = self.Element(text,
+                                              element[doc_constants.START_INDEX],
+                                              element[doc_constants.END_INDEX],
+                                              hyperlink=url)
                     ip_paragraph.add_element(ip_element)
             else:
                 ip_element = self.Element(text, element[doc_constants.START_INDEX], element[doc_constants.END_INDEX])
@@ -97,6 +100,10 @@ class GoogleDocumentParser(DocumentParser):
                     hyperlinked_elements.append(element)
             return hyperlinked_elements
 
+        def get_elements_with_text(self, text):
+            elements = [element for element in self.element if element.get_text() == text]
+            return elements
+
         def get_start_index(self):
             return self._start_index
 
@@ -118,3 +125,15 @@ class GoogleDocumentParser(DocumentParser):
             self.start_index = start_index
             self.end_index = end_index
             self.hyperlink = hyperlink
+
+        def get_text(self):
+            return self.text
+
+        def get_start_index(self):
+            return self.start_index
+
+        def get_end_index(self):
+            return self.end_index
+
+        def has_hyperlink(self):
+            return self.hyperlink is not None

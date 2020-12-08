@@ -28,7 +28,7 @@ def _get_documents_from_ip():
     return doc_dict['docId']
 
 def _update_status(document_id):
-    response = execute_request('update_experiment_status?%s' % document_id)
+    response = execute_request('update_experiment_status/d/%s' % document_id)
     content = response.json()
     for status_message in content['messages']:
         logger.warning(status_message)

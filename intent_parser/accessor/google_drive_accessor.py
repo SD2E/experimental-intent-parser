@@ -65,7 +65,7 @@ class GoogleDriveV3Accessor(object):
                 error_code = json.loads(err.content)['error']['code']
                 error_message = json.loads(err.content)['error']['errors'][0]['message']
                 self.logger.warning('Google Drive failed with http code %s for folder %s. Reason: %s' % (
-                error_code, folder_id, error_message))
+                                    error_code, folder_id, error_message))
         return doc_list
 
     def get_subfolders_from_folder(self, folder_id):

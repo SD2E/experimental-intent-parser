@@ -23,15 +23,6 @@ class IntentParser(object):
         - generate and validate a structure request
     """
 
-    # Used for inserting experiment result data
-    # Since the experiment result data is uploaded with the requesting document id
-    # and the test documents are copies of those, the ids won't match
-    # In order to test this, if we receive a document Id in the key of this map, we will instead query for the value
-    _test_doc_id_map = {'1xMqOx9zZ7h2BIxSdWp2Vwi672iZ30N_2oPs8rwGUoT': '10HqgtfVCtYhk3kxIvQcwljIUonSNlSiLBC8UFmlwm1s',
-                        '1RenmUdhsXMgk4OUWReI2oS6iF5R5rfWU5t7vJ0NZOHw': '1g0SjxU2Y5aOhUbM63r8lqV50vnwzFDpJg4eLXNllut4',
-                        '1_I4pxB26zOLb209Xlv8QDJuxiPWGDafrejRDKvZtEl8': '1K5IzBAIkXqJ7iPF4OZYJR7xgSts1PUtWWM2F0DKhct0',
-                        '1zf9l0K4rj7I08ZRpxV2ZY54RMMQc15Rlg7ULviJ7SBQ': '1uXqsmRLeVYkYJHqgdaecmN_sQZ2Tj4Ck1SZKcp55yEQ'}
-
     logger = logging.getLogger('intent_parser')
 
     def __init__(self, lab_experiment, datacatalog_config, sbh_instance, sbol_dictionary):
@@ -153,7 +144,7 @@ class IntentParser(object):
         selection = paragraph_text[start_offset:end_offset + 1]
         # Remove leading/trailing space
         selection = selection.strip()
-        return selection, self.sbh.sanitize_name_to_display_id(selection)
+        return selection, self.sbh.generate_display_id(selection)
 
     def generate_report(self):
         links_info = self.lab_experiment.links_info()
@@ -171,7 +162,7 @@ class IntentParser(object):
                         continue
 
                 url_host = url.split('/')[2]
-                if url_host not in self.sbh.get_sbh_link_host():
+                if url_host not in self.sbh.get_sbh_link_hosts():
                     continue
 
                 term_map[term] = url
@@ -342,11 +333,7 @@ class IntentParser(object):
             self.tables_with_captions[table_index] = ip_table
 
     def update_experimental_results(self):
-        # For test documents, replace doc id with corresponding production doc
-        if self.lab_experiment.document_id() in self._test_doc_id_map:
-            source_doc_uri = 'https://docs.google.com/document/d/' + self._test_doc_id_map[self.lab_experiment.document_id()]
-        else:
-            source_doc_uri = 'https://docs.google.com/document/d/' + self.lab_experiment.document_id()
+        source_doc_uri = 'https://docs.google.com/document/d/' + self.lab_experiment.document_id()
 
         # Search SBH to get data
         target_collection = '%s/user/%s/experiment_test/experiment_test_collection/1' % (self.sbh.get_sbh_url(), self.sbh.get_sbh_collection_user())
@@ -359,7 +346,9 @@ class IntentParser(object):
             request_doc = self.sbh.query_experiment_request(exp_uri)
             if source_doc_uri == request_doc:
                 source_uri = self.sbh.query_experiment_source(exp_uri)  # Get the reference to the source document with lab data
-                data[exp_uri] = {'timestamp' : timestamp, 'agave' : source_uri[0], 'title' : title}
+                data[exp_uri] = {'timestamp': timestamp,
+                                 'agave': source_uri[0],
+                                 'title': title}
 
         exp_data = []
         exp_links = []
@@ -419,10 +408,10 @@ class IntentParser(object):
             return dc_constants.UNKOWN
 
     def _generate_experiment_status_request(self, lab_tables, experiment_specification_tables, experiment_status_tables):
-        lab_content = self._process_lab_table(lab_tables)
+        self.process_lab_name()
         exp_id_to_status_table = self._process_experiment_specification_tables(experiment_specification_tables)
         table_id_to_statuses = self._process_experiment_status_tables(experiment_status_tables)
-        self.experiment_status[dc_constants.LAB] = lab_content[dc_constants.LAB]
+        self.experiment_status[dc_constants.LAB] = self.processed_lab_name
         self.experiment_status[dc_constants.EXPERIMENT_ID] = exp_id_to_status_table
         self.experiment_status[dc_constants.STATUS_ELEMENT] = table_id_to_statuses
 

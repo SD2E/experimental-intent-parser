@@ -1,11 +1,10 @@
 from collections import namedtuple as _namedtuple
-from intent_parser.intent_parser_exceptions import ConnectionException
+from intent_parser.intent_parser_exceptions import RequestErrorException
 from difflib import Match
 from http import HTTPStatus
 import json
 import Levenshtein
 import re
-
 
 IPSMatch = _namedtuple('Match', 'a b size content_word_length')
 
@@ -14,7 +13,6 @@ def get_google_doc_id(doc_url):
     matched_pattern = re.match(url_pattern, doc_url)
     doc_id = matched_pattern.group('id')
     return doc_id
-
 
 def load_json_file(file_path):
     with open(file_path, 'r') as file:
@@ -56,22 +54,22 @@ def strip_leading_trailing_punctuation(word):
     start_index = 0
     end_index = len(word)
     while start_index < len(word) and not word[start_index].isalnum():
-        start_index +=1
+        start_index += 1
     while end_index > 0 and not word[end_index - 1].isalnum():
         end_index -= 1
 
     # If the word was only non-alphanumeric, we could get into a strange case
-    if (end_index <= start_index):
+    if end_index <= start_index:
         return ''
     else:
         return word[start_index:end_index]
 
 def get_paragraph_text(paragraph):
     elements = paragraph['elements']
-    paragraph_text = '';
+    paragraph_text = ''
 
-    for element_index in range( len(elements) ):
-        element = elements[ element_index ]
+    for element_index in range(len(elements)):
+        element = elements[element_index]
 
         if 'textRun' not in element:
             continue
@@ -99,21 +97,21 @@ def cull_overlapping(search_results):
 
 def get_json_body(httpMessage):
     body = httpMessage.get_body()
-    if body == None or len(body) == 0:
-        errorMessage = 'No POST data\n'
-        raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
+    if body is None or len(body) == 0:
+        error_message = ['No POST data']
+        raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=error_message)
 
     bodyStr = body.decode('utf-8')
 
     try:
         return json.loads(bodyStr)
     except json.decoder.JSONDecodeError as e:
-        errorMessage = 'Failed to decode JSON data: {}\n'.format(e);
-        raise ConnectionException(HTTPStatus.BAD_REQUEST, errorMessage)
+        error_message = ['Failed to decode JSON data: {}'.format(e)]
+        raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=error_message)
 
 def get_document_id_from_json_body(json_body):
     if 'documentId' not in json_body:
-        raise ConnectionException(HTTPStatus.BAD_REQUEST, 'Missing documentId')
+        raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=['Missing documentId'])
     return json_body['documentId']
 
 def get_element_type(element, element_type):
@@ -142,13 +140,13 @@ def analyze_term(entry):
     search_results = []
     for result in results:
         search_results.append(
-            { 'paragraph_index' : result[0],
-              'offset'          : result[1],
-              'end_offset'      : result[2],
-              'term'            : term,
-              'uri'             : uri,
-              'link'            : result[3],
-              'text'            : result[4]})
+            {'paragraph_index': result[0],
+             'offset': result[1],
+             'end_offset': result[2],
+             'term': term,
+             'uri': uri,
+             'link': result[3],
+             'text': result[4]})
     return search_results
 
 def find_exact_text(text, starting_pos, paragraphs):
@@ -157,12 +155,12 @@ def find_exact_text(text, starting_pos, paragraphs):
     """
     elements = []
 
-    for paragraph_index in range( len(paragraphs )):
-        paragraph = paragraphs[ paragraph_index ]
+    for paragraph_index in range(len(paragraphs)):
+        paragraph = paragraphs[ paragraph_index]
         elements = paragraph['elements']
 
-        for element_index in range( len(elements) ):
-            element = elements[ element_index ]
+        for element_index in range(len(elements)):
+            element = elements[element_index]
 
             if 'textRun' not in element:
                 continue
@@ -345,7 +343,7 @@ def find_common_substrings(content, dict_term, partial_match_min_size, partial_m
     return results_mod
 
 
-def find_overlaps(start_idx, search_results, ignore_idx = set()):
+def find_overlaps(start_idx, search_results, ignore_idx=set()):
     """
     Given a start index, find any entries in the results that overlap with the result at the start index
     In the case where the amount of overlap is equal, we pick the one that has the lowest Levenshtein (edit) distance between the matched text and the dictionary term.
@@ -359,7 +357,7 @@ def find_overlaps(start_idx, search_results, ignore_idx = set()):
     for idx in range(start_idx + 1, len(search_results)):
 
         if idx in ignore_idx:
-            continue;
+            continue
         comp = search_results[idx]
 
         if not comp['paragraph_index'] == query['paragraph_index']:

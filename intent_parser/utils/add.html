@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
 <body>
-
   <script>
     function onLoad() {
         refreshList(0)
@@ -23,13 +22,13 @@
     // Search SynBioHub
     // Currently just searches for commonName
     function refreshList(offset) {
-        var theForm = this.addToSynBioHubForm
-        var commonName = theForm.commonName.value
-        var searchParams = {'term': commonName, 'offset' : offset}
-        var postRequest = {'resource': '/searchSynBioHub',
+        let theForm = this.addToSynBioHubForm
+        let commonName = theForm.commonName.value
+        let searchParams = {'term': commonName, 'offset' : offset}
+        let postRequest = {'resource': '/searchSynBioHub',
                            'data': searchParams}
 
-        var table = document.getElementById('existingLinksTable')
+        let table = document.getElementById('existingLinksTable')
 
         if(commonName == '') {
             table.innerHTML = ''
@@ -39,13 +38,11 @@
         table.innerHTML = '<i>Generating List...</i>'
         theForm.refreshListButton.style.visibility = 'hidden'
 
-        google.script.run.withSuccessHandler(searchResponse).
-            postFromClient(postRequest)
+        google.script.run.withSuccessHandler(searchResponse).postFromClient(postRequest)
     }
 
     function searchResponse(result) {
-        var theForm = this.addToSynBioHubForm
-
+        let theForm = this.addToSynBioHubForm
         if( theForm.submitButtonFieldset.style.visibility == 'hidden') {
             // The entry is currently being added to SynBioHub
             console.log('Not displaying search results')
@@ -53,20 +50,19 @@
         }
 
         theForm.refreshListButton.style.visibility = ''
-
-        var table = document.getElementById('existingLinksTable')
-
+        let table = document.getElementById('existingLinksTable')
         if(result.operationSucceeded) {
             table.innerHTML = result.table_html
-        } else {
+        }
+        else {
             table.innerHTML = '<i><font color=red>' + result.message + '</font></i>'
         }
     }
 
     function busy(message) {
-        var theForm = this.addToSynBioHubForm
-        var submitButtonMsgTable = document.getElementById('submitButtonMsgTable')
-        var table = document.getElementById('existingLinksTable')
+        let theForm = this.addToSynBioHubForm
+        let submitButtonMsgTable = document.getElementById('submitButtonMsgTable')
+        let table = document.getElementById('existingLinksTable')
 
         submitButtonMsgTable.innerHTML = '<i>' + message + '</i>'
         theForm.submitButtonFieldset.style.visibility = 'hidden'
@@ -75,38 +71,34 @@
     }
 
     function linkItem(theForm, link) {
-        var extra = {'action' : 'link',
+        let extra = {'action' : 'link',
                      'link' : link}
         busy('Linking to existing SynBioHub entry')
-
         buttonPressed(extra)
     }
 
     function linkAll(theForm, link) {
-        var extra = {'action' : 'linkAll',
+        let extra = {'action' : 'linkAll',
                      'link' : link}
         busy('Linking all occurrences to existing SynBioHub entry')
-
         buttonPressed(extra)
     }
 
     function submitToSynBioHub() {
-        var extra = {"action": "submit"}
+        let extra = {"action": "submit"}
         busy('Creating entry in SynBioHub')
-
         buttonPressed(extra)
     }
 
     function submitToSynBioHubAndLinkAll() {
-        var extra = {"action": "submitLinkAll"}
+        let extra = {"action": "submitLinkAll"}
         busy('Creating entry in SynBioHub')
-
         buttonPressed(extra)
     }
 
     function buttonPressed(extra) {
-        var theForm = this.addToSynBioHubForm
-        var formInfo = {'selectionStartParagraph' : theForm.selectionStartParagraph.value,
+        let theForm = this.addToSynBioHubForm
+        let formInfo = {'selectionStartParagraph' : theForm.selectionStartParagraph.value,
                         'selectionStartOffset' : theForm.selectionStartOffset.value,
                         'selectionEndParagraph' : theForm.selectionEndParagraph.value,
                         'selectionEndOffset' : theForm.selectionEndOffset.value,
@@ -125,8 +117,7 @@
             formInfo.extra = extra;
         }
 
-        google.script.run.withSuccessHandler(onSuccess).
-            submitForm(formInfo)
+        google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo)
     }
 
     this.onload = onLoad

@@ -91,7 +91,7 @@ def perform_automatic_run(current_release, drive_id='1FYOFBaUDIS-lBn0fr76pFFLBbM
                     publish_message = current_release + ' Release'
                     app_script_access.create_version(script_id, new_version, publish_message)
                     
-                    local_docs[r_id] = {'scriptId' : script_id, 'releaseVersion' : current_release}
+                    local_docs[r_id] = {'scriptId': script_id, 'releaseVersion': current_release}
                     util.write_json_to_file(local_docs, ADDON_FILE)
             except errors.HttpError:
                 logger.info('Reached update quota limit!')
