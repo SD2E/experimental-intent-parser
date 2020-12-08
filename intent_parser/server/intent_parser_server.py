@@ -42,7 +42,7 @@ class IntentParserHome(Resource):
         pass
 
     def get(self):
-        return redirect("http://www.google.com", code=302)
+        return redirect("https://github.com/SD2E/experimental-intent-parser", code=302)
 
 class Status(Resource):
     def __init__(self, ip_processor):
