@@ -181,7 +181,14 @@ class _SpellcheckDocument(object):
             if not text:
                 continue
             cell_parser = CellParser()
-            words = [word for word in text.split() if cell_parser.is_name(word)]
+            words = []
+            ignore_single_char = [':', '_', ',']
+            for word in text.split():
+                if len(word) == 1 and word in ignore_single_char:
+                    continue
+                if cell_parser.is_name(word):
+                    words.append(word)
+            # words = [word for word in text.split() if cell_parser.is_name(word)]
             misspelled_words = list(spellchecker.unknown(words))
             if not misspelled_words:
                 continue

@@ -225,7 +225,7 @@ class SearchSynBioHub(Resource):
 
     def post(self):
         sbh_data = self._ip_processor.process_search_syn_bio_hub(request.get_json())
-        return sbh_data, HTTPStatus.OK # TODO
+        return sbh_data, HTTPStatus.OK
 
 class SubmitForm(Resource):
     def __init__(self, ip_processor):

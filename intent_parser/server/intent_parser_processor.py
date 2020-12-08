@@ -21,6 +21,7 @@ import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
 import logging.config
 import os
+import traceback
 
 class IntentParserProcessor(object):
 
@@ -302,12 +303,12 @@ class IntentParserProcessor(object):
             item_display_id = data['displayId']
             item_lab_ids = data['labId']
             item_lab_id_tag = data['labIdSelect']
-            document_url = self.sbh.create_sbh_stub_new(item_type,
-                                                        item_name,
-                                                        item_definition_uri,
-                                                        item_display_id,
-                                                        item_lab_ids,
-                                                        item_lab_id_tag)
+            document_url = self.sbh.create_sbh_stub(item_type,
+                                                    item_name,
+                                                    item_definition_uri,
+                                                    item_display_id,
+                                                    item_lab_ids,
+                                                    item_lab_id_tag)
 
             paragraph_index = data['selectionStartParagraph']
             offset = data['selectionStartOffset']
@@ -568,7 +569,9 @@ class IntentParserProcessor(object):
                                     }
                         }
         except Exception as err:
-            self.logger.error(str(err))
+            self.logger.error(''.join(traceback.format_exception(etype=type(e),
+                                                                  value=e,
+                                                                  tb=e.__traceback__)))
             return intent_parser_view.operation_failed('Failed to search SynBioHub')
 
         return response

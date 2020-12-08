@@ -61,10 +61,12 @@ class IntentParserSBH(object):
             raise IntentParserException('Illegal display_id')
         return display_id
 
-    def get_sbol_type(self):
+    def get_item_type_mapping(self):
         sbol_type_map = {}
         for sbol_type_key in intent_parser_constants.ITEM_TYPES.keys():
-            sbol_type_map.update(intent_parser_constants.ITEM_TYPES[sbol_type_key])
+            for sbol_value in intent_parser_constants.ITEM_TYPES[sbol_type_key].values():
+                if sbol_value:
+                    sbol_type_map.update(intent_parser_constants.ITEM_TYPES[sbol_type_key])
         return sbol_type_map
 
     def get_or_create_new_item_definition_uri(self, item_type, item_definition_uri, sbol_type_map):
@@ -92,6 +94,8 @@ class IntentParserSBH(object):
         document.addNamespace('http://sd2e.org#', 'sd2')
         document.addNamespace('http://purl.org/dc/terms/', 'dcterms')
         document.addNamespace('http://www.w3.org/ns/prov#', 'prov')
+        document.displayId = 'foo'
+        document.version = '1'
 
         if sbol_type == 'component':
             if item_type == 'CHEBI':
@@ -143,40 +147,50 @@ class IntentParserSBH(object):
 
         return document
 
-    def create_sbh_stub_new(self, item_type, item_name, item_definition_uri, item_display_id, item_lab_ids, item_lab_id_tag):
-        display_id = self.get_or_create_display_id(item_name, item_display_id)
-        # Derive document URL
-        document_url = self.sbh_uri_prefix + display_id + '/1'
-        if self.sbh.exists(document_url):
-            message = '%s already exists in SynBioHub'
-            raise IntentParserException(message)
+    def _get_sbol_type_from_item_type(self, item_type):
+        sbol_type = None
+        for key, value_dict in intent_parser_constants.ITEM_TYPES.items():
+            for value_type, value_uri in value_dict.items():
+                if item_type == value_type:
+                    sbol_type = key
 
-        sbol_type_map = self.get_sbol_type()
-        if item_type not in sbol_type_map.keys():
-            err = '%s does not match one of the following sbol types: \n %s' % (item_type, ' ,'.join((map(str, sbol_type_map.keys()))))
+        if sbol_type is None:
+            err = '%s does not match one of the following sbol types: \n %s' % (
+            item_type, ' ,'.join((map(str, intent_parser_constants.ITEM_TYPES.keys()))))
             raise IntentParserException(err)
+        return sbol_type
 
-        sbol_type = sbol_type_map[item_type]
+
+    def create_sbh_stub(self, item_type, item_name, item_definition_uri, item_display_id, item_lab_ids, item_lab_id_tag):
+        sbol_type_map = self.get_item_type_mapping()
+        sbol_type = self._get_sbol_type_from_item_type(item_type)
         new_item_definition_uri = self.get_or_create_new_item_definition_uri(item_type,
                                                                              item_definition_uri,
                                                                              sbol_type_map)
-        self.create_dictionary_entry(item_type,
-                                     item_name,
-                                     item_lab_ids,
-                                     item_lab_id_tag,
-                                     document_url,
-                                     new_item_definition_uri)
+        display_id = self.get_or_create_display_id(item_name, item_display_id)
 
         sbh_document = self.create_synbiohub_entry(sbol_type,
                                                    sbol_type_map,
                                                    display_id,
                                                    item_type,
                                                    item_name,
-                                                   item_definition_uri,
+                                                   new_item_definition_uri,
                                                    item_lab_ids,
                                                    item_lab_id_tag)
 
-        self.sbh.submit(sbh_document, self.sbh_collection_uri, 3)
+        # Derive document URL
+        document_url = self.sbh_uri_prefix + display_id + '/1'
+        if self.sbh.exists(sbh_document, document_url):
+            message = '%s already exists in SynBioHub'
+            raise IntentParserException(message)
+        sbh_merge_collection_flag = 2
+        self.sbh.submit(sbh_document, self.sbh_collection_uri, sbh_merge_collection_flag)
+        self.create_dictionary_entry(item_type,
+                                     item_name,
+                                     item_lab_ids,
+                                     item_lab_id_tag,
+                                     document_url,
+                                     new_item_definition_uri)
         return document_url
 
     def get_sbh_collection_user(self):
