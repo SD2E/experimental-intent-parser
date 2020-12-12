@@ -54,7 +54,7 @@ class IntentParserProcessor(object):
         self.sbol_dictionary.start_synchronizing_spreadsheet()
         self.analyze_controller.start_analyze_controller()
         self.spellcheck_controller.start_spellcheck_controller()
-        self.strateos_accessor.start_synchronize_protocols()
+        # self.strateos_accessor.start_synchronize_protocols()
 
         self.sbh.initialize_sbh()
         self.sbh.set_sbol_dictionary(self.sbol_dictionary)

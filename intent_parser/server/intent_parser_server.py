@@ -1,41 +1,25 @@
 from flask import Flask, request, redirect
-from flask_restful import Api, Resource, reqparse
+from flask_restful import Api, Resource
 from flasgger import Swagger, swag_from
 from http import HTTPStatus
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
-from intent_parser.intent_parser_exceptions import IntentParserException
+from intent_parser.intent_parser_exceptions import IntentParserException, RequestErrorException
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.accessor.intent_parser_sbh import IntentParserSBH
 from intent_parser.server.intent_parser_processor import IntentParserProcessor
-import intent_parser.constants.intent_parser_constants as intent_parser_constants
+from intent_parser.server.config import env_config
 import argparse
+import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.server.error_handler as error_handler
 import json
 import logging.config
 import os
 import traceback
 
 logger = logging.getLogger(__name__)
-app = Flask(__name__)
-api = Api(app)
+api = Api()
 
-# Create an APISpec
-template = {
-    'swagger': '2.0',
-    'info': {
-        'title': 'Intent Parser API',
-        'description': 'API for access features supported in Intent Parser.',
-        'version': '3.0'
-    }
-}
-
-app.config['SWAGGER'] = {
-    'title': 'Intent Parser API',
-    'uiversion': 3,
-    'specs_route': '/api/'
-}
-swagger = Swagger(app, template=template)
-parser = reqparse.RequestParser()
 
 class IntentParserHome(Resource):
     def __init__(self):
@@ -251,7 +235,7 @@ class ValidateStructuredRequest(Resource):
         sr_result = self._ip_processor.process_validate_structured_request(request.get_json())
         return sr_result, HTTPStatus.OK
 
-def setup_api_resources(ip_processor):
+def _setup_api_resources(ip_processor):
     api.add_resource(IntentParserHome,
                      '/home')
     api.add_resource(Status,
@@ -320,7 +304,7 @@ def setup_api_resources(ip_processor):
                      '/validateStructuredRequest',
                      resource_class_kwargs={'ip_processor': ip_processor})
 
-def setup_logging(
+def _setup_logging(
         default_path='logging.json',
         default_level=logging.INFO,
         env_key='LOG_CFG'):
@@ -343,6 +327,36 @@ def setup_logging(
     logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.CRITICAL)
     logging.getLogger("googleapiclient.discovery").setLevel(logging.CRITICAL)
 
+
+def _create_app(config_name='production'):
+    app = Flask(__name__)
+
+    # Create an APISpec
+    template = {
+        'swagger': '2.0',
+        'info': {
+            'title': 'Intent Parser API',
+            'description': 'API for access features supported in Intent Parser.',
+            'version': '3.0'
+        }
+    }
+    app.config.from_object(env_config[config_name])
+    app.config['SWAGGER'] = {
+        'title': 'Intent Parser API',
+        'uiversion': 3,
+        'specs_route': '/api/'
+    }
+    api.init_app(app)
+    Swagger(app, template=template)
+    app.register_error_handler(IntentParserException, error_handler.handle_intent_parser_errors)
+    app.register_error_handler(RequestErrorException, error_handler.handle_request_errors)
+
+    return app
+
+def start_server(ip_processor, host, port):
+    app = _create_app(config_name=os.getenv("IP_FLASK_ENV"))
+    _setup_api_resources(ip_processor)
+    app.run(host, port)
 
 def main():
     cmd_parser = argparse.ArgumentParser(description='Processes an experimental design.')
@@ -374,7 +388,7 @@ def main():
                             required=True, help='SynBioHub username.')
 
     input_args = cmd_parser.parse_args()
-    setup_logging()
+    _setup_logging()
     ip_processor = None
     try:
         sbh = IntentParserSBH()
@@ -384,13 +398,10 @@ def main():
         intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
         ip_processor = IntentParserProcessor(sbh, sbol_dictionary, strateos_accessor, intent_parser_factory)
         ip_processor.initialize_intent_parser_processor()
-        setup_api_resources(ip_processor)
-        app.run(host=input_args.bind_host, port=input_args.bind_port)
+        start_server(ip_processor, input_args.bind_host, input_args.bind_port)
+
     except (KeyboardInterrupt, SystemExit):
         logger.info('Shutting down Intent Parser Server.')
-        return
-    except IntentParserException as ip_err:
-        logger.info(ip_err.get_message())
         return
     except Exception as ex:
         logger.warning(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))

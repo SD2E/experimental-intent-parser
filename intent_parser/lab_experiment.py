@@ -33,7 +33,7 @@ class LabExperiment(object):
             return document
         except Exception as ex:
             self.logger.warning(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
-            raise RequestErrorException(HTTPStatus.NOT_FOUND, errors=['Failed to access document ' + self._document_id])
+            raise RequestErrorException(HTTPStatus.NOT_FOUND, error=['Failed to access document ' + self._document_id])
 
     def load_metadata_from_google_doc(self):
         try:
@@ -41,7 +41,7 @@ class LabExperiment(object):
             self._metadata = google_accessor.get_document_metadata(document_id=self._document_id)
             return self._metadata
         except Exception:
-            raise RequestErrorException(HTTPStatus.NOT_FOUND, errors=['Failed to access document ' + self._document_id])
+            raise RequestErrorException(HTTPStatus.NOT_FOUND, error=['Failed to access document ' + self._document_id])
         
     def title(self):
         return self._title
