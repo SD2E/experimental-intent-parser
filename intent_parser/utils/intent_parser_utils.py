@@ -95,20 +95,6 @@ def cull_overlapping(search_results):
                 new_results.append(search_results[idx])
     return new_results
 
-def get_json_body(httpMessage):
-    body = httpMessage.get_body()
-    if body is None or len(body) == 0:
-        error_message = ['No POST data']
-        raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=error_message)
-
-    bodyStr = body.decode('utf-8')
-
-    try:
-        return json.loads(bodyStr)
-    except json.decoder.JSONDecodeError as e:
-        error_message = ['Failed to decode JSON data: {}'.format(e)]
-        raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=error_message)
-
 def get_document_id_from_json_body(json_body):
     if 'documentId' not in json_body:
         raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=['Missing documentId'])

@@ -20,6 +20,8 @@ ENV SBH_URL https://hub.sd2e.org
 # ENV that need to be passed in
 #ENV AUTHN 
 #ENV SBH_PASSWORD
+#ENV INTENT_PARSER_SECRET_KEY
+#ENV IP_FLASK_ENV
 
 # Make port available to the world outside this container
 EXPOSE $PORT
