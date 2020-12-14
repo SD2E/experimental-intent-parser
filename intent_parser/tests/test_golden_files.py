@@ -24,7 +24,7 @@ class GoldenFileTest(unittest.TestCase):
     def setUpClass(cls):
         pass
     
-    @patch('intent_parser.intent_parser_sbh.IntentParserSBH')
+    @patch('intent_parser.accessor.intent_parser_sbh.IntentParserSBH')
     def setUp(self, mock_intent_parser_sbh):
         curr_path = os.path.dirname(os.path.realpath(__file__))
         self.data_dir = os.path.join(curr_path, 'data')
