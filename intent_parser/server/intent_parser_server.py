@@ -16,44 +16,80 @@ import json
 import logging.config
 import os
 import traceback
-
+curr_path = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger(__name__)
-api = Api()
+app = Flask(__name__)
+api = Api(app)
 
+# Create an APISpec
+template = {
+    'swagger': '2.0',
+    'info': {
+        'title': 'Intent Parser API',
+        'description': 'API for access features supported in Intent Parser.',
+        'version': '3.0'
+    }
+}
+app.config.from_object(env_config[os.getenv("IP_FLASK_ENV")])
+app.config['SWAGGER'] = {
+    'title': 'Intent Parser API',
+    'uiversion': 3,
+    'specs_route': '/api/'
+}
+Swagger(app, template=template)
+app.register_error_handler(IntentParserException, error_handler.handle_intent_parser_errors)
+app.register_error_handler(RequestErrorException, error_handler.handle_request_errors)
 
-class IntentParserHome(Resource):
+class GetIntentParserHome(Resource):
     def __init__(self):
         pass
 
     def get(self):
         return redirect("https://github.com/SD2E/experimental-intent-parser", code=302)
 
-class Status(Resource):
+class GetStatus(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def get(self):
+        """
+        Reports the status of intent parser server.
+        ---
+        responses:
+            200:
+                description: A message indicating the server is properly setup and running.
+            503:
+                description: A message indicating the server not properly setup and will not run correctly.
+        """
         ip_status = self._ip_processor.get_status()
         return ip_status, HTTPStatus.OK
 
-class DocumentReport(Resource):
-    def __init__(self, ip_processor):
-        self._ip_processor = ip_processor
-
-    def get(self, doc_id):
-        report = self._ip_processor.process_document_report(doc_id)
-        return report, HTTPStatus.OK
-
-class GenerateStructuredRequest(Resource):
+class GetDocumentReport(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def get(self, doc_id):
         """
-        GET endpoint
+        Generates a document report for a given experiment.
         ---
-        tags:
-            - restful
+        parameters:
+            - in: path
+              name: doc_id
+              type: string
+              required: true
+              description: ID of document
+        """
+        report = self._ip_processor.process_document_report(doc_id)
+        return report, HTTPStatus.OK
+
+class GetGenerateStructuredRequest(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def get(self, doc_id):
+        """
+        Generates a structured request for a given experiment.
+        ---
         parameters:
             - in: path
               name: doc_id
@@ -65,13 +101,14 @@ class GenerateStructuredRequest(Resource):
         structure_request = self._ip_processor.process_document_request(doc_id)
         return structure_request, HTTPStatus.OK
 
-    @swag_from(endpoint='generateStructuredRequest', methods=['POST'])
+class PostGenerateStructuredRequest(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
     def post(self):
         """
-        POST endpoint for sr
+        Generates a structured request for a given experiment.
         ---
-        tags:
-            - restful
         parameters:
             - in: body
               name: body
@@ -83,49 +120,134 @@ class GenerateStructuredRequest(Resource):
         structure_request = self._ip_processor.process_generate_structured_request(request.host_url, request.get_json())
         return structure_request, HTTPStatus.OK
 
-class ExperimentRequestDocuments(Resource):
+class GetExperimentRequestDocuments(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def get(self):
+        """
+        Retrieves a list of experiment request document ID.
+        ---
+        responses:
+            200:
+                schema:
+                    properties:
+                    doc_id:
+                        type: object
+        """
         er_documents = self._ip_processor.process_experiment_request_documents()
         return er_documents, HTTPStatus.OK
 
-class ExperimentStatus(Resource):
+class GetExperimentStatus(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def get(self, doc_id):
+        """
+        Reports the status of a given experiment in the TA4 pipeline.
+        ---
+        parameters:
+            - in: path
+              name: doc_id
+              type: string
+              required: true
+              description: ID of document
+        """
         experiment_status = self._ip_processor.process_experiment_status_get(doc_id)
         return experiment_status, HTTPStatus.OK
 
+class PostExperimentStatus(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
     def post(self):
+        """
+        Reports the status of a given experiment in the TA4 pipeline.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+        """
         # previously called reportExperimentStatus
         experiment_status = self._ip_processor.process_experiment_status_post(request.get_json())
         return experiment_status, HTTPStatus.OK
 
-class OpilRequest(Resource):
+class GetOpilRequest(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def get(self, doc_id):
+        """
+        Generates OPIL data for a given experiment.
+        ---
+        parameters:
+            - in: path
+              name: doc_id
+              type: string
+              required: true
+              description: ID of document
+        """
         opil_output = self._ip_processor.process_opil_get_request(doc_id)
         return opil_output, HTTPStatus.OK
 
+class PostOpilRequest(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
     def post(self):
+        """
+        Generates OPIL data for a given experiment.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+        """
         # previously called generateOpilRequest
         opil_output = self._ip_processor.process_opil_post_request(request.host_url, request.get_json())
         return opil_output, HTTPStatus.OK
 
-class RunExperiment(Resource):
+class GetRunExperiment(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def get(self, doc_id):
+        """
+        Executes a given experiment.
+        ---
+        parameters:
+            - in: path
+              name: doc_id
+              type: string
+              required: true
+              description: ID of document
+        """
         experiment_data = self._ip_processor.process_run_experiment_get(doc_id)
         return experiment_data, HTTPStatus.OK
 
+class PostRunExperiment(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
     def post(self):
+        """
+        Executes a given experiment.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+        """
         # previously called executeExperiment
         experiment_data = self._ip_processor.process_run_experiment_post(request.get_json())
         return experiment_data, HTTPStatus.OK
@@ -135,34 +257,95 @@ class UpdateExperimentStatus(Resource):
         self._ip_processor = ip_processor
 
     def get(self, doc_id):
+        """
+        Updates the status of an experiment.
+        ---
+        parameters:
+            - in: path
+              name: doc_id
+              type: string
+              required: true
+              description: ID of document
+        """
         status_data = self._ip_processor.process_update_experiment_status(doc_id)
         return status_data, HTTPStatus.OK
 
-class AddBySpelling(Resource):
+class PostAddBySpelling(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def post(self):
+        """
+        Checks spelling in a given document.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+                    userEmail:
+                        type: string
+        """
         spelling_data = self._ip_processor.process_add_by_spelling(request.get_json())
         return spelling_data, HTTPStatus.OK
 
-class AddToSynbiohub(Resource):
+class PostAddToSynbiohub(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def post(self):
+        """
+        Adds terms in a given document to SynbioHub.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+                    data:
+                        properties:
+                            start:
+                                properties:
+                                    paragraphIndex:
+                                        type: number
+                                    offset:
+                                        type: number
+                            end:
+                                properties:
+                                    paragraphIndex:
+                                        type: number
+                                    offset:
+                                        type: number
+        """
         sbh_data = self._ip_processor.process_add_to_syn_bio_hub(request.get_json())
         return sbh_data, HTTPStatus.OK
 
-class AnalyzeDocument(Resource):
+class PostAnalyzeDocument(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def post(self):
+        """
+        Links terms in a given document to SynbioHub.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+                    userEmail:
+                        type: string
+        """
         analyze_data = self._ip_processor.process_analyze_document(request.get_json())
         return analyze_data, HTTPStatus.OK
 
-class ButtonClick(Resource):
+class PostButtonClick(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
@@ -170,23 +353,51 @@ class ButtonClick(Resource):
         button_response = self._ip_processor.process_button_click(request.get_json())
         return button_response, HTTPStatus.OK
 
-class CalculateSamples(Resource):
+class PostCalculateSamples(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def post(self):
+        """
+        Updates measurement samples in a given experiment.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+        """
         table_template = self._ip_processor.process_calculate_samples(request.get_json())
         return table_template, HTTPStatus.OK
 
-class CreateTableTemplate(Resource):
+class PostCreateTableTemplate(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def post(self):
+        """
+        Show options to create a table template in a given document.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+                    data:
+                        properties:
+                            childIndex:
+                                type: number
+                            tableType:
+                                type: string
+        """
         table_template = self._ip_processor.process_create_table_template(request.get_json())
         return table_template, HTTPStatus.OK
 
-class ExperimentExecutionStatus(Resource):
+class PostExperimentExecutionStatus(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
@@ -195,7 +406,7 @@ class ExperimentExecutionStatus(Resource):
         experiment_data = self._ip_processor.process_experiment_execution_status(request.get_json())
         return experiment_data, HTTPStatus.OK
 
-class Message(Resource):
+class PostMessage(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
@@ -203,11 +414,26 @@ class Message(Resource):
         message = self._ip_processor.process_message(request.get_json())
         return message, HTTPStatus.OK
 
-class SearchSynBioHub(Resource):
+class PostSearchSynBioHub(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def post(self):
+        """
+        Queries SynBioHub for a term in a given document.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    data:
+                        properties:
+                            term:
+                                type: string
+                            offset:
+                                type: number
+        """
         sbh_data = self._ip_processor.process_search_syn_bio_hub(request.get_json())
         return sbh_data, HTTPStatus.OK
 
@@ -224,6 +450,17 @@ class UpdateExperimentResult(Resource):
         self._ip_processor = ip_processor
 
     def post(self):
+        """
+        Scans SynBioHub for experiments related to the given document and reports information about completed experiments.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+        """
         experiment_result = self._ip_processor.process_update_exp_results(request.get_json())
         return experiment_result, HTTPStatus.OK
 
@@ -232,66 +469,85 @@ class ValidateStructuredRequest(Resource):
         self._ip_processor = ip_processor
 
     def post(self):
+        """
+        Validates information about an experiment for a given document.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+        """
         sr_result = self._ip_processor.process_validate_structured_request(request.get_json())
         return sr_result, HTTPStatus.OK
 
 def _setup_api_resources(ip_processor):
-    api.add_resource(IntentParserHome,
+    api.add_resource(GetIntentParserHome,
                      '/home')
-    api.add_resource(Status,
+    api.add_resource(GetStatus,
                      '/status',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(DocumentReport,
+    api.add_resource(GetDocumentReport,
                      '/document_report/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(GenerateStructuredRequest,
-                     '/generateStructuredRequest',
+    api.add_resource(GetGenerateStructuredRequest,
                      '/generateStructuredRequest/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(ExperimentRequestDocuments,
+    api.add_resource(PostGenerateStructuredRequest,
+                     '/generateStructuredRequest',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(GetExperimentRequestDocuments,
                      '/experiment_request_documents',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(ExperimentStatus,
-                     '/experiment_status',
+    api.add_resource(GetExperimentStatus,
                      '/experiment_status/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(OpilRequest,
-                     '/generateOpilRequest',
+    api.add_resource(PostExperimentStatus,
+                     '/experiment_status',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(GetOpilRequest,
                      '/generateOpilRequest/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(RunExperiment,
-                     '/run_experiment',
+    api.add_resource(PostOpilRequest,
+                     '/generateOpilRequest',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(GetRunExperiment,
                      '/run_experiment/d/<string:doc_id>',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(PostRunExperiment,
+                     '/run_experiment',
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(UpdateExperimentStatus,
                      '/update_experiment_status/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
 
-    api.add_resource(AddBySpelling,
+    api.add_resource(PostAddBySpelling,
                      '/addBySpelling',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(AddToSynbiohub,
+    api.add_resource(PostAddToSynbiohub,
                      '/addToSynBioHub',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(AnalyzeDocument,
+    api.add_resource(PostAnalyzeDocument,
                      '/analyzeDocument',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(ButtonClick,
+    api.add_resource(PostButtonClick,
                      '/buttonClick',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(CalculateSamples,
+    api.add_resource(PostCalculateSamples,
                      '/calculateSamples',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(CreateTableTemplate,
+    api.add_resource(PostCreateTableTemplate,
                      '/createTableTemplate',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(ExperimentExecutionStatus,
+    api.add_resource(PostExperimentExecutionStatus,
                      '/experimentExecutionStatus',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(Message,
+    api.add_resource(PostMessage,
                      '/message',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(SearchSynBioHub,
+    api.add_resource(PostSearchSynBioHub,
                      '/searchSynBioHub',
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(SubmitForm,
@@ -346,7 +602,6 @@ def _create_app(config_name='production'):
         'uiversion': 3,
         'specs_route': '/api/'
     }
-    api.init_app(app)
     Swagger(app, template=template)
     app.register_error_handler(IntentParserException, error_handler.handle_intent_parser_errors)
     app.register_error_handler(RequestErrorException, error_handler.handle_request_errors)
@@ -354,7 +609,7 @@ def _create_app(config_name='production'):
     return app
 
 def start_server(ip_processor, host, port):
-    app = _create_app(config_name=os.getenv("IP_FLASK_ENV"))
+    # app = _create_app(config_name=os.getenv("IP_FLASK_ENV"))
     _setup_api_resources(ip_processor)
     app.run(host, port)
 
