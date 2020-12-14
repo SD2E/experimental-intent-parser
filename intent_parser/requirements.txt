@@ -2,7 +2,7 @@ Flask==1.1.2
 flask-restful
 flasgger
 flashtext
-google-api-python-client
+google-api-python-client==1.12.1
 google-auth-httplib2
 google-auth-oauthlib
 jsonschema
@@ -15,6 +15,7 @@ python-magic
 requests_oauthlib
 sbol2
 sbol3
+six==1.13.0
 tenacity
 transcriptic
 
