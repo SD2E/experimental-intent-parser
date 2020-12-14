@@ -2,42 +2,81 @@
 List of constants used for reading and writing contents from intent parser
 """
 
-RELEASE_VERSION = '2.10'
+RELEASE_VERSION = '3.0'
 
-LAB_IDS_LIST = sorted(['BioFAB UID',
-                       'Ginkgo UID',
-                       'Transcriptic UID',
-                       'LBNL UID',
-                       'EmeraldCloud UID',
-                       'CalTech UID',
-                       'PennState (Salis) UID'])
+SELECTED_CONTENT_TERM = 'content_term'
+SELECTED_END_OFFSET = 'end_offset'
+SELECTED_PARAGRAPH_INDEX = 'paragraph_index'
+SELECTED_START_OFFSET = 'offset'
 
+ANALYZE_LINK = 'link'
+ANALYZE_NEVER_LINK = 'process_never_link'
+ANALYZE_NO = 'process_analyze_no'
+ANALYZE_NO_TO_ALL = 'process_no_to_all'
+ANALYZE_PROGRESS = 'progress'
+ANALYZE_SEARCH_RESULTS = 'search_results'
+ANALYZE_SEARCH_RESULT_INDEX = 'search_result_index'
+ANALYZE_TERM = 'term'
+ANALYZE_YES = 'process_analyze_yes'
+ANALYZE_YES_TO_ALL = 'process_link_all'
+
+SUBMIT_FORM_LINK = 'link'
+SUBMIT_FORM_LINK_ALL = 'linkAll'
+SUBMIT_FORM = 'submit'
+SUBMIT_FORM_CREATE_CONTROLS_TABLE = 'createControlsTable'
+SUBMIT_FORM_CREATE_MEASUREMENT_TABLE = 'createMeasurementTable'
+SUBMIT_FORM_CREATE_PARAMETER_TABLE = 'createParameterTable'
+
+SPELLCHECK_ADD_IGNORE = 'spellcheck_add_ignore'
+SPELLCHECK_ADD_IGNORE_ALL = 'spellcheck_add_ignore_all'
+SPELLCHECK_ADD_DICTIONARY = 'spellcheck_add_dictionary'
+SPELLCHECK_ADD_SYNBIOHUB = 'spellcheck_add_synbiohub'
+SPELLCHECK_ENTERLINK = 'EnterLink'
+SPELLCHECK_ADD_SELECT_PREVIOUS = 'spellcheck_add_select_previous'
+SPELLCHECK_ADD_SELECT_NEXT = 'spellcheck_add_select_next'
+SPELLCHECK_ADD_DROP_FIRST = 'spellcheck_add_drop_first'
+SPELLCHECK_ADD_DROP_LAST = 'spellcheck_add_drop_last'
+
+LAB_IDS_LIST = ['BioFAB UID',
+                'CalTech UID',
+                'EmeraldCloud UID',
+                'Ginkgo UID',
+                'LBNL UID',
+                'PennState (Salis) UID',
+                'Transcriptic UID']
+
+SBOL_COMPONENT_MAPPINGS = {
+    'Bead': 'http://purl.obolibrary.org/obo/NCIT_C70671',
+    'CHEBI': 'http://identifiers.org/chebi/CHEBI:24431',
+    'DNA': 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
+    'Protein': 'http://www.biopax.org/release/biopax-level3.owl#Protein',
+    'RNA': 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
+}
+
+SBOL_MODULE_MAPPINGS = {
+    'Strain': 'http://purl.obolibrary.org/obo/NCIT_C14419',
+    'Media': 'http://purl.obolibrary.org/obo/NCIT_C85504',
+    'Stain': 'http://purl.obolibrary.org/obo/NCIT_C841',
+    'Buffer': 'http://purl.obolibrary.org/obo/NCIT_C70815',
+    'Solution': 'http://purl.obolibrary.org/obo/NCIT_C70830'
+}
+
+SBOL_COLLECTION_MAPPING = {
+    'Challenge Problem': '',
+    'Collection': ''
+}
+
+SBOL_EXTERNAL_MAPPINGS = {
+    'Attribute': ''
+}
 ITEM_TYPES = {
-    'component': {
-        'Bead': 'http://purl.obolibrary.org/obo/NCIT_C70671',
-        'CHEBI': 'http://identifiers.org/chebi/CHEBI:24431',
-        'DNA': 'http://www.biopax.org/release/biopax-level3.owl#DnaRegion',
-        'Protein': 'http://www.biopax.org/release/biopax-level3.owl#Protein',
-        'RNA': 'http://www.biopax.org/release/biopax-level3.owl#RnaRegion'
-    },
-    'module': {
-        'Strain': 'http://purl.obolibrary.org/obo/NCIT_C14419',
-        'Media': 'http://purl.obolibrary.org/obo/NCIT_C85504',
-        'Stain': 'http://purl.obolibrary.org/obo/NCIT_C841',
-        'Buffer': 'http://purl.obolibrary.org/obo/NCIT_C70815',
-        'Solution': 'http://purl.obolibrary.org/obo/NCIT_C70830'
-    },
-    'collection': {
-        'Challenge Problem': '',
-        'Collection': ''
-    },
-    'external': {
-        'Attribute': ''
-    }
+    'component': SBOL_COMPONENT_MAPPINGS,
+    'module': SBOL_MODULE_MAPPINGS,
+    'collection': SBOL_COLLECTION_MAPPING,
+    'external': SBOL_EXTERNAL_MAPPINGS
 }
 
 SPARQL_LIMIT = 5
-SYNBIOHUB_SD2_PREFIX = 'https://hub.sd2e.org'
 
 # Stateos Protocols Supported in IP
 GROWTH_CURVE_PROTOCOL = 'GrowthCurve'
@@ -46,7 +85,6 @@ TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'
 CELL_FREE_RIBO_SWITCH_PROTOCOL = 'CellFreeRiboswitches'
 
 # Mapping protocols to human readible names
-PARAMETER_PROTOCOL_NAME = 'Protocol Name'
 PROTOCOL_PLACEHOLDER = 'Select a protocol'
 
 PROTOCOL_FIELD_XPLAN_BASE_DIRECTORY = 'XPlan Base Directory'
@@ -94,6 +132,7 @@ PARAMETER_RUN_INFO_SAVE_FOR_RNASEQ = 'run_info.save_for_rnaseq'
 PARAMETER_RUN_INFO_SKIP_FIRST_FLOW = 'run_info.skip_first_flow'
 PARAMETER_VALIDATE_SAMPLES = 'validate_samples'
 PARAMETER_RUN_INFO_INCUBATE_IN_READER = 'run_info.incubate_in_reader'
+PARAMETER_RXN_INFO_RXN_GROUP_INFO_MG_GLU2 = 'rxn_info.rxn_group.rxn_info.mg_glu2'
 PARAMETER_INDUCERS = 'inducers'
 
 SD2_SPREADSHEET_ID = '1oLJTTydL_5YPyk-wY-dspjIw_bPZ3oCiWiK0xtG8t3g'  # Sd2 Program dict
@@ -165,6 +204,16 @@ HEADER_NUM_NEG_CONTROL_TYPE = 'NUM_NEG_CONTROLS'
 HEADER_RNA_INHIBITOR_REACTION_TYPE = 'RNA_INHIBITOR_REACTION'
 HEADER_DNA_REACTION_CONCENTRATION_TYPE = 'DNA_REACTION_CONCENTRATION'
 HEADER_TEMPLATE_DNA_TYPE = 'TEMPLATE_DNA'
+
+SYNBIOHUB_DEPLOYED_DATABASE = 'hub.sd2e.org'
+SYNBIOHUB_STAGING_DATABASE = 'hub-staging.sd2e.org'
+SYNBIOHUB_DEPLOYED_DATABASE_URL = 'https://%s' % SYNBIOHUB_DEPLOYED_DATABASE
+SYNBIOHUB_STAGING_DATABASE_URL = 'https://%s' % SYNBIOHUB_STAGING_DATABASE
+SYNBIOHUB_DESIGN_COLLECTION_USER = 'sd2e'
+SYNBIOHUB_DESIGN_COLLECTION_PREFIX = 'https://hub.sd2e.org/user/%s/design/' % SYNBIOHUB_DESIGN_COLLECTION_USER
+SYNBIOHUB_DESIGN_COLLECTION_URI = SYNBIOHUB_DESIGN_COLLECTION_PREFIX + 'design_collection/1'
+SYBIOHUB_COLLECTION_NAME_DESIGN = 'design'
+
 
 TACC_SERVER = 'TACC'
 GOOGLE_DRIVE_EXPERIMENT_REQUEST_FOLDER = '1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'

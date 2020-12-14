@@ -20,10 +20,12 @@ ENV SBH_URL https://hub.sd2e.org
 # ENV that need to be passed in
 #ENV AUTHN 
 #ENV SBH_PASSWORD
+#ENV INTENT_PARSER_SECRET_KEY
+#ENV IP_FLASK_ENV
 
 # Make port available to the world outside this container
 EXPOSE $PORT
 
-# Run app.py when the container launches
+# Run intent_parser_server.py when the container launches
 CMD echo "Port: ${PORT}" && echo "SBH URL: ${SBH_URL}" && echo "COLLECTION: ${COLLECTION}" && intent_parser_server --username sd2e -p $SBH_PASSWORD -s $SBH_URL -l $PORT -c $COLLECTION -i $DICT_ID -a $AUTHN
 

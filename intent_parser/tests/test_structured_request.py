@@ -10,7 +10,7 @@ class StructureRequestTest(unittest.TestCase):
 
     @patch('intent_parser.lab_experiment.LabExperiment')
     @patch('intent_parser.accessor.sbol_dictionary_accessor.SBOLDictionaryAccessor')
-    @patch('intent_parser.intent_parser_sbh.IntentParserSBH')
+    @patch('intent_parser.accessor.intent_parser_sbh.IntentParserSBH')
     def setUp(self, mock_intent_parser_sbh, mock_sbol_dictionary_accessor, mock_lab_experiment):
         self.mock_intent_parser_sbh = mock_intent_parser_sbh
         self.mock_sbol_dictionary_accessor = mock_sbol_dictionary_accessor

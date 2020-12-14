@@ -1,5 +1,5 @@
 var serverURL = 'http://intentparser.sd2e.org';
-var versionString = '2.10';
+var versionString = '3.0';
 
 function onOpen() {
 	const ui = DocumentApp.getUi();
@@ -149,7 +149,6 @@ function validate_uri(uri) {
 
 function enterLinkPrompt(title, msg) {
 	var ui = DocumentApp.getUi();
-
 	var result = ui.prompt(title, msg, ui.ButtonSet.OK_CANCEL);
 	// Process the user's response.
 	var button = result.getSelectedButton();
@@ -168,7 +167,7 @@ function enterLinkPrompt(title, msg) {
 }
 
 function executeExperiment() {
-	sendPost('/executeExperiment');
+	sendPost('/run_experiment');
 }
 
 function reportExperimentStatus() {
@@ -188,7 +187,7 @@ function reportExperimentStatus() {
 	}
 	const childIndex = doc.getBody().getChildIndex(el);
 	const data = {'childIndex' : childIndex};
-	sendPost('/reportExperimentStatus', data);
+	sendPost('/experiment_status', data);
 }
 
 function sendMessage(message) {
@@ -362,11 +361,6 @@ function processActions(response) {
 	return waitForMoreActions;
 }
 
-function getAnalyzeProgress() {
-	var p = PropertiesService.getDocumentProperties();
-	return p.getProperty("analyze_progress");
-}
-
 function showSidebar(html) {
 	var user = Session.getActiveUser();
 	var userEmail = user.getEmail();
@@ -422,7 +416,8 @@ function sendPost(resource, data) {
 	var requestJSON = JSON.stringify(request);
 	var options = {
 			'method' : 'post',
-			'payload' : requestJSON
+			'payload' : requestJSON,
+			'contentType': 'application/json'
 	};
 
 	shouldProcessActions = true;
@@ -625,7 +620,6 @@ function sendAnalyzeFromTop() {
 
 function sendAnalyzeFromCursor() {
 	var cursorLocation = findCursor();
-
 	sendPost('/analyzeDocument', cursorLocation);
 }
 
@@ -641,7 +635,7 @@ function sendGenerateReport() {
 		html += '<p>';
 		html += '<center>';
 		html += 'Download Report ';
-		html += '<a href=' + serverURL + '/document_report?';
+		html += '<a href=' + serverURL + '/document_report/d/';
 		html += docId + ' target=_blank>here</a>';
 		html += '</p>';
 		html += '\n';

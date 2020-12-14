@@ -61,3 +61,5 @@ TABLE_TYPE_LAB = 'tableLab'
 TABLE_TYPE_MEASUREMENTS = 'measurements'
 TABLE_TYPE_PARAMETERS = 'parameters'
 
+USER = 'user'
+USER_EMAIL = 'userEmail'

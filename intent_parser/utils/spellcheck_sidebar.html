@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <script>
+    function onSuccess(result) {
+        if(result.operationSucceeded) {
+            google.script.host.close()
+            return
+        }
+
+        // Operation Failed
+        submitButtonTable.innerHTML = '<i><font color=red>' + result.message + '</font></i>'
+        let theForm = this.spellcheckResultsForm
+        refreshList(0)
+    }
+
+    function busy(message) {
+        let theForm = this.spellcheckResultsForm
+        let submitButtonTable = document.getElementById('submitButtonTable')
+        let table = document.getElementById('existingLinksTable')
+
+        submitButtonTable.innerHTML = '<tr><td><i>' + message + '</i></td></tr>'
+        table.innerHTML = ''
+        theForm.refreshListButton.style.visibility = 'hidden'
+    }
+  ${BUTTONS_SCRIPT}
+  </script>
+
+  <center>
+    <form name="spellcheckResultsForm">
+      <input type="hidden" name="formName" value="spellcheckResultsForm">
+
+        <center>
+          <p>
+          Term ${CONTENT_TERM} not found in dictionary, potential addition?
+          </p>
+        </center>
+
+      ${BUTTONS}
+      <table id='submitButtonTable'></table>
+    </form>
+  </center>
+
+</body>
+</html>

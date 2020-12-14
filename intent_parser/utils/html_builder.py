@@ -152,3 +152,24 @@ class ParameterTableHtmlBuilder(object):
 
     def build(self):
         return self.html
+
+class SpellcheckHtmlBuilder(object):
+    def __init__(self):
+        _curr_path = os.path.dirname(os.path.realpath(__file__))
+        html_file = intent_parser_utils.load_file(os.path.join(_curr_path, 'spellcheck_sidebar.html'))
+        self.html = html_file
+
+    def content_term(self, content_term):
+        self.html = self.html.replace('${CONTENT_TERM}', content_term)
+
+    def document_id(self, document_id):
+        self.html = self.html.replace('${DOCUMENTID}', document_id)
+
+    def button_html(self, button_html):
+        self.html = self.html.replace('${BUTTONS}', button_html)
+
+    def button_script(self, button_script):
+        self.html = self.html.replace('${BUTTONS_SCRIPT}', button_script)
+
+    def build(self):
+        return self.html
