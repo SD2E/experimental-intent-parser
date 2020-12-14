@@ -1,6 +1,6 @@
 from flask import Flask, request, redirect
 from flask_restful import Api, Resource
-from flasgger import Swagger, swag_from
+from flasgger import Swagger
 from http import HTTPStatus
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
@@ -82,44 +82,6 @@ class GetDocumentReport(Resource):
         report = self._ip_processor.process_document_report(doc_id)
         return report, HTTPStatus.OK
 
-class GetGenerateStructuredRequest(Resource):
-    def __init__(self, ip_processor):
-        self._ip_processor = ip_processor
-
-    def get(self, doc_id):
-        """
-        Generates a structured request for a given experiment.
-        ---
-        parameters:
-            - in: path
-              name: doc_id
-              type: string
-              required: true
-              description: ID of document
-        """
-        # previously called document_request
-        structure_request = self._ip_processor.process_document_request(doc_id)
-        return structure_request, HTTPStatus.OK
-
-class PostGenerateStructuredRequest(Resource):
-    def __init__(self, ip_processor):
-        self._ip_processor = ip_processor
-
-    def post(self):
-        """
-        Generates a structured request for a given experiment.
-        ---
-        parameters:
-            - in: body
-              name: body
-              schema:
-                properties:
-                    doc_id:
-                        type: string
-        """
-        structure_request = self._ip_processor.process_generate_structured_request(request.host_url, request.get_json())
-        return structure_request, HTTPStatus.OK
-
 class GetExperimentRequestDocuments(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
@@ -156,25 +118,24 @@ class GetExperimentStatus(Resource):
         experiment_status = self._ip_processor.process_experiment_status_get(doc_id)
         return experiment_status, HTTPStatus.OK
 
-class PostExperimentStatus(Resource):
+class GetGenerateStructuredRequest(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
-    def post(self):
+    def get(self, doc_id):
         """
-        Reports the status of a given experiment in the TA4 pipeline.
+        Generates a structured request for a given experiment.
         ---
         parameters:
-            - in: body
-              name: body
-              schema:
-                properties:
-                    doc_id:
-                        type: string
+            - in: path
+              name: doc_id
+              type: string
+              required: true
+              description: ID of document
         """
-        # previously called reportExperimentStatus
-        experiment_status = self._ip_processor.process_experiment_status_post(request.get_json())
-        return experiment_status, HTTPStatus.OK
+        # previously called document_request
+        structure_request = self._ip_processor.process_document_request(doc_id)
+        return structure_request, HTTPStatus.OK
 
 class GetOpilRequest(Resource):
     def __init__(self, ip_processor):
@@ -192,26 +153,6 @@ class GetOpilRequest(Resource):
               description: ID of document
         """
         opil_output = self._ip_processor.process_opil_get_request(doc_id)
-        return opil_output, HTTPStatus.OK
-
-class PostOpilRequest(Resource):
-    def __init__(self, ip_processor):
-        self._ip_processor = ip_processor
-
-    def post(self):
-        """
-        Generates OPIL data for a given experiment.
-        ---
-        parameters:
-            - in: body
-              name: body
-              schema:
-                properties:
-                    doc_id:
-                        type: string
-        """
-        # previously called generateOpilRequest
-        opil_output = self._ip_processor.process_opil_post_request(request.host_url, request.get_json())
         return opil_output, HTTPStatus.OK
 
 class GetRunExperiment(Resource):
@@ -232,27 +173,7 @@ class GetRunExperiment(Resource):
         experiment_data = self._ip_processor.process_run_experiment_get(doc_id)
         return experiment_data, HTTPStatus.OK
 
-class PostRunExperiment(Resource):
-    def __init__(self, ip_processor):
-        self._ip_processor = ip_processor
-
-    def post(self):
-        """
-        Executes a given experiment.
-        ---
-        parameters:
-            - in: body
-              name: body
-              schema:
-                properties:
-                    doc_id:
-                        type: string
-        """
-        # previously called executeExperiment
-        experiment_data = self._ip_processor.process_run_experiment_post(request.get_json())
-        return experiment_data, HTTPStatus.OK
-
-class UpdateExperimentStatus(Resource):
+class GetUpdateExperimentStatus(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
@@ -406,6 +327,45 @@ class PostExperimentExecutionStatus(Resource):
         experiment_data = self._ip_processor.process_experiment_execution_status(request.get_json())
         return experiment_data, HTTPStatus.OK
 
+class PostExperimentStatus(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        """
+        Reports the status of a given experiment in the TA4 pipeline.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+        """
+        # previously called reportExperimentStatus
+        experiment_status = self._ip_processor.process_experiment_status_post(request.get_json())
+        return experiment_status, HTTPStatus.OK
+
+class PostGenerateStructuredRequest(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        """
+        Generates a structured request for a given experiment.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+        """
+        structure_request = self._ip_processor.process_generate_structured_request(request.host_url, request.get_json())
+        return structure_request, HTTPStatus.OK
+
 class PostMessage(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
@@ -413,6 +373,46 @@ class PostMessage(Resource):
     def post(self):
         message = self._ip_processor.process_message(request.get_json())
         return message, HTTPStatus.OK
+
+class PostOpilRequest(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        """
+        Generates OPIL data for a given experiment.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+        """
+        # previously called generateOpilRequest
+        opil_output = self._ip_processor.process_opil_post_request(request.host_url, request.get_json())
+        return opil_output, HTTPStatus.OK
+
+class PostRunExperiment(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        """
+        Executes a given experiment.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+        """
+        # previously called executeExperiment
+        experiment_data = self._ip_processor.process_run_experiment_post(request.get_json())
+        return experiment_data, HTTPStatus.OK
 
 class PostSearchSynBioHub(Resource):
     def __init__(self, ip_processor):
@@ -437,7 +437,7 @@ class PostSearchSynBioHub(Resource):
         sbh_data = self._ip_processor.process_search_syn_bio_hub(request.get_json())
         return sbh_data, HTTPStatus.OK
 
-class SubmitForm(Resource):
+class PostSubmitForm(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
@@ -445,7 +445,7 @@ class SubmitForm(Resource):
         submit_form_data = self._ip_processor.process_submit_form(request.get_json())
         return submit_form_data, HTTPStatus.OK
 
-class UpdateExperimentResult(Resource):
+class PostUpdateExperimentResult(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
@@ -464,7 +464,7 @@ class UpdateExperimentResult(Resource):
         experiment_result = self._ip_processor.process_update_exp_results(request.get_json())
         return experiment_result, HTTPStatus.OK
 
-class ValidateStructuredRequest(Resource):
+class PostValidateStructuredRequest(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
@@ -495,31 +495,19 @@ def _setup_api_resources(ip_processor):
     api.add_resource(GetGenerateStructuredRequest,
                      '/generateStructuredRequest/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostGenerateStructuredRequest,
-                     '/generateStructuredRequest',
-                     resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(GetExperimentRequestDocuments,
                      '/experiment_request_documents',
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(GetExperimentStatus,
                      '/experiment_status/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostExperimentStatus,
-                     '/experiment_status',
-                     resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(GetOpilRequest,
                      '/generateOpilRequest/d/<string:doc_id>',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostOpilRequest,
-                     '/generateOpilRequest',
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(GetRunExperiment,
                      '/run_experiment/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostRunExperiment,
-                     '/run_experiment',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(UpdateExperimentStatus,
+    api.add_resource(GetUpdateExperimentStatus,
                      '/update_experiment_status/d/<string:doc_id>',
                      resource_class_kwargs={'ip_processor': ip_processor})
 
@@ -544,19 +532,31 @@ def _setup_api_resources(ip_processor):
     api.add_resource(PostExperimentExecutionStatus,
                      '/experimentExecutionStatus',
                      resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(PostExperimentStatus,
+                     '/experiment_status',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(PostGenerateStructuredRequest,
+                     '/generateStructuredRequest',
+                     resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(PostMessage,
                      '/message',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(PostOpilRequest,
+                     '/generateOpilRequest',
+                     resource_class_kwargs={'ip_processor': ip_processor})
+    api.add_resource(PostRunExperiment,
+                     '/run_experiment',
                      resource_class_kwargs={'ip_processor': ip_processor})
     api.add_resource(PostSearchSynBioHub,
                      '/searchSynBioHub',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(SubmitForm,
+    api.add_resource(PostSubmitForm,
                      '/submitForm',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(UpdateExperimentResult,
+    api.add_resource(PostUpdateExperimentResult,
                      '/updateExperimentalResults',
                      resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(ValidateStructuredRequest,
+    api.add_resource(PostValidateStructuredRequest,
                      '/validateStructuredRequest',
                      resource_class_kwargs={'ip_processor': ip_processor})
 
@@ -583,33 +583,7 @@ def _setup_logging(
     logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.CRITICAL)
     logging.getLogger("googleapiclient.discovery").setLevel(logging.CRITICAL)
 
-
-def _create_app(config_name='production'):
-    app = Flask(__name__)
-
-    # Create an APISpec
-    template = {
-        'swagger': '2.0',
-        'info': {
-            'title': 'Intent Parser API',
-            'description': 'API for access features supported in Intent Parser.',
-            'version': '3.0'
-        }
-    }
-    app.config.from_object(env_config[config_name])
-    app.config['SWAGGER'] = {
-        'title': 'Intent Parser API',
-        'uiversion': 3,
-        'specs_route': '/api/'
-    }
-    Swagger(app, template=template)
-    app.register_error_handler(IntentParserException, error_handler.handle_intent_parser_errors)
-    app.register_error_handler(RequestErrorException, error_handler.handle_request_errors)
-
-    return app
-
 def start_server(ip_processor, host, port):
-    # app = _create_app(config_name=os.getenv("IP_FLASK_ENV"))
     _setup_api_resources(ip_processor)
     app.run(host, port)
 
