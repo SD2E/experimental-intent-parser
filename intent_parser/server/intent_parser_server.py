@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect
+from flask import Flask, request, redirect, jsonify
 from flask_restful import Api, Resource
 from flasgger import Swagger
 from http import HTTPStatus
@@ -11,11 +11,11 @@ from intent_parser.server.intent_parser_processor import IntentParserProcessor
 from intent_parser.server.config import env_config
 import argparse
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
-import intent_parser.server.error_handler as error_handler
 import json
 import logging.config
 import os
 import traceback
+
 curr_path = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
@@ -37,8 +37,6 @@ app.config['SWAGGER'] = {
     'specs_route': '/api/'
 }
 Swagger(app, template=template)
-app.register_error_handler(IntentParserException, error_handler.handle_intent_parser_errors)
-app.register_error_handler(RequestErrorException, error_handler.handle_request_errors)
 
 class GetIntentParserHome(Resource):
     def __init__(self):
@@ -61,8 +59,16 @@ class GetStatus(Resource):
             503:
                 description: A message indicating the server not properly setup and will not run correctly.
         """
-        ip_status = self._ip_processor.get_status()
-        return ip_status, HTTPStatus.OK
+        try:
+            ip_status = self._ip_processor.get_status()
+            return ip_status, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class GetDocumentReport(Resource):
     def __init__(self, ip_processor):
@@ -79,8 +85,17 @@ class GetDocumentReport(Resource):
               required: true
               description: ID of document
         """
-        report = self._ip_processor.process_document_report(doc_id)
-        return report, HTTPStatus.OK
+        try:
+            report = self._ip_processor.process_document_report(doc_id)
+            return report, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
+
 
 class GetExperimentRequestDocuments(Resource):
     def __init__(self, ip_processor):
@@ -97,8 +112,16 @@ class GetExperimentRequestDocuments(Resource):
                     doc_id:
                         type: object
         """
-        er_documents = self._ip_processor.process_experiment_request_documents()
-        return er_documents, HTTPStatus.OK
+        try:
+            er_documents = self._ip_processor.process_experiment_request_documents()
+            return er_documents, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class GetExperimentStatus(Resource):
     def __init__(self, ip_processor):
@@ -115,8 +138,16 @@ class GetExperimentStatus(Resource):
               required: true
               description: ID of document
         """
-        experiment_status = self._ip_processor.process_experiment_status_get(doc_id)
-        return experiment_status, HTTPStatus.OK
+        try:
+            experiment_status = self._ip_processor.process_experiment_status_get(doc_id)
+            return experiment_status, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class GetGenerateStructuredRequest(Resource):
     def __init__(self, ip_processor):
@@ -134,8 +165,16 @@ class GetGenerateStructuredRequest(Resource):
               description: ID of document
         """
         # previously called document_request
-        structure_request = self._ip_processor.process_document_request(doc_id)
-        return structure_request, HTTPStatus.OK
+        try:
+            structure_request = self._ip_processor.process_document_request(doc_id)
+            return structure_request, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class GetOpilRequest(Resource):
     def __init__(self, ip_processor):
@@ -152,8 +191,16 @@ class GetOpilRequest(Resource):
               required: true
               description: ID of document
         """
-        opil_output = self._ip_processor.process_opil_get_request(doc_id)
-        return opil_output, HTTPStatus.OK
+        try:
+            opil_output = self._ip_processor.process_opil_get_request(doc_id)
+            return opil_output, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class GetRunExperiment(Resource):
     def __init__(self, ip_processor):
@@ -170,8 +217,16 @@ class GetRunExperiment(Resource):
               required: true
               description: ID of document
         """
-        experiment_data = self._ip_processor.process_run_experiment_get(doc_id)
-        return experiment_data, HTTPStatus.OK
+        try:
+            experiment_data = self._ip_processor.process_run_experiment_get(doc_id)
+            return experiment_data, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class GetUpdateExperimentStatus(Resource):
     def __init__(self, ip_processor):
@@ -188,8 +243,16 @@ class GetUpdateExperimentStatus(Resource):
               required: true
               description: ID of document
         """
-        status_data = self._ip_processor.process_update_experiment_status(doc_id)
-        return status_data, HTTPStatus.OK
+        try:
+            status_data = self._ip_processor.process_update_experiment_status(doc_id)
+            return status_data, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class PostAddBySpelling(Resource):
     def __init__(self, ip_processor):
@@ -209,8 +272,16 @@ class PostAddBySpelling(Resource):
                     userEmail:
                         type: string
         """
-        spelling_data = self._ip_processor.process_add_by_spelling(request.get_json())
-        return spelling_data, HTTPStatus.OK
+        try:
+            spelling_data = self._ip_processor.process_add_by_spelling(request.get_json())
+            return spelling_data, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class PostAddToSynbiohub(Resource):
     def __init__(self, ip_processor):
@@ -242,8 +313,16 @@ class PostAddToSynbiohub(Resource):
                                     offset:
                                         type: number
         """
-        sbh_data = self._ip_processor.process_add_to_syn_bio_hub(request.get_json())
-        return sbh_data, HTTPStatus.OK
+        try:
+            sbh_data = self._ip_processor.process_add_to_syn_bio_hub(request.get_json())
+            return sbh_data, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class PostAnalyzeDocument(Resource):
     def __init__(self, ip_processor):
@@ -263,16 +342,33 @@ class PostAnalyzeDocument(Resource):
                     userEmail:
                         type: string
         """
-        analyze_data = self._ip_processor.process_analyze_document(request.get_json())
-        return analyze_data, HTTPStatus.OK
+        try:
+            analyze_data = self._ip_processor.process_analyze_document(request.get_json())
+            return analyze_data, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
+
 
 class PostButtonClick(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def post(self):
-        button_response = self._ip_processor.process_button_click(request.get_json())
-        return button_response, HTTPStatus.OK
+        try:
+            button_response = self._ip_processor.process_button_click(request.get_json())
+            return button_response, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class PostCalculateSamples(Resource):
     def __init__(self, ip_processor):
@@ -290,8 +386,16 @@ class PostCalculateSamples(Resource):
                     doc_id:
                         type: string
         """
-        table_template = self._ip_processor.process_calculate_samples(request.get_json())
-        return table_template, HTTPStatus.OK
+        try:
+            table_template = self._ip_processor.process_calculate_samples(request.get_json())
+            return table_template, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class PostCreateTableTemplate(Resource):
     def __init__(self, ip_processor):
@@ -315,8 +419,16 @@ class PostCreateTableTemplate(Resource):
                             tableType:
                                 type: string
         """
-        table_template = self._ip_processor.process_create_table_template(request.get_json())
-        return table_template, HTTPStatus.OK
+        try:
+            table_template = self._ip_processor.process_create_table_template(request.get_json())
+            return table_template, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class PostExperimentExecutionStatus(Resource):
     def __init__(self, ip_processor):
@@ -344,8 +456,16 @@ class PostExperimentStatus(Resource):
                         type: string
         """
         # previously called reportExperimentStatus
-        experiment_status = self._ip_processor.process_experiment_status_post(request.get_json())
-        return experiment_status, HTTPStatus.OK
+        try:
+            experiment_status = self._ip_processor.process_experiment_status_post(request.get_json())
+            return experiment_status, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class PostGenerateStructuredRequest(Resource):
     def __init__(self, ip_processor):
@@ -363,8 +483,16 @@ class PostGenerateStructuredRequest(Resource):
                     doc_id:
                         type: string
         """
-        structure_request = self._ip_processor.process_generate_structured_request(request.host_url, request.get_json())
-        return structure_request, HTTPStatus.OK
+        try:
+            structure_request = self._ip_processor.process_generate_structured_request(request.host_url, request.get_json())
+            return structure_request, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class PostMessage(Resource):
     def __init__(self, ip_processor):
@@ -391,8 +519,16 @@ class PostOpilRequest(Resource):
                         type: string
         """
         # previously called generateOpilRequest
-        opil_output = self._ip_processor.process_opil_post_request(request.host_url, request.get_json())
-        return opil_output, HTTPStatus.OK
+        try:
+            opil_output = self._ip_processor.process_opil_post_request(request.host_url, request.get_json())
+            return opil_output, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class PostRunExperiment(Resource):
     def __init__(self, ip_processor):
@@ -411,8 +547,16 @@ class PostRunExperiment(Resource):
                         type: string
         """
         # previously called executeExperiment
-        experiment_data = self._ip_processor.process_run_experiment_post(request.get_json())
-        return experiment_data, HTTPStatus.OK
+        try:
+            experiment_data = self._ip_processor.process_run_experiment_post(request.get_json())
+            return experiment_data, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class PostSearchSynBioHub(Resource):
     def __init__(self, ip_processor):
@@ -434,16 +578,32 @@ class PostSearchSynBioHub(Resource):
                             offset:
                                 type: number
         """
-        sbh_data = self._ip_processor.process_search_syn_bio_hub(request.get_json())
-        return sbh_data, HTTPStatus.OK
+        try:
+            sbh_data = self._ip_processor.process_search_syn_bio_hub(request.get_json())
+            return sbh_data, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class PostSubmitForm(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
 
     def post(self):
-        submit_form_data = self._ip_processor.process_submit_form(request.get_json())
-        return submit_form_data, HTTPStatus.OK
+        try:
+            submit_form_data = self._ip_processor.process_submit_form(request.get_json())
+            return submit_form_data, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class PostUpdateExperimentResult(Resource):
     def __init__(self, ip_processor):
@@ -461,8 +621,16 @@ class PostUpdateExperimentResult(Resource):
                     doc_id:
                         type: string
         """
-        experiment_result = self._ip_processor.process_update_exp_results(request.get_json())
-        return experiment_result, HTTPStatus.OK
+        try:
+            experiment_result = self._ip_processor.process_update_exp_results(request.get_json())
+            return experiment_result, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class PostValidateStructuredRequest(Resource):
     def __init__(self, ip_processor):
@@ -480,8 +648,16 @@ class PostValidateStructuredRequest(Resource):
                     doc_id:
                         type: string
         """
-        sr_result = self._ip_processor.process_validate_structured_request(request.get_json())
-        return sr_result, HTTPStatus.OK
+        try:
+            sr_result = self._ip_processor.process_validate_structured_request(request.get_json())
+            return sr_result, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_errors()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 def _setup_api_resources(ip_processor):
     api.add_resource(GetIntentParserHome,
