@@ -9,9 +9,7 @@ from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.accessor.intent_parser_sbh import IntentParserSBH
 from intent_parser.server.intent_parser_processor import IntentParserProcessor
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
-import json
 import logging.config
-import os
 import traceback
 
 logger = logging.getLogger(__name__)
@@ -81,6 +79,9 @@ class GetDocumentReport(Resource):
               type: string
               required: true
               description: ID of document
+        responses:
+            200:
+                description: An experiment report represented in json.
         """
         try:
             report = self._ip_processor.process_document_report(doc_id)
@@ -134,6 +135,9 @@ class GetExperimentStatus(Resource):
               type: string
               required: true
               description: ID of document
+        responses:
+            200:
+                description: Report represented in json.
         """
         try:
             experiment_status = self._ip_processor.process_experiment_status_get(doc_id)
@@ -160,6 +164,9 @@ class GetGenerateStructuredRequest(Resource):
               type: string
               required: true
               description: ID of document
+        responses:
+            200:
+                description: A structured request represented in json.
         """
         # previously called document_request
         try:
@@ -187,6 +194,9 @@ class GetOpilRequest(Resource):
               type: string
               required: true
               description: ID of document
+        responses:
+            200:
+                description: Experiment encoded as OPIL.
         """
         try:
             opil_output = self._ip_processor.process_opil_get_request(doc_id)
@@ -213,6 +223,9 @@ class GetRunExperiment(Resource):
               type: string
               required: true
               description: ID of document
+        responses:
+            200:
+                description: Authentication link to execute experiment.
         """
         try:
             experiment_data = self._ip_processor.process_run_experiment_get(doc_id)
@@ -239,6 +252,9 @@ class GetUpdateExperimentStatus(Resource):
               type: string
               required: true
               description: ID of document
+        responses:
+            200:
+                description: The status of an experiment represented in json.
         """
         try:
             status_data = self._ip_processor.process_update_experiment_status(doc_id)
