@@ -92,9 +92,9 @@ class StructuredRequestProcessor(Processor):
             lab_table = LabTable()
         else:
             if len(lab_tables) > 1:
-                message = ('There is more than one lab table specified in this experiment.'
+                message = ('There are more than one lab table specified in this experiment.'
                            'Only the last lab table identified in the document will be used for generating a request.')
-                self.validation_warnings.extend(message)
+                self.validation_warnings.extend([message])
 
             table = lab_tables[-1]
             lab_table = LabTable(intent_parser_table=table, lab_names=self.catalog_accessor.get_lab_ids())
@@ -112,7 +112,7 @@ class StructuredRequestProcessor(Processor):
         if len(measurement_tables) > 1:
             message = ('There are more than one measurement table specified in this experiment.'
                        'Only the last measurement table identified in the document will be used for generating a request.')
-            self.validation_warnings.extend(message)
+            self.validation_warnings.extend([message])
         try:
             table = measurement_tables[-1]
 

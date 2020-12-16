@@ -5,7 +5,9 @@ flashtext
 google-api-python-client==1.12.1
 google-auth-httplib2
 google-auth-oauthlib
+gunicorn
 jsonschema
+oauth2client
 opil==1.0a4
 pymongo
 pyspellchecker

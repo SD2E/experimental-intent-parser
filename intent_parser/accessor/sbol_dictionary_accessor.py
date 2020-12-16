@@ -1,4 +1,5 @@
 from datetime import timedelta
+from googleapiclient import errors
 from intent_parser.experiment_variables.experiment_variables import ExperimentVariable
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
@@ -128,22 +129,34 @@ class SBOLDictionaryAccessor(object):
 
     def _fetch_spreadsheet_data(self):
         self.logger.info('Fetching SBOL Dictionary spreadsheet')
-        spreadsheet_tabs = self.type_tabs.keys()
 
         self.spreadsheet_lock.acquire()
-        update_spreadsheet_data = {}
-        for tab in spreadsheet_tabs:
-            update_spreadsheet_data[tab] = self.get_row_data(tab=tab)
-            self.logger.info('Fetched data from tab ' + tab)
-        self.spreadsheet_tab_data = update_spreadsheet_data
+        self._fetch_tabs()
         self.spreadsheet_lock.release()
 
         self.analyze_lock.acquire()
-        dictionary_terms = {}
-        for tab in self.ANALYZE_TABS:
-            dictionary_terms.update(self._get_dictionary_terms_from_tab(tab))
-        self.analyze_terms = dictionary_terms
+        self._fetch_analyze_terms()
         self.analyze_lock.release()
+
+    def _fetch_tabs(self):
+        spreadsheet_tabs = self.type_tabs.keys()
+        update_spreadsheet_data = {}
+        try:
+            for tab in spreadsheet_tabs:
+                update_spreadsheet_data[tab] = self.get_row_data(tab=tab)
+                self.logger.info('Fetched data from tab ' + tab)
+            self.spreadsheet_tab_data = update_spreadsheet_data
+        except errors.HttpError:
+            self.logger.info('Reached spreadsheet fetch quota limit!')
+
+    def _fetch_analyze_terms(self):
+        dictionary_terms = {}
+        try:
+            for tab in self.ANALYZE_TABS:
+                dictionary_terms.update(self._get_dictionary_terms_from_tab(tab))
+            self.analyze_terms = dictionary_terms
+        except errors.HttpError:
+            self.logger.info('Reached spreadsheet fetch quota limit!')
 
     def _get_dictionary_terms_from_tab(self, tab):
         dictionary_terms = {}
