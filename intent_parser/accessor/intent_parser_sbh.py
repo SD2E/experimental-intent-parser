@@ -18,9 +18,11 @@ class IntentParserSBH(object):
     _CREDENTIAL_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                     'intent_parser_api_keys.json')
 
-    def __init__(self, item_map_cache=True):
+    def __init__(self, sbh_username, sbh_password, item_map_cache=True):
         self.sbh_url = intent_parser_constants.SYNBIOHUB_DEPLOYED_DATABASE_URL
         self._is_item_map_cache = item_map_cache
+        self._sbh_username = sbh_username
+        self._sbh_password = sbh_password
         self._sbol_dictionary = None
 
         self.sbh = None
@@ -33,8 +35,8 @@ class IntentParserSBH(object):
         if self.sbh is None:
             self.sbh = SBHAccessor(self.sbh_url)
 
-        self.sbh.login(ip_utils.load_json_file(self._CREDENTIAL_FILE)['sbh_username'],
-                       ip_utils.load_json_file(self._CREDENTIAL_FILE)['sbh_password'])
+        self.sbh.login(self._sbh_username,
+                       self._sbh_password)
 
         self._LOGGER.info('Logged into {}'.format(self.sbh_url))
 

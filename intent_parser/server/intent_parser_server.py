@@ -8,15 +8,12 @@ from intent_parser.intent_parser_exceptions import IntentParserException, Reques
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.accessor.intent_parser_sbh import IntentParserSBH
 from intent_parser.server.intent_parser_processor import IntentParserProcessor
-from intent_parser.server.config import env_config
-import argparse
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import json
 import logging.config
 import os
 import traceback
 
-curr_path = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
 api = Api(app)
@@ -26,11 +23,11 @@ template = {
     'swagger': '2.0',
     'info': {
         'title': 'Intent Parser API',
-        'description': 'API for access features supported in Intent Parser.',
+        'description': 'API for calling Intent Parser.',
         'version': '3.0'
     }
 }
-app.config.from_object(env_config[os.getenv("IP_FLASK_ENV")])
+app.config['DEBUG'] = True
 app.config['SWAGGER'] = {
     'title': 'Intent Parser API',
     'uiversion': 3,
@@ -65,7 +62,7 @@ class GetStatus(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -91,7 +88,7 @@ class GetDocumentReport(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -118,7 +115,7 @@ class GetExperimentRequestDocuments(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -144,7 +141,7 @@ class GetExperimentStatus(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -171,7 +168,7 @@ class GetGenerateStructuredRequest(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -197,7 +194,7 @@ class GetOpilRequest(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -223,7 +220,7 @@ class GetRunExperiment(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -249,7 +246,7 @@ class GetUpdateExperimentStatus(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -278,7 +275,7 @@ class PostAddBySpelling(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -319,7 +316,7 @@ class PostAddToSynbiohub(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -348,7 +345,7 @@ class PostAnalyzeDocument(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -365,7 +362,7 @@ class PostButtonClick(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -392,7 +389,7 @@ class PostCalculateSamples(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -425,7 +422,7 @@ class PostCreateTableTemplate(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -462,7 +459,7 @@ class PostExperimentStatus(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -489,7 +486,7 @@ class PostGenerateStructuredRequest(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -525,7 +522,7 @@ class PostOpilRequest(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -553,7 +550,7 @@ class PostRunExperiment(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -584,7 +581,7 @@ class PostSearchSynBioHub(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -600,7 +597,7 @@ class PostSubmitForm(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -627,7 +624,7 @@ class PostUpdateExperimentResult(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -654,165 +651,125 @@ class PostValidateStructuredRequest(Resource):
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
-                   "warnings": err.get_errors()}
+                   "warnings": err.get_warnings()}
             return res, status_code
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
-def _setup_api_resources(ip_processor):
-    api.add_resource(GetIntentParserHome,
-                     '/home')
-    api.add_resource(GetStatus,
-                     '/status',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(GetDocumentReport,
-                     '/document_report/d/<string:doc_id>',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(GetGenerateStructuredRequest,
-                     '/generateStructuredRequest/d/<string:doc_id>',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(GetExperimentRequestDocuments,
-                     '/experiment_request_documents',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(GetExperimentStatus,
-                     '/experiment_status/d/<string:doc_id>',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(GetOpilRequest,
-                     '/generateOpilRequest/d/<string:doc_id>',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(GetRunExperiment,
-                     '/run_experiment/d/<string:doc_id>',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(GetUpdateExperimentStatus,
-                     '/update_experiment_status/d/<string:doc_id>',
-                     resource_class_kwargs={'ip_processor': ip_processor})
 
-    api.add_resource(PostAddBySpelling,
-                     '/addBySpelling',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostAddToSynbiohub,
-                     '/addToSynBioHub',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostAnalyzeDocument,
-                     '/analyzeDocument',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostButtonClick,
-                     '/buttonClick',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostCalculateSamples,
-                     '/calculateSamples',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostCreateTableTemplate,
-                     '/createTableTemplate',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostExperimentExecutionStatus,
-                     '/experimentExecutionStatus',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostExperimentStatus,
-                     '/experiment_status',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostGenerateStructuredRequest,
-                     '/generateStructuredRequest',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostMessage,
-                     '/message',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostOpilRequest,
-                     '/generateOpilRequest',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostRunExperiment,
-                     '/run_experiment',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostSearchSynBioHub,
-                     '/searchSynBioHub',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostSubmitForm,
-                     '/submitForm',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostUpdateExperimentResult,
-                     '/updateExperimentalResults',
-                     resource_class_kwargs={'ip_processor': ip_processor})
-    api.add_resource(PostValidateStructuredRequest,
-                     '/validateStructuredRequest',
-                     resource_class_kwargs={'ip_processor': ip_processor})
+class IntentParserServer(object):
+    def __init__(self, sbh_username, sbh_password, datacatalog_authn, transcriptic_credential):
+        self.ip_processor = None
+        self._sbh_username = sbh_username
+        self._sbh_password = sbh_password
+        self._datacatalog_authn = datacatalog_authn
+        self._transcriptic_credential = transcriptic_credential
 
-def _setup_logging(
-        default_path='logging.json',
-        default_level=logging.INFO,
-        env_key='LOG_CFG'):
-    """
-    Setup logging configuration
-    """
-    path = default_path
-    value = os.getenv(env_key, None)
-    if value:
-        path = value
-    if os.path.exists(path):
-        with open(path, 'r') as f:
-            config = json.load(f)
-        logging.config.dictConfig(config)
-    else:
-        logging.basicConfig(level=default_level,
-                            format="[%(levelname)-8s] %(asctime)-24s %(filename)-23s line:%(lineno)-4s  %(message)s")
-
-    logger.addHandler(logging.FileHandler('intent_parser_server.log'))
-    logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.CRITICAL)
-    logging.getLogger("googleapiclient.discovery").setLevel(logging.CRITICAL)
-
-def start_server(ip_processor, host, port):
-    _setup_api_resources(ip_processor)
-    app.run(host, port)
-
-def main():
-    cmd_parser = argparse.ArgumentParser(description='Processes an experimental design.')
-    cmd_parser.add_argument('-a', '--authn', nargs='?',
-                            required=True, help='Authorization token for data catalog.')
-
-    cmd_parser.add_argument('-b', '--bind-host', nargs='?', default='0.0.0.0',
-                            required=False, help='IP address to bind to.')
-
-    cmd_parser.add_argument('-c', '--collection', nargs='?',
-                            required=True, help='Collection url.')
-
-    cmd_parser.add_argument('-i', '--spreadsheet-id', nargs='?', default=intent_parser_constants.SD2_SPREADSHEET_ID,
-                            required=False, help='Dictionary spreadsheet id.')
-
-    cmd_parser.add_argument('-l', '--bind-port', nargs='?', type=int, default=8081,
-                            required=False, help='TCP Port to listen on.')
-
-    cmd_parser.add_argument('-p', '--password', nargs='?',
-                            required=True, help='SynBioHub password.')
-
-    cmd_parser.add_argument('-s', '--spoofing-prefix', nargs='?',
-                            required=False, help='SBH spoofing prefix.')
-
-    cmd_parser.add_argument('-t', '--transcriptic', nargs='?',
-                            required=False, help='Path to transcriptic configuration file.')
-
-    cmd_parser.add_argument('-u', '--username', nargs='?',
-                            required=True, help='SynBioHub username.')
-
-    input_args = cmd_parser.parse_args()
-    _setup_logging()
-    ip_processor = None
-    try:
-        sbh = IntentParserSBH()
+    def initialize(self):
+        if self.ip_processor:
+            return
+        sbh = IntentParserSBH(self._sbh_username, self._sbh_password)
         sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, sbh)
-        datacatalog_config = {"mongodb": {"database": "catalog_staging", "authn": input_args.authn}}
-        strateos_accessor = StrateosAccessor(input_args.transcriptic)
+        datacatalog_config = {"mongodb": {"database": "catalog_staging", "authn": self._datacatalog_authn}}
+        strateos_accessor = StrateosAccessor(self._transcriptic_credential)
         intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
-        ip_processor = IntentParserProcessor(sbh, sbol_dictionary, strateos_accessor, intent_parser_factory)
-        ip_processor.initialize_intent_parser_processor()
-        start_server(ip_processor, input_args.bind_host, input_args.bind_port)
+        self.ip_processor = IntentParserProcessor(sbh, sbol_dictionary, strateos_accessor, intent_parser_factory)
+        self.ip_processor.initialize_intent_parser_processor()
+        self._setup_api_resources()
 
-    except (KeyboardInterrupt, SystemExit):
-        logger.info('Shutting down Intent Parser Server.')
-        return
-    except Exception as ex:
-        logger.warning(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
-    finally:
-        if ip_processor:
-            ip_processor.stop()
+    def run_server(self, host, port):
+        if not self.ip_processor:
+            logger.info('IntentParserServer needs to be initialized.')
+            return
 
-if __name__ == "__main__":
-    main()
+        try:
+            app.run(host, port)
+        except (KeyboardInterrupt, SystemExit):
+            logger.info('Shutting down Intent Parser Server.')
+            return
+        except Exception as ex:
+            logger.warning(''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+        finally:
+            if self.ip_processor:
+                self.ip_processor.stop()
+                self.ip_processor = None
+
+    def _setup_api_resources(self):
+        api.add_resource(GetIntentParserHome,
+                         '/home')
+        api.add_resource(GetStatus,
+                         '/status',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(GetDocumentReport,
+                         '/document_report/d/<string:doc_id>',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(GetGenerateStructuredRequest,
+                         '/generateStructuredRequest/d/<string:doc_id>',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(GetExperimentRequestDocuments,
+                         '/experiment_request_documents',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(GetExperimentStatus,
+                         '/experiment_status/d/<string:doc_id>',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(GetOpilRequest,
+                         '/generateOpilRequest/d/<string:doc_id>',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(GetRunExperiment,
+                         '/run_experiment/d/<string:doc_id>',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(GetUpdateExperimentStatus,
+                         '/update_experiment_status/d/<string:doc_id>',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+
+        api.add_resource(PostAddBySpelling,
+                         '/addBySpelling',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostAddToSynbiohub,
+                         '/addToSynBioHub',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostAnalyzeDocument,
+                         '/analyzeDocument',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostButtonClick,
+                         '/buttonClick',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostCalculateSamples,
+                         '/calculateSamples',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostCreateTableTemplate,
+                         '/createTableTemplate',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostExperimentExecutionStatus,
+                         '/experimentExecutionStatus',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostExperimentStatus,
+                         '/experiment_status',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostGenerateStructuredRequest,
+                         '/generateStructuredRequest',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostMessage,
+                         '/message',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostOpilRequest,
+                         '/generateOpilRequest',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostRunExperiment,
+                         '/run_experiment',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostSearchSynBioHub,
+                         '/searchSynBioHub',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostSubmitForm,
+                         '/submitForm',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostUpdateExperimentResult,
+                         '/updateExperimentalResults',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostValidateStructuredRequest,
+                         '/validateStructuredRequest',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+
+
+
