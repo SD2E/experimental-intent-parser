@@ -284,6 +284,9 @@ class PostAddBySpelling(Resource):
                         type: string
                     userEmail:
                         type: string
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
         """
         try:
             spelling_data = self._ip_processor.process_add_by_spelling(request.get_json())
@@ -325,6 +328,9 @@ class PostAddToSynbiohub(Resource):
                                         type: number
                                     offset:
                                         type: number
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
         """
         try:
             sbh_data = self._ip_processor.process_add_to_syn_bio_hub(request.get_json())
@@ -354,6 +360,9 @@ class PostAnalyzeDocument(Resource):
                         type: string
                     userEmail:
                         type: string
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
         """
         try:
             analyze_data = self._ip_processor.process_analyze_document(request.get_json())
@@ -398,6 +407,9 @@ class PostCalculateSamples(Resource):
                 properties:
                     doc_id:
                         type: string
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
         """
         try:
             table_template = self._ip_processor.process_calculate_samples(request.get_json())
@@ -431,6 +443,9 @@ class PostCreateTableTemplate(Resource):
                                 type: number
                             tableType:
                                 type: string
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
         """
         try:
             table_template = self._ip_processor.process_create_table_template(request.get_json())
@@ -467,6 +482,9 @@ class PostExperimentStatus(Resource):
                 properties:
                     doc_id:
                         type: string
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
         """
         # previously called reportExperimentStatus
         try:
@@ -495,6 +513,9 @@ class PostGenerateStructuredRequest(Resource):
                 properties:
                     doc_id:
                         type: string
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
         """
         try:
             structure_request = self._ip_processor.process_generate_structured_request(request.host_url, request.get_json())
@@ -530,6 +551,9 @@ class PostOpilRequest(Resource):
                 properties:
                     doc_id:
                         type: string
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
         """
         # previously called generateOpilRequest
         try:
@@ -558,6 +582,9 @@ class PostRunExperiment(Resource):
                 properties:
                     doc_id:
                         type: string
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
         """
         # previously called executeExperiment
         try:
@@ -590,6 +617,9 @@ class PostSearchSynBioHub(Resource):
                                 type: string
                             offset:
                                 type: number
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
         """
         try:
             sbh_data = self._ip_processor.process_search_syn_bio_hub(request.get_json())
@@ -633,6 +663,9 @@ class PostUpdateExperimentResult(Resource):
                 properties:
                     doc_id:
                         type: string
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
         """
         try:
             experiment_result = self._ip_processor.process_update_exp_results(request.get_json())
@@ -660,6 +693,9 @@ class PostValidateStructuredRequest(Resource):
                 properties:
                     doc_id:
                         type: string
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
         """
         try:
             sr_result = self._ip_processor.process_validate_structured_request(request.get_json())
