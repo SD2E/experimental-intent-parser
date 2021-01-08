@@ -1,5 +1,6 @@
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, TableException
 from intent_parser.table.lab_table import LabTable
+from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.parameter_table import ParameterTable
 from intent_parser.table.table_processor.processor import Processor
 import intent_parser.table.cell_parser as cell_parser
@@ -17,7 +18,8 @@ class OPILProcessor(Processor):
         self._lab_names = lab_names
         self.processed_lab_name = ''
         self.processed_protocol_name = ''
-        self.processed_parameters = {}
+
+        self.processed_controls = []
         self.processed_experiment_intent = None
         self.sbol_doc = None
         self.lab_accessors = {}
@@ -26,8 +28,9 @@ class OPILProcessor(Processor):
     def get_intent(self):
         return self.sbol_doc
 
-    def process_intent(self, lab_tables, parameter_tables):
+    def process_intent(self, lab_tables, parameter_tables, measurement_tables):
         self._process_lab_tables(lab_tables)
+        self._process_measurement_tables(measurement_tables)
         self._process_parameter_tables(parameter_tables)
         self._process_opil_protocol()
 
@@ -55,8 +58,8 @@ class OPILProcessor(Processor):
             lab_table = LabTable(intent_parser_table=table, lab_names=self._lab_names)
             lab_table.process_table()
 
-        processed_lab = lab_table.get_structured_request()
-        self.processed_lab_name = processed_lab[dc_constants.LAB]
+        processed_lab = lab_table.get_intent()
+        self.processed_lab_name = processed_lab.get_lab_name()
         self.validation_errors.extend(lab_table.get_validation_errors())
         self.validation_warnings.extend(lab_table.get_validation_warnings())
 
@@ -169,6 +172,29 @@ class OPILProcessor(Processor):
 
         return targeted_opil_param
 
+    def _process_measurement_tables(self, measurement_tables):
+        if not measurement_tables:
+            self.validation_errors.append('No measurement table to parse from document.')
+            return
+
+        if len(measurement_tables) > 1:
+            message = ('There are more than one measurement table specified in this experiment.'
+                       'Only the last measurement table identified in the document will be used for generating a request.')
+            self.validation_warnings.extend([message])
+        try:
+            table = measurement_tables[-1]
+
+            strain_mapping = self.sbol_dictionary.get_mapped_strain(self.processed_lab_name)
+            measurement_table = MeasurementTable(table,
+                                                 strain_mapping=strain_mapping)
+
+            measurement_table.process_table(control_tables=self.processed_controls)
+            self.validation_warnings.extend(measurement_table.get_validation_warnings())
+            self.validation_errors.extend(measurement_table.get_validation_errors())
+
+        except (DictionaryMaintainerException, TableException) as err:
+            self.validation_errors.extend([err.get_message()])
+
     def _process_parameter_tables(self, parameter_tables):
         if not parameter_tables:
             self.validation_errors.append('No parameter table to parse from document.')
@@ -184,8 +210,8 @@ class OPILProcessor(Processor):
             parameter_table = ParameterTable(table, parameter_fields=strateos_dictionary_mapping, run_as_opil=True)
             parameter_table.process_table()
 
+            self.validation_warnings.extend(parameter_table.get_validation_warnings())
             self.validation_errors.extend(parameter_table.get_validation_errors())
-            self.processed_parameters = parameter_table.get_structured_request()
             self.processed_experiment_intent = parameter_table.get_experiment_intent()
         except (DictionaryMaintainerException, TableException) as err:
             self.validation_errors.extend([err.get_message()])
