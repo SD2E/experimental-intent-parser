@@ -127,7 +127,7 @@ class IntentParserSBH(object):
                                      item_definition_uri,
                                      item_lab_ids,
                                      item_lab_id_tag)
-            document.addTopLevel(top_level)
+            document.add(top_level)
         elif sbol_type == 'collection':
             collection = sbol.Collection(display_id)
             self.set_item_properties(collection,
