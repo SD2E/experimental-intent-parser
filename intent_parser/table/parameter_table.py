@@ -20,7 +20,8 @@ class ParameterTable(object):
                                 intent_parser_constants.PARAMETER_RUN_INFO_SKIP_FIRST_FLOW,
                                 intent_parser_constants.PARAMETER_RUN_INFO_ONLY_ENDPOINT_FLOW,
                                 intent_parser_constants.PARAMETER_VALIDATE_SAMPLES,
-                                intent_parser_constants.PARAMETER_RUN_INFO_INCUBATE_IN_READER]
+                                intent_parser_constants.PARAMETER_RUN_INFO_INCUBATE_IN_READER,
+                                intent_parser_constants.PARAMETER_RXN_INFO_RXN_GROUP_INFO_MG_GLU2]
 
     FIELD_WITH_FLOAT_VALUE = [intent_parser_constants.PARAMETER_PLATE_READER_INFO_GAIN]
 
@@ -32,7 +33,8 @@ class ParameterTable(object):
                                    intent_parser_constants.PARAMETER_REAGENT_INFO_INDUCER_INFO,
                                    intent_parser_constants.PARAMETER_REAGENT_INFO_KILL_SWITCH,
                                    intent_parser_constants.PARAMETER_RECOVERY_INFO,
-                                   intent_parser_constants.PARAMETER_INDUCERS]
+                                   intent_parser_constants.PARAMETER_INDUCERS,
+                                   intent_parser_constants.PARAMETER_READER_INFO_LIST_OF_GAINS]
 
     FIELD_WITH_STRING_COMMAS = [intent_parser_constants.PARAMETER_EXP_INFO_MEDIA_WELL_STRINGS]
 

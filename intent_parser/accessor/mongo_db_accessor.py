@@ -1,7 +1,7 @@
 from datetime import datetime
 from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
 import intent_parser.utils.intent_parser_utils as ip_util
-import intent_parser.constants.intent_parser_constants as ip_constants
+import intent_parser.constants.google_api_constants as google_constants
 import intent_parser.constants.ta4_db_constants as ta4_constants
 import logging
 import os.path
@@ -39,7 +39,7 @@ class TA4DBAccessor(object):
         Returns:
             A dictionary. The key represents the experiment_id. The value represents a ExperimentStatusTableParser.
         """
-        experiment_ref = ip_constants.GOOGLE_DOC_URL_PREFIX + doc_id
+        experiment_ref = google_constants.GOOGLE_DOC_URL_PREFIX + doc_id
         db_response = self.database.structured_requests.find({ta4_constants.EXPERIMENT_REFERENCE_URL: experiment_ref,
                                                               '$where': 'this.derived_from.length > 0'})
         result = {}
