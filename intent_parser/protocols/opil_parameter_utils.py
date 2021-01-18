@@ -10,6 +10,9 @@ MEASUREMENT_UNITS = {
     'hour': 'http://www.ontology-of-units-of-measure.org/resource/om-2/hour'
 }
 
+def create_measureme_type():
+    measurement_type = opil.MeasurementType()
+
 def clone_boolean_parameter_field(boolean_parameter):
     return create_opil_boolean_parameter_field(boolean_parameter.identity, boolean_parameter.name)
 

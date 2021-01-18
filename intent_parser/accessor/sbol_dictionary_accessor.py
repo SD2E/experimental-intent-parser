@@ -1,6 +1,6 @@
 from datetime import timedelta
 from googleapiclient import errors
-from intent_parser.experiment_variables.experiment_variables import ExperimentVariable
+from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
 import intent_parser.table.cell_parser as cell_parser
@@ -161,12 +161,12 @@ class SBOLDictionaryAccessor(object):
     def _get_dictionary_terms_from_tab(self, tab):
         dictionary_terms = {}
         tab_data = self.get_row_data(tab=tab)
-        for common_name, exp_var in self._create_experiment_variables_from_spreadsheet_tab(tab_data).items():
-            for name in exp_var.get_lab_names():
+        for common_name, strain in self._create_strain_intents_from_spreadsheet_tab(tab_data).items():
+            for name in strain.get_lab_strain_names():
                 if len(name) > 2:
-                    dictionary_terms[name] = exp_var.get_sbh_uri()
+                    dictionary_terms[name] = strain.get_strain_reference_link()
             if len(common_name) > 2:
-                dictionary_terms[exp_var.get_common_name()] = exp_var.get_sbh_uri()
+                dictionary_terms[strain.get_strain_common_name()] = strain.get_strain_reference_link()
         return dictionary_terms
 
     def create_dictionary_entry(self, data, document_url, item_definition_uri):
@@ -441,8 +441,8 @@ class SBOLDictionaryAccessor(object):
             lab_name: A string to represent the name of a Lab.
 
         Returns:
-            A Tuple of StrainMapping objects. The key represents the sbh uri.
-            The value is a StrainMapping object
+            A Dict of StrainIntent objects. The key represents the sbh uri.
+            The value is a StrainIntent object
         """
         mapped_strains = {}
         if lab_name not in dictionary_constants.MAPPED_LAB_UID:
@@ -460,11 +460,11 @@ class SBOLDictionaryAccessor(object):
                 lab_strain_names = {}
                 if row[lab_uid]:
                     lab_strain_names = [name for name in cell_parser.PARSER.extract_name_value(row[lab_uid])]
-                mapped_strains[sbh_uri] = ExperimentVariable(sbh_uri, lab_name, common_name, lab_names=lab_strain_names)
+                mapped_strains[sbh_uri] = StrainIntent(sbh_uri, lab_name, common_name, lab_strain_names=lab_strain_names)
         return mapped_strains
 
-    def _create_experiment_variables_from_spreadsheet_tab(self, tab):
-        experiment_variables = {}
+    def _create_strain_intents_from_spreadsheet_tab(self, tab):
+        strain_intents = {}
         for row in tab:
             if dictionary_constants.COLUMN_COMMON_NAME in row and dictionary_constants.COLUMN_SYNBIOHUB_URI in row:
                 sbh_uri = row[dictionary_constants.COLUMN_SYNBIOHUB_URI]
@@ -473,10 +473,10 @@ class SBOLDictionaryAccessor(object):
                     if lab_uid and lab_uid in row:
                         if row[lab_uid]:
                             lab_strain_names = [name for name in cell_parser.PARSER.extract_name_value(row[lab_uid])]
-                            experiment_variables[common_name] = ExperimentVariable(sbh_uri, lab_name, common_name, lab_names=lab_strain_names)
+                            strain_intents[common_name] = StrainIntent(sbh_uri, lab_name, common_name, lab_strain_names=lab_strain_names)
                         else:
-                            experiment_variables[common_name] = ExperimentVariable(sbh_uri, lab_name, common_name)
-        return experiment_variables
+                            strain_intents[common_name] = StrainIntent(sbh_uri, lab_name, common_name)
+        return strain_intents
 
     def get_common_name_from_transcriptic_id(self, transcriptic_id):
         mappings = self.map_common_names_and_transcriptic_id()
@@ -495,70 +495,4 @@ class SBOLDictionaryAccessor(object):
                 if strateos_id:
                     result[common_name] = strateos_id
         return result
-
-    def get_common_names_to_uri(self, use_cache=False):
-        """
-        Use the SBOL Dictionary to generate a dictionary of common names referring to its SBH URI and store it into a local item-map.json file
-        """
-        sheet_data = self.get_spreadsheet_data()
-        item_map = {}
-        self.logger.info('Generating item map, %d' % time.time())
-        if use_cache:
-            item_map = intent_parser_utils.load_json_file(self.ITEM_MAP_FILE)
-            self, self.logger.info('Num items in item_map: %d' % len(item_map))
-
-        lab_uid_src_map = {}
-        lab_uid_common_map = {}
-
-        for tab in sheet_data:
-            for row in sheet_data[tab]:
-                if dictionary_constants.COLUMN_COMMON_NAME not in row:
-                    continue
-
-                if len(row[dictionary_constants.COLUMN_COMMON_NAME]) == 0:
-                    continue
-
-                if 'SynBioHub URI' not in row:
-                    continue
-
-                if len(row['SynBioHub URI']) == 0:
-                    continue
-
-                common_name = row[dictionary_constants.COLUMN_COMMON_NAME]
-                uri = row['SynBioHub URI']
-                # Add common name to the item map
-                item_map[common_name] = uri
-                # There are also UIDs for each lab to add
-                for lab_uid in intent_parser_constants.LAB_IDS_LIST:
-                    # Ignore if the spreadsheet doesn't contain this lab
-                    if not lab_uid in row or row[lab_uid] == '':
-                        continue
-                    # UID can be a CSV list, parse each value
-                    for uid_str in row[lab_uid].split(sep=','):
-                        # Make sure the UID matches the min len threshold, or is in the exception list
-                        if len(uid_str) >= self.UID_LENGTH_THRESHOLD or uid_str in self.UID_LENGTH_EXCEPTION:
-                            # If the UID isn't in the item map, add it with this URI
-                            if uid_str not in item_map:
-                                item_map[uid_str] = uri
-                                lab_uid_src_map[uid_str] = lab_uid
-                                lab_uid_common_map[uid_str] = common_name
-                            else:  # Otherwise, we need to check for an error
-                                # If the UID has been used  before, we might have a conflict
-                                if uid_str in lab_uid_src_map:
-                                    # If the common name was the same for different UIDs, this won't have an effect
-                                    # But if they differ, we have a conflict
-                                    if not lab_uid_common_map[uid_str] == common_name:
-                                        self.logger.error(
-                                            'Trying to add %s %s for common name %s, but the item map already contains %s from %s for common name %s!' %
-                                            (lab_uid, uid_str, common_name, uid_str, lab_uid_src_map[uid_str],
-                                             lab_uid_common_map[uid_str]))
-                                else:  # If the UID wasn't used before, then it matches the common name and adding it would be redundant
-                                    pass
-                                    # If it matches the common name, that's fine
-                                    # self.logger.error('Trying to add %s %s, but the item map already contains %s from common name!' % (lab_uid, uid_str, uid_str))
-                        else:
-                            self.logger.debug('Filtered %s %s for length' % (lab_uid, uid_str))
-        intent_parser_utils.write_json_to_file(item_map, self.ITEM_MAP_FILE)
-        self.logger.info('Num items in item_map: %d' % len(item_map))
-        return item_map
 

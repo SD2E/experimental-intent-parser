@@ -33,4 +33,4 @@ class Control(object):
 
     def to_structured_request(self):
         sr = {dc_constants.TYPE, self._control_type}
-        return self.intent
+        return sr

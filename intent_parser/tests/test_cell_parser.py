@@ -14,19 +14,19 @@ class CellParserTest(unittest.TestCase):
     def test_reagent_header_without_timepoint(self):
         cell = IntentParserCell()
         cell.add_paragraph('name1')
-        name, _ = self.parser.process_reagent_header(cell.get_text(),
-                                                     cell.get_text_with_url(),
-                                                     units={'hour'},
-                                                     unit_type='timepoints')
+        name, _ = self.parser.process_reagent_or_media_header(cell.get_text(),
+                                                              cell.get_text_with_url(),
+                                                              units={'hour'},
+                                                              unit_type='timepoints')
         self.assertEqual('name1', name['label'])
     
     def test_reagent_alphanumeric_header_with_timepoint(self):
         cell = IntentParserCell()
         cell.add_paragraph('BE1 @ 15 hours')
-        name, timepoint = self.parser.process_reagent_header(cell.get_text(),
-                                                             cell.get_text_with_url(),
-                                                             units={'hour'},
-                                                             unit_type='timepoints')
+        name, timepoint = self.parser.process_reagent_or_media_header(cell.get_text(),
+                                                                      cell.get_text_with_url(),
+                                                                      units={'hour'},
+                                                                      unit_type='timepoints')
         self.assertEqual('BE1', name['label'])
         self.assertEqual('NO PROGRAM DICTIONARY ENTRY', name['sbh_uri'])
         self.assertEqual(timepoint['value'], 15.0)
@@ -35,10 +35,10 @@ class CellParserTest(unittest.TestCase):
     def test_reagent_header_with_timepoint(self):
         cell = IntentParserCell()
         cell.add_paragraph('name @ 15 hours')
-        name, timepoint = self.parser.process_reagent_header(cell.get_text(),
-                                                             cell.get_text_with_url(),
-                                                             units={'hour'},
-                                                             unit_type='timepoints')
+        name, timepoint = self.parser.process_reagent_or_media_header(cell.get_text(),
+                                                                      cell.get_text_with_url(),
+                                                                      units={'hour'},
+                                                                      unit_type='timepoints')
         self.assertEqual('name', name['label'])
         self.assertEqual('NO PROGRAM DICTIONARY ENTRY', name['sbh_uri'])
         self.assertEqual(timepoint['value'], 15.0)

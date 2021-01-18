@@ -284,6 +284,7 @@ class IntentParser(object):
         opil_processor = OPILProcessor(self.sbol_dictionary, lab_names=self.catalog_accessor.get_lab_ids())
         opil_processor.set_lab_accessor(lab_accessors)
         opil_processor.process_intent(filtered_tables[TableType.LAB],
+                                      filtered_tables[TableType.CONTROL],
                                       filtered_tables[TableType.PARAMETER],
                                       filtered_tables[TableType.MEASUREMENT])
         self.validation_errors.extend(opil_processor.get_errors())

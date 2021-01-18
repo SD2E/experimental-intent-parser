@@ -27,7 +27,7 @@ class ControlsTable(object):
         return self._table_caption
 
     def get_structured_request(self):
-        return [control.to_structured_request() for control in self._controls if control.to_structured_request()]
+        return [control.to_structure_request() for control in self._controls if control.to_structure_request()]
     
     def process_table(self):
         self._table_caption = self._intent_parser_table.caption()
@@ -97,7 +97,7 @@ class ControlsTable(object):
                 continue
 
             strain = self._strain_mapping[link]
-            if not strain.has_lab_name(parsed_strain):
+            if not strain.has_lab_strain_name(parsed_strain):
                 lab_name = dictionary_constants.MAPPED_LAB_UID[strain.get_lab_id()]
                 message = 'Controls table has invalid %s value: %s is not listed under %s in the SBOL Dictionary.' % (
                 intent_parser_constants.HEADER_STRAINS_VALUE,
@@ -107,7 +107,7 @@ class ControlsTable(object):
                 continue
 
             strain_obj = {dc_constants.SBH_URI: link,
-                          dc_constants.LABEL: strain.get_common_name(),
+                          dc_constants.LABEL: strain.get_strain_common_name(),
                           dc_constants.LAB_ID: 'name.%s.%s' % (strain.get_lab_id().lower(), parsed_strain)}
             strains.append(strain_obj)
 

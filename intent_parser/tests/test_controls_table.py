@@ -1,7 +1,7 @@
 from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
-from intent_parser.experiment_variables.experiment_variables import ExperimentVariable
+from intent_parser.intent.strain_intent import StrainIntent
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.tests.test_util as test_utils
 import unittest
@@ -14,9 +14,9 @@ class ControlsTableTest(unittest.TestCase):
     def setUp(self):
         self.ip_table_factory = IntentParserTableFactory()
 
-        strain1 = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'ip_admin', 'strain1', lab_names=['MG1655'])
-        strain2 = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1', 'ip_admin', 'strain2', lab_names=['MG1655_LPV3'])
-        strain3 = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'ip_admin', 'strain3', lab_names=['UWBF_7376'])
+        strain1 = StrainIntent('https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'ip_admin', 'strain1', lab_strain_names=['MG1655'])
+        strain2 = StrainIntent('https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1', 'ip_admin', 'strain2', lab_strain_names=['MG1655_LPV3'])
+        strain3 = StrainIntent('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'ip_admin', 'strain3', lab_strain_names=['UWBF_7376'])
         self.strain_mappings = {'https://hub.sd2e.org/user/sd2e/design/MG1655/1': strain1,
                                 'https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1': strain2,
                                 'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1': strain3}

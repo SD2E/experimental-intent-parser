@@ -2,7 +2,7 @@ from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
-from intent_parser.experiment_variables.experiment_variables import ExperimentVariable
+from intent_parser.intent.strain_intent import StrainIntent
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.tests.test_util as test_utils
@@ -14,12 +14,12 @@ class MeasurementTableTest(unittest.TestCase):
     """
     def setUp(self):
         self.ip_table_factory = IntentParserTableFactory()
-        strain1 = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'ip_admin', 'strain1',
-                                     lab_names=['MG1655'])
-        strain2 = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1', 'ip_admin', 'strain2',
-                                     lab_names=['MG1655_LPV3'])
-        strain3 = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'ip_admin', 'strain3',
-                                     lab_names=['UWBF_7376'])
+        strain1 = StrainIntent('https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'ip_admin', 'strain1',
+                               lab_strain_names=['MG1655'])
+        strain2 = StrainIntent('https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1', 'ip_admin', 'strain2',
+                               lab_strain_names=['MG1655_LPV3'])
+        strain3 = StrainIntent('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'ip_admin', 'strain3',
+                               lab_strain_names=['UWBF_7376'])
         self.strain_mappings = {'https://hub.sd2e.org/user/sd2e/design/MG1655/1': strain1,
                                 'https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1': strain2,
                                 'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1': strain3}
@@ -257,7 +257,7 @@ class MeasurementTableTest(unittest.TestCase):
         data_row = test_utils.create_measurement_table_row(strain_cell=strains)
         ip_table.add_row(data_row)
 
-        strain_obj = ExperimentVariable('https://foo.com', 'myLab', 'AND_00', lab_names={'test_strain', 'foo-strain'})
+        strain_obj = StrainIntent('https://foo.com', 'myLab', 'AND_00', lab_strain_names={'test_strain', 'foo-strain'})
         strain_mapping = {'https://foo.com': strain_obj}
 
         meas_table = MeasurementTable(ip_table, strain_mapping=strain_mapping)
@@ -277,7 +277,7 @@ class MeasurementTableTest(unittest.TestCase):
         data_row = test_utils.create_measurement_table_row(strain_cell=strains)
         ip_table.add_row(data_row)
 
-        strain_obj = ExperimentVariable('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'myLab', 'AND_00', lab_names={'test_strain', 'foo-strain'})
+        strain_obj = StrainIntent('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'myLab', 'AND_00', lab_strain_names={'test_strain', 'foo-strain'})
         strain_mapping = {'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1': strain_obj}
 
         meas_table = MeasurementTable(ip_table, strain_mapping=strain_mapping)
@@ -292,7 +292,7 @@ class MeasurementTableTest(unittest.TestCase):
         data_row = test_utils.create_measurement_table_row(strain_cell=strains)
         ip_table.add_row(data_row)
 
-        strain_obj = ExperimentVariable('https://foo.com', dc_constants.LAB_TACC, 'AND_00', lab_names={'UWBF_7376'})
+        strain_obj = StrainIntent('https://foo.com', dc_constants.LAB_TACC, 'AND_00', lab_strain_names={'UWBF_7376'})
         strain_mapping = {'https://foo.com': strain_obj}
 
         meas_table = MeasurementTable(ip_table, strain_mapping=strain_mapping)
@@ -313,8 +313,8 @@ class MeasurementTableTest(unittest.TestCase):
         data_row = test_utils.create_measurement_table_row(strain_cell=strains)
         ip_table.add_row(data_row)
 
-        strain1_obj = ExperimentVariable(strain_link1, 'myLab', 'AND_00', lab_names={lab_strain1})
-        strain2_obj = ExperimentVariable(strain_link2, 'myLab', 'AND_01', lab_names={lab_strain2})
+        strain1_obj = StrainIntent(strain_link1, 'myLab', 'AND_00', lab_strain_names={lab_strain1})
+        strain2_obj = StrainIntent(strain_link2, 'myLab', 'AND_01', lab_strain_names={lab_strain2})
         strain_mapping = {strain_link1: strain1_obj,
                           strain_link2: strain2_obj}
 
@@ -809,7 +809,7 @@ class MeasurementTableTest(unittest.TestCase):
         control_result = control_parser.get_structured_request()
         
         measurement_parser = MeasurementTable(ip_table_measurment)
-        measurement_parser.process_table(control_tables={control_parser.get_table_caption(): control_result})
+        measurement_parser.process_table(control_data={control_parser.get_table_caption(): control_result})
         meas_result = measurement_parser.get_structured_request()
         self.assertEqual(1, len(meas_result))
         self.assertEqual(1, len(meas_result[0][dc_constants.CONTROLS]))
@@ -851,7 +851,7 @@ class MeasurementTableTest(unittest.TestCase):
         control2_result = control2_parser.get_structured_request()
         
         measurement_parser = MeasurementTable(ip_measurement_table)
-        measurement_parser.process_table(control_tables={1: control1_result, 2: control2_result})
+        measurement_parser.process_table(control_data={1: control1_result, 2: control2_result})
         meas_result = measurement_parser.get_structured_request()
 
         self.assertEqual(1, len(meas_result))
@@ -906,7 +906,7 @@ class MeasurementTableTest(unittest.TestCase):
         control2_result = control2_parser.get_structured_request()
         
         measurement_parser = MeasurementTable(ip_measurement_table)
-        measurement_parser.process_table(control_tables={1: control1_result, 2: control2_result})
+        measurement_parser.process_table(control_data={1: control1_result, 2: control2_result})
         meas_result = measurement_parser.get_structured_request()
 
         self.assertEquals(2, len(meas_result))

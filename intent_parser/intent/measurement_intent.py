@@ -1,117 +1,55 @@
+
+from sbol3 import Collection, CombinatorialDerivation, Component, Measure, LocalSubComponent, SubComponent, VariableComponent
+from intent_parser.intent_parser_exceptions import IntentParserException
+import intent_parser.constants.sd2_datacatalog_constants as dc_constants
+import sbol3.constants as sbol_constants
+
 class Measurement(object):
 
     def __init__(self):
+        self.sample_id = 1
+
         self.intent = {}
         self._file_type = None
         self._measurement_type = None
         self._batches = []
-        self._column_ids = []
+        self._contents = MeasurementContent()
         self._controls = []
-        self._dna_reaction_concentrations = []
-        self._lab_ids = []
-        self._num_neg_controls = []
         self._optical_densities = []
-        self._reagents_or_medias = []
         self._replicates = []
-        self._row_ids = []
-        self._rna_inhibitor_reaction_flags = []
         self._strains = []
         self._temperatures = []
-        self._template_dna_values = []
         self._timepoints = []
 
-    def add_batches(self, batch):
+    def add_batch(self, batch):
         self._batches.append(batch)
 
-    def add_column_id(self, col_id):
-        self._column_ids.append(col_id)
+    def add_content(self, content):
+        self._contents.add_content_intent(content)
 
     def add_control(self, control):
         self._controls.append(control)
 
-    def add_dna_reaction_concentration(self, dna_reaction_concentration):
-        self._dna_reaction_concentrations.append(dna_reaction_concentration)
-
     def add_field(self, field, value):
         self.intent[field] = value
 
-    def add_lab_id(self, lab_id):
-        self._lab_ids.append(lab_id)
-
-    def add_num_neg_controls(self, neg_control):
-        self._num_neg_controls.append(neg_control)
+    def add_file_type(self, file_type):
+        self._file_type.append(file_type)
 
     def add_optical_density(self, ods):
         self._optical_densities.append(ods)
 
-    def add_reagent_or_media(self, obj):
-        self._reagents_or_medias.append(obj)
-
-    def add_replicates(self, replicate):
+    def add_replicate(self, replicate):
         self._replicates.append(replicate)
 
-    def add_rna_inhibitor_reaction_flag(self, boolean_value):
-        self._rna_inhibitor_reaction_flags.append(boolean_value)
-
-    def add_row_id(self, row_id):
-        self._row_ids.append(row_id)
-
-    def add_strains(self, strain):
+    def add_strain(self, strain):
         self._strains.append(strain)
 
     def add_temperature(self, temperature):
         self._temperatures.append(temperature)
 
-    def add_template_dna_value(self, value):
-        self._template_dna_values.append(value)
-
     def add_timepoint(self, timepoint):
         self._timepoints.append(timepoint)
-
-    def get_column_ids(self):
-        return self._column_ids
-
-    def get_dna_reaction_concentrations(self):
-        return self._dna_reaction_concentrations
-
-    def get_file_type(self):
-        return self._file_type
-
-    def get_lab_ids(self):
-        return self._lab_ids
-
-    def get_measurement_type(self):
-        return self._measurement_type
-
-    def get_num_neg_controls(self):
-        return self._num_neg_controls
-
-    def get_optical_densities(self):
-        return self._optical_densities
-
-    def get_reagents_or_medias(self):
-        return self._reagents_or_medias
-
-    def get_replicates(self):
-        return self._replicates
-
-    def get_rna_inhibitor_reaction_flags(self):
-        return self._rna_inhibitor_reaction_flags
-
-    def get_row_ids(self):
-        return self._row_ids
-
-    def get_strains(self):
-        return self._strains
-
-    def get_temperatures(self):
-        return self._temperatures
-
-    def get_template_dna_values(self):
-        return self._template_dna_values
-
-    def get_timepoints(self):
-        return self._timepoints
 
     def set_file_type(self, file_type):
         self._file_type = file_type
@@ -119,7 +57,295 @@ class Measurement(object):
     def set_measurement_type(self, measurement_type):
         self._measurement_type = measurement_type
 
+    def to_sbol_for_sample(self):
+        strain_template, strain_variable = self._encode_strains_using_sbol()
+        media_template, media_variable = self._encode_media_using_sbol()
 
+        sample_template = Component('SampleSpec')
+        sample_combinations = CombinatorialDerivation(self._generate_sample_name(), sample_template)
+        sample_combinations.variable_components = [strain_variable, media_variable]
+        sample_combinations.has_features = [strain_template, media_template]
+
+        return sample_combinations
+
+    def to_opil_for_measurement(self):
+        measurements = [self._encode_media_using_sbol()]
+        return measurements
 
     def to_structured_request(self):
-        return self.intent
+        if self._measurement_type is None:
+            raise IntentParserException("A structured request must have a measurement-type but measurement-type is not set.")
+        if self._file_type is None:
+            raise IntentParserException("A structured request must have a file-type but file-type is not set.")
+
+        structure_request = {dc_constants.MEASUREMENT_TYPE: self._measurement_type,
+                             dc_constants.FILE_TYPE: self._file_type}
+
+        if len(self._replicates) > 0:
+            structure_request[dc_constants.REPLICATES] = self._replicates
+        if len(self._strains) > 0:
+            structure_request[dc_constants.STRAINS] = [strain.to_structure_request() for strain in self._strains]
+        if len(self._optical_densities) > 0:
+            structure_request[dc_constants.ODS] = self._optical_densities
+        if len(self._temperatures) > 0:
+            structure_request[dc_constants.TEMPERATURES] = [temperature.to_structure_request() for temperature in self._temperatures]
+        if len(self._timepoints) > 0:
+            structure_request[dc_constants.TIMEPOINTS] = [timepoint.to_structure_request() for timepoint in self._timepoints]
+        if len(self._batches) > 0:
+            structure_request[dc_constants.BATCH] = self._batches
+        if not self._contents.is_empty():
+            structure_request.update(self._contents.to_structure_request())
+
+        return structure_request
+
+    def _encode_media_using_sbol(self):
+        media_template = SubComponent('media', type_uri='') # TODO: assign type
+        media_variable = VariableComponent(cardinality=sbol_constants.SBOL_ONE_OR_MORE)
+        media_variable.variable = media_template
+
+        chosen_medias = []
+        for media in self._medias:
+            sbol_media = Component(name=media.name)
+            chosen_medias.append(sbol_media)
+        media_variable.variant = chosen_medias # TODO: check .variant assignment
+
+        return media_template, media_variable
+
+    def _encode_strains_using_sbol(self):
+        strain_template = LocalSubComponent(name='strain', types=[]) # TODO: include type
+        strain_variable = VariableComponent(cardinality=sbol_constants.SBOL_ONE_OR_MORE)
+        strain_variable.variable = strain_template
+
+        chosen_strains = [] # TODO: how to reference strains?
+        collection_strains = []
+        for strain in self._strains:
+            sbol_strain = Component(strain.name)
+            chosen_strains.append(sbol_strain)
+
+        strain_collection = Collection()
+        strain_collection.members = chosen_strains
+
+        strain_variable.variant = chosen_strains # TODO: check .variant assignment
+        strain_variable.variant_collection = chosen_strains
+
+        return strain_template, strain_variable
+
+    def _encode_temperature_using_sbol(self):
+        encoded_temps = []
+        for temperature in self._temperatures:
+            encoded_temp = Measure(temperature.value, temperature.unit)
+            encoded_temps.append(encoded_temp)
+        return encoded_temps
+
+    def _encode_replicate_using_sbol(self, replicate_value):
+        pass
+
+    def _generate_sample_name(self):
+        sample_id = self.sample_id + 1
+        return 'sample_%d' % sample_id
+
+class MeasurementContent(object):
+
+    def __init__(self):
+        self._contents = []
+
+    def add_content_intent(self, content_intent):
+        if not content_intent.is_empty():
+            self._contents.append(content_intent)
+
+    def is_empty(self):
+        return len(self._contents) > 0
+
+    def to_structure_request(self):
+        return {dc_constants.CONTENTS: [content.to_structure_request() for content in self._contents]}
+
+class ContentIntent(object):
+
+    def __init__(self):
+        self._column_ids = []
+        self._dna_reaction_concentrations = []
+        self._lab_ids = []
+        self._medias = []
+        self._num_neg_controls = []
+        self._reagents = []
+        self._rna_inhibitor_reaction_flags = []
+        self._row_ids = []
+        self._template_dna_values = []
+
+    def add_media(self, media):
+        self._medias.append(media)
+
+    def add_reagent(self, reagent):
+        self._reagents.append(reagent)
+
+    def set_column_ids(self, col_ids):
+        self._column_ids = col_ids
+
+    def set_dna_reaction_concentrations(self, dna_reaction_concentrations):
+        self._dna_reaction_concentrations = dna_reaction_concentrations
+
+    def set_lab_ids(self, lab_ids):
+        self._lab_ids = lab_ids
+
+    def set_numbers_of_negative_controls(self, neg_control):
+        self._num_neg_controls = neg_control
+
+
+    def set_rna_inhibitor_reaction_flags(self, rna_inhibitor_reactions):
+        self._rna_inhibitor_reaction_flags = rna_inhibitor_reactions
+
+    def set_row_ids(self, row_ids):
+        self._row_ids = row_ids
+
+    def set_template_dna_values(self, template_dna_values):
+        self._template_dna_values = template_dna_values
+
+    def is_empty(self):
+        return (len(self._num_neg_controls) > 0 or
+                len(self._rna_inhibitor_reaction_flags) > 0 or
+                len(self._dna_reaction_concentrations) > 0 or
+                len(self._template_dna_values) > 0 or
+                len(self._column_ids) > 0 or
+                len(self._row_ids) > 0 or
+                len(self._lab_ids) > 0 or
+                len(self._reagents) > 0 or
+                len(self._medias) > 0)
+
+    def to_structure_request(self):
+        structure_request = []
+        if self._num_neg_controls:
+            structure_request.append([num_neg_control.to_structure_request() for num_neg_control in self._num_neg_controls])
+        if self._rna_inhibitor_reaction_flags:
+            structure_request.append([rna_inhibitor_reaction.to_structure_request() for rna_inhibitor_reaction in self._rna_inhibitor_reaction_flags])
+        if self._dna_reaction_concentrations:
+            structure_request.append([dna_reaction_concentration.to_structure_request() for dna_reaction_concentration in self._dna_reaction_concentrations])
+        if self._template_dna_values:
+            structure_request.append([template_dna.to_structure_request() for template_dna in self._template_dna_values])
+        if self._column_ids:
+            structure_request.append([col_id.to_structure_request() for col_id in self._column_ids])
+        if self._row_ids:
+            structure_request.append([row_id.to_structure_request() for row_id in self._row_ids])
+        if self._lab_ids:
+            structure_request.append([lab_id.to_structure_request() for lab_id in self._lab_ids])
+        if self._reagents:
+            structure_request.append([reagent.to_structure_request() for reagent in self._reagents])
+        if self._medias:
+            structure_request.append([media.to_structure_request() for media in self._medias])
+
+        return structure_request
+
+class MeasuredUnit(object):
+
+    def __init__(self, value: float, unit: str, unit_type=None):
+        self._value = value
+        self._unit = unit
+        self._unit_type = unit_type
+
+    def get_unit(self):
+        return self._unit
+
+    def get_value(self):
+        return self._value
+
+    def to_structure_request(self):
+        return {dc_constants.VALUE: float(self._value),
+                dc_constants.UNIT: self._unit}
+
+
+
+class TemperatureIntent(MeasuredUnit):
+
+    def __init__(self, value: float, unit: str):
+        super().__init__(value, unit, 'temperature')
+
+    def __init__(self, measured_intent: MeasuredUnit):
+        super().__init__(measured_intent.get_value(), measured_intent.get_unit(), 'temperature')
+
+class TimepointIntent(MeasuredUnit):
+
+    def __init__(self, value: float, unit: str):
+        super().__init__(value, unit, 'timepoint')
+
+    def __init__(self, measured_intent: MeasuredUnit):
+        super().__init__(measured_intent.get_value(), measured_intent.get_unit(), 'timepoint')
+
+class NamedLink(object):
+
+    def __init__(self, name, link=None):
+        self._name = name
+        self._link = link
+
+    def to_structure_request(self):
+        return {dc_constants.LABEL: self._name,
+                dc_constants.SBH_URI: self._link if self._link else dc_constants.NO_PROGRAM_DICTIONARY}
+
+class NamedBooleanValue(object):
+
+    def __init__(self, named_link: NamedLink, value: bool):
+        self._named_link = named_link
+        self._value = value
+
+    def to_structure_request(self):
+        return {dc_constants.NAME: self._named_link.to_structure_request(),
+                dc_constants.VALUE: str(self._value)}
+
+class NamedIntegerValue(object):
+
+    def __init__(self, named_link: NamedLink, value: int):
+        self._named_link = named_link
+        self._value = value
+
+    def to_structure_request(self):
+        return {dc_constants.NAME: self._named_link.to_structure_request(),
+                dc_constants.VALUE: self._value}
+
+class NamedStringValue(object):
+
+    def __init__(self, named_link: NamedLink, value: str):
+        self._named_link = named_link
+        self._value = value
+
+    def to_structure_request(self):
+        return {dc_constants.NAME: self._named_link.to_structure_request(),
+                dc_constants.VALUE: self._value}
+
+class MediaIntent(object):
+
+    def __init__(self, media_name: NamedLink, media_value: str):
+        self._media_name = media_name
+        self._media_value = media_value
+        self._timepoint = None
+
+    def set_timepoint(self, timepoint: TimepointIntent):
+        self._timepoint = timepoint
+
+    def to_structure_request(self):
+        media = {dc_constants.NAME: self._media_name.to_structure_request(),
+                 dc_constants.VALUE: self._media_value}
+
+        if self._timepoint:
+            media[dc_constants.TIMEPOINT] = self._timepoint.to_structure_request()
+
+        return media
+
+class ReagentIntent(MeasuredUnit):
+
+    def __init__(self, reagent_name: NamedLink, value: float, unit: str):
+        super().__init__(value, unit, 'fluid')
+        self._reagent_name = reagent_name
+        self._timepoint = None
+
+    def set_timepoint(self, timepoint: TimepointIntent):
+        self._timepoint = timepoint
+
+    def to_structure_request(self):
+        reagent = {dc_constants.NAME: self._reagent_name.to_structure_request(),
+                   dc_constants.VALUE: str(self._value),
+                   dc_constants.UNIT: self._unit}
+        if self._timepoint:
+            reagent[dc_constants.TIMEPOINT] = self._timepoint.to_structure_request()
+
+        return reagent
+
+
+

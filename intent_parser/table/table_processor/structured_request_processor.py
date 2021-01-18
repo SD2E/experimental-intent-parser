@@ -63,9 +63,10 @@ class StructuredRequestProcessor(Processor):
         self.processed_controls = {}
 
         if not control_tables:
-            self.validation_warnings.append('No controls table to parse from document.')
+            self.validation_warnings.append('No measurement table to parse from document.')
             return
 
+        strain_mapping = {}
         try:
             strain_mapping = self.sbol_dictionary.get_mapped_strain(self.processed_labs[dc_constants.LAB])
         except (DictionaryMaintainerException, TableException) as err:
@@ -125,7 +126,7 @@ class StructuredRequestProcessor(Processor):
                                           file_type=self.catalog_accessor.get_file_types(),
                                           strain_mapping=strain_mapping)
 
-            meas_table.process_table(control_tables=self.processed_controls, bookmarks=self.bookmark_ids)
+            meas_table.process_table(control_data=self.processed_controls, bookmarks=self.bookmark_ids)
 
             self.processed_measurements.append({dc_constants.MEASUREMENTS: meas_table.get_structured_request()})
             self.validation_errors.extend(meas_table.get_validation_errors())

@@ -63,6 +63,9 @@ class ParameterTable(object):
     def get_validation_errors(self):
         return self._validation_errors
 
+    def get_validation_warnings(self):
+        return self._validation_warnings
+
     def process_table(self):
         self._table_caption = self._intent_parser_table.caption()
         for row_index in range(self._intent_parser_table.data_row_start_index(),

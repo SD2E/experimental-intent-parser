@@ -1,4 +1,5 @@
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, TableException
+from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.lab_table import LabTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.parameter_table import ParameterTable
@@ -28,8 +29,9 @@ class OPILProcessor(Processor):
     def get_intent(self):
         return self.sbol_doc
 
-    def process_intent(self, lab_tables, parameter_tables, measurement_tables):
+    def process_intent(self, lab_tables, control_tables, parameter_tables, measurement_tables):
         self._process_lab_tables(lab_tables)
+        self._process_control_tables(control_tables)
         self._process_measurement_tables(measurement_tables)
         self._process_parameter_tables(parameter_tables)
         self._process_opil_protocol()
@@ -172,6 +174,22 @@ class OPILProcessor(Processor):
 
         return targeted_opil_param
 
+    def _process_control_tables(self, control_tables):
+        if not control_tables:
+            self.validation_errors.append('No control tables to parse from document.')
+            return
+
+        strain_mapping = {}
+        for table in control_tables:
+            controls_table = ControlsTable(table,
+                                           strain_mapping=strain_mapping)
+            controls_table.process_table()
+            table_caption = controls_table.get_table_caption()
+            if table_caption:
+                self.processed_controls[table_caption] = controls_data
+            self.validation_errors.extend(controls_table.get_validation_errors())
+            self.validation_warnings.extend(controls_table.get_validation_warnings())
+
     def _process_measurement_tables(self, measurement_tables):
         if not measurement_tables:
             self.validation_errors.append('No measurement table to parse from document.')
@@ -188,7 +206,7 @@ class OPILProcessor(Processor):
             measurement_table = MeasurementTable(table,
                                                  strain_mapping=strain_mapping)
 
-            measurement_table.process_table(control_tables=self.processed_controls)
+            measurement_table.process_table(control_data=self.processed_controls)
             self.validation_warnings.extend(measurement_table.get_validation_warnings())
             self.validation_errors.extend(measurement_table.get_validation_errors())
 
