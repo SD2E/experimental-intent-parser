@@ -1,7 +1,11 @@
 
-from sbol3 import Collection, CombinatorialDerivation, Component, Measure, LocalSubComponent, SubComponent, VariableComponent
+from sbol3 import BooleanProperty, Collection, CombinatorialDerivation, Component
+from sbol3 import Measure, LocalSubComponent, SubComponent, URIProperty, VariableComponent
 from intent_parser.intent_parser_exceptions import IntentParserException
+import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
+import opil
+import intent_parser.protocols.opil_parameter_utils as opil_utils
 import sbol3.constants as sbol_constants
 
 class Measurement(object):
@@ -57,20 +61,16 @@ class Measurement(object):
     def set_measurement_type(self, measurement_type):
         self._measurement_type = measurement_type
 
-    def to_sbol_for_sample(self):
+    def to_sbol_for_measurement(self):
         strain_template, strain_variable = self._encode_strains_using_sbol()
-        media_template, media_variable = self._encode_media_using_sbol()
 
-        sample_template = Component('SampleSpec')
-        sample_combinations = CombinatorialDerivation(self._generate_sample_name(), sample_template)
-        sample_combinations.variable_components = [strain_variable, media_variable]
-        sample_combinations.has_features = [strain_template, media_template]
+        sample_template = Component('Measurement_Template')
+        sample_combinations = CombinatorialDerivation('measurement_combinatorial_derivation', sample_template)
+        sample_combinations.variable_components = [strain_variable]
+        sample_combinations.has_features = [strain_template]
 
         return sample_combinations
 
-    def to_opil_for_measurement(self):
-        measurements = [self._encode_media_using_sbol()]
-        return measurements
 
     def to_structured_request(self):
         if self._measurement_type is None:
@@ -98,35 +98,52 @@ class Measurement(object):
 
         return structure_request
 
-    def _encode_media_using_sbol(self):
-        media_template = SubComponent('media', type_uri='') # TODO: assign type
-        media_variable = VariableComponent(cardinality=sbol_constants.SBOL_ONE_OR_MORE)
-        media_variable.variable = media_template
+    def _encode_measurement_type_using_sbol(self):
+        measurement_type = opil.MeasurementType('m')
+        measurement_type.type = URIProperty(measurement_type, 'http://bbn.com/synbio/opil#type', 0, 1)
+        measurement_type.required = BooleanProperty(measurement_type, 'http://bbn.com/synbio/opil#required', 0, 1)
+        measurement_type.required = True
+        if self._measurement_type == ip_constants.MEASUREMENT_TYPE_FLOW:
+            measurement_type.type = ip_constants.NCIT_FLOW_URI
+        elif self._measurement_type == ip_constants.MEASUREMENT_TYPE_RNA_SEQ:
+            measurement_type.type = ip_constants.NCIT_RNA_SEQ_URI
+        elif self._measurement_type == ip_constants.MEASUREMENT_TYPE_DNA_SEQ:
+            measurement_type.type = ip_constants.NCIT_DNA_SEQ_URI
+        elif self._measurement_type == ip_constants.MEASUREMENT_TYPE_PROTEOMICS:
+            measurement_type.type = ip_constants.NCIT_PROTEOMICS_URI
+        elif self._measurement_type == ip_constants.MEASUREMENT_TYPE_SEQUENCING_CHROMATOGRAM:
+            measurement_type.type = ip_constants.NCIT_SEQUENCING_CHROMATOGRAM_URI
+        elif self._measurement_type == ip_constants.MEASUREMENT_TYPE_AUTOMATED_TEST:
+            measurement_type.type = ip_constants.SD2_AUTOMATED_TEST_URI
+        elif self._measurement_type == ip_constants.MEASUREMENT_TYPE_CFU:
+            measurement_type.type = ip_constants.NCIT_CFU_URI
+        elif self._measurement_type == ip_constants.MEASUREMENT_TYPE_PLATE_READER:
+            measurement_type.type = ip_constants.NCIT_PLATE_READER_URI
+        elif self._measurement_type == ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE:
+            measurement_type.type = ip_constants.SD2_CONDITION_SPACE_URI
+        elif self._measurement_type == ip_constants.MEASUREMENT_TYPE_EXPERIMENTAL_DESIGN:
+            measurement_type.type = ip_constants.SD2_EXPERIMENTAL_DESIGN_URI
+        else:
+            raise IntentParserException(
+                'Unable to create an opil measurement-type: %s not supported' % self._measurement_type)
+        return measurement_type
 
-        chosen_medias = []
-        for media in self._medias:
-            sbol_media = Component(name=media.name)
-            chosen_medias.append(sbol_media)
-        media_variable.variant = chosen_medias # TODO: check .variant assignment
-
-        return media_template, media_variable
+    def _encode_replicates_using_sbol(self):
+        pass
 
     def _encode_strains_using_sbol(self):
-        strain_template = LocalSubComponent(name='strain', types=[]) # TODO: include type
+        strain_template = LocalSubComponent(name='strain_template', types=[ip_constants.NCIT_STRAIN_URI])
         strain_variable = VariableComponent(cardinality=sbol_constants.SBOL_ONE_OR_MORE)
         strain_variable.variable = strain_template
 
-        chosen_strains = [] # TODO: how to reference strains?
-        collection_strains = []
+        chosen_strains = []
         for strain in self._strains:
-            sbol_strain = Component(strain.name)
-            chosen_strains.append(sbol_strain)
+            strain_sub_component = SubComponent(strain.get_strain_reference_link())
+            chosen_strains.append(strain_sub_component)
 
         strain_collection = Collection()
         strain_collection.members = chosen_strains
-
-        strain_variable.variant = chosen_strains # TODO: check .variant assignment
-        strain_variable.variant_collection = chosen_strains
+        strain_variable.variant_collection = strain_collection
 
         return strain_template, strain_variable
 
@@ -137,8 +154,6 @@ class Measurement(object):
             encoded_temps.append(encoded_temp)
         return encoded_temps
 
-    def _encode_replicate_using_sbol(self, replicate_value):
-        pass
 
     def _generate_sample_name(self):
         sample_id = self.sample_id + 1
@@ -190,7 +205,6 @@ class ContentIntent(object):
     def set_numbers_of_negative_controls(self, neg_control):
         self._num_neg_controls = neg_control
 
-
     def set_rna_inhibitor_reaction_flags(self, rna_inhibitor_reactions):
         self._rna_inhibitor_reaction_flags = rna_inhibitor_reactions
 
@@ -233,6 +247,22 @@ class ContentIntent(object):
             structure_request.append([media.to_structure_request() for media in self._medias])
 
         return structure_request
+
+    def _encode_media_using_sbol(self):
+        media_template = LocalSubComponent(name='media_template', types=[ip_constants.NCIT_MEDIA_URI])
+        media_variable = VariableComponent(cardinality=sbol_constants.SBOL_ONE_OR_MORE)
+        media_variable.variable = media_template
+
+        chosen_medias = []
+        for media in self._medias:
+            sbol_media = Component(name=media.name)
+            chosen_medias.append(sbol_media)
+
+        media_collection = Collection(name='media_collection')
+        media_collection.members = chosen_medias
+        media_variable.variant_collection = media_collection
+
+        return media_template, media_variable
 
 class MeasuredUnit(object):
 

@@ -4,11 +4,7 @@ List of constants used for reading and writing contents from intent parser
 
 RELEASE_VERSION = '3.0'
 
-SELECTED_CONTENT_TERM = 'content_term'
-SELECTED_END_OFFSET = 'end_offset'
-SELECTED_PARAGRAPH_INDEX = 'paragraph_index'
-SELECTED_START_OFFSET = 'offset'
-
+# keywords used for calling POST methods
 ANALYZE_LINK = 'link'
 ANALYZE_NEVER_LINK = 'process_never_link'
 ANALYZE_NO = 'process_analyze_no'
@@ -20,12 +16,10 @@ ANALYZE_TERM = 'term'
 ANALYZE_YES = 'process_analyze_yes'
 ANALYZE_YES_TO_ALL = 'process_link_all'
 
-SUBMIT_FORM_LINK = 'link'
-SUBMIT_FORM_LINK_ALL = 'linkAll'
-SUBMIT_FORM = 'submit'
-SUBMIT_FORM_CREATE_CONTROLS_TABLE = 'createControlsTable'
-SUBMIT_FORM_CREATE_MEASUREMENT_TABLE = 'createMeasurementTable'
-SUBMIT_FORM_CREATE_PARAMETER_TABLE = 'createParameterTable'
+SELECTED_CONTENT_TERM = 'content_term'
+SELECTED_END_OFFSET = 'end_offset'
+SELECTED_PARAGRAPH_INDEX = 'paragraph_index'
+SELECTED_START_OFFSET = 'offset'
 
 SPELLCHECK_ADD_IGNORE = 'spellcheck_add_ignore'
 SPELLCHECK_ADD_IGNORE_ALL = 'spellcheck_add_ignore_all'
@@ -37,6 +31,15 @@ SPELLCHECK_ADD_SELECT_NEXT = 'spellcheck_add_select_next'
 SPELLCHECK_ADD_DROP_FIRST = 'spellcheck_add_drop_first'
 SPELLCHECK_ADD_DROP_LAST = 'spellcheck_add_drop_last'
 
+SUBMIT_FORM_LINK = 'link'
+SUBMIT_FORM_LINK_ALL = 'linkAll'
+SUBMIT_FORM = 'submit'
+SUBMIT_FORM_CREATE_CONTROLS_TABLE = 'createControlsTable'
+SUBMIT_FORM_CREATE_MEASUREMENT_TABLE = 'createMeasurementTable'
+SUBMIT_FORM_CREATE_PARAMETER_TABLE = 'createParameterTable'
+
+
+# Mappings used for submitting terms to SynBioHub
 LAB_IDS_LIST = ['BioFAB UID',
                 'CalTech UID',
                 'EmeraldCloud UID',
@@ -69,6 +72,7 @@ SBOL_COLLECTION_MAPPING = {
 SBOL_EXTERNAL_MAPPINGS = {
     'Attribute': ''
 }
+
 ITEM_TYPES = {
     'component': SBOL_COMPONENT_MAPPINGS,
     'module': SBOL_MODULE_MAPPINGS,
@@ -78,7 +82,36 @@ ITEM_TYPES = {
 
 SPARQL_LIMIT = 5
 
-# Stateos Protocols Supported in IP
+# sbol3 encodings
+MEASUREMENT_TYPE_AUTOMATED_TEST = 'AUTOMATED_TEST'
+MEASUREMENT_TYPE_CFU = 'CFU'
+MEASUREMENT_TYPE_CONDITION_SPACE = 'CONDITION_SPACE'
+MEASUREMENT_TYPE_FLOW = 'FLOW'
+MEASUREMENT_TYPE_DNA_SEQ = 'DNA_SEQ'
+MEASUREMENT_TYPE_EXPERIMENTAL_DESIGN = 'EXPERIMENTAL_DESIGN'
+MEASUREMENT_TYPE_IMAGE = 'IMAGE'
+MEASUREMENT_TYPE_PLATE_READER = 'PLATE_READER'
+MEASUREMENT_TYPE_PROTEOMICS = 'PROTEOMICS'
+MEASUREMENT_TYPE_RNA_SEQ = 'RNA_SEQ'
+MEASUREMENT_TYPE_SEQUENCING_CHROMATOGRAM = 'SEQUENCING_CHROMATOGRAM'
+
+NCIT_CFU_URI = 'https://identifiers.org/ncit:C68742'
+NCIT_FLOW_URI = 'https://identifiers.org/ncit:C78806'
+NCIT_IMAGE_URI = 'https://identifiers.org/ncit:C16853'
+NCIT_DNA_SEQ_URI = 'https://identifiers.org/ncit:C153598'
+NCIT_MEDIA_URI = 'https://identifiers.org/ncit:C85504'
+NCIT_PLATE_READER_URI = 'https://identifiers.org/ncit:C70661'
+NCIT_PROTEOMICS_URI = 'https://identifiers.org/ncit:C20085'
+NCIT_RNA_SEQ_URI = 'https://identifiers.org/ncit:C124261'
+NCIT_SEQUENCING_CHROMATOGRAM_URI = 'https://identifiers.org/ncit:C63580'
+NCIT_STRAIN_URI = 'https://identifiers.org/ncit:C14419'
+
+# measurement-typeis specific to SD2 project
+SD2_AUTOMATED_TEST_URI = 'http://sd2e.org#automatedTest'
+SD2_CONDITION_SPACE_URI = 'http://sd2e.org#conditionSpace'
+SD2_EXPERIMENTAL_DESIGN_URI = 'http://sd2e.org#experimentalDesign'
+
+# Strateos Protocols Supported in IP
 GROWTH_CURVE_PROTOCOL = 'GrowthCurve'
 OBSTACLE_COURSE_PROTOCOL = 'ObstacleCourse'
 TIME_SERIES_HTP_PROTOCOL = 'TimeSeriesHTP'

@@ -1,6 +1,8 @@
 """
 Provides a list of functions for building opil objects.
 """
+from intent_parser.intent_parser_exceptions import IntentParserException
+import intent_parser.constants.intent_parser_constants as ip_constants
 import opil
 import sbol3
 
@@ -9,9 +11,6 @@ MEASUREMENT_UNITS = {
     'nanometer': 'http://www.ontology-of-units-of-measure.org/resource/om-2/nanometre',
     'hour': 'http://www.ontology-of-units-of-measure.org/resource/om-2/hour'
 }
-
-def create_measureme_type():
-    measurement_type = opil.MeasurementType()
 
 def clone_boolean_parameter_field(boolean_parameter):
     return create_opil_boolean_parameter_field(boolean_parameter.identity, boolean_parameter.name)
