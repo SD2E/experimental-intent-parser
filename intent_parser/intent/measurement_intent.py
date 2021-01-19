@@ -4,6 +4,7 @@ from sbol3 import Measure, LocalSubComponent, SubComponent, URIProperty, Variabl
 from intent_parser.intent_parser_exceptions import IntentParserException
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
+from typing import Union
 import opil
 import intent_parser.protocols.opil_parameter_utils as opil_utils
 import sbol3.constants as sbol_constants
@@ -268,7 +269,7 @@ class ContentIntent(object):
 
 class MeasuredUnit(object):
 
-    def __init__(self, value: float, unit: str, unit_type=None):
+    def __init__(self, value: Union[float, int], unit: str, unit_type=None):
         self._value = value
         self._unit = unit
         self._unit_type = unit_type
@@ -280,7 +281,7 @@ class MeasuredUnit(object):
         return self._value
 
     def to_structure_request(self):
-        return {dc_constants.VALUE: float(self._value),
+        return {dc_constants.VALUE: str(self._value),
                 dc_constants.UNIT: self._unit}
 
 
@@ -295,17 +296,23 @@ class TemperatureIntent(MeasuredUnit):
 
 class TimepointIntent(MeasuredUnit):
 
-    def __init__(self, value: float, unit: str):
+    def __init__(self, value: Union[float, int], unit: str):
         super().__init__(value, unit, 'timepoint')
 
-    def __init__(self, measured_intent: MeasuredUnit):
-        super().__init__(measured_intent.get_value(), measured_intent.get_unit(), 'timepoint')
+    # def __init__(self, measured_intent: MeasuredUnit):
+    #     super().__init__(measured_intent.get_value(), measured_intent.get_unit(), 'timepoint')
 
 class NamedLink(object):
 
     def __init__(self, name, link=None):
         self._name = name
         self._link = link
+
+    def get_name(self):
+        return self._name
+
+    def get_link(self):
+        return self._link
 
     def to_structure_request(self):
         return {dc_constants.LABEL: self._name,
@@ -366,6 +373,9 @@ class ReagentIntent(MeasuredUnit):
         super().__init__(value, unit, 'fluid')
         self._reagent_name = reagent_name
         self._timepoint = None
+
+    def get_reagent_name(self):
+        return self._reagent_name
 
     def set_timepoint(self, timepoint: TimepointIntent):
         self._timepoint = timepoint

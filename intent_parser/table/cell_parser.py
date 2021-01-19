@@ -172,7 +172,7 @@ class CellParser(object):
             label, value, unit = self._get_name_values_unit(tokens)
             named_link = self.create_name_with_uri(label, text_with_uri)
             unit = self.process_content_item_unit(unit, fluid_units, timepoint_units)
-            content = ReagentIntent(named_link, value, unit)
+            content = ReagentIntent(named_link, int(value), unit)
             list_of_contents.append(content)
         elif cell_type == 'NAME':
             for label in self.extract_name_value(text):
@@ -284,6 +284,7 @@ class CellParser(object):
     def process_reagent_or_media_header(self, text, text_with_uri, units, unit_type):
         tokens = self._cell_tokenizer.tokenize(text, keep_skip=False)
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
+
         if cell_type == 'NAME_SEPARATOR_VALUE_UNIT':
             label, timepoint_value, timepoint_unit = self._get_name_timepoint(tokens)
             name = self.create_name_with_uri(label, text_with_uri)
@@ -335,14 +336,14 @@ class CellParser(object):
             validated_unit = self._determine_unit(unit, units, abbrev_units)
             if units and validated_unit in units:
                 for value in values:
-                    measured_unit = MeasuredUnit(float(value), validated_unit)
+                    measured_unit = MeasuredUnit(int(value), validated_unit)
                     result.append(measured_unit)
 
         elif cell_type == 'VALUE_UNIT_PAIRS':
             for value, unit in self._get_values_unit_pairs(tokens, units, unit_type):
                 validated_unit = self._determine_unit(unit, units, abbrev_units)
                 if units and validated_unit in units:
-                    measured_unit = MeasuredUnit(float(value), validated_unit)
+                    measured_unit = MeasuredUnit(int(value), validated_unit)
                     result.append(measured_unit)
         return result
 

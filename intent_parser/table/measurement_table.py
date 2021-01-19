@@ -3,7 +3,7 @@ from intent_parser.intent.measurement_intent import NamedBooleanValue, NamedInte
 from intent_parser.intent.measurement_intent import ReagentIntent, TemperatureIntent, TimepointIntent
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.table.cell_parser as cell_parser
-import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
@@ -13,7 +13,8 @@ class MeasurementTable(object):
     Process information from Intent Parser's Measurement Table
     """
     _logger = logging.getLogger('intent_parser')
-    IGNORE_COLUMNS = [intent_parser_constants.HEADER_SAMPLES_TYPE, intent_parser_constants.HEADER_NOTES_TYPE]
+    IGNORE_COLUMNS = [ip_constants.HEADER_SAMPLES_TYPE,
+                      ip_constants.HEADER_NOTES_TYPE]
     
     def __init__(self,
                  intent_parser_table,
@@ -60,7 +61,7 @@ class MeasurementTable(object):
                 if control_data:
                     control_mapping = self._map_control_with_captions(control_data)
             except TableException as err:
-                self._validation_errors.append('Measurement table has invalid %s value: %s' % (intent_parser_constants.HEADER_CONTROL_VALUE, err))
+                self._validation_errors.append('Measurement table has invalid %s value: %s' % (ip_constants.HEADER_CONTROL_VALUE, err))
         return control_mapping
 
     def _map_control_with_captions(self, control_tables):
@@ -100,49 +101,49 @@ class MeasurementTable(object):
                     row_offset, column_offset))
                 continue
 
-            if intent_parser_constants.HEADER_MEASUREMENT_TYPE_TYPE == cell_type:
+            if ip_constants.HEADER_MEASUREMENT_TYPE_TYPE == cell_type:
                 self._process_measurement_type(cell, measurement, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_FILE_TYPE_TYPE == cell_type:
+            elif ip_constants.HEADER_FILE_TYPE_TYPE == cell_type:
                 self._process_file_type(cell, measurement, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_REPLICATE_TYPE == cell_type:
+            elif ip_constants.HEADER_REPLICATE_TYPE == cell_type:
                 self._process_replicate(cell, measurement, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_STRAINS_TYPE == cell_type:
+            elif ip_constants.HEADER_STRAINS_TYPE == cell_type:
                 self._process_strains(cell, measurement, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_ODS_TYPE == cell_type:
+            elif ip_constants.HEADER_ODS_TYPE == cell_type:
                 self._process_ods(cell, measurement, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_TEMPERATURE_TYPE == cell_type:
+            elif ip_constants.HEADER_TEMPERATURE_TYPE == cell_type:
                 self._process_temperature(cell, measurement, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_TIMEPOINT_TYPE == cell_type:
+            elif ip_constants.HEADER_TIMEPOINT_TYPE == cell_type:
                 self._process_timepoints(cell, measurement, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_BATCH_TYPE == cell_type:
+            elif ip_constants.HEADER_BATCH_TYPE == cell_type:
                 self._process_batch(cell, measurement, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_CONTROL_TYPE == cell_type:
+            elif ip_constants.HEADER_CONTROL_TYPE == cell_type:
                 self._process_control(cell, control_data, measurement) # TODO: refactor for measurement-intent
-            elif intent_parser_constants.HEADER_NUM_NEG_CONTROL_TYPE == cell_type:
+            elif ip_constants.HEADER_NUM_NEG_CONTROL_TYPE == cell_type:
                 num_neg_controls = self._process_num_neg_controls(cell, row_offset, column_offset)
                 if num_neg_controls:
                     content_intent.set_numbers_of_negative_controls(num_neg_controls)
-            elif intent_parser_constants.HEADER_RNA_INHIBITOR_REACTION_TYPE == cell_type:
+            elif ip_constants.HEADER_RNA_INHIBITOR_REACTION_TYPE == cell_type:
                 rna_inhibitor_reactions = self._process_rna_inhibitor_reaction(cell, row_offset, column_offset)
                 if rna_inhibitor_reactions:
                     content_intent.set_rna_inhibitor_reaction_flags(rna_inhibitor_reactions)
-            elif intent_parser_constants.HEADER_DNA_REACTION_CONCENTRATION_TYPE == cell_type:
+            elif ip_constants.HEADER_DNA_REACTION_CONCENTRATION_TYPE == cell_type:
                 dna_reaction_concentrations = self._process_dna_reaction_concentration(cell, row_offset, column_offset)
                 if dna_reaction_concentrations:
                     content_intent.set_dna_reaction_concentrations(dna_reaction_concentrations)
-            elif intent_parser_constants.HEADER_TEMPLATE_DNA_TYPE == cell_type:
+            elif ip_constants.HEADER_TEMPLATE_DNA_TYPE == cell_type:
                 dna_templates = self._process_template_dna(cell, row_offset, column_offset)
                 if dna_templates:
                     content_intent.set_template_dna_values(dna_templates)
-            elif intent_parser_constants.HEADER_COLUMN_ID_TYPE == cell_type:
+            elif ip_constants.HEADER_COLUMN_ID_TYPE == cell_type:
                 column_ids = self._process_col_id(cell, row_offset, column_offset)
                 if column_ids:
                     content_intent.set_column_ids(column_ids)
-            elif intent_parser_constants.HEADER_ROW_ID_TYPE == cell_type:
+            elif ip_constants.HEADER_ROW_ID_TYPE == cell_type:
                 row_ids = self._process_row_id(cell, row_offset, column_offset)
                 if row_ids:
                     content_intent.set_row_ids(row_ids)
-            elif intent_parser_constants.HEADER_MEASUREMENT_LAB_ID_TYPE == cell_type:
+            elif ip_constants.HEADER_MEASUREMENT_LAB_ID_TYPE == cell_type:
                 lab_ids = self._process_lab_id(cell, row_offset, column_offset)
                 if lab_ids:
                     content_intent.set_lab_ids(lab_ids)
@@ -167,7 +168,7 @@ class MeasurementTable(object):
         except TableException as err:
             message = ('Measurement table at row %d column %d has invalid %s value: %s') % (row_index,
                                                                                             column_index,
-                                                                                            intent_parser_constants.HEADER_LAB_ID_VALUE,
+                                                                                            ip_constants.HEADER_LAB_ID_VALUE,
                                                                                             err.get_message())
             self._validation_errors.append(message)
 
@@ -183,7 +184,7 @@ class MeasurementTable(object):
         except TableException as err:
             message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                           column_index,
-                                                                                          intent_parser_constants.HEADER_ROW_ID_VALUE,
+                                                                                          ip_constants.HEADER_ROW_ID_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
 
@@ -199,7 +200,7 @@ class MeasurementTable(object):
         except TableException as err:
             message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                           column_index,
-                                                                                          intent_parser_constants.HEADER_COLUMN_ID_VALUE,
+                                                                                          ip_constants.HEADER_COLUMN_ID_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
 
@@ -221,7 +222,9 @@ class MeasurementTable(object):
         if cell_parser.PARSER.is_valued_cell(text):
             # content is of type reagent if cell contais value with units
             try:
-                measured_units = cell_parser.PARSER.process_values_unit(text, units=self._fluid_units, unit_type='fluid')
+                measured_units = cell_parser.PARSER.process_values_unit(text,
+                                                                        units=self._fluid_units,
+                                                                        unit_type='fluid')
                 for measured_unit in measured_units:
                     reagent = ReagentIntent(named_link, measured_unit.get_value(), measured_unit.get_unit())
                     if timepoint:
@@ -233,7 +236,9 @@ class MeasurementTable(object):
                 self._validation_errors.append(message)
         elif cell_parser.PARSER.is_number(text):
             err = '%s is missing a unit' % text
-            message = 'Measurement table at row %d column %d has invalid reagent/media value: %s' % (row_index, column_index, err)
+            message = ('Measurement table at row %d column %d has invalid reagent/media value: %s' % (row_index,
+                                                                                                      column_index,
+                                                                                                      err))
             self._validation_errors.append(message)
         else:
             # content must be of type media if cell contains list of string
@@ -259,7 +264,7 @@ class MeasurementTable(object):
         except TableException as err:
             message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                           column_index,
-                                                                                          intent_parser_constants.HEADER_BATCH_VALUE,
+                                                                                          ip_constants.HEADER_BATCH_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
     
@@ -300,12 +305,14 @@ class MeasurementTable(object):
         dna_reaction_concentrations = []
         try:
             for value in cell_parser.PARSER.process_numbers(cell.get_text()):
-                name = NamedLink(intent_parser_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE)
+                name = NamedLink(ip_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE)
                 dna_reaction_concentration = NamedIntegerValue(name, int(value))
                 dna_reaction_concentrations.append(dna_reaction_concentration)
         except TableException as err:
-            message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index, column_index,
-                                                intent_parser_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE, err)
+            message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,
+                                                                                          column_index,
+                                                                                          ip_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE,
+                                                                                          err)
             self._validation_errors.append(message)
 
         return dna_reaction_concentrations
@@ -314,13 +321,13 @@ class MeasurementTable(object):
         dna_templates = []
         try:
             for value in cell_parser.PARSER.extract_name_value(cell.get_text()):
-                name = NamedLink(intent_parser_constants.HEADER_TEMPLATE_DNA_VALUE)
+                name = NamedLink(ip_constants.HEADER_TEMPLATE_DNA_VALUE)
                 dna_template = NamedStringValue(name, value)
                 dna_templates.append(dna_template)
         except TableException as err:
             message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                           column_index,
-                                                                                          intent_parser_constants.HEADER_TEMPLATE_DNA_VALUE,
+                                                                                          ip_constants.HEADER_TEMPLATE_DNA_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
         return dna_templates
@@ -332,7 +339,7 @@ class MeasurementTable(object):
                 err = '%s does not match one of the following file types: \n %s' % (file_type, ' ,'.join((map(str, self._file_type))))
                 message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                               column_index,
-                                                                                              intent_parser_constants.HEADER_FILE_TYPE_VALUE,
+                                                                                              ip_constants.HEADER_FILE_TYPE_VALUE,
                                                                                               err)
                 self._validation_errors.append(message)
             else:
@@ -344,7 +351,7 @@ class MeasurementTable(object):
             err = '%s does not match one of the following measurement types: \n %s' % (measurement_type, ' ,'.join((map(str, self._measurement_types))))
             message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                           column_index,
-                                                                                          intent_parser_constants.HEADER_MEASUREMENT_TYPE_VALUE,
+                                                                                          ip_constants.HEADER_MEASUREMENT_TYPE_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
         else:
@@ -354,13 +361,13 @@ class MeasurementTable(object):
         num_neg_controls = []
         try:
             for value in cell_parser.PARSER.process_numbers(cell.get_text()):
-                name = NamedLink(intent_parser_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE)
+                name = NamedLink(ip_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE)
                 num_neg_control = NamedIntegerValue(name, int(value))
                 num_neg_controls.append(num_neg_control)
         except TableException as err:
             message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                           column_index,
-                                                                                          intent_parser_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE,
+                                                                                          ip_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
 
@@ -371,17 +378,17 @@ class MeasurementTable(object):
             for value in cell_parser.PARSER.process_numbers(cell.get_text()):
                 measurement.add_optical_density(float(value))
         except TableException as err:
-            message = 'Measurement table at row %d column %d has invalid %s value: %s' % (intent_parser_constants.HEADER_ODS_VALUE,
-                                                                                           row_index,
-                                                                                           column_index,
-                                                                                           err)
+            message = 'Measurement table at row %d column %d has invalid %s value: %s' % (ip_constants.HEADER_ODS_VALUE,
+                                                                                          row_index,
+                                                                                          column_index,
+                                                                                          err)
             self._validation_errors.append(message)
 
     def _process_replicate(self, cell, measurement, row_index, column_index):
         try:
             if not cell.get_text().strip():
-                self._validation_warnings.append('Measurement table at row %d column %d does not have any replicates provided.' % (row_index,
-                                                                                                                                   column_index))
+                self._validation_warnings.append('Measurement table at row %d column %d does not have '
+                                                 'any replicates provided.' % (row_index, column_index))
                 return
 
             list_of_replicates = cell_parser.PARSER.process_numbers(cell.get_text())
@@ -390,7 +397,7 @@ class MeasurementTable(object):
         except TableException as err:
             message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                           column_index,
-                                                                                          intent_parser_constants.HEADER_REPLICATE_VALUE,
+                                                                                          ip_constants.HEADER_REPLICATE_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
 
@@ -398,13 +405,13 @@ class MeasurementTable(object):
         rna_inhibitor_reactions = []
         try:
             for boolean_value in cell_parser.PARSER.process_boolean_flag(cell.get_text()):
-                name = NamedLink(intent_parser_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE)
+                name = NamedLink(ip_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE)
                 rna_inhibitor_reaction = NamedBooleanValue(name, boolean_value)
                 rna_inhibitor_reactions.append(rna_inhibitor_reaction)
         except TableException as err:
             message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                           column_index,
-                                                                                          intent_parser_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE,
+                                                                                          ip_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
 
@@ -416,7 +423,7 @@ class MeasurementTable(object):
             if link is None:
                 message = ('Measurement table at row %d column %d has invalid %s value: %s is missing a SBH URI.' % (row_index,
                                                                                                                      column_index,
-                                                                                                                     intent_parser_constants.HEADER_STRAINS_VALUE,
+                                                                                                                     ip_constants.HEADER_STRAINS_VALUE,
                                                                                                                      parsed_strain))
                 self._validation_errors.append(message)
                 continue
@@ -425,7 +432,7 @@ class MeasurementTable(object):
                 message = ('Measurement table at row %d column %d has invalid %s value: '
                            '%s is an invalid link not supported in the SBOL Dictionary Strains tab.' % (row_index,
                                                                                                         column_index,
-                                                                                                        intent_parser_constants.HEADER_STRAINS_VALUE,
+                                                                                                        ip_constants.HEADER_STRAINS_VALUE,
                                                                                                         link))
                 self._validation_errors.append(message)
                 continue
@@ -433,11 +440,12 @@ class MeasurementTable(object):
             strain_intent = self.strain_mapping[link]
             if not strain_intent.has_lab_strain_name(parsed_strain):
                 lab_name = dictionary_constants.MAPPED_LAB_UID[strain_intent.get_lab_id()]
-                message = 'Measurement table at row %d column %d has invalid %s value: %s is not listed under %s in the SBOL Dictionary.' % (row_index,
-                                                                                                                                             column_index,
-                                                                                                                                             intent_parser_constants.HEADER_STRAINS_VALUE,
-                                                                                                                                             parsed_strain,
-                                                                                                                                             lab_name)
+                message = ('Measurement table at row %d column %d has invalid %s value: '
+                           '%s is not listed under %s in the SBOL Dictionary.' % (row_index,
+                                                                                  column_index,
+                                                                                  ip_constants.HEADER_STRAINS_VALUE,
+                                                                                  parsed_strain,
+                                                                                  lab_name))
                 self._validation_errors.append(message)
                 continue
 
@@ -455,7 +463,7 @@ class MeasurementTable(object):
         except TableException as err:
             message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                           column_index,
-                                                                                          intent_parser_constants.HEADER_TEMPERATURE_VALUE,
+                                                                                          ip_constants.HEADER_TEMPERATURE_VALUE,
                                                                                           err.get_message())
             self._validation_errors.append(message)
 
@@ -468,7 +476,7 @@ class MeasurementTable(object):
         except TableException as err:
             message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                           column_index,
-                                                                                          intent_parser_constants.HEADER_TIMEPOINT_VALUE,
+                                                                                          ip_constants.HEADER_TIMEPOINT_VALUE,
                                                                                           err.get_message())
             self._validation_errors.append(message)
 
