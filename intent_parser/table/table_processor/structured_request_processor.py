@@ -60,8 +60,6 @@ class StructuredRequestProcessor(Processor):
         self.validate_schema()
 
     def process_control_tables(self, control_tables):
-        self.processed_controls = {}
-
         if not control_tables:
             self.validation_warnings.append('No measurement table to parse from document.')
             return
@@ -79,10 +77,10 @@ class StructuredRequestProcessor(Processor):
                                            timepoint_units=self.catalog_accessor.get_time_units(),
                                            strain_mapping=strain_mapping)
             controls_table.process_table()
-            controls_data = controls_table.get_structured_request()
+            control_intents = controls_table.get_intents()
             table_caption = controls_table.get_table_caption()
             if table_caption:
-                self.processed_controls[table_caption] = controls_data
+                self.processed_controls[table_caption] = control_intents
             self.validation_errors.extend(controls_table.get_validation_errors())
             self.validation_warnings.extend(controls_table.get_validation_warnings())
 

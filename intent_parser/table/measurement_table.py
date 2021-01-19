@@ -93,10 +93,10 @@ class MeasurementTable(object):
             header_cell = self._intent_parser_table.get_cell(self._intent_parser_table.header_row_index(), cell_index)
             cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
 
-            column_offset = cell_index + 1 # Used for reporting column vlaue to users
+            column_offset = cell_index + 1 # Used for reporting column value to users
             if not cell.get_text().strip() or cell_type in self.IGNORE_COLUMNS:
                 self._validation_warnings.append(
-                    'Measurement table for row %d column %d does not a value provided.' % (
+                    'Measurement table at row %d column %d does not a value provided.' % (
                     row_offset, column_offset))
                 continue
 
@@ -264,23 +264,20 @@ class MeasurementTable(object):
             self._validation_errors.append(message)
     
     def _process_control(self, cell, control_data, measurement):
-        result = []
         if not control_data:
             self._validation_errors.append('Unable to process controls from a Measurement table without Control Tables.')
-            return result
 
+        control_intents = []
         if cell.get_bookmark_ids():
-            result = self._process_control_with_bookmarks(cell, control_data)
+            control_intents = self._process_control_with_bookmarks(cell, control_data)
 
         # if processing control by bookmark_id did not work, process by table index value
-        if not result:
-            result_by_caption = self._process_control_with_captions(cell, control_data)
-            if result_by_caption:
-                measurement.add_field(dc_constants.CONTROLS, result_by_caption)
-            else:
-                message = 'Measurement table has invalid %s value: control value is empty' % (
-                intent_parser_constants.HEADER_CONTROL_VALUE)
-                self._validation_errors.append(message)
+        if len(control_intents) == 0:
+            control_intents = self._process_control_with_captions(cell, control_data)
+
+        for control_intent in control_intents:
+            measurement.add_control(control_intent)
+
 
     def _process_control_with_bookmarks(self, cell, control_tables):
         controls = []
@@ -291,13 +288,13 @@ class MeasurementTable(object):
         return controls
     
     def _process_control_with_captions(self, cell, control_tables):
-        controls = []
+        control_intents = []
         for table_caption in cell_parser.PARSER.extract_name_value(cell.get_text()):
             table_index = cell_parser.PARSER.process_table_caption_index(table_caption)
             if table_index in control_tables:
                 for control in control_tables[table_index]:
-                    controls.append(control)
-        return controls       
+                    control_intents.append(control)
+        return control_intents
            
     def _process_dna_reaction_concentration(self, cell, row_index, column_index):
         dna_reaction_concentrations = []

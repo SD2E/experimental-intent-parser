@@ -93,6 +93,8 @@ class Measurement(object):
             structure_request[dc_constants.TIMEPOINTS] = [timepoint.to_structure_request() for timepoint in self._timepoints]
         if len(self._batches) > 0:
             structure_request[dc_constants.BATCH] = self._batches
+        if len(self._controls) > 0:
+            structure_request[dc_constants.CONTROLS] = [control.to_structured_request() for control in self._controls]
         if not self._contents.is_empty():
             structure_request.update(self._contents.to_structure_request())
 

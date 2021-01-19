@@ -1,4 +1,4 @@
-from intent_parser.intent.measurement_intent import MeasuredUnit, NamedLink, TimepointIntent
+from intent_parser.intent.measurement_intent import MeasuredUnit, NamedLink, TimepointIntent, ReagentIntent
 from intent_parser.intent_parser_exceptions import TableException
 from typing import Dict, List, Tuple
 import collections
@@ -168,25 +168,16 @@ class CellParser(object):
         if len(tokens) < 1:
             raise TableException('Invalid value: %s does not contain a name' % text.get_matched_term())
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
-        if cell_type == 'NAME_VALUE_UNIT_TIMEPOINT':
-            label, value, unit, timepoint_value, timepoint_unit = self._get_name_values_unit_timepoint(tokens)
-            content = {dc_constants.NAME: self.create_name_with_uri(label, text_with_uri),
-                       dc_constants.VALUE: value,
-                       dc_constants.UNIT: self.process_content_item_unit(unit, fluid_units, timepoint_units),
-                       dc_constants.TIMEPOINTS: self.process_timepoint(timepoint_value,
-                                                                       timepoint_unit,
-                                                                       timepoint_units)}
-            list_of_contents.append(content)
-        elif cell_type == 'NAME_VALUE_UNIT':
+        if cell_type == 'NAME_VALUE_UNIT':
             label, value, unit = self._get_name_values_unit(tokens)
-            content = {dc_constants.NAME: self.create_name_with_uri(label, text_with_uri),
-                       dc_constants.VALUE: value,
-                       dc_constants.UNIT: self.process_content_item_unit(unit, fluid_units, timepoint_units)}
+            named_link = self.create_name_with_uri(label, text_with_uri)
+            unit = self.process_content_item_unit(unit, fluid_units, timepoint_units)
+            content = ReagentIntent(named_link, value, unit)
             list_of_contents.append(content)
         elif cell_type == 'NAME':
             for label in self.extract_name_value(text):
-                content = {dc_constants.NAME: self.create_name_with_uri(label, text_with_uri)}
-                list_of_contents.append(content)
+                named_link = self.create_name_with_uri(label, text_with_uri)
+                list_of_contents.append(named_link)
         else:
             raise TableException('Unable to parse %s' % text)
         return list_of_contents
@@ -418,14 +409,6 @@ class CellParser(object):
         timepoint_value = self._get_token_value(tokens[-2])
         name = ' '.join([self._get_token_value(token) for token in tokens[0:-3]])
         return name, timepoint_value, timepoint_unit
-    
-    def _get_name_values_unit_timepoint(self, tokens):
-        timepoint_unit = self._get_token_value(tokens[-1])
-        timepoint_value = self._get_token_value(tokens[-2])
-        unit = self._get_token_value(tokens[-4])
-        value = self._get_token_value(tokens[-5])
-        name = ' '.join([self._get_token_value(token) for token in tokens[0:-5]])
-        return name, value, unit, timepoint_value, timepoint_unit
     
     def _get_name_values_unit(self, tokens):
         unit = self._get_token_value(tokens[-1])

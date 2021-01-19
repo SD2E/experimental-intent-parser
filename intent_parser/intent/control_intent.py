@@ -1,3 +1,4 @@
+from intent_parser.intent.measurement_intent import TimepointIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 
@@ -17,11 +18,11 @@ class Control(object):
     def add_content(self, value: dict):
         self._contents.append(value)
 
-    def add_strain(self, value: dict):
-        self._strains.append(value)
+    def add_strain(self, strain):
+        self._strains.append(strain)
 
-    def add_timepoint(self, value: dict):
-        self._timepoints.append(value)
+    def add_timepoint(self, timepoint):
+        self._timepoints.append(timepoint)
 
     def set_channel(self, value: str):
         self._channel = value
@@ -32,5 +33,16 @@ class Control(object):
         self._control_type = value
 
     def to_structured_request(self):
-        sr = {dc_constants.TYPE, self._control_type}
-        return sr
+        if self._control_type is None:
+            raise IntentParserException('control-type is not set.')
+
+        structure_request = {dc_constants.TYPE, self._control_type}
+        if len(self._strains) > 0:
+            structure_request[dc_constants.STRAINS] = [strain.to_structure_request() for strain in self._strains]
+        if self._channel:
+            structure_request[dc_constants.CHANNEL] = self._channel
+        if len(self._contents) > 0:
+            structure_request.update(content.to_structure_request() for content in self._contents)
+        if len(self._timepoints) > 0:
+            structure_request[dc_constants.TIMEPOINTS] = [timepoint.to_structure_request() for timepoint in self._timepoints]
+        return structure_request
