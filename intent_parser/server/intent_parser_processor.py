@@ -122,7 +122,7 @@ class IntentParserProcessor(object):
                                         errors=intent_parser.get_validation_errors(),
                                         warnings=intent_parser.get_validation_warnings())
 
-        return intent_parser.get_structured_request()
+        return intent_parser.get_structure_request()
 
     def process_experiment_request_documents(self):
         """

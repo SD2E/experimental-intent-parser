@@ -48,8 +48,8 @@ class CellParserTest(unittest.TestCase):
         cell.add_paragraph('name')
         results = self.parser.parse_content_item(cell.get_text(), cell.get_text_with_url())
         self.assertEqual(len(results), 1)
-        self.assertEqual('name', results[0].get_name())
-        self.assertIsNone(results[0].get_link())
+        self.assertEqual('name', results[0].get_named_link().get_name())
+        self.assertIsNone(results[0].get_named_link().get_link())
 
     def test_cell_values_with_named_spacing(self):
         cell_str = 'Yeast_Extract_Peptone_Adenine_Dextrose (a.k.a. YPAD Media)'
@@ -105,14 +105,14 @@ class CellParserTest(unittest.TestCase):
         results = self.parser.parse_content_item(cell.get_text(), cell.get_text_with_url())
         self.assertEqual(3, len(results))
 
-        self.assertEqual('name1', results[0].get_name())
-        self.assertIsNone(results[0].get_link())
+        self.assertEqual('name1', results[0].get_named_link().get_name())
+        self.assertIsNone(results[0].get_named_link().get_link())
 
-        self.assertEqual('name2', results[1].get_name())
-        self.assertIsNone(results[1].get_link())
+        self.assertEqual('name2', results[1].get_named_link().get_name())
+        self.assertIsNone(results[1].get_named_link().get_link())
 
-        self.assertEqual('name3', results[2].get_name())
-        self.assertIsNone(results[2].get_link())
+        self.assertEqual('name3', results[2].get_named_link().get_name())
+        self.assertIsNone(results[2].get_named_link().get_link())
         
     def test_parse_content_item_with_name_value_unit(self):
         cell = IntentParserCell()

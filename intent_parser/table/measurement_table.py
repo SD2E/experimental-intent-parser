@@ -1,4 +1,4 @@
-from intent_parser.intent.measurement_intent import ContentIntent, Measurement, MediaIntent
+from intent_parser.intent.measurement_intent import ContentIntent, MeasurementIntent, MediaIntent
 from intent_parser.intent.measurement_intent import NamedBooleanValue, NamedIntegerValue, NamedLink, NamedStringValue
 from intent_parser.intent.measurement_intent import ReagentIntent, TemperatureIntent, TimepointIntent
 from intent_parser.intent_parser_exceptions import TableException
@@ -35,20 +35,21 @@ class MeasurementTable(object):
         self._validation_warnings = []
         self._intent_parser_table = intent_parser_table 
         self._table_caption = None
-        self.measurement_intents = []
+        self._measurement_intents = []
 
     def get_intent(self):
-        return self.measurement_intents
+        return self._measurement_intents
 
     def get_structured_request(self):
-        return [measurement.to_structure_request() for measurement in self.measurement_intents]
+        return [measurement.to_structure_request() for measurement in self._measurement_intents]
     
     def process_table(self, control_data={}, bookmarks={}):
         self._table_caption = self._intent_parser_table.caption()
         control_mappings = self._process_control_mapping(control_data, bookmarks)
         for row_index in range(self._intent_parser_table.data_row_start_index(), self._intent_parser_table.number_of_rows()):
             measurement = self._process_row(row_index, control_mappings)
-            self.measurement_intents.append(measurement)
+            if not measurement.is_empty():
+                self._measurement_intents.append(measurement)
 
     def _process_control_mapping(self, control_data, bookmarks):
         control_mapping = {}
@@ -83,10 +84,10 @@ class MeasurementTable(object):
     
     def _process_row(self, row_index, control_data):
         row = self._intent_parser_table.get_row(row_index)
-        measurement = Measurement()
+        measurement = MeasurementIntent()
         content_intent = ContentIntent()
 
-        row_offset = row + 1 # Used for reporting row value to users
+        row_offset = row_index + 1 # Used for reporting row value to users
         for cell_index in range(len(row)):
             cell = self._intent_parser_table.get_cell(row_index, cell_index)
 
@@ -155,7 +156,8 @@ class MeasurementTable(object):
                     elif isinstance(reagent_or_media, MediaIntent):
                         content_intent.add_media(reagent_or_media)
 
-        measurement.add_content(content_intent)
+        if not content_intent.is_empty():
+            measurement.add_content(content_intent)
         return measurement
 
     def _process_lab_id(self, cell, row_index, column_index):
@@ -171,8 +173,7 @@ class MeasurementTable(object):
                                                                                             ip_constants.HEADER_LAB_ID_VALUE,
                                                                                             err.get_message())
             self._validation_errors.append(message)
-
-        return lab_id
+        return lab_ids
 
     def _process_row_id(self, cell, row_index, column_index):
         row_ids = []
@@ -226,9 +227,9 @@ class MeasurementTable(object):
                                                                         units=self._fluid_units,
                                                                         unit_type='fluid')
                 for measured_unit in measured_units:
-                    reagent = ReagentIntent(named_link, measured_unit.get_value(), measured_unit.get_unit())
+                    reagent = ReagentIntent(named_link, float(measured_unit.get_value()), measured_unit.get_unit())
                     if timepoint:
-                        reagent.set_timepoint(reagent)
+                        reagent.set_timepoint(timepoint)
 
                     result.append(reagent)
             except TableException as err:
@@ -458,7 +459,7 @@ class MeasurementTable(object):
             for measured_unit in cell_parser.PARSER.process_values_unit(text,
                                                                         units=self._temperature_units,
                                                                         unit_type='temperature'):
-                temperature = TemperatureIntent(measured_unit)
+                temperature = TemperatureIntent(float(measured_unit.get_value()), measured_unit.get_unit())
                 measurement.add_temperature(temperature)
         except TableException as err:
             message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,
@@ -471,7 +472,7 @@ class MeasurementTable(object):
         text = cell.get_text()
         try:
             for measured_unit in cell_parser.PARSER.process_values_unit(text, units=self._timepoint_units, unit_type='timepoints'):
-                timepoint = TimepointIntent(measured_unit)
+                timepoint = TimepointIntent(float(measured_unit.get_value()), measured_unit.get_unit())
                 measurement.add_timepoint(timepoint)
         except TableException as err:
             message = 'Measurement table at row %d column %d has invalid %s value: %s' % (row_index,

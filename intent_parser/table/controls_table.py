@@ -1,4 +1,4 @@
-from intent_parser.intent.control_intent import Control
+from intent_parser.intent.control_intent import ControlIntent
 from intent_parser.intent.measurement_intent import TimepointIntent
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
@@ -30,7 +30,7 @@ class ControlsTable(object):
     def get_intents(self):
         return self._control_intents
 
-    def get_structured_request(self):
+    def get_structure_request(self):
         return [control.to_structure_request() for control in self._control_intents]
 
     def get_validation_errors(self):
@@ -46,8 +46,8 @@ class ControlsTable(object):
 
     def _process_row(self, row_index):
         row = self._intent_parser_table.get_row(row_index)
-        control = Control()
-        row_offset = row + 1  # Used for reporting row value to users
+        control = ControlIntent()
+        row_offset = row_index + 1  # Used for reporting row value to users
 
         for cell_index in range(len(row)):
             cell = self._intent_parser_table.get_cell(row_index, cell_index)
@@ -73,7 +73,9 @@ class ControlsTable(object):
                 self._process_contents(cell, control, row_offset, column_offset)
             elif intent_parser_constants.HEADER_TIMEPOINT_TYPE == cell_type:
                 self._process_timepoint(cell, control, row_offset, column_offset)
-        self._control_intents.append(control)
+
+        if not control.is_empty():
+            self._control_intents.append(control)
 
     def _process_channels(self, cell, control, row_index, column_index):
         cell_content = cell.get_text()
@@ -160,9 +162,8 @@ class ControlsTable(object):
             for measured_unit in cell_parser.PARSER.process_values_unit(cell.get_text(),
                                                                      units=self._timepoint_units,
                                                                      unit_type='timepoints'):
-                timepoint = TimepointIntent(measured_unit)
+                timepoint = TimepointIntent(float(measured_unit.get_value()), measured_unit.get_unit())
                 control.add_timepoint(timepoint)
-            control.add_field(dc_constants.TIMEPOINTS, result)
         except TableException as err:
             message = 'Controls table at row %d column % has invalid %s value: %s' % (row_index,
                                                                                       column_index,

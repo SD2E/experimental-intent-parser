@@ -1,4 +1,5 @@
-from intent_parser.intent.measurement_intent import MeasuredUnit, NamedLink, TimepointIntent, ReagentIntent
+from intent_parser.intent.measurement_intent import MeasuredUnit, NamedLink, TimepointIntent, ReagentIntent, \
+    NamedStringValue
 from intent_parser.intent_parser_exceptions import TableException
 from typing import Dict, List, Tuple
 import collections
@@ -177,7 +178,8 @@ class CellParser(object):
         elif cell_type == 'NAME':
             for label in self.extract_name_value(text):
                 named_link = self.create_name_with_uri(label, text_with_uri)
-                list_of_contents.append(named_link)
+                name = NamedStringValue(named_link)
+                list_of_contents.append(name)
         else:
             raise TableException('Unable to parse %s' % text)
         return list_of_contents
@@ -336,14 +338,14 @@ class CellParser(object):
             validated_unit = self._determine_unit(unit, units, abbrev_units)
             if units and validated_unit in units:
                 for value in values:
-                    measured_unit = MeasuredUnit(int(value), validated_unit)
+                    measured_unit = MeasuredUnit(float(value), validated_unit)
                     result.append(measured_unit)
 
         elif cell_type == 'VALUE_UNIT_PAIRS':
             for value, unit in self._get_values_unit_pairs(tokens, units, unit_type):
                 validated_unit = self._determine_unit(unit, units, abbrev_units)
                 if units and validated_unit in units:
-                    measured_unit = MeasuredUnit(int(value), validated_unit)
+                    measured_unit = MeasuredUnit(float(value), validated_unit)
                     result.append(measured_unit)
         return result
 

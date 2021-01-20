@@ -8,7 +8,7 @@ import unittest
 
 class LabTableTest(unittest.TestCase):
     """
-    Test parsing content from a lab table
+    Test parsing content from a intent parser lab table
     """
     def setUp(self):
         self.ip_table_factory = IntentParserTableFactory()

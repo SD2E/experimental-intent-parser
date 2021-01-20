@@ -33,156 +33,213 @@ class ControlsTableTest(unittest.TestCase):
 
         control_table_parser = ControlsTable(ip_table, control_types={'HIGH_FITC'})
         control_table_parser.process_table()
-        control_result = control_table_parser.get_structured_request()
+        control_result = control_table_parser.get_intents()
         self.assertEqual(1, len(control_result))
-        self.assertEqual(control_result[0][dc_constants.TYPE], 'HIGH_FITC')
+        expected_result = {dc_constants.TYPE: 'HIGH_FITC'}
+        self.assertEqual(expected_result, control_result[0].to_structure_request())
         
     def test_table_with_1_channel(self):
         ip_table = test_utils.create_fake_controls_table()
+        control_type = IntentParserCell()
+        control_type.add_paragraph('HIGH_FITC')
+
         channel = IntentParserCell()
         channel.add_paragraph('BL1-A')
-        data_row = test_utils.create_control_table_row(channel_cell=channel)
+        data_row = test_utils.create_control_table_row(channel_cell=channel,
+                                                       control_type_cell=control_type)
         ip_table.add_row(data_row)
 
-        control_table_parser = ControlsTable(ip_table)
+        control_table_parser = ControlsTable(ip_table, control_types={'HIGH_FITC'})
         control_table_parser.process_table()
-        control_result = control_table_parser.get_structured_request()
-        self.assertEqual(1, len(control_result))
-        self.assertEqual(control_result[0][dc_constants.CHANNEL], 'BL1-A')
+        control_result = control_table_parser.get_intents()
+        expected_result = {dc_constants.TYPE: 'HIGH_FITC',
+                           dc_constants.CHANNEL: 'BL1-A'}
+        self.assertEqual(expected_result, control_result[0].to_structure_request())
     
     def test_table_with_multiple_channels(self):
         ip_table = test_utils.create_fake_controls_table()
+        control_type = IntentParserCell()
+        control_type.add_paragraph('HIGH_FITC')
+
         channel = IntentParserCell()
         channel.add_paragraph('BL1-A, BL2-A')
-        data_row = test_utils.create_control_table_row(channel_cell=channel)
+        data_row = test_utils.create_control_table_row(channel_cell=channel,
+                                                       control_type_cell=control_type)
         ip_table.add_row(data_row)
 
-        control_table_parser = ControlsTable(ip_table)
+        control_table_parser = ControlsTable(ip_table, control_types={'HIGH_FITC'})
         control_table_parser.process_table()
-        control_result = control_table_parser.get_structured_request()
-        self.assertEqual(1, len(control_result))
-        self.assertEqual(control_result[0][dc_constants.CHANNEL], 'BL1-A')
+        control_result = control_table_parser.get_intents()
+        expected_result = {dc_constants.TYPE: 'HIGH_FITC',
+                           dc_constants.CHANNEL: 'BL1-A'}
+        self.assertEqual(expected_result, control_result[0].to_structure_request())
         
     def test_table_with_1_strain(self):
         ip_table = test_utils.create_fake_controls_table()
         strains = IntentParserCell()
         strains.add_paragraph('UWBF_25784')
-        data_row = test_utils.create_control_table_row(strains_cell=strains)
+
+        control_type = IntentParserCell()
+        control_type.add_paragraph('HIGH_FITC')
+
+        data_row = test_utils.create_control_table_row(strains_cell=strains,
+                                                       control_type_cell=control_type)
         ip_table.add_row(data_row)
 
-        control_table_parser = ControlsTable(ip_table)
+        control_table_parser = ControlsTable(ip_table, control_types={'HIGH_FITC'})
         control_table_parser.process_table()
-        control_result = control_table_parser.get_structured_request()
-        self.assertEqual(0, len(control_result))
-        expected_errors = ['Controls table has invalid Strains value: UWBF_25784 is missing a SBH URI.']
-        self.assertListEqual(expected_errors, control_table_parser.get_validation_errors())
-        self.assertListEqual([], control_table_parser.get_validation_warnings())
+        control_result = control_table_parser.get_intents()
+        self.assertEqual(1, len(control_result))
+        expected_result = {dc_constants.TYPE: 'HIGH_FITC'}
+        self.assertEqual(expected_result, control_result[0].to_structure_request())
 
     def test_table_with_1_timepoint(self):
         ip_table = test_utils.create_fake_controls_table()
         content = IntentParserCell()
         content.add_paragraph('8 hour')
-        data_row = test_utils.create_control_table_row(timepoint_cell=content)
+
+        control_type = IntentParserCell()
+        control_type.add_paragraph('HIGH_FITC')
+
+        data_row = test_utils.create_control_table_row(timepoint_cell=content,
+                                                       control_type_cell=control_type)
         ip_table.add_row(data_row)
 
-        control_table_parser = ControlsTable(ip_table, timepoint_units={'hour'})
+        control_table_parser = ControlsTable(ip_table, timepoint_units={'hour'}, control_types={'HIGH_FITC'})
         control_table_parser.process_table()
-        control_result = control_table_parser.get_structured_request()
+        control_result = control_table_parser.get_intents()
         self.assertEqual(1, len(control_result))
-        timepoint = control_result[0][dc_constants.TIMEPOINTS]
         expected_timepoint = {dc_constants.VALUE: 8.0, dc_constants.UNIT: 'hour'}
-        self.assertEqual(expected_timepoint, timepoint[0])
+        expected_result = {dc_constants.TYPE: 'HIGH_FITC',
+                           dc_constants.TIMEPOINTS: [expected_timepoint]}
+        self.assertEqual(expected_result, control_result[0].to_structure_request())
 
     def test_strains_with_uris(self):
         ip_table = test_utils.create_fake_controls_table()
+        control_type = IntentParserCell()
+        control_type.add_paragraph('HIGH_FITC')
+
         strains = IntentParserCell()
         strains.add_paragraph('UWBF_7376', link='https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1')
-        data_row = test_utils.create_control_table_row(strains_cell=strains)
+        data_row = test_utils.create_control_table_row(strains_cell=strains,
+                                                       control_type_cell=control_type)
         ip_table.add_row(data_row)
 
-        control_table_parser = ControlsTable(ip_table, strain_mapping=self.strain_mappings)
+        control_table_parser = ControlsTable(ip_table,
+                                             strain_mapping=self.strain_mappings,
+                                             control_types={'HIGH_FITC'})
         control_table_parser.process_table()
-        control_result = control_table_parser.get_structured_request()
+        control_result = control_table_parser.get_intents()
         self.assertEquals(1, len(control_result))
-        exp_res = [{'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'label': 'strain3',
-                    'lab_id': 'name.ip_admin.UWBF_7376'}]
-        self.assertListEqual(exp_res, control_result[0][dc_constants.STRAINS])
+        exp_res = {'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'label': 'strain3',
+                    'lab_id': 'name.ip_admin.UWBF_7376'}
+        expected_result = {dc_constants.TYPE: 'HIGH_FITC',
+                           dc_constants.STRAINS: [exp_res]}
+        self.assertEqual(expected_result, control_result[0].to_structure_request())
     
     def test_strains_with_uri_and_trailing_strings(self):
         ip_table = test_utils.create_fake_controls_table()
+        control_type = IntentParserCell()
+        control_type.add_paragraph('HIGH_FITC')
+
         strains = IntentParserCell()
         strains.add_paragraph('MG1655', link='https://hub.sd2e.org/user/sd2e/design/MG1655/1')
         strains.add_paragraph(', MG1655_LPV3,MG1655_RPU_Standard')
-        data_row = test_utils.create_control_table_row(strains_cell=strains)
+        data_row = test_utils.create_control_table_row(strains_cell=strains,
+                                                       control_type_cell=control_type)
         ip_table.add_row(data_row)
 
-        control_table_parser = ControlsTable(ip_table, strain_mapping=self.strain_mappings)
+        control_table_parser = ControlsTable(ip_table,
+                                             strain_mapping=self.strain_mappings,
+                                             control_types={'HIGH_FITC'})
         control_table_parser.process_table()
-        control_result = control_table_parser.get_structured_request()
+        control_result = control_table_parser.get_intents()
         self.assertEquals(1, len(control_result))
 
-        exp_res = [{'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'label': 'strain1',
-                    'lab_id': 'name.ip_admin.MG1655'}]
-        self.assertListEqual(exp_res, control_result[0][dc_constants.STRAINS])
+        exp_res = {'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'label': 'strain1',
+                    'lab_id': 'name.ip_admin.MG1655'}
+        expected_result = {dc_constants.TYPE: 'HIGH_FITC',
+                           dc_constants.STRAINS: [exp_res]}
+        self.assertEqual(expected_result, control_result[0].to_structure_request())
         
     def test_strains_with_string_and_trailing_uris(self):
         ip_table = test_utils.create_fake_controls_table()
+        control_type = IntentParserCell()
+        control_type.add_paragraph('HIGH_FITC')
+
         strains = IntentParserCell()
         strains.add_paragraph('MG1655_RPU_Standard,')
         strains.add_paragraph('MG1655', link='https://hub.sd2e.org/user/sd2e/design/MG1655/1')
         strains.add_paragraph(',')
         strains.add_paragraph('MG1655_LPV3', link='https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1')
-        data_row = test_utils.create_control_table_row(strains_cell=strains)
+        data_row = test_utils.create_control_table_row(strains_cell=strains,
+                                                       control_type_cell=control_type)
         ip_table.add_row(data_row)
 
-        control_table_parser = ControlsTable(ip_table, strain_mapping=self.strain_mappings)
+        control_table_parser = ControlsTable(ip_table,
+                                             strain_mapping=self.strain_mappings,
+                                             control_types={'HIGH_FITC'})
         control_table_parser.process_table()
-        control_result = control_table_parser.get_structured_request()
+        control_result = control_table_parser.get_intents()
         self.assertEqual(1, len(control_result))
         
         exp_res = [{'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'label': 'strain1',
                     'lab_id': 'name.ip_admin.MG1655'},
                    {'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1', 'label': 'strain2',
                     'lab_id': 'name.ip_admin.MG1655_LPV3'}]
-        self.assertListEqual(exp_res, control_result[0][dc_constants.STRAINS])
+        expected_result = {dc_constants.TYPE: 'HIGH_FITC',
+                           dc_constants.STRAINS: exp_res}
+        self.assertEqual(expected_result, control_result[0].to_structure_request())
     
     def test_strains_with_mix_string_and_uri(self):
         ip_table = test_utils.create_fake_controls_table()
+        control_type = IntentParserCell()
+        control_type.add_paragraph('HIGH_FITC')
+
         strains = IntentParserCell()
         strains.add_paragraph('MG1655', link='https://hub.sd2e.org/user/sd2e/design/MG1655/1')
         strains.add_paragraph(',')
         strains.add_paragraph('MG1655_RPU_Standard\n')
         strains.add_paragraph(',\n')
         strains.add_paragraph('MG1655_LPV3', link='https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1')
-        data_row = test_utils.create_control_table_row(strains_cell=strains)
+        data_row = test_utils.create_control_table_row(strains_cell=strains,
+                                                       control_type_cell=control_type)
         ip_table.add_row(data_row)
 
-        control_table_parser = ControlsTable(ip_table, strain_mapping=self.strain_mappings)
+        control_table_parser = ControlsTable(ip_table,
+                                             strain_mapping=self.strain_mappings,
+                                             control_types={'HIGH_FITC'})
         control_table_parser.process_table()
-        control_result = control_table_parser.get_structured_request()
+        control_result = control_table_parser.get_intents()
         self.assertEqual(1, len(control_result))
         
         exp_res = [{'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'label': 'strain1', 'lab_id': 'name.ip_admin.MG1655'},
                    {'sbh_uri': 'https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1', 'label': 'strain2', 'lab_id': 'name.ip_admin.MG1655_LPV3'}]
-        self.assertListEqual(exp_res, control_result[0][dc_constants.STRAINS])
+        expected_result = {dc_constants.TYPE: 'HIGH_FITC',
+                           dc_constants.STRAINS: exp_res}
+        self.assertEqual(expected_result, control_result[0].to_structure_request())
     
     def test_table_with_contents(self):
         ip_table = test_utils.create_fake_controls_table()
+        control_type = IntentParserCell()
+        control_type.add_paragraph('HIGH_FITC')
+
         content = IntentParserCell()
         content.add_paragraph('beta_estradiol', link='https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1')
-        data_row = test_utils.create_control_table_row(contents_cell=content)
+        data_row = test_utils.create_control_table_row(contents_cell=content,
+                                                       control_type_cell=control_type)
         ip_table.add_row(data_row)
 
-        control_table_parser = ControlsTable(ip_table)
+        control_table_parser = ControlsTable(ip_table, control_types={'HIGH_FITC'})
         control_table_parser.process_table()
-        control_result = control_table_parser.get_structured_request()
-        self.assertEqual(1, len(control_result))
-        self.assertEqual(1, len(control_result[0][dc_constants.CONTENTS]))
-        content = control_result[0][dc_constants.CONTENTS][0]
-        self.assertEqual(2, len(content[dc_constants.NAME]))
-        self.assertEqual(content[dc_constants.NAME][dc_constants.LABEL], 'beta_estradiol')
-        self.assertEqual(content[dc_constants.NAME][dc_constants.SBH_URI], 'https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1')
+        control_result = control_table_parser.get_intents()
 
+        content = {dc_constants.NAME: {dc_constants.LABEL: 'beta_estradiol',
+                                       dc_constants.SBH_URI: 'https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1'}}
+
+        expected_result = {dc_constants.TYPE: 'HIGH_FITC',
+                           dc_constants.CONTENTS: [content]}
+        self.assertEqual(expected_result, control_result[0].to_structure_request())
 
 if __name__ == "__main__":
     unittest.main()

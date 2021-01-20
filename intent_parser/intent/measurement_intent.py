@@ -1,22 +1,53 @@
 
 from sbol3 import BooleanProperty, Collection, CombinatorialDerivation, Component
 from sbol3 import Measure, LocalSubComponent, SubComponent, URIProperty, VariableComponent
+from intent_parser.intent.control_intent import ControlIntent
+from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-from typing import Union
+from typing import List, Union
 import opil
-import intent_parser.protocols.opil_parameter_utils as opil_utils
 import sbol3.constants as sbol_constants
 
-class Measurement(object):
+class MeasuredUnit(object):
+
+    def __init__(self, value: Union[float, int], unit: str, unit_type=None):
+        self._value = value
+        self._unit = unit
+        self._unit_type = unit_type
+
+    def get_unit(self):
+        return self._unit
+
+    def get_value(self):
+        return self._value
+
+    def to_structure_request(self):
+        return {dc_constants.VALUE: float(self._value),
+                dc_constants.UNIT: self._unit}
+
+
+class TemperatureIntent(MeasuredUnit):
+
+    def __init__(self, value: float, unit: str):
+        super().__init__(value, unit, 'temperature')
+
+
+class TimepointIntent(MeasuredUnit):
+
+    def __init__(self, value: Union[float, int], unit: str):
+        super().__init__(value, unit, 'timepoint')
+
+
+class MeasurementIntent(object):
 
     def __init__(self):
         self.sample_id = 1
 
         self.intent = {}
-        self._file_type = None
         self._measurement_type = None
+        self._file_type = []
         self._batches = []
         self._contents = MeasurementContent()
         self._controls = []
@@ -26,40 +57,56 @@ class Measurement(object):
         self._temperatures = []
         self._timepoints = []
 
-    def add_batch(self, batch):
+    def add_batch(self, batch: int):
         self._batches.append(batch)
 
     def add_content(self, content):
+        # if not content.is_empty():
         self._contents.add_content_intent(content)
 
-    def add_control(self, control):
+    def add_control(self, control: ControlIntent):
         self._controls.append(control)
 
-    def add_field(self, field, value):
-        self.intent[field] = value
-
-    def add_file_type(self, file_type):
+    def add_file_type(self, file_type: str):
         self._file_type.append(file_type)
 
-    def add_optical_density(self, ods):
+    def add_optical_density(self, ods: float):
         self._optical_densities.append(ods)
 
-    def add_replicate(self, replicate):
+    def add_replicate(self, replicate: int):
         self._replicates.append(replicate)
 
-    def add_strain(self, strain):
+    def add_strain(self, strain: StrainIntent):
         self._strains.append(strain)
 
-    def add_temperature(self, temperature):
+    def add_temperature(self, temperature: TemperatureIntent):
         self._temperatures.append(temperature)
 
-    def add_timepoint(self, timepoint):
+    def add_timepoint(self, timepoint: TimepointIntent):
         self._timepoints.append(timepoint)
 
-    def set_file_type(self, file_type):
-        self._file_type = file_type
+    def get_contents(self):
+        return self._contents
 
-    def set_measurement_type(self, measurement_type):
+    def get_file_types(self):
+        return self._file_type
+
+    def get_measurement_type(self):
+        return self._measurement_type
+
+    def is_empty(self):
+        return (self._measurement_type is None and
+                len(self._file_type) == 0 and
+                len(self._batches) == 0 and
+                self._contents.is_empty() and
+                len(self._controls) == 0 and
+                len(self._optical_densities) == 0 and
+                len(self._replicates) == 0 and
+                len(self._strains) == 0 and
+                len(self._temperatures) == 0 and
+                len(self._timepoints) == 0)
+
+    def set_measurement_type(self, measurement_type: str):
         self._measurement_type = measurement_type
 
     def to_sbol_for_measurement(self):
@@ -72,12 +119,11 @@ class Measurement(object):
 
         return sample_combinations
 
-
-    def to_structured_request(self):
+    def to_structure_request(self):
         if self._measurement_type is None:
-            raise IntentParserException("A structured request must have a measurement-type but measurement-type is not set.")
-        if self._file_type is None:
-            raise IntentParserException("A structured request must have a file-type but file-type is not set.")
+            raise IntentParserException("A structured request must have a measurement-type but none is set.")
+        if len(self._file_type) == 0:
+            raise IntentParserException("A structured request must have a file-type but file-type is empty.")
 
         structure_request = {dc_constants.MEASUREMENT_TYPE: self._measurement_type,
                              dc_constants.FILE_TYPE: self._file_type}
@@ -95,7 +141,7 @@ class Measurement(object):
         if len(self._batches) > 0:
             structure_request[dc_constants.BATCH] = self._batches
         if len(self._controls) > 0:
-            structure_request[dc_constants.CONTROLS] = [control.to_structured_request() for control in self._controls]
+            structure_request[dc_constants.CONTROLS] = [control.to_structure_request() for control in self._controls]
         if not self._contents.is_empty():
             structure_request.update(self._contents.to_structure_request())
 
@@ -168,14 +214,14 @@ class MeasurementContent(object):
         self._contents = []
 
     def add_content_intent(self, content_intent):
-        if not content_intent.is_empty():
-            self._contents.append(content_intent)
+        # if not content_intent.is_empty():
+        self._contents.append(content_intent)
 
     def is_empty(self):
-        return len(self._contents) > 0
+        return len(self._contents) == 0
 
     def to_structure_request(self):
-        return {dc_constants.CONTENTS: [content.to_structure_request() for content in self._contents]}
+        return {dc_constants.CONTENTS: content.to_structure_request() for content in self._contents}
 
 class ContentIntent(object):
 
@@ -195,6 +241,9 @@ class ContentIntent(object):
 
     def add_reagent(self, reagent):
         self._reagents.append(reagent)
+
+    def get_row_ids(self):
+        return self._row_ids
 
     def set_column_ids(self, col_ids):
         self._column_ids = col_ids
@@ -218,15 +267,15 @@ class ContentIntent(object):
         self._template_dna_values = template_dna_values
 
     def is_empty(self):
-        return (len(self._num_neg_controls) > 0 or
-                len(self._rna_inhibitor_reaction_flags) > 0 or
-                len(self._dna_reaction_concentrations) > 0 or
-                len(self._template_dna_values) > 0 or
-                len(self._column_ids) > 0 or
-                len(self._row_ids) > 0 or
-                len(self._lab_ids) > 0 or
-                len(self._reagents) > 0 or
-                len(self._medias) > 0)
+        return (len(self._num_neg_controls) == 0 and
+                len(self._rna_inhibitor_reaction_flags) == 0 and
+                len(self._dna_reaction_concentrations) == 0 and
+                len(self._template_dna_values) == 0 and
+                len(self._column_ids) == 0 and
+                len(self._row_ids) == 0 and
+                len(self._lab_ids) == 0 and
+                len(self._reagents) == 0 and
+                len(self._medias) == 0)
 
     def to_structure_request(self):
         structure_request = []
@@ -238,11 +287,11 @@ class ContentIntent(object):
             structure_request.append([dna_reaction_concentration.to_structure_request() for dna_reaction_concentration in self._dna_reaction_concentrations])
         if self._template_dna_values:
             structure_request.append([template_dna.to_structure_request() for template_dna in self._template_dna_values])
-        if self._column_ids:
+        if len(self._column_ids) > 0:
             structure_request.append([col_id.to_structure_request() for col_id in self._column_ids])
-        if self._row_ids:
+        if len(self._row_ids) > 0:
             structure_request.append([row_id.to_structure_request() for row_id in self._row_ids])
-        if self._lab_ids:
+        if len(self._lab_ids) > 0:
             structure_request.append([lab_id.to_structure_request() for lab_id in self._lab_ids])
         if self._reagents:
             structure_request.append([reagent.to_structure_request() for reagent in self._reagents])
@@ -266,41 +315,6 @@ class ContentIntent(object):
         media_variable.variant_collection = media_collection
 
         return media_template, media_variable
-
-class MeasuredUnit(object):
-
-    def __init__(self, value: Union[float, int], unit: str, unit_type=None):
-        self._value = value
-        self._unit = unit
-        self._unit_type = unit_type
-
-    def get_unit(self):
-        return self._unit
-
-    def get_value(self):
-        return self._value
-
-    def to_structure_request(self):
-        return {dc_constants.VALUE: str(self._value),
-                dc_constants.UNIT: self._unit}
-
-
-
-class TemperatureIntent(MeasuredUnit):
-
-    def __init__(self, value: float, unit: str):
-        super().__init__(value, unit, 'temperature')
-
-    def __init__(self, measured_intent: MeasuredUnit):
-        super().__init__(measured_intent.get_value(), measured_intent.get_unit(), 'temperature')
-
-class TimepointIntent(MeasuredUnit):
-
-    def __init__(self, value: Union[float, int], unit: str):
-        super().__init__(value, unit, 'timepoint')
-
-    # def __init__(self, measured_intent: MeasuredUnit):
-    #     super().__init__(measured_intent.get_value(), measured_intent.get_unit(), 'timepoint')
 
 class NamedLink(object):
 
@@ -334,19 +348,27 @@ class NamedIntegerValue(object):
         self._named_link = named_link
         self._value = value
 
+    def get_value(self):
+        return self._value
+
     def to_structure_request(self):
         return {dc_constants.NAME: self._named_link.to_structure_request(),
                 dc_constants.VALUE: self._value}
 
 class NamedStringValue(object):
 
-    def __init__(self, named_link: NamedLink, value: str):
+    def __init__(self, named_link: NamedLink, value=''):
         self._named_link = named_link
         self._value = value
 
+    def get_named_link(self):
+        return self._named_link
+
     def to_structure_request(self):
-        return {dc_constants.NAME: self._named_link.to_structure_request(),
-                dc_constants.VALUE: self._value}
+        result = {dc_constants.NAME: self._named_link.to_structure_request()}
+        if self._value:
+            result[dc_constants.VALUE] = self._value
+        return result
 
 class MediaIntent(object):
 

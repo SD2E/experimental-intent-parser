@@ -185,7 +185,7 @@ class OPILProcessor(Processor):
                                            strain_mapping=strain_mapping)
             controls_table.process_table()
             table_caption = controls_table.get_table_caption()
-            controls_data = control_tables.get_structured_request()
+            controls_data = control_tables.get_structure_request()
             if table_caption:
                 self.processed_controls[table_caption] = controls_data
             self.validation_errors.extend(controls_table.get_validation_errors())

@@ -5,7 +5,7 @@ Intent Parser's representation of strains.
 """
 class StrainIntent(object):
 
-    def __init__(self, strain_reference_link, lab_id, strain_common_name, lab_strain_names=[]):
+    def __init__(self, strain_reference_link: str, lab_id: str, strain_common_name: str, lab_strain_names=[]):
         self._strain_reference_link = strain_reference_link
         self._lab_id = lab_id
         self._selected_strain = None
