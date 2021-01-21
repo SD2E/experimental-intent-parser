@@ -36,7 +36,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         self.assertEqual(meas_result[0].get_measurement_type(), 'FLOW')
 
@@ -49,7 +49,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table)
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual([], meas_result)
     
     def test_table_with_file_type(self):
@@ -61,7 +61,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table, file_type={'FASTQ'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         self.assertEqual(['FASTQ'], meas_result[0].get_file_types())
 
@@ -90,7 +90,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'}, file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[{'name': {'label': 'column_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 13}],
@@ -118,7 +118,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'}, file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[{'name': {'label': 'lab_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 'foo'},
@@ -145,7 +145,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'}, file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[{'name': {'label': 'row_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 1},
@@ -171,7 +171,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'}, file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[{'name': {'label': 'column_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 1},
@@ -197,7 +197,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'}, file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.CONTENTS: [[{dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE,
@@ -232,7 +232,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'}, file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.CONTENTS: [
@@ -264,7 +264,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'}, file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                                   'file_type': ['SPREADSHEET'],
                             dc_constants.CONTENTS: [
@@ -296,7 +296,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'}, file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                                   'file_type': ['SPREADSHEET'],
                             dc_constants.CONTENTS: [[{dc_constants.NAME: {dc_constants.LABEL: ip_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE,
@@ -331,7 +331,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'}, file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.REPLICATES: [3]}
@@ -356,7 +356,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table, measurement_types={'PLATE_READER', 'FLOW'}, file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
 
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
@@ -386,7 +386,7 @@ class MeasurementTableTest(unittest.TestCase):
 
         meas_table = MeasurementTable(ip_table, strain_mapping=strain_mapping, measurement_types={'PLATE_READER', 'FLOW'}, file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_strain = {dc_constants.SBH_URI: 'https://foo.com',
                            dc_constants.LABEL: 'AND_00',
                            dc_constants.LAB_ID: 'name.mylab.test_strain'}
@@ -419,7 +419,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET']}
         self.assertEqual(expected_results, meas_result[0].to_structure_request())
@@ -448,7 +448,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET']}
         self.assertEqual(expected_results, meas_result[0].to_structure_request())
@@ -485,7 +485,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_strain1 = {dc_constants.SBH_URI: strain_link1,
                            dc_constants.LABEL: 'AND_00',
                            dc_constants.LAB_ID: 'name.mylab.%s' % lab_strain1}
@@ -518,7 +518,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.VALUE: 3.0, dc_constants.UNIT: 'hour'}
@@ -547,7 +547,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.VALUE: 6.0, dc_constants.UNIT: 'hour'}
@@ -579,7 +579,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.VALUE: 1.0, dc_constants.UNIT: 'fahrenheit'}
@@ -609,7 +609,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET']}
         self.assertEqual(expected_results, meas_result[0].to_structure_request())
@@ -635,7 +635,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
 
         exp_res1 = {dc_constants.VALUE: 3.0, dc_constants.UNIT: 'celsius'}
         exp_res2 = {dc_constants.VALUE: 2.0, dc_constants.UNIT: 'celsius'}
@@ -666,7 +666,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.VALUE: 3.0, dc_constants.UNIT: 'celsius'}
@@ -697,7 +697,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET']}
         self.assertEqual(expected_results, meas_result[0].to_structure_request())
@@ -722,7 +722,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET']}
         self.assertEqual(expected_results, meas_result[0].to_structure_request())
@@ -747,7 +747,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             ip_constants.HEADER_ODS_VALUE: [3]}
@@ -773,7 +773,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             ip_constants.HEADER_ODS_VALUE: [33.0, 22.0, 11.0]}
@@ -805,7 +805,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
@@ -842,7 +842,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
@@ -885,7 +885,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
@@ -921,7 +921,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
@@ -957,7 +957,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: reagent_name, dc_constants.SBH_URI: reagent_uri},
@@ -994,7 +994,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
 
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'SC_Media', dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
                     dc_constants.VALUE: '0.0',
@@ -1031,7 +1031,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
 
         exp_res1 = [{dc_constants.NAME: {dc_constants.LABEL: 'Xylose', dc_constants.SBH_URI: reagent_uri}, dc_constants.VALUE: '26.0', dc_constants.UNIT: 'mM'},
@@ -1076,7 +1076,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
 
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'IPTG', dc_constants.SBH_URI: reagent_uri},
@@ -1112,7 +1112,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEquals(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'Media', dc_constants.SBH_URI: media_uri},
@@ -1145,7 +1145,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'media', dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
@@ -1178,7 +1178,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'media', dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
@@ -1211,7 +1211,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'media', dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
@@ -1241,7 +1241,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
-        meas_result = meas_table.get_intent()
+        meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.BATCH: [0,1]}
@@ -1281,7 +1281,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         measurement_parser.process_table(control_data={control_parser.get_table_caption(): control_result})
-        meas_result = measurement_parser.get_intent()
+        meas_result = measurement_parser.get_intents()
 
         control_result = {dc_constants.TYPE: 'HIGH_FITC',
                           dc_constants.STRAINS: [{dc_constants.LAB_ID: 'name.ip_admin.UWBF_7376',
@@ -1336,7 +1336,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         measurement_parser.process_table(control_data={1: control1_result, 2: control2_result})
-        meas_result = measurement_parser.get_intent()
+        meas_result = measurement_parser.get_intents()
 
         control1_result = {dc_constants.TYPE: 'HIGH_FITC',
                           dc_constants.STRAINS: [{dc_constants.LAB_ID: 'name.ip_admin.UWBF_7376',
@@ -1405,7 +1405,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       measurement_types={'PLATE_READER', 'FLOW'},
                                       file_type={'SPREADSHEET'})
         measurement_parser.process_table(control_data={1: control1_result, 2: control2_result})
-        meas_result = measurement_parser.get_intent()
+        meas_result = measurement_parser.get_intents()
 
         self.assertEquals(2, len(meas_result))
 

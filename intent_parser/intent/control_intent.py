@@ -11,9 +11,6 @@ class ControlIntent(object):
         self._strains = []
         self._timepoints = []
 
-    def add_field(self, field, value):
-        self.intent[field] = value
-
     def add_content(self, value):
         self._contents.append(value)
 
@@ -37,6 +34,10 @@ class ControlIntent(object):
         if self._control_type:
             raise IntentParserException('Conflict setting control type %s. Current set value %s' % (value, self._control_type))
         self._control_type = value
+
+    def to_sbol_for_measurement(self):
+        pass
+
 
     def to_structure_request(self):
         if self._control_type is None:

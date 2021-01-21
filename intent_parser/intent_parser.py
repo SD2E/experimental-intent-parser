@@ -281,7 +281,7 @@ class IntentParser(object):
 
     def process_opil_request(self, lab_accessors: dict):
         filtered_tables = self.get_tables_by_type()
-        opil_processor = OPILProcessor(self.sbol_dictionary, lab_names=self.catalog_accessor.get_lab_ids())
+        opil_processor = OPILProcessor(self.catalog_accessor, self.sbol_dictionary, lab_names=self.catalog_accessor.get_lab_ids())
         opil_processor.set_lab_accessor(lab_accessors)
         opil_processor.process_intent(filtered_tables[TableType.LAB],
                                       filtered_tables[TableType.CONTROL],

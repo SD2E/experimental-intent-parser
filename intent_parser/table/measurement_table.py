@@ -37,7 +37,7 @@ class MeasurementTable(object):
         self._table_caption = None
         self._measurement_intents = []
 
-    def get_intent(self):
+    def get_intents(self):
         return self._measurement_intents
 
     def get_structured_request(self):
@@ -119,7 +119,7 @@ class MeasurementTable(object):
             elif ip_constants.HEADER_BATCH_TYPE == cell_type:
                 self._process_batch(cell, measurement, row_offset, column_offset)
             elif ip_constants.HEADER_CONTROL_TYPE == cell_type:
-                self._process_control(cell, control_data, measurement) # TODO: refactor for measurement-intent
+                self._process_control(cell, control_data, measurement)
             elif ip_constants.HEADER_NUM_NEG_CONTROL_TYPE == cell_type:
                 num_neg_controls = self._process_num_neg_controls(cell, row_offset, column_offset)
                 if num_neg_controls:

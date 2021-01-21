@@ -1,5 +1,5 @@
 
-from sbol3 import BooleanProperty, Collection, CombinatorialDerivation, Component
+from sbol3 import BooleanProperty, Collection, CombinatorialDerivation, Component, FloatProperty, IntProperty, TextProperty
 from sbol3 import Measure, LocalSubComponent, SubComponent, URIProperty, VariableComponent
 from intent_parser.intent.control_intent import ControlIntent
 from intent_parser.intent.strain_intent import StrainIntent
@@ -61,7 +61,6 @@ class MeasurementIntent(object):
         self._batches.append(batch)
 
     def add_content(self, content):
-        # if not content.is_empty():
         self._contents.add_content_intent(content)
 
     def add_control(self, control: ControlIntent):
@@ -109,15 +108,49 @@ class MeasurementIntent(object):
     def set_measurement_type(self, measurement_type: str):
         self._measurement_type = measurement_type
 
-    def to_sbol_for_measurement(self):
+    def to_sbol_for_samples(self):
+        all_sample_templates = []
+        all_sample_variables = []
+
+        for content in self._contents.get_contents():
+            sample_templates, sample_variables = content.to_sbol_for_samples()
+            all_sample_templates.extend(sample_templates)
+            all_sample_variables.extend(sample_variables)
+
         strain_template, strain_variable = self._encode_strains_using_sbol()
+        all_sample_templates.extend(strain_template)
+        all_sample_variables.extend(strain_variable)
 
         sample_template = Component('Measurement_Template')
         sample_combinations = CombinatorialDerivation('measurement_combinatorial_derivation', sample_template)
-        sample_combinations.variable_components = [strain_variable]
-        sample_combinations.has_features = [strain_template]
+        sample_combinations.variable_components = all_sample_variables
+        sample_combinations.has_features = all_sample_templates
 
         return sample_combinations
+
+    def to_sbol_for_measurement(self):
+        opil_measurement = opil.Measurement()
+        if self._measurement_type:
+            self._encode_measurement_type_using_sbol(opil_measurement)
+        if len(self._file_type) > 0:
+            self._encode_file_type_using_sbol(opil_measurement)
+        if len(self._batches) > 0:
+            self._encode_batches_using_sbol(opil_measurement)
+        if not self._contents.is_empty():
+            for content in self._contents.get_contents():
+                content.to_sbol_for_measurement(opil_measurement)
+        if len(self._controls) > 0:
+            pass # TODO:
+        if len(self._optical_densities) > 0:
+            self._encode_optical_densities(opil_measurement)
+        if len(self._replicates) > 0:
+            self._encode_replicates_using_sbol(opil_measurement)
+        if len(self._temperatures) > 0:
+            self._encode_temperature_using_sbol(opil_measurement)
+        if len(self._timepoints) > 0:
+            self._encode_timepoint_using_sbol(opil_measurement)
+
+        return opil_measurement
 
     def to_structure_request(self):
         if self._measurement_type is None:
@@ -147,10 +180,18 @@ class MeasurementIntent(object):
 
         return structure_request
 
-    def _encode_measurement_type_using_sbol(self):
-        measurement_type = opil.MeasurementType('m')
-        measurement_type.type = URIProperty(measurement_type, 'http://bbn.com/synbio/opil#type', 0, 1)
-        measurement_type.required = BooleanProperty(measurement_type, 'http://bbn.com/synbio/opil#required', 0, 1)
+    def _encode_batches_using_sbol(self, opil_measurement):
+        for batch_value in self._batches:
+            opil_measurement.annotation_property = IntProperty(opil_measurement, 0, 1) # TODO: what is property owner?
+            opil_measurement.annotation_property = batch_value # TODO: custom annotaton must declare as annotation_property?
+
+    def _encode_file_type_using_sbol(self, opil_measurement):
+        for file_type in self._file_type:
+            opil_measurement.annotation_property = TextProperty(opil_measurement, 0, 1)
+            opil_measurement.annotation_property = file_type
+
+    def _encode_measurement_type_using_sbol(self, opil_measurement):
+        measurement_type = opil.MeasurementType('measurement_type')
         measurement_type.required = True
         if self._measurement_type == ip_constants.MEASUREMENT_TYPE_FLOW:
             measurement_type.type = ip_constants.NCIT_FLOW_URI
@@ -175,10 +216,18 @@ class MeasurementIntent(object):
         else:
             raise IntentParserException(
                 'Unable to create an opil measurement-type: %s not supported' % self._measurement_type)
-        return measurement_type
+        opil_measurement.instance_of = measurement_type
 
-    def _encode_replicates_using_sbol(self):
-        pass
+    def _encode_optical_densities(self, opil_measurement):
+        for optical_density in self._optical_densities:
+            opil_measurement.annotation_property = FloatProperty(opil_measurement, 0, 1)  # TODO: what is property owner?
+            opil_measurement.annotation_property = optical_density  # TODO: custom annotaton must declare as annotation_property?
+
+    def _encode_replicates_using_sbol(self, opil_measurement):
+        for replicate in self._replicates:
+            opil_measurement.annotation_property = IntProperty(opil_measurement, 0,
+                                                                 1)  # TODO: what is property owner?
+            opil_measurement.annotation_property = replicate  # TODO: custom annotaton must declare as annotation_property?
 
     def _encode_strains_using_sbol(self):
         strain_template = LocalSubComponent(name='strain_template', types=[ip_constants.NCIT_STRAIN_URI])
@@ -186,27 +235,71 @@ class MeasurementIntent(object):
         strain_variable.variable = strain_template
 
         chosen_strains = []
+        strain_component = Component('strain_component', sbol_constants.SBO_DNA)
         for strain in self._strains:
             strain_sub_component = SubComponent(strain.get_strain_reference_link())
             chosen_strains.append(strain_sub_component)
 
-        strain_collection = Collection()
-        strain_collection.members = chosen_strains
+        strain_component.features = chosen_strains
+        strain_collection = Collection('strain_collection')
+        strain_collection.members = [encoded_strain.identity for encoded_strain in chosen_strains]
         strain_variable.variant_collection = strain_collection
 
         return strain_template, strain_variable
 
-    def _encode_temperature_using_sbol(self):
-        encoded_temps = []
+    def _encode_timepoint_using_sbol(self, opil_measurement):
+        encoded_timepoints = []
+        for timepoint in self._timepoints:
+            if timepoint.get_unit() == 'day':
+                encoded_time = Measure(timepoint.get_value(), 'http://www.ontology-of-units-of-measure.org/resource/om-2/month')
+                encoded_timepoints.append(encoded_time)
+            elif timepoint.get_unit() == 'hour':
+                encoded_time = Measure(timepoint.get_value(), 'http://www.ontology-of-units-of-measure.org/resource/om-2/hour')
+                encoded_timepoints.append(encoded_time)
+            elif timepoint.get_unit() == 'femtosecond':
+                encoded_time = Measure(timepoint.get_value(), 'http://www.ontology-of-units-of-measure.org/resource/om-2/femtosecond-Time')
+                encoded_timepoints.append(encoded_time)
+            elif timepoint.get_unit() == 'microsecond':
+                encoded_time = Measure(timepoint.get_value(), 'http://www.ontology-of-units-of-measure.org/resource/om-2/microsecond-Time')
+                encoded_timepoints.append(encoded_time)
+            elif timepoint.get_unit() == 'millisecond':
+                encoded_time = Measure(timepoint.get_value(), 'http://www.ontology-of-units-of-measure.org/resource/om-2/millisecond-Time')
+                encoded_timepoints.append(encoded_time)
+            elif timepoint.get_unit() == 'minute':
+                encoded_time = Measure(timepoint.get_value(), 'http://www.ontology-of-units-of-measure.org/resource/om-2/minute-Time')
+                encoded_timepoints.append(encoded_time)
+            elif timepoint.get_unit() == 'month':
+                encoded_time = Measure(timepoint.get_value(), 'http://www.ontology-of-units-of-measure.org/resource/om-2/day')
+                encoded_timepoints.append(encoded_time)
+            elif timepoint.get_unit() == 'nanosecond':
+                encoded_time = Measure(timepoint.get_value(), 'http://www.ontology-of-units-of-measure.org/resource/om-2/nanosecond-Time')
+                encoded_timepoints.append(encoded_time)
+            elif timepoint.get_unit() == 'picosecond':
+                encoded_time = Measure(timepoint.get_value(), 'http://www.ontology-of-units-of-measure.org/resource/om-2/picosecond-Time')
+                encoded_timepoints.append(encoded_time)
+            elif timepoint.get_unit() == 'second':
+                encoded_time = Measure(timepoint.get_value(), 'http://www.ontology-of-units-of-measure.org/resource/om-2/second-Time')
+                encoded_timepoints.append(encoded_time)
+            elif timepoint.get_unit() == 'week':
+                encoded_time = Measure(timepoint.get_value(), 'http://www.ontology-of-units-of-measure.org/resource/om-2/week')
+                encoded_timepoints.append(encoded_time)
+            elif timepoint.get_unit() == 'year':
+                encoded_time = Measure(timepoint.get_value(), 'http://www.ontology-of-units-of-measure.org/resource/om-2/year')
+                encoded_timepoints.append(encoded_time)
+            else:
+                raise IntentParserException('unit %s not supported.' % timepoint.get_unit())
+
+        opil_measurement.time = encoded_timepoints
+
+    def _encode_temperature_using_sbol(self, opil_measurement):
+        # TODO: confirm if there is a opil.temperature field for an opil.measurement object
         for temperature in self._temperatures:
-            encoded_temp = Measure(temperature.value, temperature.unit)
-            encoded_temps.append(encoded_temp)
-        return encoded_temps
-
-
-    def _generate_sample_name(self):
-        sample_id = self.sample_id + 1
-        return 'sample_%d' % sample_id
+            if temperature.get_unit() == 'celsius':
+                opil_measurement.temperature = Measure(temperature.get_value(),
+                                                       'http://www.ontology-of-units-of-measure.org/resource/om-2/degreeCelsius')
+            elif temperature.get_unit() == 'fahrenheit':
+                opil_measurement.temperature = Measure(temperature.get_value(),
+                                                       'http://www.ontology-of-units-of-measure.org/resource/om-2/degreeFahrenheit')
 
 class MeasurementContent(object):
 
@@ -214,8 +307,10 @@ class MeasurementContent(object):
         self._contents = []
 
     def add_content_intent(self, content_intent):
-        # if not content_intent.is_empty():
         self._contents.append(content_intent)
+
+    def get_contents(self):
+        return self._contents
 
     def is_empty(self):
         return len(self._contents) == 0
@@ -277,15 +372,32 @@ class ContentIntent(object):
                 len(self._reagents) == 0 and
                 len(self._medias) == 0)
 
+    def to_sbol_for_measurement(self, opil_measurement):
+        self._encode_col_ids_using_sbol(opil_measurement)
+        self._encode_dna_reaction_concentration(opil_measurement)
+        self._encode_lab_ids_using_sbol(opil_measurement)
+        self._encode_number_of_negative_controls_using_sbol(opil_measurement)
+        self._encode_rna_inhibitor_using_sbol(opil_measurement)
+        self._encode_row_ids_using_sbol(opil_measurement)
+        self._encode_template_dna_using_sbol(opil_measurement)
+
+    def to_sbol_for_samples(self):
+        media_template, media_variable = self._encode_media_using_sbol()
+        reagent_template, reagent_variable = self._encode_reagent_using_sbol()
+
+        all_templates = [media_template, reagent_template]
+        all_variables = [media_variable, reagent_variable]
+        return all_templates, all_variables
+
     def to_structure_request(self):
         structure_request = []
-        if self._num_neg_controls:
+        if len(self._num_neg_controls) > 0:
             structure_request.append([num_neg_control.to_structure_request() for num_neg_control in self._num_neg_controls])
-        if self._rna_inhibitor_reaction_flags:
+        if len(self._rna_inhibitor_reaction_flags) > 0:
             structure_request.append([rna_inhibitor_reaction.to_structure_request() for rna_inhibitor_reaction in self._rna_inhibitor_reaction_flags])
-        if self._dna_reaction_concentrations:
+        if len(self._dna_reaction_concentrations) > 0:
             structure_request.append([dna_reaction_concentration.to_structure_request() for dna_reaction_concentration in self._dna_reaction_concentrations])
-        if self._template_dna_values:
+        if len(self._template_dna_values) > 0:
             structure_request.append([template_dna.to_structure_request() for template_dna in self._template_dna_values])
         if len(self._column_ids) > 0:
             structure_request.append([col_id.to_structure_request() for col_id in self._column_ids])
@@ -293,12 +405,27 @@ class ContentIntent(object):
             structure_request.append([row_id.to_structure_request() for row_id in self._row_ids])
         if len(self._lab_ids) > 0:
             structure_request.append([lab_id.to_structure_request() for lab_id in self._lab_ids])
-        if self._reagents:
+        if len(self._reagents):
             structure_request.append([reagent.to_structure_request() for reagent in self._reagents])
-        if self._medias:
+        if len(self._medias) > 0:
             structure_request.append([media.to_structure_request() for media in self._medias])
 
         return structure_request
+
+    def _encode_col_ids_using_sbol(self, opil_measurement):
+        for col_id in self._column_ids:
+            opil_measurement.annotation_property = IntProperty(opil_measurement, 0, 1) # TODO: what is property owner?
+            opil_measurement.annotation_property = col_id # TODO: custom annotaton must declare as annotation_property?
+
+    def _encode_dna_reaction_concentration(self, opil_measurement):
+        for dna_reaction in self._dna_reaction_concentrations:
+            opil_measurement.annotation_property = IntProperty(opil_measurement, 0, 1)
+            opil_measurement.annotation_property = dna_reaction
+
+    def _encode_lab_ids_using_sbol(self, opil_measurement):
+        for lab_id in self._lab_ids:
+            opil_measurement.annotation_property = TextProperty(opil_measurement, 0, 1) # TODO: what is property owner?
+            opil_measurement.annotation_property = lab_id # TODO: custom annotaton must declare as annotation_property?
 
     def _encode_media_using_sbol(self):
         media_template = LocalSubComponent(name='media_template', types=[ip_constants.NCIT_MEDIA_URI])
@@ -306,15 +433,58 @@ class ContentIntent(object):
         media_variable.variable = media_template
 
         chosen_medias = []
+        media_component = Component('media_component', ip_constants.NCIT_MEDIA_URI)
         for media in self._medias:
-            sbol_media = Component(name=media.name)
-            chosen_medias.append(sbol_media)
+            media_sub_component = SubComponent(media.get_media_name().get_link())
+            chosen_medias.append(media_sub_component)
 
+        media_component.features = chosen_medias
         media_collection = Collection(name='media_collection')
-        media_collection.members = chosen_medias
+        media_collection.members = [encoded_media.identity for encoded_media in chosen_medias]
         media_variable.variant_collection = media_collection
-
         return media_template, media_variable
+
+    def _encode_number_of_negative_controls_using_sbol(self, opil_measurement):
+        for neg_control in self._num_neg_controls:
+            opil_measurement.annotation_property = IntProperty(opil_measurement, 0, 1) # TODO: what is property owner?
+            opil_measurement.annotation_property = neg_control # TODO: custom annotaton must declare as annotation_property?
+
+    def _encode_reagent_using_sbol(self):
+        reagent_template = LocalSubComponent(name='reagent_template', types=[ip_constants.NCIT_INDUCER_URI])
+        reagent_variable = VariableComponent(cardinality=sbol_constants.SBOL_ONE_OR_MORE)
+        reagent_variable.variable = reagent_template
+
+        chosen_reagents = []
+        reagent_component = Component('reagent_component', ip_constants.NCIT_INDUCER_URI)
+        for reagent in self._reagents:
+            reagent_sub_component = SubComponent(reagent.get_reagent_name().get_link())
+            chosen_reagents.append(reagent_sub_component)
+
+            # TODO: where to map these additional information?
+            reagent.get_timepoint()
+            reagent.get_value()
+            reagent.get_unit()
+
+        reagent_component.features = chosen_reagents
+        reagent_collection = Collection(name='media_collection')
+        reagent_collection.members = [encoded_reagent.identity for encoded_reagent in chosen_reagents]
+        reagent_variable.variant_collection = reagent_collection
+        return reagent_template, reagent_variable
+
+    def _encode_rna_inhibitor_using_sbol(self, opil_measurement):
+        for boolean_flag in self._rna_inhibitor_reaction_flags:
+            opil_measurement.annotation_property = BooleanProperty(opil_measurement, 0, 1)
+            opil_measurement.annotation_property = boolean_flag
+
+    def _encode_row_ids_using_sbol(self, opil_measurement):
+        for row_id in self._row_ids:
+            opil_measurement.annotation_property = IntProperty(opil_measurement, 0, 1) # TODO: what is property owner?
+            opil_measurement.annotation_property = row_id # TODO: custom annotaton must declare as annotation_property?
+
+    def _encode_template_dna_using_sbol(self, opil_measurement):
+        for template_dna in self._dna_reaction_concentrations:
+            opil_measurement.annotation_property = TextProperty(opil_measurement, 0, 1)
+            opil_measurement.annotation_property = template_dna
 
 class NamedLink(object):
 
@@ -377,6 +547,9 @@ class MediaIntent(object):
         self._media_value = media_value
         self._timepoint = None
 
+    def get_media_name(self) -> NamedLink:
+        return self._media_name
+
     def set_timepoint(self, timepoint: TimepointIntent):
         self._timepoint = timepoint
 
@@ -398,6 +571,9 @@ class ReagentIntent(MeasuredUnit):
 
     def get_reagent_name(self):
         return self._reagent_name
+
+    def get_timepoint(self):
+        return self._timepoint
 
     def set_timepoint(self, timepoint: TimepointIntent):
         self._timepoint = timepoint

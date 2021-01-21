@@ -99,12 +99,14 @@ NCIT_CFU_URI = 'https://identifiers.org/ncit:C68742'
 NCIT_FLOW_URI = 'https://identifiers.org/ncit:C78806'
 NCIT_IMAGE_URI = 'https://identifiers.org/ncit:C16853'
 NCIT_DNA_SEQ_URI = 'https://identifiers.org/ncit:C153598'
+NCIT_INDUCER_URI = 'https://identifiers.org/ncit:C120268'
 NCIT_MEDIA_URI = 'https://identifiers.org/ncit:C85504'
 NCIT_PLATE_READER_URI = 'https://identifiers.org/ncit:C70661'
 NCIT_PROTEOMICS_URI = 'https://identifiers.org/ncit:C20085'
 NCIT_RNA_SEQ_URI = 'https://identifiers.org/ncit:C124261'
 NCIT_SEQUENCING_CHROMATOGRAM_URI = 'https://identifiers.org/ncit:C63580'
 NCIT_STRAIN_URI = 'https://identifiers.org/ncit:C14419'
+
 
 # measurement-typeis specific to SD2 project
 SD2_AUTOMATED_TEST_URI = 'http://sd2e.org#automatedTest'

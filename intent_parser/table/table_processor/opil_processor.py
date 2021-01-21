@@ -14,16 +14,19 @@ class OPILProcessor(Processor):
 
     logger = logging.getLogger('opil_processor')
 
-    def __init__(self, sbol_dictionary, lab_names={}):
+    def __init__(self, catalog_accessor, sbol_dictionary, lab_names={}):
         super().__init__()
         self._lab_names = lab_names
         self.processed_lab_name = ''
         self.processed_protocol_name = ''
 
-        self.processed_controls = []
+        self.processed_controls = {}
+        self.process_measurements = []
         self.processed_experiment_intent = None
-        self.sbol_doc = None
+        self.sbol_doc = opil.Document()
+
         self.lab_accessors = {}
+        self.catalog_accessor = catalog_accessor
         self.sbol_dictionary = sbol_dictionary
 
     def get_intent(self):
@@ -31,8 +34,10 @@ class OPILProcessor(Processor):
 
     def process_intent(self, lab_tables, control_tables, parameter_tables, measurement_tables):
         self._process_lab_tables(lab_tables)
-        self._process_control_tables(control_tables)
-        self._process_measurement_tables(measurement_tables)
+
+        strain_mapping = self.sbol_dictionary.get_mapped_strain(self.processed_lab_name)
+        self._process_control_tables(control_tables, strain_mapping)
+        self._process_measurement_tables(measurement_tables, strain_mapping)
         self._process_parameter_tables(parameter_tables)
         self._process_opil_protocol()
 
@@ -174,24 +179,27 @@ class OPILProcessor(Processor):
 
         return targeted_opil_param
 
-    def _process_control_tables(self, control_tables):
+    def _process_control_tables(self, control_tables, strain_mapping):
         if not control_tables:
             self.validation_errors.append('No control tables to parse from document.')
             return
 
-        strain_mapping = {}
         for table in control_tables:
             controls_table = ControlsTable(table,
+                                           control_types=self.catalog_accessor.get_control_type(),
+                                           fluid_units=self.catalog_accessor.get_fluid_units(),
+                                           timepoint_units=self.catalog_accessor.get_time_units(),
                                            strain_mapping=strain_mapping)
             controls_table.process_table()
             table_caption = controls_table.get_table_caption()
-            controls_data = control_tables.get_structure_request()
+            controls_data = control_tables.get_intents()
             if table_caption:
                 self.processed_controls[table_caption] = controls_data
             self.validation_errors.extend(controls_table.get_validation_errors())
             self.validation_warnings.extend(controls_table.get_validation_warnings())
 
-    def _process_measurement_tables(self, measurement_tables):
+
+    def _process_measurement_tables(self, measurement_tables, strain_mapping):
         if not measurement_tables:
             self.validation_errors.append('No measurement table to parse from document.')
             return
@@ -203,11 +211,20 @@ class OPILProcessor(Processor):
         try:
             table = measurement_tables[-1]
 
-            strain_mapping = self.sbol_dictionary.get_mapped_strain(self.processed_lab_name)
             measurement_table = MeasurementTable(table,
-                                                 strain_mapping=strain_mapping)
+                                                  temperature_units=self.catalog_accessor.get_temperature_units(),
+                                                  timepoint_units=self.catalog_accessor.get_time_units(),
+                                                  fluid_units=self.catalog_accessor.get_fluid_units(),
+                                                  measurement_types=self.catalog_accessor.get_measurement_types(),
+                                                  file_type=self.catalog_accessor.get_file_types(),
+                                                  strain_mapping=strain_mapping)
 
             measurement_table.process_table(control_data=self.processed_controls)
+            opil_experimental_result = opil.ExperimentalRequest('experimental_result')
+            opil_experimental_result.measurements = [measurement_intent.get_sbol_for_measurement() for measurement_intent in measurement_table.get_intents()]
+            self.sbol_doc.add(opil_experimental_result)
+
+            self.process_measurements.append(measurement_table.get_intents())
             self.validation_warnings.extend(measurement_table.get_validation_warnings())
             self.validation_errors.extend(measurement_table.get_validation_errors())
 
