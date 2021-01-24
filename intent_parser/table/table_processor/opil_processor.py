@@ -4,15 +4,62 @@ from intent_parser.table.lab_table import LabTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.parameter_table import ParameterTable
 from intent_parser.table.table_processor.processor import Processor
-import intent_parser.table.cell_parser as cell_parser
+import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.protocols.opil_parameter_utils as opil_utils
+import intent_parser.table.cell_parser as cell_parser
 import logging
 import opil
 
 class OPILProcessor(Processor):
 
     logger = logging.getLogger('opil_processor')
+
+    # units supported for opil conversion
+    _CONTROL_TYPES = ['HIGH_FITC',
+                      'EMPTY_VECTOR',
+                      'BASELINE',
+                      'TREATMENT_1',
+                      'TREATMENT_2',
+                      'BASELINE_MEDIA_PR',
+                      'CELL_DEATH_NEG_CONTROL',
+                      'CELL_DEATH_POS_CONTROL']
+    _FLUID_UNITS = ['%',
+                    'M',
+                    'mM',
+                    'X',
+                    'g/L',
+                    'ug/ml',
+                    'micromole',
+                    'nM',
+                    'uM',
+                    'mg/ml',
+                    'ng/ul']
+
+    _TIME_UNITS = ['day',
+                   'hour',
+                   'femtosecond',
+                   'microsecond',
+                   'millisecond',
+                   'minute',
+                   'month',
+                   'nanosecond',
+                   'picosecond',
+                   'second',
+                   'week',
+                   'year']
+
+    _TEMPERATURE_UNITS = ['celsius', 'fahrenheit']
+    _MEASUREMENT_TYPE = [ip_constants.MEASUREMENT_TYPE_FLOW,
+                         ip_constants.MEASUREMENT_TYPE_RNA_SEQ,
+                         ip_constants.MEASUREMENT_TYPE_DNA_SEQ,
+                         ip_constants.MEASUREMENT_TYPE_PROTEOMICS,
+                         ip_constants.MEASUREMENT_TYPE_SEQUENCING_CHROMATOGRAM,
+                         ip_constants.MEASUREMENT_TYPE_AUTOMATED_TEST,
+                         ip_constants.MEASUREMENT_TYPE_CFU,
+                         ip_constants.MEASUREMENT_TYPE_PLATE_READER,
+                         ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE,
+                         ip_constants.MEASUREMENT_TYPE_EXPERIMENTAL_DESIGN]
 
     def __init__(self, catalog_accessor, sbol_dictionary, lab_names={}):
         super().__init__()
@@ -212,16 +259,19 @@ class OPILProcessor(Processor):
             table = measurement_tables[-1]
 
             measurement_table = MeasurementTable(table,
-                                                  temperature_units=self.catalog_accessor.get_temperature_units(),
-                                                  timepoint_units=self.catalog_accessor.get_time_units(),
-                                                  fluid_units=self.catalog_accessor.get_fluid_units(),
-                                                  measurement_types=self.catalog_accessor.get_measurement_types(),
+                                                  temperature_units=self._TEMPERATURE_UNITS,
+                                                  timepoint_units=self._TIME_UNITS,
+                                                  fluid_units=self._FLUID_UNITS,
+                                                  measurement_types=self._MEASUREMENT_TYPE,
                                                   file_type=self.catalog_accessor.get_file_types(),
                                                   strain_mapping=strain_mapping)
 
             measurement_table.process_table(control_data=self.processed_controls)
             opil_experimental_result = opil.ExperimentalRequest('experimental_result')
-            opil_experimental_result.measurements = [measurement_intent.get_sbol_for_measurement() for measurement_intent in measurement_table.get_intents()]
+            opil_experimental_result.measurements = [measurement_intent.to_opil() for measurement_intent in measurement_table.get_intents()]
+            for measurement_intent in self.measurement_table.get_intents():
+                measurement_combinatorial_derivation = measurement_intent.to_sbol()
+                self.sbol_doc.add(measurement_combinatorial_derivation)
             self.sbol_doc.add(opil_experimental_result)
 
             self.process_measurements.append(measurement_table.get_intents())

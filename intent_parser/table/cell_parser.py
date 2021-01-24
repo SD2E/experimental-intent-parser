@@ -167,7 +167,8 @@ class CellParser(object):
         list_of_contents = []
         tokens = self._cell_tokenizer.tokenize(text, keep_skip=False)
         if len(tokens) < 1:
-            raise TableException('Invalid value: %s does not contain a name' % text.get_matched_term())
+            raise TableException('Invalid value: %s does not contain a name' % text)
+
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
         if cell_type == 'NAME_VALUE_UNIT':
             label, value, unit = self._get_name_values_unit(tokens)

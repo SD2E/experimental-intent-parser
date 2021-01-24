@@ -16,7 +16,7 @@ class StructureRequestTest(unittest.TestCase):
     def test_measurement_with_measurement_type(self):
         measurement_intent = MeasurementIntent()
         measurement_intent.set_measurement_type(ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE)
-        opil_measurement = measurement_intent.to_sbol_for_measurement()
+        opil_measurement = measurement_intent.to_opil()
 
         self.assertIsNotNone(opil_measurement.instance_of)
         # TODO: unable to call get methods from opil
@@ -26,7 +26,7 @@ class StructureRequestTest(unittest.TestCase):
     def test_measurement_with_file_type(self):
         measurement_intent = MeasurementIntent()
         measurement_intent.add_file_type('SPREADSHEET')
-        opil_measurement = measurement_intent.to_sbol_for_measurement()
+        opil_measurement = measurement_intent.to_opil()
 
 if __name__ == '__main__':
     unittest.main()
