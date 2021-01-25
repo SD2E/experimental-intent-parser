@@ -1,7 +1,6 @@
 from datetime import timedelta
 from intent_parser.intent_parser_exceptions import IntentParserException
 from transcriptic import Connection
-from typing import Dict
 import intent_parser.constants.intent_parser_constants as ip_constants
 import logging
 import opil
@@ -90,7 +89,7 @@ class StrateosAccessor(object):
         protocol_list = self.strateos_api.get_protocols()
 
         self.protocol_lock.acquire()
-        supported_protocols = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
+        supported_protocols = [#ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
                                ip_constants.GROWTH_CURVE_PROTOCOL,
                                ip_constants.OBSTACLE_COURSE_PROTOCOL,
                                ip_constants.TIME_SERIES_HTP_PROTOCOL]

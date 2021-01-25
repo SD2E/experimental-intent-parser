@@ -5,8 +5,6 @@ from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
 import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
-import intent_parser.constants.intent_parser_constants as intent_parser_constants
-import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import logging
 import os
 import time

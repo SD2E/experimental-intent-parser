@@ -1,11 +1,9 @@
-from intent_parser.intent.measurement_intent import ContentIntent, MeasurementIntent, MediaIntent
-from intent_parser.intent.measurement_intent import NamedBooleanValue, NamedIntegerValue, NamedLink, NamedStringValue
-from intent_parser.intent.measurement_intent import ReagentIntent, TemperatureIntent, TimepointIntent
+from intent_parser.intent.measurement_intent import ContentIntent, MeasurementIntent
+from intent_parser.intent.measure_property_intent import MediaIntent, NamedBooleanValue, NamedIntegerValue, NamedLink, NamedStringValue, ReagentIntent, TemperatureIntent, TimepointIntent
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
-import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
 
 class MeasurementTable(object):
@@ -228,7 +226,7 @@ class MeasurementTable(object):
                                                                         unit_type='fluid')
                 for measured_unit in measured_units:
                     reagent = ReagentIntent(named_link, float(measured_unit.get_value()), measured_unit.get_unit())
-                    if timepoint:
+                    if timepoint is not None:
                         reagent.set_timepoint(timepoint)
 
                     result.append(reagent)
@@ -243,9 +241,10 @@ class MeasurementTable(object):
             self._validation_errors.append(message)
         else:
             # content must be of type media if cell contains list of string
-            for name in cell_parser.PARSER.extract_name_value(text):
-                media = MediaIntent(named_link, name)
-                if timepoint:
+            for name, media_link in cell_parser.PARSER.process_names_with_uri(cell.get_text(), text_with_uri=cell.get_text_with_url()):
+                media_value = NamedLink(name, link=media_link)
+                media = MediaIntent(named_link, media_value)
+                if timepoint is not None:
                     media.set_timepoint(timepoint)
                 result.append(media)
 

@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, jsonify
+from flask import Flask, make_response, request, redirect
 from flask_restful import Api, Resource
 from flasgger import Swagger
 from http import HTTPStatus
@@ -200,7 +200,10 @@ class GetOpilRequest(Resource):
         """
         try:
             opil_output = self._ip_processor.process_opil_get_request(doc_id)
-            return opil_output, HTTPStatus.OK
+            response = make_response(opil_output)
+            response.headers['Content-Type'] = 'application/xml'
+            # return response, HTTPStatus.OK
+            return response
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),

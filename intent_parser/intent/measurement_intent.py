@@ -1,123 +1,21 @@
-
-from sbol3 import BooleanProperty, CombinatorialDerivation, Component, Feature, FloatProperty, IntProperty, TextProperty
-from sbol3 import Measure, LocalSubComponent, SubComponent, VariableFeature
+from intent_parser.intent.measure_property_intent import TemperatureIntent, TimepointIntent
+from sbol3 import CombinatorialDerivation, Component, LocalSubComponent, TextProperty
+from sbol3 import Measure, VariableFeature
 from intent_parser.intent.control_intent import ControlIntent
 from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
+from intent_parser.utils.id_provider import IdProvider
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-from typing import Union
+import logging
 import opil
-import intent_parser.protocols.opil_parameter_utils as opil_utils
 import sbol3.constants as sbol_constants
-
-class MeasuredUnit(object):
-
-    def __init__(self, value: Union[float, int], unit: str, unit_type=None):
-        self._value = value
-        self._unit = unit
-        self._unit_type = unit_type
-
-    def get_unit(self):
-        return self._unit
-
-    def get_value(self):
-        return self._value
-
-    def to_sbol(self):
-        if self._unit_type == ip_constants.UNIT_TYPE_FLUID:
-            return self._encode_fluid_using_sbol()
-        elif self._unit_type == ip_constants.UNIT_TYPE_TIMEPOINT:
-            return self._encode_timepoint_using_sbol()
-        elif self._unit_type == ip_constants.UNIT_TYPE_TEMPERATURE:
-            return self._encode_temperature_using_sbol()
-        else:
-            raise IntentParserException('%s measurement type not supported' % self._unit_type)
-
-    def to_structure_request(self):
-        return {dc_constants.VALUE: float(self._value),
-                dc_constants.UNIT: self._unit}
-
-    def _encode_fluid_using_sbol(self):
-        if self._unit == '%':
-            return Measure(self._value, ip_constants.NCIT_CONCENTRATION)
-        elif self._unit == 'M':
-            return Measure(self._value, ip_constants.UO_MOLAR)
-        elif self._unit == 'mM':
-            return Measure(self._value, ip_constants.UO_MILLI_MOLAR)
-        elif self._unit == 'X':
-            return Measure(self._value, ip_constants.NCIT_FOLD_CHANGE)
-        elif self._unit == 'g/L':
-            return Measure(self._value, ip_constants.UO_GRAM_PER_LITER)
-        elif self._unit == 'ug/ml':
-            return Measure(self._value, ip_constants.NCIT_MICROGRAM_PER_MILLILITER)
-        elif self._unit == 'micromole':
-            return Measure(self._value, ip_constants.NCIT_MICROMOLE)
-        elif self._unit == 'nM':
-            return Measure(self._value, ip_constants.NCIT_NANOMOLE)
-        elif self._unit == 'uM':
-            return Measure(self._value, ip_constants.NCIT_MICROMOLE)
-        elif self._unit == 'mg/ml':
-            return Measure(self._value, ip_constants.UO_MILLIGRAM_PER_MILLILITER)
-        elif self._unit == 'ng/ul':
-            return Measure(self._value, ip_constants.UO_NANO_GRAM_PER_LITER)
-        else:
-            raise IntentParserException('unit %s not supported.' % self._unit)
-
-    def _encode_temperature_using_sbol(self):
-        if self._unit == 'celsius':
-            return Measure(self._value, ip_constants.NCIT_CELSIUS)
-        elif self._unit == 'fahrenheit':
-            return Measure(self._value, ip_constants.NCIT_FAHRENHEIT)
-        else:
-            raise IntentParserException('unit %s not supported.' % self._unit)
-
-    def _encode_timepoint_using_sbol(self):
-        if self._unit == 'day':
-            return Measure(self._value, ip_constants.NCIT_MONTH)
-        elif self._unit == 'hour':
-            return Measure(self._value, ip_constants.NCIT_HOUR)
-        elif self._unit == 'femtosecond':
-            return Measure(self._value, 'http://www.ontology-of-units-of-measure.org/resource/om-2/femtosecond-Time')
-        elif self._unit == 'microsecond':
-            return Measure(self._value, ip_constants.NCIT_MICROSECOND)
-        elif self._unit == 'millisecond':
-            return Measure(self._value, ip_constants.NCIT_MILLISECOND)
-        elif self._unit == 'minute':
-            return Measure(self._value, ip_constants.NCIT_MINUTE)
-        elif self._unit == 'month':
-            return Measure(self._value, ip_constants.NCIT_MONTH)
-        elif self._unit == 'nanosecond':
-            return Measure(self._value, ip_constants.NCIT_NANOSECOND)
-        elif self._unit == 'picosecond':
-            return Measure(self._value, ip_constants.NCIT_PICOSECOND)
-        elif self._unit == 'second':
-            return Measure(self._value, ip_constants.NCIT_SECOND)
-        elif self._unit == 'week':
-            return Measure(self._value, ip_constants.NCIT_WEEK)
-        elif self._unit == 'year':
-            return Measure(self._value, ip_constants.NCIT_YEAR)
-        else:
-            raise IntentParserException('unit %s not supported.' % self._unit)
-
-
-
-class TemperatureIntent(MeasuredUnit):
-
-    def __init__(self, value: float, unit: str):
-        super().__init__(value, unit, ip_constants.UNIT_TYPE_TEMPERATURE)
-
-
-class TimepointIntent(MeasuredUnit):
-
-    def __init__(self, value: Union[float, int], unit: str):
-        super().__init__(value, unit, ip_constants.UNIT_TYPE_TIMEPOINT)
 
 class MeasurementIntent(object):
 
-    def __init__(self):
-        self.sample_id = 1
+    logger = logging.getLogger('MeasurementIntent')
 
+    def __init__(self):
         self.intent = {}
         self._measurement_type = None
         self._file_type = []
@@ -129,6 +27,7 @@ class MeasurementIntent(object):
         self._strains = []
         self._temperatures = []
         self._timepoints = []
+        self._id_provider = IdProvider()
 
     def add_batch(self, batch: int):
         self._batches.append(batch)
@@ -185,36 +84,14 @@ class MeasurementIntent(object):
         all_sample_templates = []
         all_sample_variables = []
 
-        media_template = None
+        media_templates = []
         for content in self._contents.get_contents():
-            media_templates, media_variables = content.to_sbol_for_media()
-            reagent_templates, reagent_variables = content.to_sbol_for_reagent()
-            col_id_template, col_id_variable = content.to_sbol_for_col_ids()
-            dna_reaction_concentration_template, dna_reaction_concentration_variable = content.to_sbol_for_dna_reaction_concentration()
-            lab_id_template, lab_id_variable = content.to_sbol_for_lab_ids()
-            num_neg_control_template, num_neg_control_variable = content.to_sbol_for_number_of_negative_controls()
-            use_rna_inhib_template, use_rna_inhib_variable = content.to_sbol_for_use_rna_inhibitor()
-            row_id_template, row_id_variable = content.to_sbol_for_row_ids()
-            template_dna_template, template_dna_variable = content.to_sbol_for_template_dna()
+            media_template, media_variables = content.to_sbol_for_media()
+            content_templates, content_variables = content.to_sbol()
+            all_sample_templates.extend(content_templates)
+            all_sample_variables.extend(content_variables)
 
-            all_sample_templates.extend([media_templates,
-                                         reagent_templates,
-                                         col_id_template,
-                                         dna_reaction_concentration_template,
-                                         lab_id_template,
-                                         num_neg_control_template,
-                                         use_rna_inhib_template,
-                                         row_id_template,
-                                         template_dna_template])
-            all_sample_variables.extend([media_variables,
-                                         reagent_variables,
-                                         col_id_variable,
-                                         dna_reaction_concentration_variable,
-                                         lab_id_variable,
-                                         num_neg_control_variable,
-                                         use_rna_inhib_variable,
-                                         row_id_variable,
-                                         template_dna_variable])
+            media_templates.append(media_template)
 
         if len(self._strains) > 0:
             strain_template, strain_variable = self._encode_strains_using_sbol()
@@ -222,8 +99,10 @@ class MeasurementIntent(object):
             all_sample_variables.append(strain_variable)
 
         if len(self._temperatures) > 0:
+            if len(media_templates) > 1:
+                self.logger.warning('more than one media detected. Last media is used to assign measurement temperature variants.')
             temperature_variable = self._encode_temperature_using_sbol()
-            temperature_variable.variable = media_template
+            temperature_variable.variable = media_templates[-1]
 
         if len(self._batches) > 0:
             batch_template, batch_variable = self._encode_batches_using_sbol()
@@ -241,21 +120,28 @@ class MeasurementIntent(object):
             all_sample_variables.append(control_variable)
 
         if len(self._optical_densities) > 0:
-            ods_template, ods_variable = self._encode_optical_densities()
+            ods_template, ods_variable = self._encode_optical_densities_using_sbol()
             all_sample_templates.append(ods_template)
             all_sample_variables.append(ods_variable)
 
-        sample_template = Component(identity=ip_constants.SD2E_LINK + '#measurement_template',
+        sample_template = Component(identity=self._id_provider.get_unique_sd2_id(),
                                     component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        sample_template.name = 'measurement template'
+        if len(all_sample_templates) == 0:
+            raise IntentParserException('measurement template is empty')
         sample_template.features = all_sample_templates
 
-        sample_combinations = CombinatorialDerivation('measurement_combinatorial_derivation', sample_template)
+        sample_combinations = CombinatorialDerivation(identity=self._id_provider.get_unique_sd2_id(),
+                                                      template=sample_template)
+        sample_combinations.name = 'measurement combinatorial derivation'
+        if len(all_sample_variables) == 0:
+            raise IntentParserException('measurement variables is empty')
         sample_combinations.variable_components = all_sample_variables
 
         return sample_combinations
 
     def to_opil(self):
-        opil_measurement = opil.Measurement('IntentParser_Measurement')
+        opil_measurement = opil.Measurement('measurement')
         if self._measurement_type:
             self._encode_measurement_type_using_opil(opil_measurement)
         if len(self._file_type) > 0:
@@ -297,8 +183,10 @@ class MeasurementIntent(object):
         return structure_request
 
     def _encode_batches_using_sbol(self):
-        batch_template = Feature(identity=ip_constants.SD2E_LINK + '#batch_template',
-                                 type_uri=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        batch_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                           types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        batch_template.name = ip_constants.HEADER_BATCH_VALUE
+
         batch_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
         batch_variable.variable = batch_template
         batch_variable.variant_measure = [Measure(value, ip_constants.NCIT_NOT_APPLICABLE) for value in self._batches]
@@ -341,31 +229,39 @@ class MeasurementIntent(object):
         opil_measurement.instance_of = measurement_type
 
     def _encode_control_using_sbol(self):
-        control_template = Feature(identity=ip_constants.SD2E_LINK + '#control_template',
-                                   type_uri=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        control_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                             types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        control_template.name = ip_constants.HEADER_CONTROL_TYPE_VALUE
+
         control_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
         control_variable.variable = control_template
         control_variable.variant_derivation = [control.to_sbol() for control in self._controls]
         return control_template, control_variable
 
-    def _encode_optical_densities(self):
-        ods_template = Feature(identity=ip_constants.SD2E_LINK + '#ods_template',
-                               type_uri=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+    def _encode_optical_densities_using_sbol(self):
+        ods_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                         types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        ods_template.name = ip_constants.HEADER_ODS_VALUE
+
         ods_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
         ods_variable.variable = ods_template
         ods_variable.variant_measure = [Measure(value, ip_constants.NCIT_NOT_APPLICABLE) for value in self._optical_densities]
         return ods_template, ods_variable
 
     def _encode_replicates_using_sbol(self):
-        replicate_template = Feature(identity=ip_constants.SD2E_LINK + '#replicate_template',
-                                 type_uri=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        replicate_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                               types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        replicate_template.name = ip_constants.HEADER_REPLICATE_VALUE
+
         replicate_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
         replicate_variable.variable = replicate_template
         replicate_variable.variant_measure = [Measure(value, ip_constants.NCIT_NOT_APPLICABLE) for value in self._replicates]
         return replicate_template, replicate_variable
 
     def _encode_strains_using_sbol(self):
-        strain_template = Feature(identity='strain_template', type_uri=ip_constants.NCIT_STRAIN_URI)
+        strain_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                            types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        strain_template.name = ip_constants.HEADER_STRAINS_VALUE
         strain_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
         strain_variable.variable = strain_template
         strain_variable.variant = [strain.to_sbol() for strain in self._strains]
@@ -375,15 +271,18 @@ class MeasurementIntent(object):
     def _encode_timepoint_using_opil(self, opil_measurement):
         encoded_timepoints = []
         for timepoint in self._timepoints:
-            timepoint.to_sbol()
-        opil_measurement.time = encoded_timepoints
+            encoded_timepoints.append(timepoint.to_sbol())
+        # TODO: bug in opil. opil limits one Measure assignment to a measurement time.
+        # Update this line of code to opil_measurement.time = encoded_timepoints when this issue is resolved.
+        opil_measurement.time = encoded_timepoints[0]
 
     def _encode_temperature_using_sbol(self):
         # sbol3 requires that a VariantMeasure must point to a VariableFeature with a templated Feature.
         # However, there is no need for creating a template Feature to encode temperature. To address this,
         # temperatures will be attached to a media Feature.
         temperature_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
-        temperature_variable.variable = [temperature.to_sbol() for temperature in self._temperatures]
+        temperature_variable.name = 'temperature variants'
+        temperature_variable.variant_measure = [temperature.to_sbol() for temperature in self._temperatures]
         return temperature_variable
 
 class MeasurementContent(object):
@@ -415,6 +314,7 @@ class ContentIntent(object):
         self._rna_inhibitor_reaction_flags = []
         self._row_ids = []
         self._template_dna_values = []
+        self._id_provider = IdProvider()
 
     def add_media(self, media):
         self._medias.append(media)
@@ -480,58 +380,104 @@ class ContentIntent(object):
 
         return structure_request
 
+    def to_sbol(self):
+        all_templates = []
+        all_variables = []
+        if len(self._medias) > 0:
+            media_template, media_variables = self.to_sbol_for_media()
+            all_templates.append(media_template)
+            all_variables.append(media_variables)
+        if len(self._reagents) > 0:
+            reagent_templates, reagent_variables = self.to_sbol_for_reagent()
+            all_templates.append(reagent_templates)
+            all_variables.append(reagent_variables)
+        if len(self._column_ids) > 0:
+            col_id_template, col_id_variable = self.to_sbol_for_col_ids()
+            all_templates.append(col_id_template)
+            all_variables.append(col_id_variable)
+        if len(self._dna_reaction_concentrations) > 0:
+            dna_reaction_concentration_template, dna_reaction_concentration_variable = self.to_sbol_for_dna_reaction_concentration()
+            all_templates.append(dna_reaction_concentration_template)
+            all_variables.append(dna_reaction_concentration_variable)
+        if len(self._lab_ids) > 0:
+            lab_id_template, lab_id_variable = self.to_sbol_for_lab_ids()
+            all_templates.append(lab_id_template)
+            all_variables.append(lab_id_variable)
+        if len(self._num_neg_controls) > 0:
+            num_neg_control_template, num_neg_control_variable = self.to_sbol_for_number_of_negative_controls()
+            all_templates.append(num_neg_control_template)
+            all_variables.append(num_neg_control_variable)
+        if len(self._rna_inhibitor_reaction_flags) > 0:
+            use_rna_inhib_template, use_rna_inhib_variable = self.to_sbol_for_use_rna_inhibitor()
+            all_templates.append(use_rna_inhib_template)
+            all_variables.append(use_rna_inhib_variable)
+        if len(self._row_ids) > 0:
+            row_id_template, row_id_variable = self.to_sbol_for_row_ids()
+            all_templates.append(row_id_template)
+            all_variables.append(row_id_variable)
+        if len(self._template_dna_values) > 0:
+            template_dna_template, template_dna_variable = self.to_sbol_for_template_dna()
+            all_templates.append(template_dna_template)
+            all_variables.append(template_dna_variable)
+        return all_templates, all_variables
+
     def to_sbol_for_col_ids(self):
-        col_id_template = Feature(identity=ip_constants.SD2E_LINK + '#col_ids_template',
-                                  type_uri=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        col_id_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                            types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        col_id_template.name = ip_constants.HEADER_COLUMN_ID_VALUE
+
         col_id_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
         col_id_variable.variable = col_id_template
 
         col_id_components = []
         for value in self._column_ids:
-            col_id_component = Component(identity=ip_constants.SD2E_LINK + '#col_ids',
+            col_id_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                          component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-            col_id_component.name = value
+            col_id_component.name = str(value.get_value())
             col_id_components.append(col_id_component)
 
         col_id_variable.variant = col_id_components
         return col_id_template, col_id_variable
 
     def to_sbol_for_dna_reaction_concentration(self):
-        dna_reaction_concentration_template = Feature(identity=ip_constants.SD2E_LINK + '#dna_reaction_concentration_template',
-                                                      type_uri=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        dna_reaction_concentration_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                                                types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        dna_reaction_concentration_template.name = ip_constants.HEADER_DNA_REACTION_CONCENTRATION_VALUE
 
         dna_reaction_concentration_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
         dna_reaction_concentration_variable.variable = dna_reaction_concentration_template
 
         dna_reaction_concentration_components = []
         for value in self._dna_reaction_concentrations:
-            lab_component = Component(identity=ip_constants.SD2E_LINK + '#dna_reaction_concentration',
+            lab_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                       component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-            lab_component.name = value
+            lab_component.name = str(value.get_value())
             dna_reaction_concentration_components.append(lab_component)
 
         dna_reaction_concentration_variable.variant = dna_reaction_concentration_components
         return dna_reaction_concentration_template, dna_reaction_concentration_variable
 
     def to_sbol_for_lab_ids(self):
-        lab_id_template = Feature(identity=ip_constants.SD2E_LINK + '#lab_ids_template',
-                                  type_uri=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        lab_id_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                            types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        lab_id_template.name = ip_constants.HEADER_LAB_ID_VALUE
         lab_id_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
         lab_id_variable.variable = lab_id_template
 
         lab_id_components = []
         for value in self._lab_ids:
-            lab_component = Component(identity=ip_constants.SD2E_LINK + '#lab_id',
+            lab_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                       component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-            lab_component.name = value
+            lab_component.name = value.get_value()
             lab_id_components.append(lab_component)
 
         lab_id_variable.variant = lab_id_components
         return lab_id_template, lab_id_variable
 
     def to_sbol_for_media(self):
-        media_template = Feature(identity=ip_constants.SD2E_LINK + '#media_template',
-                                 type_uri=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        media_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                           types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        media_template.name = 'media template'
         media_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
 
         media_variants = []
@@ -543,29 +489,36 @@ class ContentIntent(object):
                 media_variant_measures.append(media_variant_measure)
 
         media_variable.variable = media_template
+        if len(media_variants) == 0:
+            raise IntentParserException('no media values generated for sbol.')
         media_variable.variant = media_variants
-        media_variable.variant_measure = media_variant_measure
+
+        if len(media_variant_measures) > 0:
+            media_variable.variant_measure = media_variant_measures
         return media_template, media_variable
 
     def to_sbol_for_number_of_negative_controls(self):
-        num_neg_control_template = Feature(identity=ip_constants.SD2E_LINK + '#num_neg_controls_template',
-                                  type_uri=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        num_neg_control_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                                     types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        num_neg_control_template.name = ip_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE
+
         num_neg_control_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
         num_neg_control_variable.variable = num_neg_control_template
 
         num_neg_control_components = []
         for value in self._num_neg_controls:
-            num_neg_control_component = Component(identity=ip_constants.SD2E_LINK + '#num_neg_controls',
-                                      component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-            num_neg_control_component.name = str(value)
+            num_neg_control_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                                  component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            num_neg_control_component.name = str(value.get_value())
             num_neg_control_components.append(num_neg_control_component)
 
         num_neg_control_variable.variant = num_neg_control_components
         return num_neg_control_template, num_neg_control_variable
 
     def to_sbol_for_reagent(self):
-        reagent_template = Feature(identity=ip_constants.SD2E_LINK + '#reagent_template',
-                                   type_uri=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        reagent_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                             types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        reagent_template.name = 'reagent template'
         reagent_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
 
         reagent_variants = []
@@ -583,171 +536,55 @@ class ContentIntent(object):
         return reagent_template, reagent_variable
 
     def to_sbol_for_use_rna_inhibitor(self):
-        use_rna_inhib_template = Feature(identity=ip_constants.SD2E_LINK + '#use_rna_inhibitor_template',
-                                  type_uri=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        use_rna_inhib_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                                   types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        use_rna_inhib_template.name = ip_constants.HEADER_USE_RNA_INHIBITOR_IN_REACTION_VALUE
+
         use_rna_inhib_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
         use_rna_inhib_variable.variable = use_rna_inhib_template
 
         use_rna_inhib_components = []
         for value in self._rna_inhibitor_reaction_flags:
-            use_rna_inhib_component = Component(identity=ip_constants.SD2E_LINK + '#use_rna_inhibitor',
-                                      component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-            use_rna_inhib_component.name = str(value)
+            use_rna_inhib_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                                component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            use_rna_inhib_component.name = str(value.get_value())
             use_rna_inhib_components.append(use_rna_inhib_component)
 
         use_rna_inhib_variable.variant = use_rna_inhib_components
         return use_rna_inhib_template, use_rna_inhib_variable
 
     def to_sbol_for_row_ids(self):
-        row_id_template = Feature(identity=ip_constants.SD2E_LINK + '#row_ids_template',
-                                  type_uri=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        row_id_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                            types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        row_id_template.name = ip_constants.HEADER_ROW_ID_VALUE
         row_id_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
         row_id_variable.variable = row_id_template
 
         row_id_components = []
         for value in self._row_ids:
-            row_id_component = Component(identity=ip_constants.SD2E_LINK + '#row_ids',
+            row_id_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                          component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-            row_id_component.name = str(value)
+            row_id_component.name = str(value.get_value())
             row_id_components.append(row_id_component)
 
         row_id_variable.variant = row_id_components
         return row_id_template, row_id_variable
 
     def to_sbol_for_template_dna(self):
-        template_dna_template = Feature(identity=ip_constants.SD2E_LINK + '#template_dna_template',
-                                        type_uri=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        template_dna_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                                  types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        template_dna_template.name = ip_constants.HEADER_TEMPLATE_DNA_VALUE
+
         template_dna_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
         template_dna_variable.variable = template_dna_template
 
         template_dna_components = []
         for value in self._template_dna_values:
-            template_dna_component = Component(identity=ip_constants.SD2E_LINK + '#template_dna',
-                                         component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-            template_dna_component.name = value
+            template_dna_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                               component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            template_dna_component.name = value.get_value()
             template_dna_components.append(template_dna_component)
 
         template_dna_variable.variant = template_dna_components
         return template_dna_template, template_dna_variable
-
-class NamedLink(object):
-
-    def __init__(self, name, link=None):
-        self._name = name
-        self._link = link
-
-    def get_name(self):
-        return self._name
-
-    def get_link(self):
-        return self._link
-
-    def to_structure_request(self):
-        return {dc_constants.LABEL: self._name,
-                dc_constants.SBH_URI: self._link if self._link else dc_constants.NO_PROGRAM_DICTIONARY}
-
-class NamedBooleanValue(object):
-
-    def __init__(self, named_link: NamedLink, value: bool):
-        self._named_link = named_link
-        self._value = value
-
-    def to_structure_request(self):
-        return {dc_constants.NAME: self._named_link.to_structure_request(),
-                dc_constants.VALUE: str(self._value)}
-
-class NamedIntegerValue(object):
-
-    def __init__(self, named_link: NamedLink, value: int):
-        self._named_link = named_link
-        self._value = value
-
-    def get_value(self):
-        return self._value
-
-    def to_structure_request(self):
-        return {dc_constants.NAME: self._named_link.to_structure_request(),
-                dc_constants.VALUE: self._value}
-
-class NamedStringValue(object):
-
-    def __init__(self, named_link: NamedLink, value=''):
-        self._named_link = named_link
-        self._value = value
-
-    def get_named_link(self):
-        return self._named_link
-
-    def to_structure_request(self):
-        result = {dc_constants.NAME: self._named_link.to_structure_request()}
-        if self._value:
-            result[dc_constants.VALUE] = self._value
-        return result
-
-class MediaIntent(object):
-
-    def __init__(self, media_name: NamedLink, media_value: str):
-        self._media_name = media_name
-        self._media_value = media_value
-        self._timepoint = None
-
-    def get_media_name(self) -> NamedLink:
-        return self._media_name
-
-    def set_timepoint(self, timepoint: TimepointIntent):
-        self._timepoint = timepoint
-
-    def to_sbol(self):
-        media_component = Component(identity=ip_constants.SD2E_LINK + '#' + self._media_name.get_name(),
-                                      component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-        media_component.name = self._media_name.get_name()
-        media_sub_component = SubComponent(self._media_name.get_link())
-        media_component.features = [media_sub_component.identity]
-
-        return media_component
-
-    def to_structure_request(self):
-        media = {dc_constants.NAME: self._media_name.to_structure_request(),
-                 dc_constants.VALUE: self._media_value}
-
-        if self._timepoint:
-            media[dc_constants.TIMEPOINT] = self._timepoint.to_structure_request()
-
-        return media
-
-class ReagentIntent(MeasuredUnit):
-
-    def __init__(self, reagent_name: NamedLink, value: float, unit: str):
-        super().__init__(value, unit, 'fluid')
-        self._reagent_name = reagent_name
-        self._timepoint = None
-
-    def get_reagent_name(self):
-        return self._reagent_name
-
-    def get_timepoint(self):
-        return self._timepoint
-
-    def set_timepoint(self, timepoint: TimepointIntent):
-        self._timepoint = timepoint
-
-    def to_sbol(self):
-        content_component = Component(identity=ip_constants.SD2E_LINK + '#reagent' + self._reagent_name.get_name(),
-                                      component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-        content_component.name = self._reagent_name.get_name()
-        content_sub_component = SubComponent(self._reagent_name.get_link())
-        content_component.features = [content_sub_component.identity]
-
-        return content_component
-
-    def to_structure_request(self):
-        reagent = {dc_constants.NAME: self._reagent_name.to_structure_request(),
-                   dc_constants.VALUE: str(self._value),
-                   dc_constants.UNIT: self._unit}
-        if self._timepoint:
-            reagent[dc_constants.TIMEPOINT] = self._timepoint.to_structure_request()
-
-        return reagent
-
-
 

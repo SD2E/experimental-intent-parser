@@ -12,10 +12,6 @@ MEASUREMENT_UNITS = {
     'hour': 'http://www.ontology-of-units-of-measure.org/resource/om-2/hour'
 }
 
-def generate_unique_id(prefix):
-    unique_value = 1
-    return ip_constants.SD2E_LINK + prefix + unique_value
-
 def clone_boolean_parameter_field(boolean_parameter):
     return create_opil_boolean_parameter_field(boolean_parameter.identity, boolean_parameter.name)
 

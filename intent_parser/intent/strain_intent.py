@@ -1,6 +1,6 @@
+from intent_parser.utils.id_provider import IdProvider
 from sbol3 import Component, SubComponent
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-import intent_parser.constants.intent_parser_constants as ip_constants
 import sbol3.constants as sbol_constants
 
 """
@@ -14,6 +14,7 @@ class StrainIntent(object):
         self._selected_strain = None
         self._strain_common_name = strain_common_name
         self._lab_strain_names = lab_strain_names
+        self._id_provider = IdProvider()
 
     def get_strain_common_name(self):
         return self._strain_common_name
@@ -37,10 +38,11 @@ class StrainIntent(object):
         self._selected_strain = strain_name
 
     def to_sbol(self):
-        strain_sub_component = SubComponent(self._strain_reference_link)
-        strain_component = Component(identity=ip_constants.SD2E_LINK + '#' + self._selected_strain,
+        strain_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                      component_type=sbol_constants.SBO_DNA)
-        strain_component.features = [strain_sub_component.identity]
+        strain_component.name = self._selected_strain
+        strain_sub_component = SubComponent(self._strain_reference_link)
+        strain_component.features = [strain_sub_component]
         return strain_component
 
     def to_structure_request(self):
