@@ -25,7 +25,7 @@ class ParameterIntent(object):
     def add_parameter(self, field, value):
         self._default_parameters[field] = value
 
-    def get_default_parameters(self):
+    def get_default_parameters(self) -> dict:
         return self._default_parameters
 
     def get_protocol_name(self):

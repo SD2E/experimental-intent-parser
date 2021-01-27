@@ -106,10 +106,10 @@ class StrateosAccessor(object):
         protocol_list = self.strateos_api.get_protocols()
 
         self.protocol_lock.acquire()
-        supported_protocols = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
-                               ip_constants.GROWTH_CURVE_PROTOCOL,
-                               ip_constants.OBSTACLE_COURSE_PROTOCOL,
-                               ip_constants.TIME_SERIES_HTP_PROTOCOL]
+        supported_protocols = [#ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
+                               ip_constants.GROWTH_CURVE_PROTOCOL]
+                               #ip_constants.OBSTACLE_COURSE_PROTOCOL,
+                               #ip_constants.TIME_SERIES_HTP_PROTOCOL]
         for protocol in protocol_list:
             if protocol['name'] not in supported_protocols:
                 continue

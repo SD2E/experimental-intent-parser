@@ -1,7 +1,9 @@
 from intent_parser.intent_parser_exceptions import IntentParserException
+from intent_parser.protocols.protocol_field import ParameterField
 from typing import List
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
+import opil
 
 class ProtocolFactory(object):
 
@@ -43,6 +45,23 @@ class ProtocolFactory(object):
             return protocol
         else:
             raise IntentParserException('%s is not a supported lab for fetching protocol %s' % (self._selected_lab_name, protocol_name))
+
+    def map_parameter_values(self, protocol_name):
+        protocol_field_mapping = self.get_protocol_fields(protocol_name)
+        parameters = {}
+        for parameter_name, parameter in protocol_field_mapping.items():
+            possible_values = [parameter.default_value]
+            if type(parameter.allowed_value) is opil.opil_factory.EnumeratedParameter:
+                possible_values.extend(parameter.allowed_value)
+
+            if not parameter.required:
+                ip_parameter_field = ParameterField(parameter_name, parameter, valid_values=possible_values)
+                parameters[parameter_name] = ip_parameter_field
+            else:
+                ip_parameter_field = ParameterField(parameter_name, parameter, required=True, valid_values=possible_values)
+                parameters[parameter_name] = ip_parameter_field
+
+        return parameters
 
     def load_parameter_values_from_protocol(self, protocol_name):
         if self._selected_lab_name is not None and self._selected_lab_name in self._lab_accessors:

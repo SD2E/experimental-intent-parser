@@ -104,7 +104,11 @@ class OPILProcessor(Processor):
             self.validation_errors.append('No parameter table to parse from document.')
         else:
             self._process_parameter_tables(parameter_tables)
-            self._process_opil_protocol()
+
+        try:
+            self._process_opil_output()
+        except IntentParserException as err:
+            self.validation_errors.append(err.get_message())
 
     def _get_namespace_from_lab(self):
         if self.processed_lab_name == dc_constants.LAB_TRANSCRIPTIC:
@@ -132,35 +136,67 @@ class OPILProcessor(Processor):
         self.validation_errors.extend(lab_table.get_validation_errors())
         self.validation_warnings.extend(lab_table.get_validation_warnings())
 
-    def _process_opil_protocol(self):
+    def _process_opil_output(self):
         if not self._protocol_factory.support_lab(self.processed_lab_name):
-            self.validation_errors.append('lab %s not supported for exporting opil metadata: %s.' % self.processed_lab_name)
-            return
+            raise IntentParserException('lab %s not supported for exporting opil metadata.' % self.processed_lab_name)
 
         opil_protocol_interface = self._protocol_factory.get_protocol_interface(self.processed_parameter.get_protocol_name())
-        parameter_fields_from_lab = self._protocol_factory.get_protocol_fields(self.processed_parameter.get_protocol_name())
+        parameter_fields_from_lab = self._protocol_factory.map_parameter_values(self.processed_parameter.get_protocol_name())
 
-        temp_opil_doc = opil.Document()
-        run_param_fields, _ = self.processed_parameter.to_opil_for_experiment()
-        default_param_fields, _ = self._process_default_parameters_as_opil(self.processed_parameter.get_default_parameters(),
-                                                                                              parameter_fields_from_lab,
-                                                                                              temp_opil_doc)
-        copied_protocol_interface = opil_protocol_interface.copy(temp_opil_doc)
+        opil_experimental_result = opil.ExperimentalRequest(self._id_provider.get_unique_sd2_id())
+        opil_experimental_result.name = 'Experimental Result'
+
+        opil_measurements = []
+        opil_measurement_types = []
+        for measurement_intent in self.process_measurements:
+            measurement_intent.to_sbol(self.opil_document)
+            opil_measurement, measurement_type = measurement_intent.to_opil()
+            opil_measurement_types.append(measurement_type)
+            opil_measurements.append(opil_measurement)
+
+        opil_experimental_result.measurements = opil_measurements
+
+        run_param_fields, run_param_values = self.processed_parameter.to_opil_for_experiment()
+        default_param_fields, default_param_values = self._process_default_parameters_as_opil(self.processed_parameter.get_default_parameters(),
+                                                                           parameter_fields_from_lab,
+                                                                           self.opil_document)
+        opil_experimental_result.has_parameter_value = run_param_values + default_param_values
+        self.opil_document.add(opil_experimental_result)
+
+        copied_protocol_interface = opil_protocol_interface.copy(self.opil_document)
         copied_protocol_interface.has_parameter = run_param_fields + default_param_fields
-        validation_report = temp_opil_doc.validate()
-        if not validation_report.is_valid:
-            self.validation_errors.append(validation_report.results)
-        else:
-            for parameter in temp_opil_doc.objects:
-                parameter.copy(self.opil_document)
+        copied_protocol_interface.protocol_measurement_type = opil_measurement_types
 
-    def _process_default_parameters_as_opil(self, parameters, parameter_fields_from_lab, opil_document):
+        validation_report = self.opil_document.validate()
+        if not validation_report.is_valid:
+            raise IntentParserException(validation_report.message)
+
+    def _validate_parameters_from_lab(self, parameter_fields_from_document, parameter_fields_from_lab):
+        # Check for required fields.
+        is_valid = True
+        for field in parameter_fields_from_lab.values():
+            if field.get_required() and field.get_field_name() not in parameter_fields_from_document:
+                self.validation_errors.append('missing required parameter field %s' % field.get_field_name())
+                is_valid = False
+        # Check for valid values.
+        for name, value in parameter_fields_from_document.items():
+            if name not in parameter_fields_from_lab:
+                is_valid = False
+                self.validation_errors.append('%s is not a supported parameter field for protocol %s' %(name, self.processed_parameter.get_protocol_name()))
+            elif not parameter_fields_from_lab[name].is_valid_value(value):
+                is_valid = False
+                self.validation_errors.append('%s is not a valid parameter value for parameter field %s' % (
+                                                value, name))
+        return is_valid
+
+    def _process_default_parameters_as_opil(self, parameter_fields_from_document, parameter_fields_from_lab, opil_document):
         opil_param_values = []
         opil_param_fields = []
-        for param_key, param_value in parameters.items():
-            param_field = parameter_fields_from_lab[param_key] if param_key in parameter_fields_from_lab else None
-            if param_field is None:
-                continue
+        if not self._validate_parameters_from_lab(parameter_fields_from_document, parameter_fields_from_lab):
+            opil_param_values, opil_param_fields
+
+        for param_key, param_value in parameter_fields_from_document.items():
+            param_field = parameter_fields_from_lab[param_key]
 
             value_id = self._id_provider.get_unique_sd2_id()
             opil_param_field = param_field.copy(opil_document)
@@ -227,6 +263,7 @@ class OPILProcessor(Processor):
                 control_intents = controls_table.get_intents()
                 if table_caption:
                     self.processed_controls[table_caption] = control_intents
+
                 self.validation_errors.extend(controls_table.get_validation_errors())
                 self.validation_warnings.extend(controls_table.get_validation_warnings())
         except IntentParserException as err:
@@ -251,14 +288,7 @@ class OPILProcessor(Processor):
 
             measurement_table.process_table(control_data=self.processed_controls)
 
-            opil_experimental_result = opil.ExperimentalRequest('experimental_result')
-            opil_experimental_result.measurements = [measurement_intent.to_opil() for measurement_intent in measurement_table.get_intents()]
-            self.opil_document.add(opil_experimental_result)
-
-            for measurement_intent in measurement_table.get_intents():
-                measurement_intent.to_sbol(self.opil_document)
-
-            self.process_measurements.append(measurement_table.get_intents())
+            self.process_measurements.extend(measurement_table.get_intents())
             self.validation_warnings.extend(measurement_table.get_validation_warnings())
             self.validation_errors.extend(measurement_table.get_validation_errors())
 

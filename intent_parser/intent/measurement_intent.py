@@ -144,9 +144,12 @@ class MeasurementIntent(object):
         sbol_document.add(sample_combinations)
 
     def to_opil(self):
-        opil_measurement = opil.Measurement('measurement')
-        if self._measurement_type:
-            self._encode_measurement_type_using_opil(opil_measurement)
+        opil_measurement = opil.Measurement(self._id_provider.get_unique_sd2_id())
+        opil_measurement.name = 'measurement'
+        if self._measurement_type is None:
+            raise IntentParserException("Exporting opil must have a measurement-type but none is set.")
+
+        measurement_type = self._encode_measurement_type_using_opil(opil_measurement)
         if len(self._file_type) > 0:
             self._encode_file_type_using_opil(opil_measurement)
         if len(self._timepoints) > 0:
@@ -155,7 +158,7 @@ class MeasurementIntent(object):
             for control in self._controls:
                 control.to_opil(opil_measurement)
 
-        return opil_measurement
+        return opil_measurement, measurement_type
 
     def to_structure_request(self):
         if self._measurement_type is None:
@@ -204,7 +207,7 @@ class MeasurementIntent(object):
             opil_measurement.file_type = file_type
 
     def _encode_measurement_type_using_opil(self, opil_measurement):
-        measurement_type = opil.MeasurementType('measurement_type')
+        measurement_type = opil.MeasurementType(self._id_provider.get_unique_sd2_id())
         measurement_type.required = True
         if self._measurement_type == ip_constants.MEASUREMENT_TYPE_FLOW:
             measurement_type.type = ip_constants.NCIT_FLOW_URI
@@ -230,6 +233,7 @@ class MeasurementIntent(object):
             raise IntentParserException(
                 'Unable to create an opil measurement-type: %s not supported' % self._measurement_type)
         opil_measurement.instance_of = measurement_type
+        return measurement_type
 
     def _encode_control_using_sbol(self, sbol_document):
         control_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
