@@ -193,10 +193,10 @@ class OPILProcessor(Processor):
         opil_param_values = []
         opil_param_fields = []
         if not self._validate_parameters_from_lab(parameter_fields_from_document, parameter_fields_from_lab):
-            opil_param_values, opil_param_fields
+            raise IntentParserException('Invalid parameter found.')
 
         for param_key, param_value in parameter_fields_from_document.items():
-            param_field = parameter_fields_from_lab[param_key]
+            param_field = parameter_fields_from_lab[param_key].get_opil_template()
 
             value_id = self._id_provider.get_unique_sd2_id()
             opil_param_field = param_field.copy(opil_document)

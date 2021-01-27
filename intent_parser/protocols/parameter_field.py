@@ -1,6 +1,8 @@
 
 class ParameterField(object):
-
+    """
+    Intent Parser representation of a parameter
+    """
     def __init__(self, field_name, opil_template, required=False, valid_values={}):
         self._field_name = field_name
         self._opil_template = opil_template
