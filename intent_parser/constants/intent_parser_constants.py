@@ -3,6 +3,9 @@ List of constants used for reading and writing contents from intent parser
 """
 
 RELEASE_VERSION = '3.0'
+# name of labs Intent Parser has connection to
+LAB_TRANSCRIPTIC = 'Transcriptic'
+STRATEOS_NAMESPACE = 'http://strateos.com/'
 
 # keywords used for calling POST methods
 ANALYZE_LINK = 'link'
@@ -112,14 +115,9 @@ NCIT_RNA_SEQ_URI = 'https://identifiers.org/ncit:C124261'
 NCIT_SEQUENCING_CHROMATOGRAM_URI = 'https://identifiers.org/ncit:C63580'
 NCIT_STRAIN_URI = 'https://identifiers.org/ncit:C14419'
 
-UO_MILLIGRAM_PER_MILLILITER = 'https://identifiers.org/UO:0000176'
-UO_MOLAR = 'https://identifiers.org/UO:0000062'
-UO_MILLI_MOLAR = 'https://identifiers.org/UO:0000063'
-UO_GRAM_PER_LITER = 'https://identifiers.org/UO:0000175'
-UO_NANO_GRAM_PER_LITER = 'https://identifiers.org/UO:0010050'
-
 NCIT_CELSIUS = 'https://identifiers.org/ncit:C42559'
 NCIT_CONCENTRATION = 'https://identifiers.org/ncit:C41185'
+NCIT_DAY = 'https://identifiers.org/ncit:C25301'
 NCIT_FAHRENHEIT = 'https://identifiers.org/ncit:C44277'
 NCIT_FOLD_CHANGE = 'https://identifiers.org/ncit:C60693'
 NCIT_HOUR = 'https://identifiers.org/ncit:C25529'
@@ -136,6 +134,14 @@ NCIT_PICOSECOND = 'https://identifiers.org/ncit:C73768'
 NCIT_SECOND = 'https://identifiers.org/ncit:C42535'
 NCIT_WEEK = 'https://identifiers.org/ncit:C29844'
 NCIT_YEAR = 'https://identifiers.org/ncit:C29848'
+
+OTU_FEMTOSECOND = 'http://www.ontology-of-units-of-measure.org/resource/om-2/femtosecond-Time'
+
+UO_MILLIGRAM_PER_MILLILITER = 'https://identifiers.org/UO:0000176'
+UO_MOLAR = 'https://identifiers.org/UO:0000062'
+UO_MILLI_MOLAR = 'https://identifiers.org/UO:0000063'
+UO_GRAM_PER_LITER = 'https://identifiers.org/UO:0000175'
+UO_NANO_GRAM_PER_LITER = 'https://identifiers.org/UO:0010050'
 
 # measurement-typeis specific to SD2 project
 SD2_AUTOMATED_TEST_URI = 'http://sd2e.org#automatedTest'
@@ -278,6 +284,6 @@ SYNBIOHUB_DESIGN_COLLECTION_PREFIX = 'https://hub.sd2e.org/user/%s/design/' % SY
 SYNBIOHUB_DESIGN_COLLECTION_URI = SYNBIOHUB_DESIGN_COLLECTION_PREFIX + 'design_collection/1'
 SYBIOHUB_COLLECTION_NAME_DESIGN = 'design'
 
-SD2E_LINK = 'https://sd2e.org/'
+SD2E_NAMESPACE = 'https://sd2e.org/'
 TACC_SERVER = 'TACC'
 GOOGLE_DRIVE_EXPERIMENT_REQUEST_FOLDER = '1FYOFBaUDIS-lBn0fr76pFFLBbMeD25b3'

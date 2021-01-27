@@ -52,16 +52,16 @@ class ControlIntent(object):
         if len(self._timepoints) > 0:
             self._encode_timepoints_using_opil(opil_measurement)
 
-    def to_sbol(self):
+    def to_sbol(self, sbol_document):
         all_sample_templates = []
         all_sample_variables = []
 
         if len(self._strains) > 0:
-            strain_template, strain_variable = self._encode_strains_using_sbol()
+            strain_template, strain_variable = self._encode_strains_using_sbol(sbol_document)
             all_sample_templates.append(strain_template)
             all_sample_variables.append(strain_variable)
         if len(self._contents) > 0:
-            content_template, content_variable = self._encode_content_using_sbol()
+            content_template, content_variable = self._encode_content_using_sbol(sbol_document)
             all_sample_templates.append(content_template)
             all_sample_variables.append(content_variable)
 
@@ -69,12 +69,15 @@ class ControlIntent(object):
                                     component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
         sample_template.name = 'control template'
         sample_template.features = all_sample_templates
+        sbol_document.add(sample_template)
 
         sample_combinations = CombinatorialDerivation(identity=self._id_provider.get_unique_sd2_id(),
                                                       template=sample_template)
         sample_combinations.name = 'control combinatorial derivation'
         # TODO: update .variable_components to .variable_feature
         sample_combinations.variable_components = all_sample_variables
+        sbol_document.add(sample_combinations)
+
         return sample_combinations
 
     def to_structure_request(self):
@@ -94,12 +97,12 @@ class ControlIntent(object):
 
     def _encode_channel_using_opil(self, opil_measurement):
         opil_measurement.channel = TextProperty(opil_measurement,
-                                                ip_constants.SD2E_LINK + 'channel',
+                                                ip_constants.SD2E_NAMESPACE + 'channel',
                                                 0,
                                                 1)
         opil_measurement.channel = self._channel
 
-    def _encode_content_using_sbol(self):
+    def _encode_content_using_sbol(self, sbol_document):
         content_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
                                              types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
         content_template.name = 'content template'
@@ -109,7 +112,7 @@ class ControlIntent(object):
         content_variant_measures = []
         for content in self._contents:
             if isinstance(content, ReagentIntent):
-                content_component = content.to_sbol()
+                content_component = content.to_sbol(sbol_document)
                 content_variants.append(content_component)
                 if content.get_timepoint() is not None:
                     content_variant_measure = content.get_timepoint().to_sbol()
@@ -121,6 +124,7 @@ class ControlIntent(object):
                 content_sub_component = SubComponent(content.get_named_link().get_link())
                 content_component.features = [content_sub_component]
                 content_variants.append(content_component)
+                sbol_document.add(content_component)
 
         content_variable.variable = content_template
         content_variable.variant = content_variants
@@ -129,7 +133,7 @@ class ControlIntent(object):
 
     def _encode_control_type_using_opil(self, opil_measurement):
         opil_measurement.control_type = TextProperty(opil_measurement,
-                                                     ip_constants.SD2E_LINK + 'control_type',
+                                                     ip_constants.SD2E_NAMESPACE + 'control_type',
                                                      0,
                                                      1)
         opil_measurement.control_type = self._control_type
@@ -142,12 +146,13 @@ class ControlIntent(object):
         # Update this line of code to opil_measurement.time = encoded_timepoints when this issue is resolved.
         opil_measurement.time = encoded_timepoints[0]
 
-    def _encode_strains_using_sbol(self):
+    def _encode_strains_using_sbol(self, sbol_document):
         strain_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
                                             types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
         strain_template.name = 'strains template'
         strain_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
+        strain_variable.name = 'strain VariableFeature'
         strain_variable.variable = strain_template
-        strain_variable.variant = [strain.to_sbol() for strain in self._strains]
+        strain_variable.variant = [strain.to_sbol(sbol_document) for strain in self._strains]
 
         return strain_template, strain_variable

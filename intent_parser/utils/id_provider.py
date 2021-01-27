@@ -10,4 +10,4 @@ class IdProvider(object):
         pass
 
     def get_unique_sd2_id(self):
-        return ip_constants.SD2E_LINK + 'ip' + str(uuid.uuid4().hex)
+        return ip_constants.SD2E_NAMESPACE + 'ip' + str(uuid.uuid4().hex)

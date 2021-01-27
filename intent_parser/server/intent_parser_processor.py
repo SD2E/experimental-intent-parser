@@ -62,9 +62,9 @@ class IntentParserProcessor(object):
         self.initialized = True
 
     def process_opil_get_request(self, document_id):
-        lab_accessors = {dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor}
+        protocol_factory = ProtocolFactory(self.strateos_accessor)
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-        intent_parser.process_opil_request(lab_accessors)
+        intent_parser.process_opil_request(protocol_factory)
         sbol_doc = intent_parser.get_opil_request()
         if not sbol_doc:
             errors = ['No OPIL output generated.']
@@ -596,8 +596,10 @@ class IntentParserProcessor(object):
             intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
             intent_parser.process_lab_name()
             lab_name = intent_parser.get_lab_name()
-            protocol_factory = ProtocolFactory(lab_name=lab_name, transcriptic_accessor=self.strateos_accessor)
+            protocol_factory = ProtocolFactory(transcriptic_accessor=self.strateos_accessor)
+            protocol_factory.set_selected_lab(lab_name)
             protocols = protocol_factory.load_protocols_from_lab()
+
             protocol_names = [intent_parser_constants.PROTOCOL_PLACEHOLDER]
             cell_free_riboswitch_parameters = []
             growth_curve_parameters = []
@@ -1209,7 +1211,8 @@ class IntentParserProcessor(object):
         lab_name = data[ip_addon_constants.HTML_LAB]
         table_template.append([intent_parser_constants.PARAMETER_PROTOCOL_NAME, selected_protocol])
 
-        protocol_factory = ProtocolFactory(lab_name, self.strateos_accessor)
+        protocol_factory = ProtocolFactory(self.strateos_accessor)
+        protocol_factory.set_selected_lab(lab_name)
         protocol = protocol_factory.get_protocol_interface(selected_protocol)
         ref_required_id_to_name = {}
         ref_optional_name_to_id = {}

@@ -7,6 +7,7 @@ import opil
 import time
 import threading
 
+
 class StrateosAccessor(object):
     """
     Retrieve protocols from Strateos
@@ -33,7 +34,7 @@ class StrateosAccessor(object):
 
     def get_protocol_parameter_values(self, protocol_name):
         if protocol_name not in self._map_name_to_protocol_interface:
-            raise IntentParserException('Unable to identify %s as a protocol supported from Strateos' % protocol_name)
+            raise IntentParserException('%s is not an identified protocol at Strateos' % protocol_name)
 
         parameter_values = []
         sbol_doc = self._map_name_protocol_docs[protocol_name]
@@ -44,7 +45,23 @@ class StrateosAccessor(object):
 
         return parameter_values
 
-    def get_protocol_id(self, protocol_name):
+    def get_protocol_parameter_fields(self, protocol_name):
+        """
+        Retreive parameter fields supported for a given protocol
+        Args:
+            protocol_name: name of protocol
+        Returns:
+            Protocol fields returned as a dict.
+            The key represents a protocol field name, the value represents an opil object of the parameter field.
+        """
+        protocol_fields = {}
+        protocol_interface = self.get_protocol_interface(protocol_name)
+        for opil_param in protocol_interface.has_parameter:
+            if opil_param.dotname:
+                protocol_fields[opil_param.dotname] = opil_param
+        return protocol_fields
+
+    def get_protocol_id(self, protocol_name) -> str:
         if protocol_name not in self._map_name_to_protocol_id:
             raise IntentParserException(
                 'Unable to get protocol id: %s is not a supported protocol in Strateos.' % protocol_name)
@@ -89,7 +106,7 @@ class StrateosAccessor(object):
         protocol_list = self.strateos_api.get_protocols()
 
         self.protocol_lock.acquire()
-        supported_protocols = [#ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
+        supported_protocols = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
                                ip_constants.GROWTH_CURVE_PROTOCOL,
                                ip_constants.OBSTACLE_COURSE_PROTOCOL,
                                ip_constants.TIME_SERIES_HTP_PROTOCOL]
@@ -122,65 +139,3 @@ class StrateosAccessor(object):
 
         return protocol_interface, sbol_doc
 
-    def convert_protocol_to_ip_parameters(self, protocol):
-        queue = []
-        parameters = {}
-        for key, value in protocol.items():
-            queue.append(([key], value))
-
-        while len(queue) > 0:
-            names, protocol_field = queue.pop(0)
-            id = '.'.join(names)
-
-            if 'inputs' in protocol_field:
-                for key, value in protocol_field['inputs'].items():
-                    queue.append((names + [key], value))
-            else:
-                parameter_field = ParameterField()
-                if 'default' in protocol_field:
-                    parameter_field.set_default_value(protocol_field['default'])
-                if 'required' in protocol_field:
-                    parameter_field.set_required(protocol_field['required'])
-                if 'options' in protocol_field:
-                    for option in protocol_field['options']:
-                        if 'name' in option and 'value' in option:
-                            parameter_field.add_option(option['name'], option['value'])
-                parameters[id] = parameter_field
-
-        return parameters
-
-
-class ParameterField(object):
-
-    def __init__(self, default_value=None, required=False):
-        self._default_value = default_value
-        self._required = required
-        self._options = []
-
-    def add_option(self, name, value):
-        option = ParameterFieldOption(name, value)
-        self._options.append(option)
-
-    def get_default_value(self):
-        if self._default_value is None:
-            return ' '
-        return str(self._default_value)
-
-    def is_required(self):
-        return self._required
-
-    def set_default_value(self, value):
-        if self._default_value:
-            raise IntentParserException(
-                'Conflict setting %s as a default value when it is currently set to %s' % (value, self._default_value))
-        self._default_value = value
-
-    def set_required(self, value: bool):
-        self._required = value
-
-
-class ParameterFieldOption(object):
-
-    def __init__(self, name, value):
-        self._name = name
-        self._value = value

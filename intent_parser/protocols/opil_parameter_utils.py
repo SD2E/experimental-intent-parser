@@ -1,16 +1,9 @@
 """
 Provides a list of functions for building opil objects.
 """
-from intent_parser.intent_parser_exceptions import IntentParserException
-import intent_parser.constants.intent_parser_constants as ip_constants
+from intent_parser.intent.measure_property_intent import MeasuredUnit
 import opil
 import sbol3
-
-MEASUREMENT_UNITS = {
-    'microliter': 'http://www.ontology-of-units-of-measure.org/resource/om-2/microlitre',
-    'nanometer': 'http://www.ontology-of-units-of-measure.org/resource/om-2/nanometre',
-    'hour': 'http://www.ontology-of-units-of-measure.org/resource/om-2/hour'
-}
 
 def clone_boolean_parameter_field(boolean_parameter):
     return create_opil_boolean_parameter_field(boolean_parameter.identity, boolean_parameter.name)
@@ -59,15 +52,10 @@ def create_opil_measurement_parameter_field(field_id: str, field: str):
     parameter_field.name = field
     return parameter_field
 
-def create_opil_measurement_parameter_value(value_id: str, value: str, unit: str):
-    new_id = value_id.replace('.', '_')
-    parameter_value = opil.MeasureValue(new_id)
-    unit_uri = 'http://bbn.com/synbio/opil#pureNumber'
-    if unit in MEASUREMENT_UNITS:
-        unit_uri = MEASUREMENT_UNITS[unit]
-
-    measure = sbol3.Measure(float(value), unit_uri, name=new_id)
-    parameter_value.has_measure = measure
+def create_opil_measurement_parameter_value(value_id: str, value: float, unit: str):
+    parameter_value = opil.MeasureValue(value_id)
+    measure = MeasuredUnit(value, unit)
+    parameter_value.has_measure = measure.to_sbol()
     return parameter_value
 
 def clone_string_parameter_field(string_parameter):
@@ -96,16 +84,6 @@ def create_opil_URI_parameter_value(value_id: str, value: str):
     parameter_value.value = value
     return parameter_value
 
-def get_measurement_unit(measure_unit):
-    for unit, ontology in MEASUREMENT_UNITS.items():
-        if measure_unit == ontology:
-            return unit
-
-    if measure_unit == 'http://bbn.com/synbio/opil#pureNumber':
-        return ''
-
-    return 'UNIDENTIFIED UNIT'
-
 def get_param_value_as_string(parameter_value):
     if type(parameter_value) is opil.opil_factory.BooleanValue:
         return str(parameter_value.value)
@@ -115,8 +93,9 @@ def get_param_value_as_string(parameter_value):
         return str(parameter_value.value)
     elif type(parameter_value) is opil.opil_factory.MeasureValue:
         if parameter_value.has_measure:
-            measure_number = parameter_value.has_measure.value
-            measure_unit = get_measurement_unit(parameter_value.has_measure.unit)
+            measure = MeasuredUnit(float(parameter_value.has_measure.value), 'not applicable')
+            measure_number = measure.get_value()
+            measure_unit = measure.get_unit_name_from_uri(parameter_value.has_measure.unit)
             return '%d %s' % (measure_number, measure_unit)
     elif type(parameter_value) is opil.opil_factory.StringValue:
         return parameter_value.value if parameter_value.value else ' '

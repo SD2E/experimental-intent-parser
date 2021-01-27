@@ -202,7 +202,6 @@ class GetOpilRequest(Resource):
             opil_output = self._ip_processor.process_opil_get_request(doc_id)
             response = make_response(opil_output)
             response.headers['Content-Type'] = 'application/xml'
-            # return response, HTTPStatus.OK
             return response
         except RequestErrorException as err:
             status_code = err.get_http_status()
