@@ -1,5 +1,7 @@
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
+from intent_parser.intent.measure_property_intent import TimepointIntent
+from intent_parser.intent.measurement_intent import MeasurementIntent
 from intent_parser.protocols.protocol_factory import ProtocolFactory
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.table_processor.opil_processor import OPILProcessor
@@ -29,7 +31,7 @@ class OpilTest(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_measurement_type(self):
+    def test_export_experiment_with_measurement_type(self):
         measurement_table = test_utils.create_fake_measurement_table()
         measurement_type = IntentParserCell()
         measurement_type.add_paragraph('PLATE_READER')
@@ -47,6 +49,45 @@ class OpilTest(unittest.TestCase):
 
         self.assertEqual(1, len(actual_experimental_request.measurements))
         actual_measurement = actual_experimental_request.measurements[0]
+
+    def test_measurement_type_to_opil(self):
+        measurement_intent = MeasurementIntent()
+        measurement_intent.set_measurement_type('PLATE_READER')
+        opil_measurement, measurement_type = measurement_intent.to_opil()
+        self.assertIsNotNone(opil_measurement)
+        self.assertIsNotNone(measurement_type)
+        self.assertTrue(measurement_type.required)
+        self.assertEqual(ip_constants.NCIT_PLATE_READER_URI, measurement_type.type)
+        self.assertTrue(opil_measurement.instance_of == measurement_type.identity)
+
+    def test_file_type_to_opil(self):
+        measurement_intent = MeasurementIntent()
+        measurement_intent.set_measurement_type('PLATE_READER')
+        measurement_intent.add_file_type('CSV')
+        opil_measurement, _ = measurement_intent.to_opil()
+        self.assertIsNotNone(opil_measurement)
+        self.assertEqual('CSV', opil_measurement.file_type)
+
+    def test_timepoint_to_sbol(self):
+        timepoint = TimepointIntent(12.0, 'hour')
+        sbol_timepoint = timepoint.to_sbol()
+        self.assertIsNotNone(sbol_timepoint)
+        self.assertEqual(sbol_timepoint.value, 12)
+        self.assertEqual(sbol_timepoint.unit, ip_constants.NCIT_HOUR)
+
+    def test_measurement_timepoint_size_1(self):
+        measurement_intent = MeasurementIntent()
+        measurement_intent.set_measurement_type('PLATE_READER')
+        timepoint = TimepointIntent(12.0, 'hour')
+        measurement_intent.add_timepoint(timepoint)
+
+        opil_measurement, _ = measurement_intent.to_opil()
+        self.assertIsNotNone(opil_measurement)
+
+        opil_measurement_time = opil_measurement.time
+        self.assertIsNotNone(opil_measurement_time)
+        self.assertEqual(opil_measurement_time.value, timepoint.to_sbol().value)
+        self.assertEqual(opil_measurement_time.unit, timepoint.to_sbol().unit)
 
     def _create_transcriptic_lab_table(self):
         lab_table = test_utils.create_fake_lab_table()

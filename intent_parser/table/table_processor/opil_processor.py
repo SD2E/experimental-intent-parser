@@ -96,12 +96,12 @@ class OPILProcessor(Processor):
             self._process_control_tables(control_tables, strain_mapping)
 
         if len(measurement_tables) == 0:
-            self.validation_errors.append('No measurement table to parse from document.')
+            self.validation_errors.append('Unable to generate opil: No measurement table to parse from document.')
         else:
             self._process_measurement_tables(measurement_tables, strain_mapping)
 
         if len(parameter_tables) == 0:
-            self.validation_errors.append('No parameter table to parse from document.')
+            self.validation_errors.append('Unable to generate opil: No parameter table to parse from document.')
         else:
             self._process_parameter_tables(parameter_tables)
 
@@ -140,32 +140,42 @@ class OPILProcessor(Processor):
         if not self._protocol_factory.support_lab(self.processed_lab_name):
             raise IntentParserException('lab %s not supported for exporting opil metadata.' % self.processed_lab_name)
 
-        opil_protocol_interface = self._protocol_factory.get_protocol_interface(self.processed_parameter.get_protocol_name())
-        parameter_fields_from_lab = self._protocol_factory.map_parameter_values(self.processed_parameter.get_protocol_name())
-
         opil_experimental_result = opil.ExperimentalRequest(self._id_provider.get_unique_sd2_id())
         opil_experimental_result.name = 'Experimental Result'
 
         opil_measurements = []
         opil_measurement_types = []
         for measurement_intent in self.process_measurements:
-            measurement_intent.to_sbol(self.opil_document)
             opil_measurement, measurement_type = measurement_intent.to_opil()
             opil_measurement_types.append(measurement_type)
             opil_measurements.append(opil_measurement)
+            measurement_intent.to_sbol(self.opil_document)
 
-        opil_experimental_result.measurements = opil_measurements
+        if len(opil_measurements) > 0:
+            opil_experimental_result.measurements = opil_measurements
 
-        run_param_fields, run_param_values = self.processed_parameter.to_opil_for_experiment()
-        default_param_fields, default_param_values = self._process_default_parameters_as_opil(self.processed_parameter.get_default_parameters(),
-                                                                           parameter_fields_from_lab,
-                                                                           self.opil_document)
-        opil_experimental_result.has_parameter_value = run_param_values + default_param_values
+        if self.processed_parameter:
+            if self.processed_parameter.get_protocol_name() is None:
+                raise IntentParserException('Unable to process parameter for opil: missing protocol name')
+            parameter_fields_from_lab = self._protocol_factory.map_parameter_values(self.processed_parameter.get_protocol_name())
+
+            run_param_fields, run_param_values = self.processed_parameter.to_opil_for_experiment()
+            default_param_fields, default_param_values = self._process_default_parameters_as_opil(self.processed_parameter.get_default_parameters(),
+                                                                                                  parameter_fields_from_lab,
+                                                                                                  self.opil_document)
+            all_param_values = run_param_values + default_param_values
+            if len(all_param_values) > 0:
+                opil_experimental_result.has_parameter_value = all_param_values
+
+            all_param_fields = run_param_fields + default_param_fields
+            opil_protocol_interface = self._protocol_factory.get_protocol_interface(self.processed_parameter.get_protocol_name())
+            copied_protocol_interface = opil_protocol_interface.copy(self.opil_document)
+            if len(all_param_fields) > 0:
+                copied_protocol_interface.has_parameter = all_param_fields
+            if len(opil_measurement_types) > 0:
+                copied_protocol_interface.protocol_measurement_type = opil_measurement_types
+
         self.opil_document.add(opil_experimental_result)
-
-        copied_protocol_interface = opil_protocol_interface.copy(self.opil_document)
-        copied_protocol_interface.has_parameter = run_param_fields + default_param_fields
-        copied_protocol_interface.protocol_measurement_type = opil_measurement_types
 
         validation_report = self.opil_document.validate()
         if not validation_report.is_valid:
@@ -277,7 +287,6 @@ class OPILProcessor(Processor):
             self.validation_warnings.extend([message])
         try:
             table = measurement_tables[-1]
-
             measurement_table = MeasurementTable(table,
                                                  temperature_units=self._TEMPERATURE_UNITS,
                                                  timepoint_units=self._TIME_UNITS,

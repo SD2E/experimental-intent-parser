@@ -127,21 +127,18 @@ class MeasurementIntent(object):
             all_sample_templates.append(ods_template)
             all_sample_variables.append(ods_variable)
 
-        sample_template = Component(identity=self._id_provider.get_unique_sd2_id(),
-                                    component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-        sample_template.name = 'measurement template'
-        if len(all_sample_templates) == 0:
-            raise IntentParserException('measurement template is empty')
-        sample_template.features = all_sample_templates
-        sbol_document.add(sample_template)
+        if len(all_sample_templates) > 0 and len(all_sample_variables) > 0:
+            sample_template = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                        component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            sample_template.name = 'measurement template'
+            sample_template.features = all_sample_templates
+            sbol_document.add(sample_template)
 
-        sample_combinations = CombinatorialDerivation(identity=self._id_provider.get_unique_sd2_id(),
-                                                      template=sample_template)
-        sample_combinations.name = 'measurement combinatorial derivation'
-        if len(all_sample_variables) == 0:
-            raise IntentParserException('measurement variables is empty')
-        sample_combinations.variable_components = all_sample_variables
-        sbol_document.add(sample_combinations)
+            sample_combinations = CombinatorialDerivation(identity=self._id_provider.get_unique_sd2_id(),
+                                                          template=sample_template)
+            sample_combinations.name = 'measurement combinatorial derivation'
+            sample_combinations.variable_components = all_sample_variables
+            sbol_document.add(sample_combinations)
 
     def to_opil(self):
         opil_measurement = opil.Measurement(self._id_provider.get_unique_sd2_id())
