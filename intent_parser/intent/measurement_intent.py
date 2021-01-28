@@ -152,8 +152,12 @@ class MeasurementIntent(object):
         if len(self._timepoints) > 0:
             self._encode_timepoint_using_opil(opil_measurement)
         if len(self._controls) > 0:
-            for control in self._controls:
+            for control_index in range(len(self._controls)):
+                control = self._controls[control_index]
                 control.to_opil(opil_measurement)
+                # TODO: opil does not allow more than one custom annotation assign to an opil_measurement.
+                # temporary assign one control to a measurement.
+                break
 
         return opil_measurement, measurement_type
 
@@ -202,6 +206,9 @@ class MeasurementIntent(object):
                                                       0,
                                                       1)
             opil_measurement.file_type = file_type
+            #TODO: opil limits one custom annotation per opil object.
+            # temporarily encode one value and skip the rest
+            break
 
     def _encode_measurement_type_using_opil(self, opil_measurement):
         measurement_type = opil.MeasurementType(self._id_provider.get_unique_sd2_id())

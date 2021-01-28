@@ -1,3 +1,4 @@
+import intent_parser.protocols.opil_parameter_utils as opil_utils
 
 class ParameterField(object):
     """
@@ -28,5 +29,9 @@ class ParameterField(object):
     def get_valid_values(self):
         return self._valid_values
 
-    def is_valid_value(self, value):
-        return value in self._valid_values
+    def is_valid_value(self, value: str):
+        for parameter_value in self._valid_values:
+            string_value = opil_utils.get_param_value_as_string(parameter_value)
+            if string_value == value:
+                return True
+        return False

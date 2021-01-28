@@ -89,7 +89,7 @@ class IntentParserProcessor(object):
         if len(validation_errors) > 0:
             errors = ['No OPIL output generated.']
             errors.extend(validation_errors)
-            return {'errors': errors, 'warnings': validation_warnings}
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=errors, warnings=validation_warnings)
 
         xml_string = sbol_doc.write_string('xml')
         return xml_string
@@ -141,7 +141,7 @@ class IntentParserProcessor(object):
                                         errors=intent_parser.get_validation_errors(),
                                         warnings=intent_parser.get_validation_warnings())
 
-        return intent_parser.get_structure_request()
+        return intent_parser.get_structured_request()
 
     def process_experiment_request_documents(self):
         """
@@ -643,7 +643,7 @@ class IntentParserProcessor(object):
                                                                              cellfreeriboswitch_options=[])
             action_list.append(dialog_action)
         else:
-            self.logger.warning('WARNING: unsupported table type: %s' % table_type)
+            self.logger.warning('Table type not supported: %s' % table_type)
 
         actions = {'actions': action_list}
         return actions
@@ -1259,14 +1259,14 @@ class IntentParserProcessor(object):
         required_parameters = [[intent_parser_constants.PROTOCOL_FIELD_XPLAN_BASE_DIRECTORY, ''],
                                [intent_parser_constants.PROTOCOL_FIELD_XPLAN_REACTOR, 'xplan'],
                                [intent_parser_constants.PROTOCOL_FIELD_PLATE_SIZE, ''],
-                               [intent_parser_constants.PARAMETER_PLATE_NUMBER, ' '],
+                               [intent_parser_constants.PROTOCOL_FIELD_PLATE_NUMBER, ' '],
                                [intent_parser_constants.PROTOCOL_FIELD_CONTAINER_SEARCH_STRING, ' '],
-                               [intent_parser_constants.PARAMETER_STRAIN_PROPERTY, ' '],
-                               [intent_parser_constants.PARAMETER_XPLAN_PATH, ''],
-                               [intent_parser_constants.PARAMETER_SUBMIT, 'False'],
-                               [intent_parser_constants.PARAMETER_PROTOCOL_ID, protocol_id],
-                               [intent_parser_constants.PARAMETER_TEST_MODE, 'True'],
-                               [intent_parser_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN, experiment_ref_url]]
+                               [intent_parser_constants.PROTOCOL_FIELD_STRAIN_PROPERTY, ' '],
+                               [intent_parser_constants.PROTOCOL_FIELD_XPLAN_PATH, ''],
+                               [intent_parser_constants.PROTOCOL_FIELD_SUBMIT, 'True'],
+                               [intent_parser_constants.PROTOCOL_FIELD_PROTOCOL_ID, protocol_id],
+                               [intent_parser_constants.PROTOCOL_FIELD_TEST_MODE, 'False'],
+                               [intent_parser_constants.PROTOCOL_FIELD_EXPERIMENT_REFERENCE_URL_FOR_XPLAN, experiment_ref_url]]
 
         for param_name, parameter in parameter_fields_from_lab.items():
             if not parameter.is_required():

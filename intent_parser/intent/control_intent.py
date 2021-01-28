@@ -5,7 +5,7 @@ from sbol3 import CombinatorialDerivation, Component, LocalSubComponent, SubComp
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 import sbol3.constants as sbol_constants
-
+import opil
 """
 Intent Parser's representation for a control.
 """
@@ -133,9 +133,9 @@ class ControlIntent(object):
 
     def _encode_control_type_using_opil(self, opil_measurement):
         opil_measurement.control_type = TextProperty(opil_measurement,
-                                                     ip_constants.SD2E_NAMESPACE + 'control_type',
-                                                     0,
-                                                     1)
+                                             self._id_provider.get_unique_sd2_id(),
+                                             0,
+                                             1)
         opil_measurement.control_type = self._control_type
 
     def _encode_timepoints_using_opil(self, opil_measurement):
