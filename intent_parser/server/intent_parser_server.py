@@ -22,7 +22,7 @@ template = {
     'info': {
         'title': 'Intent Parser API',
         'description': 'API for calling Intent Parser.',
-        'version': '3.0'
+        'version': intent_parser_constants.RELEASE_VERSION
     }
 }
 app.config['DEBUG'] = True
@@ -552,7 +552,7 @@ class PostTableInformationRequest(Resource):
                         type: string
         responses:
             200:
-                description: Experiment encoded as OPIL.
+                description: Table information
         """
         try:
             info_output = self._ip_processor.process_table_info(request.get_json())
