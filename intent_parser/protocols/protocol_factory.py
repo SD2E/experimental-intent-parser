@@ -50,16 +50,23 @@ class ProtocolFactory(object):
         protocol_field_mapping = self.get_protocol_fields(protocol_name)
         parameters = {}
         for parameter_name, parameter in protocol_field_mapping.items():
-            possible_values = [parameter.default_value]
-            if type(parameter.allowed_value) is opil.opil_factory.EnumeratedParameter:
+            possible_values = []
+            if parameter.default_value:
+                possible_values.append(parameter.default_value)
+
+            if type(parameter) is opil.opil_factory.EnumeratedParameter and parameter.allowed_value:
                 possible_values.extend(parameter.allowed_value)
 
             if not parameter.required:
                 ip_parameter_field = ParameterField(parameter_name, parameter, valid_values=possible_values)
                 parameters[parameter_name] = ip_parameter_field
+                if parameter.description:
+                    ip_parameter_field.set_description(parameter.description)
             else:
                 ip_parameter_field = ParameterField(parameter_name, parameter, required=True, valid_values=possible_values)
                 parameters[parameter_name] = ip_parameter_field
+                if parameter.description:
+                    ip_parameter_field.set_description(parameter.description)
 
         return parameters
 

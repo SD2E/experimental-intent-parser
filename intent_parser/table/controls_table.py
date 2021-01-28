@@ -47,7 +47,7 @@ class ControlsTable(object):
     def _process_row(self, row_index):
         row = self._intent_parser_table.get_row(row_index)
         control = ControlIntent()
-        row_offset = row_index + 1  # Used for reporting row value to users
+        row_offset = row_index # Used for reporting row value to users
 
         for cell_index in range(len(row)):
             cell = self._intent_parser_table.get_cell(row_index, cell_index)
@@ -55,7 +55,7 @@ class ControlsTable(object):
             header_row_index = self._intent_parser_table.header_row_index()
             header_cell = self._intent_parser_table.get_cell(header_row_index, cell_index)
             cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
-            column_offset = cell_index + 1  # Used for reporting column value to users
+            column_offset = cell_index # Used for reporting column value to users
 
             if not cell.get_text().strip():
                 self._validation_warnings.append(

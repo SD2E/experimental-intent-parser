@@ -185,7 +185,7 @@ class OPILProcessor(Processor):
         # Check for required fields.
         is_valid = True
         for field in parameter_fields_from_lab.values():
-            if field.get_required() and field.get_field_name() not in parameter_fields_from_document:
+            if field.is_required() and field.get_field_name() not in parameter_fields_from_document:
                 self.validation_errors.append('missing required parameter field %s' % field.get_field_name())
                 is_valid = False
         # Check for valid values.
@@ -307,7 +307,7 @@ class OPILProcessor(Processor):
     def _process_parameter_tables(self, parameter_tables):
         if len(parameter_tables) > 1:
             message = ('There are more than one parameter table specified in this experiment.'
-                       'Only the last parameter table identified in the document will be used for generating a request.')
+                       'Only the last parameter table identified in the document will be used for generating opil.')
             self.validation_warnings.extend([message])
         try:
             table = parameter_tables[-1]

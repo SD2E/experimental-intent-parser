@@ -2,7 +2,7 @@
 List of constants used for reading and writing contents from intent parser
 """
 
-RELEASE_VERSION = '3.0'
+RELEASE_VERSION = '3.1'
 # name of labs Intent Parser has connection to
 LAB_TRANSCRIPTIC = 'Transcriptic'
 STRATEOS_NAMESPACE = 'http://strateos.com/'
@@ -136,13 +136,15 @@ NCIT_WEEK = 'https://identifiers.org/ncit:C29844'
 NCIT_YEAR = 'https://identifiers.org/ncit:C29848'
 
 OTU_FEMTOSECOND = 'http://www.ontology-of-units-of-measure.org/resource/om-2/femtosecond-Time'
+OTU_NANOMETER = 'http://www.ontology-of-units-of-measure.org/resource/om-2/nanometre'
+OTU_HOUR = 'http://www.ontology-of-units-of-measure.org/resource/om-2/hour'
+OTU_MICROLITRE = 'http://www.ontology-of-units-of-measure.org/resource/om-2/microlitre'
 
 UO_MILLIGRAM_PER_MILLILITER = 'https://identifiers.org/UO:0000176'
 UO_MOLAR = 'https://identifiers.org/UO:0000062'
 UO_MILLI_MOLAR = 'https://identifiers.org/UO:0000063'
 UO_GRAM_PER_LITER = 'https://identifiers.org/UO:0000175'
 UO_NANO_GRAM_PER_LITER = 'https://identifiers.org/UO:0010050'
-
 # measurement-typeis specific to SD2 project
 SD2_AUTOMATED_TEST_URI = 'http://sd2e.org#automatedTest'
 SD2_CONDITION_SPACE_URI = 'http://sd2e.org#conditionSpace'

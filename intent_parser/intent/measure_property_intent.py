@@ -17,7 +17,8 @@ class MeasuredUnit(object):
                        'nM': ip_constants.NCIT_NANOMOLE,
                        'uM': ip_constants.NCIT_MICROMOLE,
                        'mg/ml': ip_constants.UO_MILLIGRAM_PER_MILLILITER,
-                       'ng/ul': ip_constants.UO_NANO_GRAM_PER_LITER}
+                       'ng/ul': ip_constants.UO_NANO_GRAM_PER_LITER,
+                       'microlitre': ip_constants.OTU_MICROLITRE}
 
     _TEMPERATURE_UNIT_MAP = {'celsius': ip_constants.NCIT_CELSIUS,
                              'fahrenheit': ip_constants.NCIT_FAHRENHEIT}
@@ -63,6 +64,13 @@ class MeasuredUnit(object):
         for key, value in self._TIME_UNIT_MAP.items():
             if value == unit_uri:
                 return key
+
+        if unit_uri == ip_constants.OTU_NANOMETER:
+            return 'nanometer'
+
+        if unit_uri == ip_constants.OTU_HOUR:
+            return 'hour'
+
         return ''
 
     def get_value(self):

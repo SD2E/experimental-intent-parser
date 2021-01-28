@@ -85,7 +85,7 @@ class MeasurementTable(object):
         measurement = MeasurementIntent()
         content_intent = ContentIntent()
 
-        row_offset = row_index + 1 # Used for reporting row value to users
+        row_offset = row_index # Used for reporting row value to users
         for cell_index in range(len(row)):
             cell = self._intent_parser_table.get_cell(row_index, cell_index)
 
@@ -93,11 +93,8 @@ class MeasurementTable(object):
             header_cell = self._intent_parser_table.get_cell(self._intent_parser_table.header_row_index(), cell_index)
             cell_type = cell_parser.PARSER.get_header_type(header_cell.get_text())
 
-            column_offset = cell_index + 1 # Used for reporting column value to users
+            column_offset = cell_index # Used for reporting column value to users
             if not cell.get_text().strip() or cell_type in self.IGNORE_COLUMNS:
-                self._validation_warnings.append(
-                    'Measurement table at row %d column %d does not a value provided.' % (
-                    row_offset, column_offset))
                 continue
 
             if ip_constants.HEADER_MEASUREMENT_TYPE_TYPE == cell_type:

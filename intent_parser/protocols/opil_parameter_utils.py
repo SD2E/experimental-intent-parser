@@ -101,6 +101,10 @@ def get_param_value_as_string(parameter_value):
         return parameter_value.value if parameter_value.value else ' '
     elif type(parameter_value) is opil.opil_factory.URIValue:
         return str(parameter_value.value)
+    elif isinstance(parameter_value, str):
+        return parameter_value
+
+    return ''
 
 def get_protocol_id_from_annotaton(protocol):
     namespace = 'http://strateos.com/'
