@@ -1,5 +1,5 @@
 var serverURL = 'http://intentparser.sd2e.org';
-var versionString = '3.0';
+var versionString = '3.1';
 
 function onOpen() {
 	const ui = DocumentApp.getUi();
@@ -12,6 +12,7 @@ function onOpen() {
 	tableHelpMenu.addItem('Controls', 'reportControlsInfo');
 	tableHelpMenu.addItem('Lab', 'reportLabInfo');
 	tableHelpMenu.addItem('Measurements', 'reportMeasurementsInfo');
+	tableHelpMenu.addItem('Parameters', 'reportParametersInfo');
 
 	const helpMenu = ui.createMenu('Help');
 	helpMenu.addSubMenu(tableHelpMenu);
@@ -35,6 +36,21 @@ function onOpen() {
 	menu.addItem('File Issues', 'reportIssues');
 	menu.addSubMenu(helpMenu);
 	menu.addToUi();
+}
+
+function reportParametersInfo(){
+	var docId = DocumentApp.getActiveDocument().getId();
+	const data = {'tableType': 'parameter',
+		              'documentId': docId};
+	var options = {
+  		'method' : 'post',
+		'contentType': 'application/json',
+  		'payload' : JSON.stringify(data)
+	};
+
+	var response = UrlFetchApp.fetch(serverURL + '/tableInformation', options);
+	param_info = response.getContentText();
+	showSidebar(param_info);
 }
 
 function reportControlsInfo(){

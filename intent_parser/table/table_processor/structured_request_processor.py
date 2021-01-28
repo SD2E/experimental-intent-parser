@@ -60,12 +60,11 @@ class StructuredRequestProcessor(Processor):
         self.validate_schema()
 
     def process_control_tables(self, control_tables):
-        self.processed_controls = {}
-
         if not control_tables:
-            self.validation_warnings.append('No controls table to parse from document.')
+            self.validation_warnings.append('No measurement table to parse from document.')
             return
 
+        strain_mapping = {}
         try:
             strain_mapping = self.sbol_dictionary.get_mapped_strain(self.processed_labs[dc_constants.LAB])
         except (DictionaryMaintainerException, TableException) as err:
@@ -78,10 +77,10 @@ class StructuredRequestProcessor(Processor):
                                            timepoint_units=self.catalog_accessor.get_time_units(),
                                            strain_mapping=strain_mapping)
             controls_table.process_table()
-            controls_data = controls_table.get_structured_request()
+            control_intents = controls_table.get_intents()
             table_caption = controls_table.get_table_caption()
             if table_caption:
-                self.processed_controls[table_caption] = controls_data
+                self.processed_controls[table_caption] = control_intents
             self.validation_errors.extend(controls_table.get_validation_errors())
             self.validation_warnings.extend(controls_table.get_validation_warnings())
 
@@ -125,9 +124,9 @@ class StructuredRequestProcessor(Processor):
                                           file_type=self.catalog_accessor.get_file_types(),
                                           strain_mapping=strain_mapping)
 
-            meas_table.process_table(control_tables=self.processed_controls, bookmarks=self.bookmark_ids)
+            meas_table.process_table(control_data=self.processed_controls, bookmarks=self.bookmark_ids)
 
-            self.processed_measurements.append({dc_constants.MEASUREMENTS: meas_table.get_structured_request()})
+            self.processed_measurements.append({dc_constants.MEASUREMENTS: [meas_intent.to_structure_request() for meas_intent in meas_table.get_intents()]})
             self.validation_errors.extend(meas_table.get_validation_errors())
             self.validation_warnings.extend(meas_table.get_validation_warnings())
         except (DictionaryMaintainerException, TableException) as err:
