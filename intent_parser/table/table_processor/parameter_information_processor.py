@@ -56,7 +56,7 @@ class ParameterInfoProcessor(Processor):
             description = '''
             <li><b>%s</b>: %s. <i>Acceptable value(s):</i> %s</li>
             ''' %(ip_parameter.get_field_name(), ip_parameter.get_description(), accepted_values)
-            if ip_parameter.is_required:
+            if ip_parameter.is_required():
                 required_field_info += description
             else:
                 optional_field_info += description
