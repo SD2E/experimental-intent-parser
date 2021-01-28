@@ -14,46 +14,42 @@ class CellParserTest(unittest.TestCase):
     def test_reagent_header_without_timepoint(self):
         cell = IntentParserCell()
         cell.add_paragraph('name1')
-        name, _ = self.parser.process_reagent_header(cell.get_text(),
-                                                     cell.get_text_with_url(),
-                                                     units={'hour'},
-                                                     unit_type='timepoints')
-        self.assertEqual('name1', name['label'])
+        name, _ = self.parser.process_reagent_or_media_header(cell.get_text(),
+                                                              cell.get_text_with_url(),
+                                                              units={'hour'},
+                                                              unit_type='timepoints')
+        self.assertEqual('name1', name.get_name())
     
     def test_reagent_alphanumeric_header_with_timepoint(self):
         cell = IntentParserCell()
         cell.add_paragraph('BE1 @ 15 hours')
-        name, timepoint = self.parser.process_reagent_header(cell.get_text(),
-                                                             cell.get_text_with_url(),
-                                                             units={'hour'},
-                                                             unit_type='timepoints')
-        self.assertEqual('BE1', name['label'])
-        self.assertEqual('NO PROGRAM DICTIONARY ENTRY', name['sbh_uri'])
-        self.assertEqual(timepoint['value'], 15.0)
-        self.assertEqual(timepoint['unit'], 'hour')
+        named_link, timepoint = self.parser.process_reagent_or_media_header(cell.get_text(),
+                                                                      cell.get_text_with_url(),
+                                                                      units={'hour'},
+                                                                      unit_type='timepoints')
+        self.assertEqual('BE1', named_link.get_name())
+        self.assertEqual(15.0, timepoint.get_value())
+        self.assertEqual('hour', timepoint.get_unit())
             
     def test_reagent_header_with_timepoint(self):
         cell = IntentParserCell()
         cell.add_paragraph('name @ 15 hours')
-        name, timepoint = self.parser.process_reagent_header(cell.get_text(),
-                                                             cell.get_text_with_url(),
-                                                             units={'hour'},
-                                                             unit_type='timepoints')
-        self.assertEqual('name', name['label'])
-        self.assertEqual('NO PROGRAM DICTIONARY ENTRY', name['sbh_uri'])
-        self.assertEqual(timepoint['value'], 15.0)
-        self.assertEqual(timepoint['unit'], 'hour')
+        named_link, timepoint = self.parser.process_reagent_or_media_header(cell.get_text(),
+                                                                      cell.get_text_with_url(),
+                                                                      units={'hour'},
+                                                                      unit_type='timepoints')
+        self.assertEqual('name', named_link.get_name())
+        self.assertIsNone(named_link.get_link())
+        self.assertEqual(15.0, timepoint.get_value())
+        self.assertEqual('hour', timepoint.get_unit())
         
     def test_parse_content_item_with_name(self):
         cell = IntentParserCell()
         cell.add_paragraph('name')
         results = self.parser.parse_content_item(cell.get_text(), cell.get_text_with_url())
         self.assertEqual(len(results), 1)
-        result = results[0]
-        name = result['name']
-        self.assertEqual(2, len(name))
-        self.assertEqual('name', name['label'])
-        self.assertEqual('NO PROGRAM DICTIONARY ENTRY', name['sbh_uri'])
+        self.assertEqual('name', results[0].get_named_link().get_name())
+        self.assertIsNone(results[0].get_named_link().get_link())
 
     def test_cell_values_with_named_spacing(self):
         cell_str = 'Yeast_Extract_Peptone_Adenine_Dextrose (a.k.a. YPAD Media)'
@@ -87,12 +83,17 @@ class CellParserTest(unittest.TestCase):
         self.assertEqual('sc_media', actual_res[0])
 
     def test_cell_with_unit_containing_multiple_abbreviations(self):
-        cell_str = '1 h, 2 hr, 3 hours'
-        result = self.parser.process_values_unit(cell_str, units={'hour'}, unit_type='timepoints')
-        self.assertEqual(3, len(result))
-        self.assertEqual({'value': '1', 'unit': 'hour'}, result[0])
-        self.assertEqual({'value': '2', 'unit': 'hour'}, result[1])
-        self.assertEqual({'value': '3', 'unit': 'hour'}, result[2])
+        measured_units = self.parser.process_values_unit('1 h, 2 hr, 3 hours', units={'hour'}, unit_type='timepoints')
+        self.assertEqual(3, len(measured_units))
+
+        self.assertEqual(1, measured_units[0].get_value())
+        self.assertEqual('hour', measured_units[0].get_unit())
+
+        self.assertEqual(2, measured_units[1].get_value())
+        self.assertEqual('hour', measured_units[1].get_unit())
+
+        self.assertEqual(3, measured_units[2].get_value())
+        self.assertEqual('hour', measured_units[2].get_unit())
 
     def test_cell_with_unicode_characters(self):
         cell_str = '\x0bApp'
@@ -103,12 +104,15 @@ class CellParserTest(unittest.TestCase):
         cell.add_paragraph('name1, name2, name3')
         results = self.parser.parse_content_item(cell.get_text(), cell.get_text_with_url())
         self.assertEqual(3, len(results))
-        name1 = results[0]['name']
-        name2 = results[1]['name']
-        name3 = results[2]['name']
-        self.assertEqual(name1, {'label': 'name1', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'})
-        self.assertEqual(name2, {'label': 'name2', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'})
-        self.assertEqual(name3, {'label': 'name3', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'})
+
+        self.assertEqual('name1', results[0].get_named_link().get_name())
+        self.assertIsNone(results[0].get_named_link().get_link())
+
+        self.assertEqual('name2', results[1].get_named_link().get_name())
+        self.assertIsNone(results[1].get_named_link().get_link())
+
+        self.assertEqual('name3', results[2].get_named_link().get_name())
+        self.assertIsNone(results[2].get_named_link().get_link())
         
     def test_parse_content_item_with_name_value_unit(self):
         cell = IntentParserCell()
@@ -117,33 +121,11 @@ class CellParserTest(unittest.TestCase):
                                                  cell.get_text_with_url(),
                                                  timepoint_units={'unit', 'timeunit'})
         self.assertEqual(len(results), 1)
-        result = results[0]
-        name = result['name']
-        self.assertEqual(2, len(name))
-        self.assertEqual('name1', name['label'])
-        self.assertEqual('NO PROGRAM DICTIONARY ENTRY', name['sbh_uri'])
-        self.assertEqual('123', result['value'])
-        self.assertEqual('unit', result['unit'])
-        
-    def test_parse_content_item_with_name_value_unit_timepoint(self):
-        cell = IntentParserCell()
-        cell.add_paragraph('name1 name2 123 unit @ 15 timeunit')
-        results = self.parser.parse_content_item(cell.get_text(),
-                                                 cell.get_text_with_url(),
-                                                 timepoint_units={'unit', 'timeunit'})
-        self.assertEqual(len(results), 1)
-        result = results[0]
-        name = result['name']
-        timepoints = result['timepoints']
-        self.assertEqual(2, len(name))
-        self.assertEqual(1, len(timepoints))
-        self.assertEqual('name1 name2', name['label'])
-        self.assertEqual('NO PROGRAM DICTIONARY ENTRY', name['sbh_uri'])
-        self.assertEqual('123', result['value'])
-        self.assertEqual('unit', result['unit'])
-        self.assertEqual(15.0, timepoints[0]['value'])
-        self.assertEqual('timeunit', timepoints[0]['unit'])
-        
+        self.assertEqual('name1', results[0].get_reagent_name().get_name())
+        self.assertIsNone(results[0].get_reagent_name().get_link())
+        self.assertEqual(123, results[0].get_value())
+        self.assertEqual('unit', results[0].get_unit())
+
     def test_parse_content_item_with_name_uri_value_unit(self):
         cell = IntentParserCell()
         cell.add_paragraph('name1', link='https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1')
@@ -152,13 +134,11 @@ class CellParserTest(unittest.TestCase):
                                                  cell.get_text_with_url(),
                                                  timepoint_units={'unit', 'timeunit'})
         self.assertEqual(len(results), 1)
-        result = results[0]
-        name = result['name']
-        self.assertEqual(2, len(name))
-        self.assertEqual('name1', name['label'])
-        self.assertEqual('https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1', name['sbh_uri'])
-        self.assertEqual('123', result['value'])
-        self.assertEqual('unit', result['unit'])
+        self.assertEqual('name1', results[0].get_reagent_name().get_name())
+        self.assertEqual('https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1',
+                         results[0].get_reagent_name().get_link())
+        self.assertEqual(123, results[0].get_value())
+        self.assertEqual('unit', results[0].get_unit())
 
     def test_names_without_separators(self):
         self.assertTrue(self.parser.is_name('foo'))
@@ -191,62 +171,89 @@ class CellParserTest(unittest.TestCase):
         self.assertFalse(self.parser.is_valued_cell('Modified M9 Media + Kan 5_ug_per_ml'))
 
     def test_value_unit(self):
-        result = self.parser.process_values_unit('3 hour', units={'hour'}, unit_type='timepoints')
-        self.assertEqual(1, len(result))
-        self.assertEqual({'value': '3', 'unit': 'hour'}, result[0])
+        measured_units = self.parser.process_values_unit('3 hour', units={'hour'}, unit_type='timepoints')
+        self.assertEqual(1, len(measured_units))
+        self.assertEqual(3, measured_units[0].get_value())
+        self.assertEqual('hour', measured_units[0].get_unit())
 
     def test_cell_values_with_special_character(self):
-        result = self.parser.process_values_unit('3 %',
+        measured_units = self.parser.process_values_unit('3 %',
                                                  units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'},
                                                  unit_type='timepoints')
-        self.assertEqual(1, len(result))
-        self.assertEqual({'value': '3', 'unit': '%'}, result[0])
+        self.assertEqual(1, len(measured_units))
+        self.assertEqual(3.0, measured_units[0].get_value())
+        self.assertEqual('%', measured_units[0].get_unit())
 
     def test_units_with_backslash(self):
-        result = self.parser.process_values_unit('9 g/L',
+        measured_units = self.parser.process_values_unit('9 g/L',
                                                  units={'%', 'M', 'mM', 'X', 'micromole', 'nM', 'g/L'},
                                                  unit_type='timepoints')
-        self.assertEqual(1, len(result))
-        self.assertEqual({'value': '9', 'unit': 'g/L'}, result[0])
-        
+        self.assertEqual(1, len(measured_units))
+        self.assertEqual(9, measured_units[0].get_value())
+        self.assertEqual('g/L', measured_units[0].get_unit())
+
     def test_leading_values_unit(self):
-        result = self.parser.process_values_unit('1, 2,3 hour', units={'hour'}, unit_type='timepoints')
-        self.assertEqual(3, len(result))
-        self.assertEqual({'value': '1', 'unit': 'hour'}, result[0])
-        self.assertEqual({'value': '2', 'unit': 'hour'}, result[1])
-        self.assertEqual({'value': '3', 'unit': 'hour'}, result[2])
-        
+        measured_units = self.parser.process_values_unit('1, 2,3 hour', units={'hour'}, unit_type='timepoints')
+        self.assertEqual(3, len(measured_units))
+
+        self.assertEqual(1, measured_units[0].get_value())
+        self.assertEqual('hour', measured_units[0].get_unit())
+
+        self.assertEqual(2, measured_units[1].get_value())
+        self.assertEqual('hour', measured_units[1].get_unit())
+
+        self.assertEqual(3, measured_units[2].get_value())
+        self.assertEqual('hour', measured_units[2].get_unit())
+
     def test_value_unit_pairs(self):
-        result = self.parser.process_values_unit('1 X, 2 mM ,3 micromole',
+        measured_units = self.parser.process_values_unit('1 X, 2 mM ,3 micromole',
                                                  units={'X', 'mM', 'micromole'},
                                                  unit_type='fluid')
-        self.assertEqual(3, len(result))
-        self.assertEqual({'value': '1', 'unit': 'X'}, result[0])
-        self.assertEqual({'value': '2', 'unit': 'mM'}, result[1])
-        self.assertEqual({'value': '3', 'unit': 'micromole'}, result[2])
+        self.assertEqual(3, len(measured_units))
+
+        self.assertEqual(1, measured_units[0].get_value())
+        self.assertEqual('X', measured_units[0].get_unit())
+
+        self.assertEqual(2, measured_units[1].get_value())
+        self.assertEqual('mM', measured_units[1].get_unit())
+
+        self.assertEqual(3, measured_units[2].get_value())
+        self.assertEqual('micromole', measured_units[2].get_unit())
 
     def test_cell_without_units(self):
         with self.assertRaises(TableException):
             _, _ = self.parser.process_values_unit('1, 2, 3', units=['X'], unit_type='fluid')
 
     def test_cell_with_unit_abbreviation(self):
-        result = self.parser.process_values_unit('1, 2, 3 fold', units=['X'], unit_type='fluid')
-        self.assertEqual(3, len(result))
-        self.assertEqual({'value': '1', 'unit': 'X'}, result[0])
-        self.assertEqual({'value': '2', 'unit': 'X'}, result[1])
-        self.assertEqual({'value': '3', 'unit': 'X'}, result[2])
+        measured_units = self.parser.process_values_unit('1, 2, 3 fold', units=['X'], unit_type='fluid')
+        self.assertEqual(3, len(measured_units))
+
+        self.assertEqual(1, measured_units[0].get_value())
+        self.assertEqual('X', measured_units[0].get_unit())
+
+        self.assertEqual(2, measured_units[1].get_value())
+        self.assertEqual('X', measured_units[1].get_unit())
+
+        self.assertEqual(3, measured_units[2].get_value())
+        self.assertEqual('X', measured_units[2].get_unit())
 
     def test_cell_with_unit_without_spacing(self):
-        result = self.parser.process_values_unit('1X', units={'X'}, unit_type='fluid')
-        self.assertEqual(1, len(result))
-        self.assertEqual({'value': '1', 'unit': 'X'}, result[0])
+        measured_units = self.parser.process_values_unit('1X', units={'X'}, unit_type='fluid')
+        self.assertEqual(1, len(measured_units))
+        self.assertEqual(1, measured_units[0].get_value())
+        self.assertEqual('X', measured_units[0].get_unit())
 
     def test_cell_with_multiple_value_unit_without_space(self):
-        result = self.parser.process_values_unit('1X,2X,3X', units=['X'], unit_type='fluid')
-        self.assertEqual(3, len(result))
-        self.assertEqual({'value': '1', 'unit': 'X'}, result[0])
-        self.assertEqual({'value': '2', 'unit': 'X'}, result[1])
-        self.assertEqual({'value': '3', 'unit': 'X'}, result[2])
+        measured_units = self.parser.process_values_unit('1X,2X,3X', units=['X'], unit_type='fluid')
+        self.assertEqual(3, len(measured_units))
+        self.assertEqual(1, measured_units[0].get_value())
+        self.assertEqual('X', measured_units[0].get_unit())
+
+        self.assertEqual(2, measured_units[1].get_value())
+        self.assertEqual('X', measured_units[1].get_unit())
+
+        self.assertEqual(3, measured_units[2].get_value())
+        self.assertEqual('X', measured_units[2].get_unit())
 
     def test_cell_with_unspecified_unit(self):
         with self.assertRaises(TableException):

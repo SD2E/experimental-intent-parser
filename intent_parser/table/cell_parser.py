@@ -1,8 +1,8 @@
+from intent_parser.intent.measure_property_intent import MeasuredUnit, NamedLink, NamedStringValue, ReagentIntent, TimepointIntent
 from intent_parser.intent_parser_exceptions import TableException
 from typing import Dict, List, Tuple
-import intent_parser.constants.intent_parser_constants as constants
-import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import collections
+import intent_parser.constants.intent_parser_constants as constants
 import re
 
 class CellParser(object):
@@ -165,27 +165,20 @@ class CellParser(object):
         list_of_contents = []
         tokens = self._cell_tokenizer.tokenize(text, keep_skip=False)
         if len(tokens) < 1:
-            raise TableException('Invalid value: %s does not contain a name' % text.get_matched_term())
+            raise TableException('Invalid value: %s does not contain a name' % text)
+
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
-        if cell_type == 'NAME_VALUE_UNIT_TIMEPOINT':
-            label, value, unit, timepoint_value, timepoint_unit = self._get_name_values_unit_timepoint(tokens)
-            content = {dc_constants.NAME: self.create_name_with_uri(label, text_with_uri),
-                       dc_constants.VALUE: value,
-                       dc_constants.UNIT: self.process_content_item_unit(unit, fluid_units, timepoint_units),
-                       dc_constants.TIMEPOINTS: self.process_timepoint(timepoint_value,
-                                                                       timepoint_unit,
-                                                                       timepoint_units)}
-            list_of_contents.append(content)
-        elif cell_type == 'NAME_VALUE_UNIT':
+        if cell_type == 'NAME_VALUE_UNIT':
             label, value, unit = self._get_name_values_unit(tokens)
-            content = {dc_constants.NAME: self.create_name_with_uri(label, text_with_uri),
-                       dc_constants.VALUE: value,
-                       dc_constants.UNIT: self.process_content_item_unit(unit, fluid_units, timepoint_units)}
+            named_link = self.create_name_with_uri(label, text_with_uri)
+            unit = self.process_content_item_unit(unit, fluid_units, timepoint_units)
+            content = ReagentIntent(named_link, float(value), unit)
             list_of_contents.append(content)
         elif cell_type == 'NAME':
             for label in self.extract_name_value(text):
-                content = {dc_constants.NAME: self.create_name_with_uri(label, text_with_uri)}
-                list_of_contents.append(content)
+                named_link = self.create_name_with_uri(label, text_with_uri)
+                name = NamedStringValue(named_link)
+                list_of_contents.append(name)
         else:
             raise TableException('Unable to parse %s' % text)
         return list_of_contents
@@ -200,7 +193,7 @@ class CellParser(object):
             elif token_type == 'BOOLEAN_TRUE':
                 result.append(True)
             else:
-                raise TableException('%s is not boolean value' % text)
+                raise TableException('%s is not a boolean value' % text)
 
         return result
 
@@ -265,10 +258,11 @@ class CellParser(object):
     def create_name_with_uri(self, label, uri_dictionary):
         stripped_label = label.strip()
         if stripped_label in uri_dictionary and uri_dictionary[stripped_label]:
-            return {dc_constants.LABEL: stripped_label, dc_constants.SBH_URI: uri_dictionary[stripped_label]}
+            name = NamedLink(stripped_label, link=uri_dictionary[stripped_label])
+            return name
 
-        return {dc_constants.LABEL: stripped_label,
-                dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY}
+        name = NamedLink(stripped_label)
+        return name
 
     def process_numbers(self, text: str) -> List[str]:
         """
@@ -288,22 +282,22 @@ class CellParser(object):
         else:
             raise TableException('%s does not follow correct format to specify a number or a list of number' % text)
 
-    def process_reagent_header(self, text, text_with_uri, units, unit_type):
+    def process_reagent_or_media_header(self, text, text_with_uri, units, unit_type):
         tokens = self._cell_tokenizer.tokenize(text, keep_skip=False)
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
-        name = {}
-        timepoint = {}
+
         if cell_type == 'NAME_SEPARATOR_VALUE_UNIT':
             label, timepoint_value, timepoint_unit = self._get_name_timepoint(tokens)
             name = self.create_name_with_uri(label, text_with_uri)
             abbrev_units = self._abbreviated_unit_dict[unit_type] if unit_type is not None else {}
             unit = self._determine_unit(timepoint_unit, units, abbrev_units)
-            timepoint['value'] = float(timepoint_value)
-            timepoint['unit'] = unit
+            timepoint = TimepointIntent(float(timepoint_value), unit)
+            return name, timepoint
         elif cell_type == 'NAME':
             name = self.create_name_with_uri(text.strip(), text_with_uri)
-
-        return name, timepoint
+            return name, None
+        else:
+            raise TableException('%s cannot be parsed as a reagent' % text)
 
     def process_timepoint(self, timepoint_value, timepoint_unit, timepoint_units):
         abbrev_units = self._abbreviated_unit_dict['timepoints'] if 'timepoints' is not None else {}
@@ -322,10 +316,10 @@ class CellParser(object):
         Args: 
             text: the content of a cell
             units: a list of units that the cell can be assigned to as its unit type.
-            unit_type: an optional variable to specify what type of cell this function is parsing. Default to None. 
+            unit_type: an optional variable to specify what type of unit this function is parsing. Default to None.
         
         Return:
-            a list of dictionaries for representing values and units. 
+            a list of MeasuredUnit for representing values and units.
         Raises:
             A TableException is thrown for a cell that has no unit. 
         """
@@ -343,12 +337,15 @@ class CellParser(object):
             validated_unit = self._determine_unit(unit, units, abbrev_units)
             if units and validated_unit in units:
                 for value in values:
-                    result.append({'value': value, 'unit': validated_unit})
+                    measured_unit = MeasuredUnit(float(value), validated_unit)
+                    result.append(measured_unit)
+
         elif cell_type == 'VALUE_UNIT_PAIRS':
             for value, unit in self._get_values_unit_pairs(tokens, units, unit_type):
                 validated_unit = self._determine_unit(unit, units, abbrev_units)
                 if units and validated_unit in units:
-                    result.append({'value': value, 'unit': unit})
+                    measured_unit = MeasuredUnit(float(value), validated_unit)
+                    result.append(measured_unit)
         return result
 
     def transform_strateos_string(self, text):
@@ -414,14 +411,6 @@ class CellParser(object):
         timepoint_value = self._get_token_value(tokens[-2])
         name = ' '.join([self._get_token_value(token) for token in tokens[0:-3]])
         return name, timepoint_value, timepoint_unit
-    
-    def _get_name_values_unit_timepoint(self, tokens):
-        timepoint_unit = self._get_token_value(tokens[-1])
-        timepoint_value = self._get_token_value(tokens[-2])
-        unit = self._get_token_value(tokens[-4])
-        value = self._get_token_value(tokens[-5])
-        name = ' '.join([self._get_token_value(token) for token in tokens[0:-5]])
-        return name, value, unit, timepoint_value, timepoint_unit
     
     def _get_name_values_unit(self, tokens):
         unit = self._get_token_value(tokens[-1])

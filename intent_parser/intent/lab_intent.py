@@ -2,9 +2,9 @@ from intent_parser.constants import sd2_datacatalog_constants as dc_constants, i
 
 class LabIntent(object):
 
-    def __init__(self, lab_id=ip_constants.TACC_SERVER, experiment_id='TBD'):
-        self._lab_id = lab_id
-        self._experiment_id = experiment_id
+    def __init__(self):
+        self._lab_id = ip_constants.TACC_SERVER
+        self._experiment_id = 'TBD'
 
     def get_lab_name(self) -> str:
         return self._lab_id

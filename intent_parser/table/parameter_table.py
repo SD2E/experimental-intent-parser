@@ -1,4 +1,4 @@
-from intent_parser.intent.parameter_intent import ExperimentIntent
+from intent_parser.intent.parameter_intent import ParameterIntent
 from intent_parser.intent_parser_exceptions import TableException
 from json import JSONDecodeError
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
@@ -39,29 +39,33 @@ class ParameterTable(object):
     FIELD_WITH_STRING_COMMAS = [intent_parser_constants.PARAMETER_EXP_INFO_MEDIA_WELL_STRINGS]
 
     def __init__(self, intent_parser_table, parameter_fields={}, run_as_opil=False):
-        self._experiment_intent = ExperimentIntent()
         self.run_as_opil = run_as_opil
+
+        self._parameter_intent = ParameterIntent()
         self._parameter_fields = parameter_fields
         self._validation_errors = []
         self._validation_warnings = []
         self._intent_parser_table = intent_parser_table
         self._table_caption = None
 
-    def get_experiment_intent(self):
-        return self._experiment_intent
+    def get_parameter_intent(self):
+        return self._parameter_intent
 
     def get_experiment(self):
-        experiment_result = self._experiment_intent.to_experiment_structured_request()
+        experiment_result = self._parameter_intent.to_experiment_structured_request()
         for key in experiment_result.keys():
             if not experiment_result[key]:
                 self._validation_warnings.append('Parameter Table is missing a value for %s.' % key)
         return experiment_result
 
     def get_structured_request(self):
-        return self._experiment_intent.to_structure_request()
+        return self._parameter_intent.to_structure_request()
 
     def get_validation_errors(self):
         return self._validation_errors
+
+    def get_validation_warnings(self):
+        return self._validation_warnings
 
     def process_table(self):
         self._table_caption = self._intent_parser_table.caption()
@@ -70,7 +74,7 @@ class ParameterTable(object):
             self._process_row(row_index)
 
     def set_experiment_reference_url(self, experiment_ref_url):
-        self._experiment_intent.set_experiment_reference_url_for_xplan(experiment_ref_url)
+        self._parameter_intent.set_experiment_reference_url_for_xplan(experiment_ref_url)
 
     def _process_row(self, row_index):
         row = self._intent_parser_table.get_row(row_index)
@@ -107,42 +111,42 @@ class ParameterTable(object):
         if len(param_value_list) == 0:
             return
         elif len(param_value_list) == 1:
-            self._experiment_intent.add_parameter(param_field, param_value_list[0])
+            self._parameter_intent.add_parameter(param_field, param_value_list[0])
             return
         for i in range(len(param_value_list)):
             param_field_id = param_field + '.' + str(i)
-            self._experiment_intent.add_parameter(param_field_id, param_value_list[i])
+            self._parameter_intent.add_parameter(param_field_id, param_value_list[i])
 
     def _parse_parameter(self, parameter_field: str, parameter_value: str):
         if parameter_field == intent_parser_constants.PROTOCOL_FIELD_XPLAN_BASE_DIRECTORY:
-            self._experiment_intent.set_base_dir(parameter_value)
+            self._parameter_intent.set_base_dir(parameter_value)
         elif parameter_field == intent_parser_constants.PROTOCOL_FIELD_XPLAN_REACTOR:
-            self._experiment_intent.set_xplan_reactor(parameter_value)
+            self._parameter_intent.set_xplan_reactor(parameter_value)
         elif parameter_field == intent_parser_constants.PROTOCOL_FIELD_PLATE_SIZE:
             plate_size = [int(value) for value in cell_parser.PARSER.process_numbers(parameter_value)]
-            self._experiment_intent.set_plate_size(plate_size[0])
+            self._parameter_intent.set_plate_size(plate_size[0])
         elif parameter_field == intent_parser_constants.PARAMETER_PROTOCOL_NAME:
-            self._experiment_intent.set_protocol_name(parameter_value)
+            self._parameter_intent.set_protocol_name(parameter_value)
         elif parameter_field == intent_parser_constants.PROTOCOL_FIELD_PLATE_NUMBER:
             plate_number = [int(value) for value in cell_parser.PARSER.process_numbers(parameter_value)]
-            self._experiment_intent.set_plate_number(plate_number[0])
+            self._parameter_intent.set_plate_number(plate_number[0])
         elif parameter_field == intent_parser_constants.PROTOCOL_FIELD_CONTAINER_SEARCH_STRING:
             container_search_string = cell_parser.PARSER.extract_name_value(parameter_value)
-            self._experiment_intent.set_container_search_strain(container_search_string)
+            self._parameter_intent.set_container_search_strain(container_search_string)
         elif parameter_field == intent_parser_constants.PROTOCOL_FIELD_STRAIN_PROPERTY:
-            self._experiment_intent.set_strain_property(parameter_value)
+            self._parameter_intent.set_strain_property(parameter_value)
         elif parameter_field == intent_parser_constants.PROTOCOL_FIELD_XPLAN_PATH:
-            self._experiment_intent.set_xplan_path(parameter_value)
+            self._parameter_intent.set_xplan_path(parameter_value)
         elif parameter_field == intent_parser_constants.PROTOCOL_FIELD_SUBMIT:
             boolean_value = cell_parser.PARSER.process_boolean_flag(parameter_value)
-            self._experiment_intent.set_submit(boolean_value[0])
+            self._parameter_intent.set_submit(boolean_value[0])
         elif parameter_field == intent_parser_constants.PROTOCOL_FIELD_PROTOCOL_ID:
-            self._experiment_intent.set_protocol_id(parameter_value)
+            self._parameter_intent.set_protocol_id(parameter_value)
         elif parameter_field == intent_parser_constants.PROTOCOL_FIELD_TEST_MODE:
             boolean_value = cell_parser.PARSER.process_boolean_flag(parameter_value)
-            self._experiment_intent.set_test_mode(boolean_value[0])
+            self._parameter_intent.set_test_mode(boolean_value[0])
         elif parameter_field == intent_parser_constants.PROTOCOL_FIELD_EXPERIMENT_REFERENCE_URL_FOR_XPLAN:
-            self._experiment_intent.set_experiment_reference_url_for_xplan(parameter_value)
+            self._parameter_intent.set_experiment_reference_url_for_xplan(parameter_value)
         else:
             # must be protocol parameters
             self._parse_default_parameter(parameter_field, parameter_value)
@@ -153,7 +157,7 @@ class ParameterTable(object):
             if parameter_field in self._parameter_fields:
                 parameter_id = self._parameter_fields[parameter_id]
 
-            self._experiment_intent.add_parameter(parameter_id, parameter_value)
+            self._parameter_intent.add_parameter(parameter_id, parameter_value)
         else:
             parameter_id = parameter_field
             if parameter_field in self._parameter_fields:
@@ -176,7 +180,7 @@ class ParameterTable(object):
                     json_parameter_value = json.loads(parameter_value)
                     computed_value = [json_parameter_value]
                     self._flatten_parameter_values(parameter_field, computed_value)
-            except JSONDecodeError as err:
+            except JSONDecodeError:
                 errors = [
                     'Parameter table has invalid Parameter Value: %s is an invalid json format.' % (parameter_value)]
                 self._validation_errors.append(errors)

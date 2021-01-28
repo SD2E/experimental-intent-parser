@@ -7,6 +7,7 @@ import opil
 import time
 import threading
 
+
 class StrateosAccessor(object):
     """
     Retrieve protocols from Strateos
@@ -33,7 +34,7 @@ class StrateosAccessor(object):
 
     def get_protocol_parameter_values(self, protocol_name):
         if protocol_name not in self._map_name_to_protocol_interface:
-            raise IntentParserException('Unable to identify %s as a protocol supported from Strateos' % protocol_name)
+            raise IntentParserException('%s is not an identified protocol at Strateos' % protocol_name)
 
         parameter_values = []
         sbol_doc = self._map_name_protocol_docs[protocol_name]
@@ -44,9 +45,26 @@ class StrateosAccessor(object):
 
         return parameter_values
 
-    def get_protocol_id(self, protocol_name):
+    def get_protocol_parameter_fields(self, protocol_name):
+        """
+        Retreive parameter fields supported for a given protocol
+        Args:
+            protocol_name: name of protocol
+        Returns:
+            Protocol fields returned as a dict.
+            The key represents a protocol field name, the value represents an opil object of the parameter field.
+        """
+        protocol_fields = {}
+        protocol_interface = self.get_protocol_interface(protocol_name)
+        for opil_param in protocol_interface.has_parameter:
+            if opil_param.dotname:
+                protocol_fields[opil_param.dotname] = opil_param
+        return protocol_fields
+
+    def get_protocol_id(self, protocol_name) -> str:
         if protocol_name not in self._map_name_to_protocol_id:
-            raise IntentParserException('Unable to get protocol id: %s is not a supported protocol in Strateos.' % protocol_name)
+            raise IntentParserException(
+                'Unable to get protocol id: %s is not a supported protocol in Strateos.' % protocol_name)
         return self._map_name_to_protocol_id[protocol_name]
 
     def get_protocol_interface(self, protocol_name):
@@ -59,26 +77,16 @@ class StrateosAccessor(object):
 
         return self._map_name_to_protocol_interface[protocol_name]
 
-    def get_protocol_as_schema(self, protocol):
-        """
-        Get default parameter values for a given protocol.
+    def get_protocol_as_schema(self, protocol_name):
+        protocol_list = self.strateos_api.get_protocols()
+        selected_protocol = None
+        for protocol in protocol_list:
+            if protocol['name'] == protocol_name:
+                selected_protocol = protocol
 
-        Args:
-            protocol: name of protocol
+        if not selected_protocol:
+            raise IntentParserException('Strateos does not support %s as a protocol' % protocol_name)
 
-        Return:
-            A dictionary. The key represent a parameter.
-                The value represents a parameter's default value.
-
-        Raises:
-            An Exception to indicate if a given protocol does not exist when calling the Strateos API.
-        """
-        self.protocol_lock.acquire()
-        if protocol not in self._map_name_protocol_docs:
-            raise Exception('Unable to get %s from Strateos' % protocol)
-
-        selected_protocol = self._map_name_protocol_docs[protocol]
-        self.protocol_lock.release()
         return selected_protocol
 
     def start_synchronize_protocols(self):
@@ -98,7 +106,7 @@ class StrateosAccessor(object):
         protocol_list = self.strateos_api.get_protocols()
 
         self.protocol_lock.acquire()
-        supported_protocols = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
+        supported_protocols = [#ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
                                ip_constants.GROWTH_CURVE_PROTOCOL,
                                ip_constants.OBSTACLE_COURSE_PROTOCOL,
                                ip_constants.TIME_SERIES_HTP_PROTOCOL]
@@ -107,13 +115,13 @@ class StrateosAccessor(object):
                 continue
 
             self.logger.info('Fetching protocol %s' % protocol['name'])
-            protocol_interface, sbol_doc = self._convert_protocol_as_opil(protocol)
+            protocol_interface, sbol_doc = self.convert_protocol_to_opil(protocol)
             self._map_name_to_protocol_id[protocol['name']] = protocol['id']
             self._map_name_to_protocol_interface[protocol['name']] = protocol_interface
             self._map_name_protocol_docs[protocol['name']] = sbol_doc
         self.protocol_lock.release()
 
-    def _convert_protocol_as_opil(self, protocol):
+    def convert_protocol_to_opil(self, protocol):
         strateos_namespace = 'http://strateos.com/'
         sg = opil.StrateosOpilGenerator()
         sbol_doc = sg.parse_strateos_json(strateos_namespace,
@@ -126,7 +134,8 @@ class StrateosAccessor(object):
                 protocol_interface = obj
 
         if not protocol_interface:
-            raise IntentParserException('Unable to locate OPIL protocol interface when converting transcriptic protocols to OPIL')
+            raise IntentParserException(
+                'Unable to locate OPIL protocol interface when converting transcriptic protocols to OPIL')
 
         return protocol_interface, sbol_doc
 
