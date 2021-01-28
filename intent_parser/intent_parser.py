@@ -1,6 +1,7 @@
 from datacatalog.formats.common import map_experiment_reference
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
 from intent_parser.intent_parser_exceptions import IntentParserException
+from intent_parser.table.table_processor.parameter_information_processor import ParameterInfoProcessor
 from intent_parser.table.table_processor.structured_request_processor import StructuredRequestProcessor
 from intent_parser.table.table_processor.opil_processor import OPILProcessor
 from intent_parser.table.experiment_specification_table import ExperimentSpecificationTable
@@ -39,6 +40,7 @@ class IntentParser(object):
         self.validation_errors = []
         self.validation_warnings = []
         self.opil_request = None
+        self.table_info = None
         self.ip_tables = None
         self.tables_with_captions = {}
         self.experiment_status_tables = {}
@@ -206,6 +208,20 @@ class IntentParser(object):
             return max(table_indices)
         return 0
 
+    def get_table_info(self):
+        return self.table_info
+
+    def process_parameter_info(self, protocol_factory):
+        filtered_tables = self.get_tables_by_type()
+        param_info_processor = ParameterInfoProcessor(protocol_factory,
+                                                      lab_names=[ip_constants.LAB_TRANSCRIPTIC])
+
+        param_info_processor.process_intent(lab_tables=filtered_tables[TableType.LAB],
+                                            parameter_tables=filtered_tables[TableType.PARAMETER])
+        self.validation_errors.extend(param_info_processor.get_errors())
+        self.validation_warnings.extend(param_info_processor.get_warnings())
+        self.table_info = param_info_processor.get_intent()
+
     def get_opil_request(self):
         return self.opil_request
 
@@ -279,10 +295,12 @@ class IntentParser(object):
         lab_name = lab_table.get_intent().get_lab_name()
         self.processed_lab_name = lab_name
 
-    def process_opil_request(self, lab_accessors: dict):
+    def process_opil_request(self, protocol_factory):
         filtered_tables = self.get_tables_by_type()
-        opil_processor = OPILProcessor(self.catalog_accessor, self.sbol_dictionary, lab_names=self.catalog_accessor.get_lab_ids())
-        opil_processor.set_lab_accessor(lab_accessors)
+        opil_processor = OPILProcessor(protocol_factory,
+                                       self.sbol_dictionary,
+                                       file_types=self.catalog_accessor.get_file_types(),
+                                       lab_names=[ip_constants.LAB_TRANSCRIPTIC])
         opil_processor.process_intent(filtered_tables[TableType.LAB],
                                       filtered_tables[TableType.CONTROL],
                                       filtered_tables[TableType.PARAMETER],

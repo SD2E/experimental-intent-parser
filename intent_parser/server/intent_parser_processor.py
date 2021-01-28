@@ -61,16 +61,35 @@ class IntentParserProcessor(object):
 
         self.initialized = True
 
-    def process_opil_get_request(self, document_id):
-        lab_accessors = {dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor}
+    def process_table_info(self, json_body):
+        document_id = json_body['documentId']
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-        intent_parser.process_opil_request(lab_accessors)
+        table_type = json_body['tableType']
+        validation_errors = []
+        validation_warnings = []
+        if table_type == 'parameter':
+            protocol_factory = ProtocolFactory(self.strateos_accessor)
+            intent_parser.process_parameter_info(protocol_factory)
+            validation_warnings.extend(intent_parser.get_validation_warnings())
+            validation_errors.extend(intent_parser.get_validation_errors())
+        else:
+            validation_errors.append('%s is not a supported table in Intent Parser' % table_type)
+
+        if len(validation_errors) > 0:
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=validation_errors, warnings=validation_warnings)
+        return intent_parser.get_table_info()
+
+    def process_opil_get_request(self, document_id):
+        protocol_factory = ProtocolFactory(self.strateos_accessor)
+        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+        intent_parser.process_opil_request(protocol_factory)
         sbol_doc = intent_parser.get_opil_request()
-        if not sbol_doc:
+        validation_warnings = intent_parser.get_validation_warnings()
+        validation_errors = intent_parser.get_validation_errors()
+        if len(validation_errors) > 0:
             errors = ['No OPIL output generated.']
-            errors.extend(intent_parser.get_validation_errors())
-            warnings = [intent_parser.get_validation_warnings()]
-            return {'errors': errors, 'warnings': warnings}
+            errors.extend(validation_errors)
+            return {'errors': errors, 'warnings': validation_warnings}
 
         xml_string = sbol_doc.write_string('xml')
         return xml_string
@@ -80,9 +99,9 @@ class IntentParserProcessor(object):
         validation_warnings = []
 
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-        lab_accessors = {dc_constants.LAB_TRANSCRIPTIC: self.strateos_accessor}
+        protocol_factory = ProtocolFactory(self.strateos_accessor)
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-        intent_parser.process_opil_request(lab_accessors)
+        intent_parser.process_opil_request(protocol_factory)
         validation_warnings.extend(intent_parser.get_validation_warnings())
         validation_errors.extend(intent_parser.get_validation_errors())
 
@@ -596,41 +615,47 @@ class IntentParserProcessor(object):
             intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
             intent_parser.process_lab_name()
             lab_name = intent_parser.get_lab_name()
-            protocol_factory = ProtocolFactory(lab_name=lab_name, transcriptic_accessor=self.strateos_accessor)
-            protocols = protocol_factory.load_protocols_from_lab()
-            protocol_names = [intent_parser_constants.PROTOCOL_PLACEHOLDER]
-            cell_free_riboswitch_parameters = []
-            growth_curve_parameters = []
-            obstacle_course_parameters = []
-            time_series_parameters = []
-            for protocol in protocols:
-                parameters = protocol_factory.get_optional_parameter_fields(protocol)
-                parameter_names = [parameter.name for parameter in parameters]
-                if protocol.name == intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL:
-                    cell_free_riboswitch_parameters.extend(parameter_names)
-                    protocol_names.append(protocol.name)
-                elif protocol.name == intent_parser_constants.GROWTH_CURVE_PROTOCOL:
-                    growth_curve_parameters.extend(parameter_names)
-                    protocol_names.append(protocol.name)
-                elif protocol.name == intent_parser_constants.OBSTACLE_COURSE_PROTOCOL:
-                    obstacle_course_parameters.extend(parameter_names)
-                    protocol_names.append(protocol.name)
-                elif protocol.name == intent_parser_constants.TIME_SERIES_HTP_PROTOCOL:
-                    time_series_parameters.extend(parameter_names)
-                    protocol_names.append(protocol.name)
+            protocol_factory = ProtocolFactory(transcriptic_accessor=self.strateos_accessor)
+            protocol_factory.set_selected_lab(lab_name)
+            protocol_names = [intent_parser_constants.PROTOCOL_PLACEHOLDER,
+                              intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
+                              intent_parser_constants.GROWTH_CURVE_PROTOCOL,
+                              intent_parser_constants.OBSTACLE_COURSE_PROTOCOL,
+                              intent_parser_constants.TIME_SERIES_HTP_PROTOCOL]
+            # TODO: uncomment when opil fixes this protocol
+            # cell_free_riboswitch_parameters = self._get_optional_parameter_names(protocol_factory,
+            #                                                                      intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL)
+
+            growth_curve_parameters = self._get_optional_parameter_names(protocol_factory,
+                                                                         intent_parser_constants.GROWTH_CURVE_PROTOCOL)
+
+            obstacle_course_parameters = self._get_optional_parameter_names(protocol_factory,
+                                                                            intent_parser_constants.OBSTACLE_COURSE_PROTOCOL)
+
+            time_series_parameters = self._get_optional_parameter_names(protocol_factory,
+                                                                        intent_parser_constants.TIME_SERIES_HTP_PROTOCOL)
 
             dialog_action = intent_parser_view.create_parameter_table_dialog(cursor_child_index,
                                                                              protocol_names,
                                                                              timeseries_optional_fields=time_series_parameters,
                                                                              growthcurve_optional_fields=growth_curve_parameters,
                                                                              obstaclecourse_optional_fields=obstacle_course_parameters,
-                                                                             cellfreeriboswitch_options=cell_free_riboswitch_parameters)
+                                                                             cellfreeriboswitch_options=[])
             action_list.append(dialog_action)
         else:
             self.logger.warning('WARNING: unsupported table type: %s' % table_type)
 
         actions = {'actions': action_list}
         return actions
+
+    def _get_optional_parameter_names(self, protocol_factory, protocol_name):
+        protocol_parameters = protocol_factory.map_parameter_values(protocol_name)
+        optional_param_names = []
+        for param_name, parameter in protocol_parameters.items():
+            if not parameter.is_required():
+                optional_param_names.append(param_name)
+
+        return optional_param_names
 
     def get_common_names_for_optional_parameter_fields(self, parameters: dict):
         common_names = []
@@ -1209,38 +1234,20 @@ class IntentParserProcessor(object):
         lab_name = data[ip_addon_constants.HTML_LAB]
         table_template.append([intent_parser_constants.PARAMETER_PROTOCOL_NAME, selected_protocol])
 
-        protocol_factory = ProtocolFactory(lab_name, self.strateos_accessor)
-        protocol = protocol_factory.get_protocol_interface(selected_protocol)
-        ref_required_id_to_name = {}
-        ref_optional_name_to_id = {}
-        for parameter in protocol.has_parameter:
-            if not parameter.default_value:
-                self.logger.warning('parameter %s does not have default value' % parameter.name)
-                continue
+        protocol_factory = ProtocolFactory(self.strateos_accessor)
+        protocol_factory.set_selected_lab(lab_name)
+        protocol_id = protocol_factory.get_protocol_id(selected_protocol)
+        parameter_fields_from_lab = protocol_factory.map_parameter_values(selected_protocol)
 
-            ref_id = str(parameter.default_value[0])
-            if parameter.required:
-                ref_required_id_to_name[ref_id] = parameter.name
-            else:
-                ref_optional_name_to_id[parameter.name] = ref_id
-
-        parameter_values = protocol_factory.load_parameter_values_from_protocol(selected_protocol)
-        param_value_mapping = {}
-        for param_val in parameter_values:
-            param_value_mapping[param_val.identity] = param_val
-
-        protocol_id = opil_util.get_protocol_id_from_annotaton(protocol)
-        required_fields = self._add_required_parameters(ref_required_id_to_name,
-                                                        param_value_mapping,
-                                                        google_constants.GOOGLE_DOC_URL_PREFIX + document_id,
-                                                        protocol_id)
-        table_template.extend(required_fields)
+        required_parameters = self._add_required_parameters(parameter_fields_from_lab,
+                                                            google_constants.GOOGLE_DOC_URL_PREFIX + document_id,
+                                                            protocol_id)
+        table_template.extend(required_parameters)
 
         selected_optional_parameters = data[ip_addon_constants.HTML_OPTIONALPARAMETERS]
-        optional_fields = self._add_optional_parameters(ref_optional_name_to_id,
-                                                        param_value_mapping,
-                                                        selected_optional_parameters)
-        table_template.extend(optional_fields)
+        optional_parameters = self._add_optional_parameters(parameter_fields_from_lab,
+                                                            selected_optional_parameters)
+        table_template.extend(optional_parameters)
 
         column_width = [len(header) for header in header_row]
         return intent_parser_view.create_table_template(data[ip_addon_constants.CURSOR_CHILD_INDEX],
@@ -1248,7 +1255,7 @@ class IntentParserProcessor(object):
                                                         ip_addon_constants.TABLE_TYPE_PARAMETERS,
                                                         column_width)
 
-    def _add_required_parameters(self, ref_required_values, param_value_mapping, experiment_ref_url, protocol_id):
+    def _add_required_parameters(self, parameter_fields_from_lab, experiment_ref_url, protocol_id):
         required_parameters = [[intent_parser_constants.PROTOCOL_FIELD_XPLAN_BASE_DIRECTORY, ''],
                                [intent_parser_constants.PROTOCOL_FIELD_XPLAN_REACTOR, 'xplan'],
                                [intent_parser_constants.PROTOCOL_FIELD_PLATE_SIZE, ''],
@@ -1261,29 +1268,27 @@ class IntentParserProcessor(object):
                                [intent_parser_constants.PARAMETER_TEST_MODE, 'True'],
                                [intent_parser_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN, experiment_ref_url]]
 
-        for value_id, param_name in ref_required_values.items():
-            if value_id in param_value_mapping:
-                param_value = opil_util.get_param_value_as_string(param_value_mapping[value_id])
-                required_parameters.append([param_name, param_value])
-            else:
-                required_parameters.append([param_name, ' '])
+        for param_name, parameter in parameter_fields_from_lab.items():
+            if not parameter.is_required():
+                continue
+            parameter_values = parameter.get_valid_values()
+            parameter_value = opil_util.get_param_value_as_string(parameter_values[0]) if len(parameter_values) > 0 else ' '
+            row = [param_name, parameter_value]
+            required_parameters.append(row)
 
         return required_parameters
 
-    def _add_optional_parameters(self, ref_optional_name_to_id, param_value_mapping, selected_options):
-        ref_uris = {}
+    def _add_optional_parameters(self, parameter_fields_from_lab, selected_optional_parameters):
         optional_parameters = []
-        for param_name in selected_options:
-            if param_name in ref_optional_name_to_id:
-                ref_uris[ref_optional_name_to_id[param_name]] = param_name
-            else:
-                optional_parameters.append([param_name, ' '])
+        for param_name in selected_optional_parameters:
+            if param_name not in parameter_fields_from_lab:
+                continue
 
-        for uri, param_name in ref_uris.items():
-            if uri in param_value_mapping:
-                param_value = opil_util.get_param_value_as_string(param_value_mapping[uri])
-                optional_parameters.append([param_name, param_value])
-
+            parameter = parameter_fields_from_lab[param_name]
+            parameter_values = parameter.get_valid_values()
+            parameter_value = opil_util.get_param_value_as_string(parameter_values[0]) if len(parameter_values) > 0 else ' '
+            row = [param_name, parameter_value]
+            optional_parameters.append(row)
         return optional_parameters
 
     def stop(self):

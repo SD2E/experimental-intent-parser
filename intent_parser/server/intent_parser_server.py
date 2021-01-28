@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, jsonify
+from flask import Flask, make_response, request, redirect
 from flask_restful import Api, Resource
 from flasgger import Swagger
 from http import HTTPStatus
@@ -180,6 +180,9 @@ class GetGenerateStructuredRequest(Resource):
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
+
+
+
 class GetOpilRequest(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
@@ -200,7 +203,9 @@ class GetOpilRequest(Resource):
         """
         try:
             opil_output = self._ip_processor.process_opil_get_request(doc_id)
-            return opil_output, HTTPStatus.OK
+            response = make_response(opil_output)
+            response.headers['Content-Type'] = 'application/xml'
+            return response
         except RequestErrorException as err:
             status_code = err.get_http_status()
             res = {"errors": err.get_errors(),
@@ -528,6 +533,40 @@ class PostGenerateStructuredRequest(Resource):
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
+class PostTableInformationRequest(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        """
+        post information about an Intent Parser Table.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    documentId:
+                        type: string
+                    table_type:
+                        type: string
+        responses:
+            200:
+                description: Experiment encoded as OPIL.
+        """
+        try:
+            info_output = self._ip_processor.process_table_info(request.get_json())
+            response = make_response(info_output)
+            response.headers['Content-Type'] = 'application/html'
+            return response
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_warnings()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
+
 class PostMessage(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
@@ -815,6 +854,9 @@ class IntentParserServer(object):
                          resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(PostSubmitForm,
                          '/submitForm',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostTableInformationRequest,
+                         '/tableInformation',
                          resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(PostUpdateExperimentResult,
                          '/updateExperimentalResults',

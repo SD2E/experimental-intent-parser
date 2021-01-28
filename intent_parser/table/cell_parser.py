@@ -1,10 +1,8 @@
-from intent_parser.intent.measurement_intent import MeasuredUnit, NamedLink, TimepointIntent, ReagentIntent, \
-    NamedStringValue
+from intent_parser.intent.measure_property_intent import MeasuredUnit, NamedLink, NamedStringValue, ReagentIntent, TimepointIntent
 from intent_parser.intent_parser_exceptions import TableException
 from typing import Dict, List, Tuple
 import collections
 import intent_parser.constants.intent_parser_constants as constants
-import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import re
 
 class CellParser(object):
@@ -167,13 +165,14 @@ class CellParser(object):
         list_of_contents = []
         tokens = self._cell_tokenizer.tokenize(text, keep_skip=False)
         if len(tokens) < 1:
-            raise TableException('Invalid value: %s does not contain a name' % text.get_matched_term())
+            raise TableException('Invalid value: %s does not contain a name' % text)
+
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
         if cell_type == 'NAME_VALUE_UNIT':
             label, value, unit = self._get_name_values_unit(tokens)
             named_link = self.create_name_with_uri(label, text_with_uri)
             unit = self.process_content_item_unit(unit, fluid_units, timepoint_units)
-            content = ReagentIntent(named_link, int(value), unit)
+            content = ReagentIntent(named_link, float(value), unit)
             list_of_contents.append(content)
         elif cell_type == 'NAME':
             for label in self.extract_name_value(text):

@@ -1,7 +1,7 @@
 from intent_parser.intent_parser import IntentParser
 from intent_parser.intent.control_intent import ControlIntent
-from intent_parser.intent.measurement_intent import MeasurementIntent, TemperatureIntent, TimepointIntent, \
-    ContentIntent, NamedIntegerValue, NamedLink, ReagentIntent
+from intent_parser.intent.measurement_intent import ContentIntent, MeasurementIntent
+from intent_parser.intent.measure_property_intent import NamedIntegerValue, NamedLink, ReagentIntent, TemperatureIntent, TimepointIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.intent.strain_intent import StrainIntent
 from unittest.mock import patch
