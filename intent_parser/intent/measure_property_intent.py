@@ -87,7 +87,7 @@ class MeasuredUnit(object):
             elif self._unit in self._TIME_UNIT_MAP:
                 return self._encode_timepoint_using_sbol()
             else:
-                return Measure(self._value, ip_constants.NCIT_NOT_APPLICABLE)
+                return Measure(float(self._value), ip_constants.NCIT_NOT_APPLICABLE)
 
     def to_structure_request(self):
         return {dc_constants.VALUE: float(self._value),
@@ -136,6 +136,9 @@ class MeasuredUnit(object):
             return measure
         elif self._unit == 'ng/ul':
             measure = Measure(self._value, ip_constants.UO_NANO_GRAM_PER_LITER)
+            return measure
+        elif self._unit == 'microlitre':
+            measure = Measure(self._value, ip_constants.OTU_MICROLITRE)
             return measure
         else:
             raise IntentParserException('%s is not a supported unit.' % self._unit)

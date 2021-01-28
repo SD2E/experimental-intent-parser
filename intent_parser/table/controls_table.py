@@ -58,9 +58,6 @@ class ControlsTable(object):
             column_offset = cell_index # Used for reporting column value to users
 
             if not cell.get_text().strip():
-                self._validation_warnings.append(
-                    'Controls table for row %d column %d does not a value provided.' % (
-                        row_offset, column_offset))
                 continue
 
             if intent_parser_constants.HEADER_CONTROL_TYPE_TYPE == cell_type:

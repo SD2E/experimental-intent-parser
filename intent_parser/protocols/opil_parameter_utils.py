@@ -96,7 +96,8 @@ def get_param_value_as_string(parameter_value):
             measure = MeasuredUnit(float(parameter_value.has_measure.value), 'not applicable')
             measure_number = measure.get_value()
             measure_unit = measure.get_unit_name_from_uri(parameter_value.has_measure.unit)
-            return '%d %s' % (measure_number, measure_unit)
+            measure_value = '%d %s' % (measure_number, measure_unit)
+            return measure_value.strip()
     elif type(parameter_value) is opil.opil_factory.StringValue:
         return parameter_value.value if parameter_value.value else ' '
     elif type(parameter_value) is opil.opil_factory.URIValue:
