@@ -60,7 +60,7 @@ class GoogleAppScriptAccessor(object):
             scriptId=script_id,
             pageToken=next_page_token).execute()
         list_of_versions.extend(self._get_version_number(response['versions']))
-        self._get_versions(response, list_of_versions)
+        self._get_versions(script_id, response, list_of_versions)
         
     def _get_version_number(self, version_list):
         version_numbers = []
