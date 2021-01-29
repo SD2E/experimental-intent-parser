@@ -142,9 +142,7 @@ class ControlIntent(object):
         encoded_timepoints = []
         for timepoint in self._timepoints:
             encoded_timepoints.append(timepoint.to_sbol())
-        # TODO: bug in opil. opil limits one Measure assignment to a measurement time.
-        # Update this line of code to opil_measurement.time = encoded_timepoints when this issue is resolved.
-        opil_measurement.time = encoded_timepoints[0]
+        opil_measurement.time = encoded_timepoints
 
     def _encode_strains_using_sbol(self, sbol_document):
         strain_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),

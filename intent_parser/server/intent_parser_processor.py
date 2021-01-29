@@ -623,8 +623,8 @@ class IntentParserProcessor(object):
                               intent_parser_constants.OBSTACLE_COURSE_PROTOCOL,
                               intent_parser_constants.TIME_SERIES_HTP_PROTOCOL]
             # TODO: uncomment when opil fixes this protocol
-            # cell_free_riboswitch_parameters = self._get_optional_parameter_names(protocol_factory,
-            #                                                                      intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL)
+            cell_free_riboswitch_parameters = self._get_optional_parameter_names(protocol_factory,
+                                                                                 intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL)
 
             growth_curve_parameters = self._get_optional_parameter_names(protocol_factory,
                                                                          intent_parser_constants.GROWTH_CURVE_PROTOCOL)
@@ -640,7 +640,7 @@ class IntentParserProcessor(object):
                                                                              timeseries_optional_fields=time_series_parameters,
                                                                              growthcurve_optional_fields=growth_curve_parameters,
                                                                              obstaclecourse_optional_fields=obstacle_course_parameters,
-                                                                             cellfreeriboswitch_options=[])
+                                                                             cellfreeriboswitch_options=cell_free_riboswitch_parameters)
             action_list.append(dialog_action)
         else:
             self.logger.warning('Table type not supported: %s' % table_type)

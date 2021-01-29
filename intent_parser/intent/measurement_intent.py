@@ -280,9 +280,7 @@ class MeasurementIntent(object):
         encoded_timepoints = []
         for timepoint in self._timepoints:
             encoded_timepoints.append(timepoint.to_sbol())
-        # TODO: bug in opil. opil limits one Measure assignment to a measurement time.
-        # Update this line of code to opil_measurement.time = encoded_timepoints when this issue is resolved.
-        opil_measurement.time = encoded_timepoints[0]
+        opil_measurement.time = encoded_timepoints
 
     def _encode_temperature_using_sbol(self):
         # sbol3 requires that a VariantMeasure must point to a VariableFeature with a templated Feature.
