@@ -1,10 +1,11 @@
 from intent_parser.intent.measure_property_intent import TemperatureIntent, TimepointIntent
-from sbol3 import CombinatorialDerivation, Component, LocalSubComponent, TextProperty
-from sbol3 import Measure, VariableFeature
 from intent_parser.intent.control_intent import ControlIntent
 from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.utils.id_provider import IdProvider
+from math import inf
+from sbol3 import CombinatorialDerivation, Component, LocalSubComponent, TextProperty
+from sbol3 import Measure, VariableFeature
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
@@ -200,15 +201,11 @@ class MeasurementIntent(object):
         return batch_template, batch_variable
 
     def _encode_file_type_using_opil(self, opil_measurement):
-        for file_type in self._file_type:
-            opil_measurement.file_type = TextProperty(opil_measurement,
-                                                      '%s#file_type' % ip_constants.SD2E_NAMESPACE,
-                                                      0,
-                                                      1)
-            opil_measurement.file_type = file_type
-            #TODO: opil limits one custom annotation per opil object.
-            # temporarily encode one value and skip the rest
-            break
+        opil_measurement.file_type = TextProperty(opil_measurement,
+                                                  '%s#file_type' % ip_constants.SD2E_NAMESPACE,
+                                                  0,
+                                                  inf)
+        opil_measurement.file_type = self._file_type
 
     def _encode_measurement_type_using_opil(self, opil_measurement):
         measurement_type = opil.MeasurementType(self._id_provider.get_unique_sd2_id())
