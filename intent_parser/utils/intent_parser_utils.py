@@ -1,9 +1,10 @@
 from collections import namedtuple as _namedtuple
-from intent_parser.intent_parser_exceptions import RequestErrorException
+from intent_parser.intent_parser_exceptions import IntentParserException, RequestErrorException
 from difflib import Match
 from http import HTTPStatus
 import json
 import Levenshtein
+import sbol3
 import re
 
 IPSMatch = _namedtuple('Match', 'a b size content_word_length')
@@ -13,6 +14,13 @@ def get_google_doc_id(doc_url):
     matched_pattern = re.match(url_pattern, doc_url)
     doc_id = matched_pattern.group('id')
     return doc_id
+
+def load_sbol_xml_file(file_path):
+    sbol_doc = sbol3.Document()
+    try:
+        sbol_doc.read(file_path, sbol3.RDF_XML)
+    except ValueError:
+        raise IntentParserException('Unable to load sbol file.')
 
 def load_json_file(file_path):
     with open(file_path, 'r') as file:
