@@ -116,7 +116,7 @@ def get_protocol_id_from_annotaton(protocol):
 
     return id_annotation.property_owner.strateos_id
 
-def get_protocol_interfaces_from_sbol_doc(sbol_doc):
+def get_protocol_interfaces_from_sbol_doc(sbol_doc) -> list:
     protocol_interfaces = []
     for obj in sbol_doc.objects:
         if type(obj) is opil.opil_factory.ProtocolInterface:
