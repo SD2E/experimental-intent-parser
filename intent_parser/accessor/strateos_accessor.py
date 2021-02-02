@@ -7,7 +7,7 @@ import logging
 import opil
 import time
 import threading
-
+import sbol3
 
 class StrateosAccessor(object):
     """

@@ -58,7 +58,7 @@ def create_opil_measurement_parameter_field(field_id: str, field: str):
 def create_opil_measurement_parameter_value(value_id: str, value: float, unit: str):
     parameter_value = opil.MeasureValue(value_id)
     measure = MeasuredUnit(value, unit)
-    parameter_value.has_measure = measure.to_sbol()
+    parameter_value.has_measure = measure.to_opil()
     return parameter_value
 
 def clone_string_parameter_field(string_parameter):
