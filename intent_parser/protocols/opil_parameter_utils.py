@@ -5,6 +5,9 @@ from intent_parser.intent.measure_property_intent import MeasuredUnit
 import opil
 import sbol3
 
+from intent_parser.intent_parser_exceptions import IntentParserException
+
+
 def clone_boolean_parameter_field(boolean_parameter):
     return create_opil_boolean_parameter_field(boolean_parameter.identity, boolean_parameter.name)
 
@@ -55,7 +58,7 @@ def create_opil_measurement_parameter_field(field_id: str, field: str):
 def create_opil_measurement_parameter_value(value_id: str, value: float, unit: str):
     parameter_value = opil.MeasureValue(value_id)
     measure = MeasuredUnit(value, unit)
-    parameter_value.has_measure = measure.to_sbol()
+    parameter_value.has_measure = measure.to_opil()
     return parameter_value
 
 def clone_string_parameter_field(string_parameter):
@@ -112,6 +115,21 @@ def get_protocol_id_from_annotaton(protocol):
     id_annotation = sbol3.TextProperty(protocol, namespace + 'strateos_id', 0, 1)
 
     return id_annotation.property_owner.strateos_id
+
+def get_protocol_interfaces_from_sbol_doc(sbol_doc) -> list:
+    protocol_interfaces = []
+    for obj in sbol_doc.objects:
+        if type(obj) is opil.opil_factory.ProtocolInterface:
+            protocol_interfaces.append(obj)
+
+    return protocol_interfaces
+
+def get_opil_experimental_request(opil_doc):
+    experimental_request = []
+    for opil_object in opil_doc.objects:
+        if type(opil_object) is opil.oil_factory.ExperimentalRequest:
+            experimental_request.append(opil_object)
+    return experimental_request
 
 def get_parameters_from_protocol_interface(protocol_interface):
    return [parameter for parameter in protocol_interface.has_parameter]
