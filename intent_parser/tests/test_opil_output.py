@@ -1,6 +1,6 @@
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
-from intent_parser.intent.measure_property_intent import TimepointIntent, ReagentIntent, NamedLink
+from intent_parser.intent.measure_property_intent import TimepointIntent, ReagentIntent, NamedLink, MediaIntent
 from intent_parser.intent.measurement_intent import MeasurementIntent, ContentIntent
 from intent_parser.protocols.protocol_factory import ProtocolFactory
 from intent_parser.table.intent_parser_cell import IntentParserCell
@@ -100,6 +100,7 @@ class OpilTest(unittest.TestCase):
         reagent_name = NamedLink('M9', 'https://hub.sd2e.org/user/sd2e/design/M9/1')
         reagent = ReagentIntent(reagent_name, 10.0, 'uM')
 
+        media_name = NamedLink('media', 'https://hub.sd2e.org/user/sd2e/design/M9/1')
         opil_document = opil.Document()
 
         content_intent = ContentIntent()
