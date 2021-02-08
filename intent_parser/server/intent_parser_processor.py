@@ -279,7 +279,7 @@ class IntentParserProcessor(object):
             actions.append(final_result_action)
         else:
             search_result_actions = intent_parser_view.create_analyze_result_dialog(current_result.get_matching_term(),
-                                                                                    current_result.get_strain_reference_link(),
+                                                                                    current_result.get_sbh_uri(),
                                                                                     current_result.get_matching_term(),
                                                                                     document_id,
                                                                                     current_result.get_paragraph_index(),
@@ -562,7 +562,7 @@ class IntentParserProcessor(object):
             actions.append(intent_parser_view.link_text(term.get_paragraph_index(),
                                                         term.get_start_offset(),
                                                         term.get_end_offset(),
-                                                        term.get_strain_reference_link()))
+                                                        term.get_sbh_uri()))
         actions.extend(self._report_current_analyze_term(document_id))
         return {'actions': actions}
 
