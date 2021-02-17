@@ -1,3 +1,4 @@
+from intent_parser.intent.measure_property_intent import ReagentIntent
 from intent_parser.intent_parser_exceptions import TableException
 from intent_parser.table.cell_parser import CellParser
 from intent_parser.table.intent_parser_cell import IntentParserCell
@@ -121,10 +122,17 @@ class CellParserTest(unittest.TestCase):
                                                  cell.get_text_with_url(),
                                                  timepoint_units={'unit', 'timeunit'})
         self.assertEqual(len(results), 1)
-        self.assertEqual('name1', results[0].get_reagent_name().get_name())
-        self.assertIsNone(results[0].get_reagent_name().get_link())
-        self.assertEqual(123, results[0].get_value())
-        self.assertEqual('unit', results[0].get_unit())
+        self.assertTrue(isinstance(results[0], ReagentIntent))
+        reagent = results[0]
+        self.assertEqual('name1', reagent.get_reagent_name().get_name())
+        self.assertIsNone(reagent.get_reagent_name().get_link())
+
+        reagent_values = reagent.get_reagent_values()
+        self.assertEqual(1, len(reagent_values))
+
+        reagent_value = reagent_values[0]
+        self.assertEqual(123, reagent_value.get_value())
+        self.assertEqual('unit', reagent_value.get_unit())
 
     def test_parse_content_item_with_name_uri_value_unit(self):
         cell = IntentParserCell()
@@ -134,11 +142,17 @@ class CellParserTest(unittest.TestCase):
                                                  cell.get_text_with_url(),
                                                  timepoint_units={'unit', 'timeunit'})
         self.assertEqual(len(results), 1)
-        self.assertEqual('name1', results[0].get_reagent_name().get_name())
+        self.assertTrue(isinstance(results[0], ReagentIntent))
+        reagent = results[0]
+        self.assertEqual('name1', reagent.get_reagent_name().get_name())
         self.assertEqual('https://hub.sd2e.org/user/sd2e/design/beta_estradiol/1',
-                         results[0].get_reagent_name().get_link())
-        self.assertEqual(123, results[0].get_value())
-        self.assertEqual('unit', results[0].get_unit())
+                         reagent.get_reagent_name().get_link())
+        reagent_values = reagent.get_reagent_values()
+        self.assertEqual(1, len(reagent_values))
+
+        reagent_value = reagent_values[0]
+        self.assertEqual(123, reagent_value.get_value())
+        self.assertEqual('unit', reagent_value.get_unit())
 
     def test_names_without_separators(self):
         self.assertTrue(self.parser.is_name('foo'))

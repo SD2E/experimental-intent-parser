@@ -199,7 +199,10 @@ class OPILProcessor(Processor):
                                                 value, name))
         return is_valid
 
-    def _process_default_parameters_as_opil(self, parameter_fields_from_document, parameter_fields_from_lab, opil_document):
+    def _process_default_parameters_as_opil(self,
+                                            parameter_fields_from_document,
+                                            parameter_fields_from_lab,
+                                            opil_document):
         opil_param_values = []
         opil_param_fields = []
         if not self._validate_parameters_from_lab(parameter_fields_from_document, parameter_fields_from_lab):
