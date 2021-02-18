@@ -506,7 +506,6 @@ class ContentIntent(object):
             media_template, media_variable = media.to_sbol(sbol_document)
             media_templates.append(media_template)
             media_variables.append(media_variable)
-
         return media_templates, media_variables
 
     def _encode_number_of_negative_controls_using_sbol(self, sbol_document):

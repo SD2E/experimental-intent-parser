@@ -1,45 +1,52 @@
-import intent_parser.constants.intent_parser_constants as ip_constants
-import intent_parser.protocols.opil_parameter_utils as opil_utils
-import logging
-
 from intent_parser.intent.experimental_request_intent import ExperimentalRequestIntent
 from intent_parser.intent.measure_property_intent import MeasuredUnit
 from intent_parser.intent.measurement_intent import MeasurementIntent
 from intent_parser.table.table_processor.processor import Processor
 
+import intent_parser.constants.intent_parser_constants as ip_constants
+import intent_parser.utils.sbol3_utils as sbol3_utils
+import intent_parser.protocols.opil_parameter_utils as opil_utils
+import logging
+
 class ExperimentalRequestProcessor(Processor):
     """
-    Intent Parser's representation of an experimental request
+    Intent Parser's representation of generating an experiment from protocol request
     """
 
-    logger = logging.getLogger('experimental_request')
+    logger = logging.getLogger('protocol_request')
 
     def __init__(self, opil_document):
         super().__init__()
         self._opil_document = opil_document
-        self._experiment_request_intent = None
+        self._protocol_intent = None
 
     def get_intent(self):
-        return self._experiment_request_intent
+        return self._protocol_intent
 
-    def process_opil_experimental_request(self):
+    def process_protocol(self):
+        self._process_combinatorial_derivations()
         experimental_requests = opil_utils.get_opil_experimental_request(self._opil_document)
         protocol_interfaces = opil_utils.get_protocol_interfaces_from_sbol_doc(self._opil_document)
         if len(experimental_requests) == 0:
             self.validation_errors.append('No experimental request found from opil document.')
             return
-
         elif len(experimental_requests) > 1:
             self.validation_errors.append('Expected to get one ExperimentRequests per opil document but more than one were found.')
             return
 
         self._process_experiment_request(experimental_requests[-1], protocol_interfaces)
 
+    def _process_combinatorial_derivations(self):
+        combinatorial_derivations = sbol3_utils.get_combinatorial_derivations(self._opil_document)
+        for combinatorial_derivation in combinatorial_derivations:
+            combinatorial_derivation.template
+            combinatorial_derivation.variable_features
+
     def _process_experiment_request(self, experiment_request, protocol_interfaces):
         if experiment_request.name:
-            self._experiment_request_intent = ExperimentalRequestIntent(experiment_request.name)
+            self._protocol_intent = ExperimentalRequestIntent(experiment_request.name)
         else:
-            self._experiment_request_intent = ExperimentalRequestIntent()
+            self._protocol_intent = ExperimentalRequestIntent()
 
         if experiment_request.measurements:
             self._process_opil_measurements(experiment_request.measurements)

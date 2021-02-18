@@ -147,11 +147,9 @@ class MeasuredUnit(object):
     def _encode_temperature_using_opil(self):
         if self._unit == 'celsius':
             measure = opil.Measure(self._value, ip_constants.NCIT_CELSIUS)
-            measure.name = 'celsius'
             return measure
         elif self._unit == 'fahrenheit':
             measure = opil.Measure(self._value, ip_constants.NCIT_FAHRENHEIT)
-            measure.name = 'fahrenheit'
             return measure
         else:
             raise IntentParserException('%s is not a supported unit.' % self._unit)
@@ -159,51 +157,39 @@ class MeasuredUnit(object):
     def _encode_timepoint_using_opil(self):
         if self._unit == 'day':
             measure = opil.Measure(self._value, ip_constants.NCIT_DAY)
-            measure.name = 'day'
             return measure
         elif self._unit == 'hour':
             measure = opil.Measure(self._value, ip_constants.NCIT_HOUR)
-            measure.name = 'hour'
             return measure
         elif self._unit == 'femtosecond':
             measure = opil.Measure(self._value, ip_constants.OTU_FEMTOSECOND)
-            measure.name = 'femtosecond'
             return measure
         elif self._unit == 'microsecond':
             measure = opil.Measure(self._value, ip_constants.NCIT_MICROSECOND)
-            measure.name = 'microsecond'
             return measure
         elif self._unit == 'millisecond':
             measure = opil.Measure(self._value, ip_constants.NCIT_MILLISECOND)
-            measure.name = 'millisecond'
             return measure
         elif self._unit == 'minute':
             measure = opil.Measure(self._value, ip_constants.NCIT_MINUTE)
-            measure.name = 'minute'
             return measure
         elif self._unit == 'month':
             measure = opil.Measure(self._value, ip_constants.NCIT_MONTH)
-            measure.name = 'month'
             return measure
         elif self._unit == 'nanosecond':
             measure = opil.Measure(self._value, ip_constants.NCIT_NANOSECOND)
-            measure.name = 'nanosecond'
             return measure
         elif self._unit == 'picosecond':
             measure = opil.Measure(self._value, ip_constants.NCIT_PICOSECOND)
-            measure.name = 'picosecond'
             return measure
         elif self._unit == 'second':
             measure = opil.Measure(self._value, ip_constants.NCIT_SECOND)
-            measure.name = 'second'
             return measure
         elif self._unit == 'week':
             measure = opil.Measure(self._value, ip_constants.NCIT_WEEK)
-            measure.name = 'week'
             return measure
         elif self._unit == 'year':
             measure = opil.Measure(self._value, ip_constants.NCIT_YEAR)
-            measure.name = 'year'
             return measure
         else:
             raise IntentParserException('%s is not a supported unit.' % self._unit)

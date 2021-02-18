@@ -1,21 +1,16 @@
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
-from intent_parser.intent.measure_property_intent import TimepointIntent, ReagentIntent, NamedLink, MediaIntent, \
-    MeasuredUnit
+from intent_parser.intent.measure_property_intent import TimepointIntent, ReagentIntent, NamedLink, MeasuredUnit
 from intent_parser.intent.measurement_intent import MeasurementIntent, ContentIntent
 from intent_parser.protocols.protocol_factory import ProtocolFactory
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.table_processor.opil_processor import OPILProcessor
-from sbol3 import CombinatorialDerivation, Component, LocalSubComponent, VariableFeature
+from intent_parser.utils.id_provider import IdProvider
 from unittest.mock import patch
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.tests.test_util as test_utils
 import unittest
 import opil
-import sbol3.constants as sbol_constants
-
-from intent_parser.utils.id_provider import IdProvider
-
 
 class OpilTest(unittest.TestCase):
 
@@ -101,12 +96,12 @@ class OpilTest(unittest.TestCase):
         opil_measurement, _ = measurement_intent.to_opil()
         self.assertIsNotNone(opil_measurement)
 
-        # TODO: opil can't deference child objects unless they are added to an opil.Document
-        opil_measurement_time = opil_measurement.time
-        # self.assertTrue(opil_measurement_time is timepoint.to_opil())
-        # self.assertTrue(opil_measurement_time == timepoint.to_opil())
+        self.assertEqual(1, len(opil_measurement.time))
+        opil_measurement_time = opil_measurement.time[0]
         expected_timepoint = timepoint.to_opil()
         self.assertEqual(opil_measurement_time.value, expected_timepoint.value)
+        self.assertEqual(opil_measurement_time.unit, expected_timepoint.unit)
+        self.assertEqual(opil_measurement_time.unit, ip_constants.NCIT_HOUR)
 
     def test_reagent_to_opil_without_timepoint(self):
         reagent_name = NamedLink('M9', 'https://hub.sd2e.org/user/sd2e/design/M9/1')
@@ -114,6 +109,7 @@ class OpilTest(unittest.TestCase):
         reagent_value = MeasuredUnit(10.0, 'uM')
         reagent.add_reagent_value(reagent_value)
 
+        #TODO:
         reagent_doc = opil.Document()
         reagent_template, reagent_variable, reagent_component = reagent.to_sbol(reagent_doc)
 
