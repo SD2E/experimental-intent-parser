@@ -2,11 +2,12 @@ from datetime import timedelta
 from intent_parser.intent_parser_exceptions import IntentParserException
 from transcriptic import Connection
 import intent_parser.constants.intent_parser_constants as ip_constants
+import intent_parser.protocols.opil_parameter_utils as opil_utils
 import logging
 import opil
 import time
 import threading
-
+import sbol3
 
 class StrateosAccessor(object):
     """
@@ -123,19 +124,18 @@ class StrateosAccessor(object):
 
     def convert_protocol_to_opil(self, protocol):
         strateos_namespace = 'http://strateos.com/'
+        protocol_name = protocol['name']
         sg = opil.StrateosOpilGenerator()
         sbol_doc = sg.parse_strateos_json(strateos_namespace,
-                                          protocol['name'],
+                                          protocol_name,
                                           protocol['id'],
                                           protocol['inputs'])
-        protocol_interface = None
-        for obj in sbol_doc.objects:
-            if type(obj) is opil.opil_factory.ProtocolInterface:
-                protocol_interface = obj
-
-        if not protocol_interface:
+        protocol_interfaces = opil_utils.get_protocol_interfaces_from_sbol_doc(sbol_doc)
+        if len(protocol_interfaces) == 0:
+            raise IntentParserException('Unable to locate OPIL protocol interface when converting transcriptic protocol for %s ' % protocol_name)
+        if len(protocol_interfaces) > 1:
             raise IntentParserException(
-                'Unable to locate OPIL protocol interface when converting transcriptic protocols to OPIL')
+                'Expected to find one opil protocol interface for %s but more than one was found' % protocol_name)
 
-        return protocol_interface, sbol_doc
+        return protocol_interfaces[0], sbol_doc
 

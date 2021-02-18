@@ -5,7 +5,7 @@ from sbol3 import CombinatorialDerivation, Component, LocalSubComponent, SubComp
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 import sbol3.constants as sbol_constants
-import opil
+
 """
 Intent Parser's representation for a control.
 """
@@ -106,7 +106,8 @@ class ControlIntent(object):
         content_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
                                              types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
         content_template.name = 'content template'
-        content_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
+        content_variable = VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
+                                           cardinality=sbol_constants.SBOL_ONE)
 
         content_variants = []
         content_variant_measures = []
@@ -114,15 +115,20 @@ class ControlIntent(object):
             if isinstance(content, ReagentIntent):
                 content_component = content.to_sbol(sbol_document)
                 content_variants.append(content_component)
+                content_variant_measure = content.to_opil()
+                content_variant_measures.append(content_variant_measure)
+
                 if content.get_timepoint() is not None:
-                    content_variant_measure = content.get_timepoint().to_sbol()
-                    content_variant_measures.append(content_variant_measure)
+                    content_timepoint_measure = content.get_timepoint().to_opil()
+                    content_variant_measures.append(content_timepoint_measure)
+
             elif isinstance(content, NamedStringValue):
                 content_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                               component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
                 content_component.name = content.get_named_link().get_name()
-                content_sub_component = SubComponent(content.get_named_link().get_link())
-                content_component.features = [content_sub_component]
+                if content.get_named_link().get_link() is not None:
+                    content_sub_component = SubComponent(content.get_named_link().get_link())
+                    content_component.features = [content_sub_component]
                 content_variants.append(content_component)
                 sbol_document.add(content_component)
 
@@ -141,14 +147,15 @@ class ControlIntent(object):
     def _encode_timepoints_using_opil(self, opil_measurement):
         encoded_timepoints = []
         for timepoint in self._timepoints:
-            encoded_timepoints.append(timepoint.to_sbol())
+            encoded_timepoints.append(timepoint.to_opil())
         opil_measurement.time = encoded_timepoints
 
     def _encode_strains_using_sbol(self, sbol_document):
         strain_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
                                             types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
         strain_template.name = 'strains template'
-        strain_variable = VariableFeature(cardinality=sbol_constants.SBOL_ONE)
+        strain_variable = VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
+                                          cardinality=sbol_constants.SBOL_ONE)
         strain_variable.name = 'strain VariableFeature'
         strain_variable.variable = strain_template
         strain_variable.variant = [strain.to_sbol(sbol_document) for strain in self._strains]

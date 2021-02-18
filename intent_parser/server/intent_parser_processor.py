@@ -279,7 +279,7 @@ class IntentParserProcessor(object):
             actions.append(final_result_action)
         else:
             search_result_actions = intent_parser_view.create_analyze_result_dialog(current_result.get_matching_term(),
-                                                                                    current_result.get_strain_reference_link(),
+                                                                                    current_result.get_sbh_uri(),
                                                                                     current_result.get_matching_term(),
                                                                                     document_id,
                                                                                     current_result.get_paragraph_index(),
@@ -343,6 +343,43 @@ class IntentParserProcessor(object):
                 'results': {'operationSucceeded': True}
                 }
 
+    def _link_term(self, data):
+        actions = []
+        paragraph_index = data['selectionStartParagraph']
+        offset = data['selectionStartOffset']
+        end_offset = data['selectionEndOffset']
+        sbh_link = data['extra']['link']
+        link_text_action = intent_parser_view.link_text(paragraph_index, offset, end_offset, sbh_link)
+        actions.append(link_text_action)
+        return actions
+
+    def _link_all_terms(self, data):
+        actions = []
+        document_id = intent_parser_utils.get_document_id_from_json_body(data)
+        intent_parser = LabExperiment(document_id)
+        doc_factory = IntentParserDocumentFactory()
+        ip_document = doc_factory.from_google_doc(intent_parser.load_from_google_doc())
+
+
+        dictionary_term = {data['commonName']: data['extra']['link']}
+        self.analyze_controller.process_dictionary_terms(document_id,
+                                                         ip_document,
+                                                         'intent_parser',
+                                                         self._get_or_create_cursor_location(data),
+                                                         dictionary_term)
+
+        search_results = self.analyze_controller.get_all_analyzed_results(document_id)
+        sbh_link = data['extra']['link']
+        for matching_term in search_results:
+            paragraph_index = matching_term.get_paragraph_index()
+            offset = matching_term.get_start_offset()
+            end_offset = matching_term.get_end_offset()
+            link_text_action = intent_parser_view.link_text(paragraph_index, offset, end_offset, sbh_link)
+            actions.append(link_text_action)
+
+        self.analyze_controller.remove_document(document_id)
+        return actions
+
     def process_submit_form(self, json_body):
         if 'data' not in json_body:
             error_message = ['No data provided from button click.']
@@ -355,6 +392,14 @@ class IntentParserProcessor(object):
         result = {}
         if action_type == intent_parser_constants.SUBMIT_FORM:
             result = self.process_submit_to_synbiohub(data)
+        elif action_type == 'link':
+            actions = self._link_term(data)
+            result['actions'] = actions
+            result['results'] = {'operationSucceeded': True}
+        elif action_type == 'linkAll':
+            actions = self._link_all_terms(data)
+            result['actions'] = actions
+            result['results'] = {'operationSucceeded': True}
         elif action_type == intent_parser_constants.SUBMIT_FORM_CREATE_CONTROLS_TABLE:
             actions = self.process_controls_table(data, json_body['documentId'])
             result['actions'] = actions
@@ -517,7 +562,7 @@ class IntentParserProcessor(object):
             actions.append(intent_parser_view.link_text(term.get_paragraph_index(),
                                                         term.get_start_offset(),
                                                         term.get_end_offset(),
-                                                        term.get_strain_reference_link()))
+                                                        term.get_sbh_uri()))
         actions.extend(self._report_current_analyze_term(document_id))
         return {'actions': actions}
 
