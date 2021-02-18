@@ -1,7 +1,8 @@
 from intent_parser.intent_parser import IntentParser
 from intent_parser.intent.control_intent import ControlIntent
 from intent_parser.intent.measurement_intent import ContentIntent, MeasurementIntent
-from intent_parser.intent.measure_property_intent import NamedIntegerValue, NamedLink, ReagentIntent, TemperatureIntent, TimepointIntent
+from intent_parser.intent.measure_property_intent import NamedIntegerValue, NamedLink, ReagentIntent, TemperatureIntent, \
+    TimepointIntent, MeasuredUnit
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.intent.strain_intent import StrainIntent
 from unittest.mock import patch
@@ -324,13 +325,15 @@ class StructureRequestTest(unittest.TestCase):
     def test_control_with_content_size_1(self):
         control_intent = ControlIntent()
         control_intent.set_control_type('EMPTY_VECTOR')
-        content = ReagentIntent(NamedLink('beta_estradiol'), 0.05, 'micromole')
+        content = ReagentIntent(NamedLink('beta_estradiol'))
+        reagent_value = MeasuredUnit(0.05, 'micromole')
+        content.add_reagent_value(reagent_value)
         control_intent.add_content(content)
 
-        content_structure_request ={dc_constants.NAME: {dc_constants.LABEL: 'beta_estradiol',
+        content_structure_request = [{dc_constants.NAME: {dc_constants.LABEL: 'beta_estradiol',
                                                         dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
-                                    dc_constants.VALUE: '0.05',
-                                    dc_constants.UNIT: 'micromole'}
+                                     dc_constants.VALUE: '0.05',
+                                     dc_constants.UNIT: 'micromole'}]
         self.assertEqual({dc_constants.TYPE: 'EMPTY_VECTOR',
                           dc_constants.CONTENTS: [content_structure_request]},
                          control_intent.to_structure_request())

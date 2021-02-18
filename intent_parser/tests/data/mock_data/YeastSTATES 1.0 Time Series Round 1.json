@@ -272,7 +272,9 @@
                         "CSV"
                     ],
                     "measurement_type": "PLATE_READER",
-                    "replicates": 6,
+                    "replicates": [
+                        6
+                    ],
                     "strains": [
                         {
                             "lab_id": "name.transcriptic.UWBF_6390",
@@ -549,7 +551,9 @@
                         "FCS"
                     ],
                     "measurement_type": "FLOW",
-                    "replicates": 6,
+                    "replicates": [
+                        6
+                    ],
                     "strains": [
                         {
                             "lab_id": "name.transcriptic.UWBF_6390",
@@ -624,7 +628,9 @@
                         "CSV"
                     ],
                     "measurement_type": "PLATE_READER",
-                    "replicates": 3,
+                    "replicates": [
+                        3
+                    ],
                     "strains": [
                         {
                             "lab_id": "name.transcriptic.UWBF_6389",
@@ -808,7 +814,9 @@
                         "FCS"
                     ],
                     "measurement_type": "FLOW",
-                    "replicates": 3,
+                    "replicates": [
+                        3
+                    ],
                     "strains": [
                         {
                             "lab_id": "name.transcriptic.UWBF_6389",
@@ -1187,7 +1195,9 @@
                         "FCS"
                     ],
                     "measurement_type": "CONDITION_SPACE",
-                    "replicates": 20,
+                    "replicates": [
+                        20
+                    ],
                     "strains": [
                         {
                             "lab_id": "name.transcriptic.UWBF_6390",

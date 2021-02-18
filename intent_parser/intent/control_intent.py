@@ -41,7 +41,8 @@ class ControlIntent(object):
 
     def set_control_type(self, value: str):
         if self._control_type:
-            raise IntentParserException('Conflict setting control type %s. Current set value %s' % (value, self._control_type))
+            raise IntentParserException('Conflict setting control type %s. '
+                                        'Current set value %s' % (value, self._control_type))
         self._control_type = value
 
     def to_opil(self, opil_measurement):
@@ -74,8 +75,7 @@ class ControlIntent(object):
         sample_combinations = CombinatorialDerivation(identity=self._id_provider.get_unique_sd2_id(),
                                                       template=sample_template)
         sample_combinations.name = 'control combinatorial derivation'
-        # TODO: update .variable_components to .variable_feature
-        sample_combinations.variable_components = all_sample_variables
+        sample_combinations.variable_features = all_sample_variables
         sbol_document.add(sample_combinations)
 
         return sample_combinations
@@ -110,18 +110,15 @@ class ControlIntent(object):
                                            cardinality=sbol_constants.SBOL_ONE)
 
         content_variants = []
-        content_variant_measures = []
+        content_variant_derivations = []
         for content in self._contents:
             if isinstance(content, ReagentIntent):
-                content_component = content.to_sbol(sbol_document)
-                content_variants.append(content_component)
-                content_variant_measure = content.to_opil()
-                content_variant_measures.append(content_variant_measure)
-
-                if content.get_timepoint() is not None:
-                    content_timepoint_measure = content.get_timepoint().to_opil()
-                    content_variant_measures.append(content_timepoint_measure)
-
+                reagent_template, reagent_variable, reagent_component = content.to_sbol(sbol_document)
+                reagent_combinatorial_derivation = CombinatorialDerivation(identity=self._id_provider.get_unique_sd2_id(),
+                                                                           template=reagent_component)
+                reagent_combinatorial_derivation.name = 'content combinatorial derivation'
+                reagent_combinatorial_derivation.variable_features = [reagent_variable]
+                content_variant_derivations.append(reagent_combinatorial_derivation)
             elif isinstance(content, NamedStringValue):
                 content_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                               component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
@@ -134,7 +131,7 @@ class ControlIntent(object):
 
         content_variable.variable = content_template
         content_variable.variant = content_variants
-        content_variable.variant_measure = content_variant_measures
+        content_variable.variant_derivations = content_variant_derivations
         return content_template, content_variable
 
     def _encode_control_type_using_opil(self, opil_measurement):

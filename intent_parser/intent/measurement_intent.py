@@ -87,10 +87,11 @@ class MeasurementIntent(object):
 
         media_templates = []
         for content in self._contents.get_contents():
-            media_templates, media_variables = content.to_sbol_for_media(sbol_document)
-            all_sample_templates.extend(media_templates)
-            all_sample_variables.extend(media_variables)
-            media_templates.extend(media_templates)
+            if content.get_media_size() > 0:
+                media_templates, media_variables = content.to_sbol_for_media(sbol_document)
+                all_sample_templates.extend(media_templates)
+                all_sample_variables.extend(media_variables)
+                media_templates.extend(media_templates)
 
             content_templates, content_variables = content.to_sbol(sbol_document)
             all_sample_templates.extend(content_templates)
@@ -103,7 +104,7 @@ class MeasurementIntent(object):
 
         if len(self._temperatures) > 0:
             if len(media_templates) > 1:
-                self.logger.warning('more than one media detected. Last media is used to assign measurement temperature variants.')
+                self.logger.warning('More than one media detected. Last media is used to assign measurement temperature variants.')
             temperature_variable = self._encode_temperature_using_sbol()
             temperature_variable.variable = media_templates[-1]
 
@@ -137,7 +138,7 @@ class MeasurementIntent(object):
             sample_combinations = CombinatorialDerivation(identity=self._id_provider.get_unique_sd2_id(),
                                                           template=sample_template)
             sample_combinations.name = 'measurement combinatorial derivation'
-            sample_combinations.variable_components = all_sample_variables
+            sample_combinations.variable_features = all_sample_variables
             sbol_document.add(sample_combinations)
 
     def to_opil(self):
@@ -287,9 +288,14 @@ class MeasurementIntent(object):
         opil_measurement.time = encoded_timepoints
 
     def _encode_temperature_using_sbol(self):
-        # sbol3 requires that a VariantMeasure must point to a VariableFeature with a templated Feature.
-        # However, there is no need for creating a template Feature to encode temperature. To address this,
-        # temperatures will be attached to a media Feature.
+        # sbol3 does not have an object that can directly represent temperatures.
+        # A suggestion was to use CombinatorialDerivations for encoding this information.
+        # One downside to this suggestion is sbol3 requires that a VariantMeasure must
+        # point to a VariableFeature with a templated Feature. However, a temperature
+        # does not need an SBOL template to define its value so creating a template for
+        # temperature is not the ideal way of representing this information.
+        # For now, temperatures will be attached to an sbol3 media Feature object until
+        # a new object is introduced to best encode this information.
         temperature_variable = VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
                                                cardinality=sbol_constants.SBOL_ONE)
         temperature_variable.name = 'temperature variants'
@@ -333,8 +339,8 @@ class ContentIntent(object):
     def add_reagent(self, reagent):
         self._reagents.append(reagent)
 
-    def get_row_ids(self):
-        return self._row_ids
+    def get_media_size(self):
+        return len(self._medias)
 
     def set_column_ids(self, col_ids):
         self._column_ids = col_ids
@@ -384,10 +390,12 @@ class ContentIntent(object):
             structure_request.append([row_id.to_structure_request() for row_id in self._row_ids])
         if len(self._lab_ids) > 0:
             structure_request.append([lab_id.to_structure_request() for lab_id in self._lab_ids])
-        if len(self._reagents):
-            structure_request.append([reagent.to_structure_request() for reagent in self._reagents])
+        if len(self._reagents) > 0:
+            for reagent in self._reagents:
+                structure_request.append(reagent.to_structure_request())
         if len(self._medias) > 0:
-            structure_request.append([media.to_structure_request() for media in self._medias])
+            for media in self._medias:
+                structure_request.append(media.to_structure_request())
 
         return structure_request
 
@@ -487,45 +495,15 @@ class ContentIntent(object):
         lab_id_variable.variant = lab_id_components
         return lab_id_template, lab_id_variable
 
-    def _filter_unique_medias(self):
-        unique_medias = {}
-        for media in self._medias:
-            media_name = media.get_media_name().get_name()
-            media_link = media.get_media_name().get_link()
-            if media_name not in unique_medias:
-                unique_medias[media_name] = [media]
-            else:
-                unique_medias[media_name].append(media)
-        return unique_medias
-
     def to_sbol_for_media(self, sbol_document):
-        # method is public in order to provide other measurement information link to media
+        # There are other information within a measurement that must link to this media so leave method public
         if len(self._medias) == 0:
             raise IntentParserException('There must be at least one media present in order generate opil.')
 
         media_templates = []
         media_variables = []
-        for media_name, medias in self._filter_unique_medias().items():
-            media_variable = VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
-                                             cardinality=sbol_constants.SBOL_ONE)
-            media_variants = []
-            media_variant_measure = None
-            for media in medias:
-                media_variants.append(media.to_sbol(sbol_document))
-                if media.get_timepoint() is not None:
-                    media_variant_measure = media.get_timepoint().to_opil()
-
-            media_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
-                                               types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
-            media_template.name = media_name
-            media_variable.variable = media_template
-            if len(media_variants) == 0:
-                raise IntentParserException('no media values generated for sbol.')
-
-            media_variable.variant = media_variants
-
-            if media_variant_measure:
-                media_template.measures = [media_variant_measure]
+        for media in self._medias:
+            media_template, media_variable = media.to_sbol(sbol_document)
             media_templates.append(media_template)
             media_variables.append(media_variable)
 
@@ -551,46 +529,11 @@ class ContentIntent(object):
         num_neg_control_variable.variant = num_neg_control_components
         return num_neg_control_template, num_neg_control_variable
 
-    def _filter_unique_reagents(self):
-        unique_reagents = {}
-        for reagent in self._reagents:
-            reagent_name = reagent.get_reagent_name().get_name()
-            reagent_link = reagent.get_reagent_name().get_link()
-            if reagent_name not in unique_reagents:
-                unique_reagents[reagent_name] = [reagent]
-            else:
-                unique_reagents[reagent_name].append(reagent)
-        return unique_reagents
-
     def _encode_reagent_using_sbol(self, sbol_document):
         reagent_templates = []
         reagent_variables = []
-
-        for reagent_name, reagents in self._filter_unique_reagents().items():
-            reagent_variant_measures = []
-            reagent_variable = VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
-                                               cardinality=sbol_constants.SBOL_ONE)
-
-            reagent_timepoint_measure = None
-            for reagent in reagents:
-                current_reagent_name = reagent.get_reagent_name().get_name()
-                current_reagent_link = reagent.get_reagent_name().get_link()
-
-                if reagent_name != current_reagent_name:
-                    raise IntentParserException('expected name for reagent %s but got %s' % (reagent_name, current_reagent_name))
-
-                reagent_variant_measure = reagent.to_opil()
-                reagent_variant_measures.append(reagent_variant_measure)
-                if reagent.get_timepoint() is not None:
-                    reagent_timepoint_measure = reagent.get_timepoint().to_opil()
-
-            reagent_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
-                                                 types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
-            reagent_template.name = reagent_name
-            if reagent_timepoint_measure:
-                reagent_template.measures = [reagent_timepoint_measure]
-            reagent_variable.variable = reagent_template
-            reagent_variable.variant_measure = reagent_variant_measures
+        for reagent in self._reagents:
+            reagent_template, reagent_variable, _ = reagent.to_sbol(sbol_document)
             reagent_templates.append(reagent_template)
             reagent_variables.append(reagent_variable)
 
