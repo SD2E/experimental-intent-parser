@@ -53,7 +53,7 @@ class GoldenFileTest(unittest.TestCase):
         self._compare_structured_requests(file_path)
 
     def test_input_structured_requests_CP_NovelChassis_Endogenous_Promoter_Blue_1_21(self):
-        file = 'input_structured_requests_CP_NovelChassis_Endogenous_Promoter_Blue_1_21.json'
+        file = 'CP_NovelChassis_Endogenous_Promoter_Blue_1_21.json'
         file_path = os.path.join(self.mock_data_dir, file)
         self._compare_structured_requests(file_path)
 
