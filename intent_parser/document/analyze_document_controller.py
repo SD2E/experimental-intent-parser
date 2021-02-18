@@ -48,6 +48,13 @@ class AnalyzeDocumentController(object):
         self.LOGGER.info('Writing ignored terms to file.')
         ip_utils.write_json_to_file(self._ignore_terms, self.ANALYZE_IGNORE_TERMS_FILE)
 
+    def get_all_analyzed_results(self, document_id):
+        if document_id not in self.analyzed_documents:
+            return None
+
+        analyze_document = self.analyzed_documents[document_id]
+        return analyze_document.get_result()
+
     def get_first_analyze_result(self, document_id):
         if document_id not in self.analyzed_documents:
             return None
@@ -75,6 +82,11 @@ class AnalyzeDocumentController(object):
             return
         analyze_document = self.analyzed_documents[document_id]
         return analyze_document.remove_all(matching_term)
+
+    def remove_document(self, document_id):
+        if document_id not in self.analyzed_documents:
+            return
+        self.analyzed_documents.pop(document_id)
 
     def remove_analyze_result(self, document_id, paragraph_index, matching_term, sbh_uri, start_offset, end_offset):
         if document_id not in self.analyzed_documents:
