@@ -1,6 +1,6 @@
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.utils.id_provider import IdProvider
-from sbol3 import Component, SubComponent
+from sbol3 import Component, SubComponent, VariableFeature
 from typing import Union
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
@@ -281,11 +281,14 @@ class NamedStringValue(object):
 
 class MediaIntent(object):
 
-    def __init__(self, media_name: NamedLink, media_value: NamedLink):
+    def __init__(self, media_name: NamedLink):
         self._media_name = media_name
-        self._media_value = media_value
+        self._media_values = []
         self._timepoint = None
         self._id_provider = IdProvider()
+
+    def add_media_value(self, value: NamedLink):
+        self._media_values.append(value)
 
     def get_media_name(self) -> NamedLink:
         return self._media_name
@@ -294,39 +297,70 @@ class MediaIntent(object):
         return self._timepoint
 
     def set_timepoint(self, timepoint: TimepointIntent):
+        if self._timepoint is not None:
+            new_value = '%d %s' % (timepoint.get_value(), timepoint.get_unit())
+            curr_value = '%d %s' % (self._timepoint.get_value(), self._timepoint.get_unit())
+            raise IntentParserException(
+                'Unable to assign media timepoint value %s when it currently has %s assigned.' % (new_value, curr_value))
+
         self._timepoint = timepoint
 
     def to_sbol(self, sbol_document):
         media_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                     component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-        media_component.name = self._media_value.get_name()
+        media_component.name = self._media_name.get_name()
+        if self._media_name.get_link() is None:
+            media_template = SubComponent(media_component)
+            media_component.features = [media_template]
+            sbol_document.add(media_component)
+        else:
+            media_template = SubComponent(self._media_name.get_link())
+            media_component.features = [media_template]
+            sbol_document.add(media_component)
 
-        if self._media_value.get_link() is None:
-            raise IntentParserException('media %s has invalid media value: no sbh link provided' % self._media_value.get_name())
+        if self._timepoint is not None:
+            media_timepoint_measure = self._timepoint.to_opil()
+            media_template.measures = [media_timepoint_measure]
 
-        media_sub_component = SubComponent(self._media_value.get_link())
-        media_component.features = [media_sub_component]
-        sbol_document.add(media_component)
-        return media_component
+        media_variable = VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
+                                         cardinality=sbol_constants.SBOL_ONE)
+        media_variable.variable = media_template
+
+        media_variants = []
+        for media_value in self._media_values:
+            media_value_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                              component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            media_value_component.name = media_value.get_name()
+
+            if media_value.get_link() is not None:
+                media_value_sub_component = SubComponent(media_value.get_link())
+                media_value_component.features = [media_value_sub_component]
+            media_variants.append(media_value_component)
+
+        media_variable.variants = media_variants
+        return media_template, media_variable
 
     def to_structure_request(self):
-        media = {dc_constants.NAME: self._media_name.to_structure_request(),
-                 dc_constants.VALUE: self._media_value.get_name()}
+        sr_media = []
+        for value in self._media_values:
+            media = {dc_constants.NAME: self._media_name.to_structure_request(),
+                     dc_constants.VALUE: value.get_name()}
+            if self._timepoint:
+                media[dc_constants.TIMEPOINT] = self._timepoint.to_structure_request()
+            sr_media.append(media)
+        return sr_media
 
-        if self._timepoint:
-            media[dc_constants.TIMEPOINT] = self._timepoint.to_structure_request()
 
-        return media
+class ReagentIntent(object):
 
-
-
-class ReagentIntent(MeasuredUnit):
-
-    def __init__(self, reagent_name: NamedLink, value: float, unit: str):
-        super().__init__(value, unit, unit_type='fluid')
+    def __init__(self, reagent_name: NamedLink):
         self._reagent_name = reagent_name
+        self._reagent_values = []
         self._timepoint = None
         self._id_provider = IdProvider()
+
+    def add_reagent_value(self, value: MeasuredUnit):
+        self._reagent_values.append(value)
 
     def get_reagent_name(self):
         return self._reagent_name
@@ -334,25 +368,52 @@ class ReagentIntent(MeasuredUnit):
     def get_timepoint(self):
         return self._timepoint
 
+    def get_reagent_values(self):
+        return self._reagent_values
+
     def set_timepoint(self, timepoint: TimepointIntent):
+        if self._timepoint is not None:
+            new_value = '%d %s' % (timepoint.get_value(), timepoint.get_unit())
+            curr_value = '%d %s' % (self._timepoint.get_value(), self._timepoint.get_unit())
+            raise IntentParserException(
+                'Unable to assign reagent timepoint value %s when it currently has %s assigned.' % (new_value, curr_value))
+
         self._timepoint = timepoint
 
     def to_sbol(self, sbol_document):
-        content_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+        reagent_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                       component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-        content_component.name = self._reagent_name.get_name()
+        reagent_component.name = self._reagent_name.get_name()
         if self._reagent_name.get_link() is None:
-            raise IntentParserException('Expecting to get name of reagent linked to a SynBioHub entry but none was given for %s.' % self._reagent_name.get_name())
-        content_sub_component = SubComponent(self._reagent_name.get_link())
-        content_component.features = [content_sub_component]
-        sbol_document.add(content_component)
-        return content_component
+            reagent_template = SubComponent(reagent_component)
+            reagent_component.features = [reagent_template]
+            sbol_document.add(reagent_component)
+        else:
+            reagent_template = SubComponent(self._reagent_name.get_link())
+            reagent_component.features = [reagent_template]
+            sbol_document.add(reagent_component)
+
+        if self._timepoint is not None:
+            reagent_timepoint_measure = self._timepoint.to_opil()
+            reagent_template.measures = [reagent_timepoint_measure]
+
+        reagent_variable = VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
+                                           cardinality=sbol_constants.SBOL_ONE)
+        reagent_variable.variable = reagent_template
+
+        reagent_variant_measures = [reagent_value.to_opil() for reagent_value in self._reagent_values]
+        if len(reagent_variant_measures) > 0:
+            reagent_variable.variant_measure = reagent_variant_measures
+
+        return reagent_template, reagent_variable, reagent_component
 
     def to_structure_request(self):
-        reagent = {dc_constants.NAME: self._reagent_name.to_structure_request(),
-                   dc_constants.VALUE: str(self._value),
-                   dc_constants.UNIT: self._unit}
-        if self._timepoint:
-            reagent[dc_constants.TIMEPOINT] = self._timepoint.to_structure_request()
-
-        return reagent
+        sr_reagent = []
+        for value in self._reagent_values:
+            reagent = {dc_constants.NAME: self._reagent_name.to_structure_request(),
+                       dc_constants.VALUE: str(value.get_value()),
+                       dc_constants.UNIT: value.get_unit()}
+            if self._timepoint:
+                reagent[dc_constants.TIMEPOINT] = self._timepoint.to_structure_request()
+            sr_reagent.append(reagent)
+        return sr_reagent

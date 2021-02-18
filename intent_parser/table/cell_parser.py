@@ -162,7 +162,7 @@ class CellParser(object):
         return cell_type == 'VALUES_UNIT' or cell_type == 'VALUE_UNIT_PAIRS'
 
     def parse_content_item(self, text: str, text_with_uri: Dict, fluid_units: Tuple = {}, timepoint_units: Tuple = {}):
-        list_of_contents = []
+        contents = []
         tokens = self._cell_tokenizer.tokenize(text, keep_skip=False)
         if len(tokens) < 1:
             raise TableException('Invalid value: %s does not contain a name' % text)
@@ -172,16 +172,18 @@ class CellParser(object):
             label, value, unit = self._get_name_values_unit(tokens)
             named_link = self.create_name_with_uri(label, text_with_uri)
             unit = self.process_content_item_unit(unit, fluid_units, timepoint_units)
-            content = ReagentIntent(named_link, float(value), unit)
-            list_of_contents.append(content)
+            measured_unit = MeasuredUnit(float(value), unit)
+            content = ReagentIntent(named_link)
+            content.add_reagent_value(measured_unit)
+            contents.append(content)
         elif cell_type == 'NAME':
             for label in self.extract_name_value(text):
                 named_link = self.create_name_with_uri(label, text_with_uri)
                 name = NamedStringValue(named_link)
-                list_of_contents.append(name)
+                contents.append(name)
         else:
             raise TableException('Unable to parse %s' % text)
-        return list_of_contents
+        return contents
 
     def process_boolean_flag(self, text: str) -> List[bool]:
         tokens = self._cell_tokenizer.tokenize(text.lower(), keep_separator=False, keep_skip=False)

@@ -216,17 +216,19 @@ class MeasurementTable(object):
             return []
 
         if cell_parser.PARSER.is_valued_cell(text):
-            # content is of type reagent if cell contais value with units
+            # content is of type reagent if cell contains value with units
             try:
                 measured_units = cell_parser.PARSER.process_values_unit(text,
                                                                         units=self._fluid_units,
                                                                         unit_type='fluid')
+                reagent = ReagentIntent(named_link)
                 for measured_unit in measured_units:
-                    reagent = ReagentIntent(named_link, float(measured_unit.get_value()), measured_unit.get_unit())
-                    if timepoint is not None:
-                        reagent.set_timepoint(timepoint)
+                    reagent.add_reagent_value(measured_unit)
 
-                    result.append(reagent)
+                if timepoint is not None:
+                    reagent.set_timepoint(timepoint)
+
+                result.append(reagent)
             except TableException as err:
                 message = err.get_message()
                 self._validation_errors.append(message)
@@ -238,12 +240,13 @@ class MeasurementTable(object):
             self._validation_errors.append(message)
         else:
             # content must be of type media if cell contains list of string
+            media = MediaIntent(named_link)
             for name, media_link in cell_parser.PARSER.process_names_with_uri(cell.get_text(), text_with_uri=cell.get_text_with_url()):
                 media_value = NamedLink(name, link=media_link)
-                media = MediaIntent(named_link, media_value)
+                media.add_media_value(media_value)
                 if timepoint is not None:
                     media.set_timepoint(timepoint)
-                result.append(media)
+            result.append(media)
 
         return result
 

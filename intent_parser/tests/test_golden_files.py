@@ -52,6 +52,11 @@ class GoldenFileTest(unittest.TestCase):
         file_path = os.path.join(self.mock_data_dir, file)
         self._compare_structured_requests(file_path)
 
+    def test_input_structured_requests_CP_NovelChassis_Endogenous_Promoter_Blue_1_21(self):
+        file = 'CP_NovelChassis_Endogenous_Promoter_Blue_1_21.json'
+        file_path = os.path.join(self.mock_data_dir, file)
+        self._compare_structured_requests(file_path)
+
     def _compare_structured_requests(self, document):
         golden_structured_request = intent_parser_utils.load_json_file(document)
         golden_doc_url = golden_structured_request['experiment_reference_url']
