@@ -96,7 +96,10 @@ class ControlsTable(object):
     
     def _process_contents(self, cell, control, row_index, column_index):
         try:
-            contents = cell_parser.PARSER.parse_content_item(cell.get_text(), cell.get_text_with_url(), fluid_units=self._fluid_units, timepoint_units=self._timepoint_units)
+            contents = cell_parser.PARSER.parse_content_item(cell.get_text(),
+                                                             cell.get_text_with_url(),
+                                                             fluid_units=self._fluid_units,
+                                                             timepoint_units=self._timepoint_units)
             for content in contents:
                 control.add_content(content)
         except TableException as err:
