@@ -496,7 +496,9 @@ class IntentParserProcessor(object):
                                                                           'Download Structured Request ',
                                                                           validation_warnings, width=600)
         else:
-            all_errors = validation_warnings + validation_errors
+            all_errors = []
+            all_errors.extend(validation_warnings)
+            all_errors.extend(validation_errors)
             dialog_action = intent_parser_view.invalid_request_model_dialog('Structured request validation: Failed!',
                                                                             all_errors)
 
