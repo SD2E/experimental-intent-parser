@@ -181,8 +181,7 @@ class ParameterTable(object):
                     computed_value = [json_parameter_value]
                     self._flatten_parameter_values(parameter_field, computed_value)
             except JSONDecodeError:
-                errors = [
-                    'Parameter table has invalid Parameter Value: %s is an invalid json format.' % (parameter_value)]
+                errors = 'Parameter table has invalid Parameter Value: %s is an invalid json format.' % (parameter_value)
                 self._validation_errors.append(errors)
         else:
             if parameter_value:
