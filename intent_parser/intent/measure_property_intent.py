@@ -294,13 +294,15 @@ class MediaIntent(object):
     def to_sbol(self, sbol_document):
         media_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                     component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-        media_component.name = self._media_name
+        media_component.name = self._media_name.get_name()
         if self._media_name.get_link() is None:
-            raise IntentParserException(
-                'media %s has invalid media value: no sbh link provided' % self._media_name.get_name())
-        media_template = SubComponent(self._media_name.get_link())
-        media_component.features = [media_template]
-        sbol_document.add(media_component)
+            media_template = SubComponent(media_component)
+            media_component.features = [media_template]
+            sbol_document.add(media_component)
+        else:
+            media_template = SubComponent(self._media_name.get_link())
+            media_component.features = [media_template]
+            sbol_document.add(media_component)
 
         if self._timepoint is not None:
             media_timepoint_measure = self._timepoint.to_opil()
@@ -319,7 +321,6 @@ class MediaIntent(object):
             if media_value.get_link() is not None:
                 media_value_sub_component = SubComponent(media_value.get_link())
                 media_value_component.features = [media_value_sub_component]
-            sbol_document.add(media_component)
             media_variants.append(media_value_component)
 
         media_variable.variants = media_variants
@@ -370,11 +371,13 @@ class ReagentIntent(object):
                                       component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
         reagent_component.name = self._reagent_name.get_name()
         if self._reagent_name.get_link() is None:
-            raise IntentParserException('Expecting to get name of reagent linked to a SynBioHub entry '
-                                        'but none was given for %s.' % self._reagent_name.get_name())
-        reagent_template = SubComponent(self._reagent_name.get_link())
-        reagent_component.features = [reagent_template]
-        sbol_document.add(reagent_component)
+            reagent_template = SubComponent(reagent_component)
+            reagent_component.features = [reagent_template]
+            sbol_document.add(reagent_component)
+        else:
+            reagent_template = SubComponent(self._reagent_name.get_link())
+            reagent_component.features = [reagent_template]
+            sbol_document.add(reagent_component)
 
         if self._timepoint is not None:
             reagent_timepoint_measure = self._timepoint.to_opil()

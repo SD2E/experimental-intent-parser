@@ -182,7 +182,11 @@ class CellParser(object):
                 name = NamedStringValue(named_link)
                 contents.append(name)
         else:
-            raise TableException('Unable to parse %s' % text)
+            # default to a name string value
+            for label in self.extract_name_value(text):
+                named_link = self.create_name_with_uri(label, text_with_uri)
+                name = NamedStringValue(named_link)
+                contents.append(name)
         return contents
 
     def process_boolean_flag(self, text: str) -> List[bool]:
