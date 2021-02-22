@@ -96,8 +96,6 @@ class OpilTest(unittest.TestCase):
 
         opil_measurement, _ = measurement_intent.to_opil()
         self.assertIsNotNone(opil_measurement)
-        self.assertEqual(1, len(opil_measurement.time))
-        opil_measurement_time = opil_measurement.time[0]
 
         self.assertEqual(1, len(opil_measurement.time))
         opil_measurement_time = opil_measurement.time[0]
@@ -106,8 +104,6 @@ class OpilTest(unittest.TestCase):
         self.assertEqual(opil_measurement_time.value, expected_timepoint.value)
         self.assertEqual(opil_measurement_time.value, 12.0)
 
-        self.assertEqual(opil_measurement_time.unit, expected_timepoint.unit)
-        self.assertEqual(opil_measurement_time.unit, ip_constants.NCIT_HOUR)
         self.assertEqual(opil_measurement_time.unit, expected_timepoint.unit)
         self.assertEqual(opil_measurement_time.unit, ip_constants.NCIT_HOUR)
 
