@@ -4,9 +4,8 @@ from intent_parser.intent.measurement_intent import TimepointIntent
 from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
-import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.table.cell_parser as cell_parser
-import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
 
 class ControlsTable(object):
@@ -62,15 +61,15 @@ class ControlsTable(object):
             if not cell.get_text().strip():
                 continue
 
-            if intent_parser_constants.HEADER_CONTROL_TYPE_TYPE == cell_type:
+            if ip_constants.HEADER_CONTROL_TYPE_TYPE == cell_type:
                 self._process_control_type(cell, control, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_STRAINS_TYPE == cell_type:
+            elif ip_constants.HEADER_STRAINS_TYPE == cell_type:
                 self._process_control_strains(cell, control, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_CHANNEL_TYPE == cell_type:
+            elif ip_constants.HEADER_CHANNEL_TYPE == cell_type:
                 self._process_channels(cell, control, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_CONTENTS_TYPE == cell_type:
+            elif ip_constants.HEADER_CONTENTS_TYPE == cell_type:
                 self._process_contents(cell, control, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_TIMEPOINT_TYPE == cell_type:
+            elif ip_constants.HEADER_TIMEPOINT_TYPE == cell_type:
                 self._process_timepoint(cell, control, row_offset, column_offset)
 
         if not control.is_empty():
@@ -84,7 +83,7 @@ class ControlsTable(object):
                 message = ('Controls table at row %d column %d has more than one %s provided. '
                            'Only the first channel will be used from %s.') % (row_index,
                                                                               column_index,
-                                                                              intent_parser_constants.HEADER_CHANNEL_VALUE,
+                                                                              ip_constants.HEADER_CHANNEL_VALUE,
                                                                               cell_content)
                 self._logger.warning(message)
 
@@ -92,7 +91,7 @@ class ControlsTable(object):
         except TableException as err:
             message = ('Controls table for row %d column % has invalid %s value: %s') % (row_index,
                                                                                          column_index,
-                                                                                         intent_parser_constants.HEADER_CHANNEL_VALUE,
+                                                                                         ip_constants.HEADER_CHANNEL_VALUE,
                                                                                          err.get_message())
             self._validation_errors.append(message)
     
@@ -107,7 +106,7 @@ class ControlsTable(object):
         except TableException as err:
             message = 'Controls table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                        column_index,
-                                                                                       intent_parser_constants.HEADER_CONTENTS_VALUE,
+                                                                                       ip_constants.HEADER_CONTENTS_VALUE,
                                                                                        err.get_message())
             self._validation_errors.append(message)
 
@@ -117,7 +116,7 @@ class ControlsTable(object):
             if link is None:
                 message = ('Controls table at row %d column %d has invalid %s value: %s is missing a SBH URI.' % (row_index,
                                                                                                                   column_index,
-                                                                                                                  intent_parser_constants.HEADER_STRAINS_VALUE,
+                                                                                                                  ip_constants.HEADER_STRAINS_VALUE,
                                                                                                                   parsed_strain))
                 self._validation_errors.append(message)
                 continue
@@ -126,7 +125,7 @@ class ControlsTable(object):
                 message = ('Controls table at row %d column %d has invalid %s value: '
                            '%s is an invalid link not supported in the SBOL Dictionary Strains tab.' % (row_index,
                                                                                                         column_index,
-                                                                                                        intent_parser_constants.HEADER_STRAINS_VALUE,
+                                                                                                        ip_constants.HEADER_STRAINS_VALUE,
                                                                                                         link))
                 self._validation_errors.append(message)
                 continue
@@ -137,7 +136,7 @@ class ControlsTable(object):
                 message = ('Controls table at row %d column %d has invalid %s value: '
                            '%s is not listed under %s in the SBOL Dictionary.' % (row_index,
                                                                                   column_index,
-                                                                                  intent_parser_constants.HEADER_STRAINS_VALUE,
+                                                                                  ip_constants.HEADER_STRAINS_VALUE,
                                                                                   parsed_strain,
                                                                                   lab_name))
                 self._validation_errors.append(message)
@@ -155,7 +154,7 @@ class ControlsTable(object):
             err = '%s does not match one of the following control types: \n %s' % (control_type, ' ,'.join((map(str, self._control_types))))
             message = 'Controls table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                        column_index,
-                                                                                       intent_parser_constants.HEADER_CONTROL_TYPE_VALUE,
+                                                                                       ip_constants.HEADER_CONTROL_TYPE_VALUE,
                                                                                        err)
             self._validation_errors.append(message)
         else:
@@ -165,14 +164,14 @@ class ControlsTable(object):
         try:
             result = []
             for measured_unit in cell_parser.PARSER.process_values_unit(cell.get_text(),
-                                                                     units=self._timepoint_units,
-                                                                     unit_type='timepoints'):
+                                                                        units=self._timepoint_units,
+                                                                        unit_type=ip_constants.UNIT_TYPE_TIMEPOINTS):
                 timepoint = TimepointIntent(float(measured_unit.get_value()), measured_unit.get_unit())
                 control.add_timepoint(timepoint)
         except TableException as err:
             message = 'Controls table at row %d column % has invalid %s value: %s' % (row_index,
                                                                                       column_index,
-                                                                                      intent_parser_constants.HEADER_CONTROL_TYPE_VALUE,
+                                                                                      ip_constants.HEADER_CONTROL_TYPE_VALUE,
                                                                                       err.get_message())
             self._validation_errors.append(message)
 

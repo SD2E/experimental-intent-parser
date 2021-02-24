@@ -106,7 +106,7 @@ class ExperimentalRequestProcessor(Processor):
             inducer_value = opil_measure.value
             if opil_measure.unit == ip_constants.OTU_MICROLITRE:
                 measured_unit = MeasuredUnit(inducer_value,
-                                             'microlitre',
+                                             ip_constants.FLUID_UNIT_MICROLITRE,
                                              unit_type=ip_constants.UNIT_TYPE_FLUID)
                 inducer_intent.add_reagent_value(measured_unit)
             elif opil_measure.unit == ip_constants.NCIT_CONCENTRATION_ENTITY_POOL:
@@ -154,7 +154,7 @@ class ExperimentalRequestProcessor(Processor):
             #    - row_ids, template_dna_values
             # These fields do not appear in other opil lab document so skip.
             # The remaining fields map to a measurement intent.
-            # Since opil does not reference each opil_measurement object to an sbol3
+            # opil does not reference each opil_measurement object to an sbol3
             # CombinatorialDerivation so map by order that these objects are encountered in a list to its
             # measurement_intent created from parsing sbol3.CombinatorialDerivations.
             opil_measurement = opil_measurements[opil_measurement_index]
@@ -175,14 +175,13 @@ class ExperimentalRequestProcessor(Processor):
     def _convert_opil_measurement_time_to_timepoints(self, opil_times, measurement_intent):
         for opil_measure in opil_times:
             value = opil_measure.has_measure.value
-            # todo: convert unit_uri to unit name that IP supports from Google doc.
             unit_uri = opil_measure.has_measure.unit
-            unit = ''
+            unit = sbol3_utils.get_unit_name_from_timepoint_uri(unit_uri)
             if unit:
-                timepoint = MeasuredUnit(value, unit, unit_type=ip_constants.UNIT_TYPE_TIMEPOINT)
+                timepoint = MeasuredUnit(value, unit, unit_type=ip_constants.UNIT_TYPE_TIMEPOINTS)
                 measurement_intent.add_timepoint(timepoint)
             else:
-                self.validation_errors.append('unit uri not supported in Intent Parser: %s' % unit_uri)
+                self.validation_errors.append('timepoint unit uri not supported in Intent Parser: %s' % unit_uri)
 
     def _process_opil_parameters(self, protocol_interfaces, opil_parameter_values):
         pass

@@ -1,7 +1,6 @@
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.protocols.parameter_field import ParameterField
 from typing import List
-import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 import opil
 

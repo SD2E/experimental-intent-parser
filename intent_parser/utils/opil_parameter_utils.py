@@ -2,6 +2,7 @@
 Provides a list of functions for building opil objects.
 """
 from intent_parser.intent.measure_property_intent import MeasuredUnit
+import intent_parser.utils.sbol3_utils as sbol3_utils
 import opil
 import sbol3
 
@@ -75,11 +76,11 @@ def get_param_value_as_string(parameter_value):
         return str(parameter_value.value)
     elif type(parameter_value) is opil.opil_factory.MeasureValue:
         if parameter_value.has_measure:
-            measure = MeasuredUnit(float(parameter_value.has_measure.value), 'not applicable')
-            measure_number = measure.get_value()
-            measure_unit = measure.get_unit_name_from_uri(parameter_value.has_measure.unit)
-            measure_value = '%d %s' % (measure_number, measure_unit)
-            return measure_value.strip()
+            measure_number = float(parameter_value.has_measure.value)
+            measure_unit = sbol3_utils.get_unit_name_from_uri(parameter_value.has_measure.unit)
+            if measure_unit:
+                return '%d %s' % (measure_number, measure_unit)
+            return '%d' % measure_number
     elif type(parameter_value) is opil.opil_factory.StringValue:
         return parameter_value.value if parameter_value.value else ' '
     elif type(parameter_value) is opil.opil_factory.URIValue:

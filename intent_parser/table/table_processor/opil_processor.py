@@ -12,45 +12,12 @@ import intent_parser.table.cell_parser as cell_parser
 import logging
 import opil
 
+
 class OPILProcessor(Processor):
 
     logger = logging.getLogger('opil_processor')
 
     # units supported for opil conversion
-    _CONTROL_TYPES = ['HIGH_FITC',
-                      'EMPTY_VECTOR',
-                      'BASELINE',
-                      'TREATMENT_1',
-                      'TREATMENT_2',
-                      'BASELINE_MEDIA_PR',
-                      'CELL_DEATH_NEG_CONTROL',
-                      'CELL_DEATH_POS_CONTROL']
-    _FLUID_UNITS = ['%',
-                    'M',
-                    'mM',
-                    'X',
-                    'g/L',
-                    'ug/ml',
-                    'micromole',
-                    'nM',
-                    'uM',
-                    'mg/ml',
-                    'ng/ul']
-
-    _TIME_UNITS = ['day',
-                   'hour',
-                   'femtosecond',
-                   'microsecond',
-                   'millisecond',
-                   'minute',
-                   'month',
-                   'nanosecond',
-                   'picosecond',
-                   'second',
-                   'week',
-                   'year']
-
-    _TEMPERATURE_UNITS = ['celsius', 'fahrenheit']
     _MEASUREMENT_TYPE = [ip_constants.MEASUREMENT_TYPE_FLOW,
                          ip_constants.MEASUREMENT_TYPE_RNA_SEQ,
                          ip_constants.MEASUREMENT_TYPE_DNA_SEQ,
@@ -282,7 +249,6 @@ class OPILProcessor(Processor):
         except IntentParserException as err:
             self.validation_errors.extend([err.get_message()])
 
-
     def _process_measurement_tables(self, measurement_tables, strain_mapping):
         if len(measurement_tables) > 1:
             message = ('There are more than one measurement table specified in this experiment.'
@@ -291,9 +257,9 @@ class OPILProcessor(Processor):
         try:
             table = measurement_tables[-1]
             measurement_table = MeasurementTable(table,
-                                                 temperature_units=self._TEMPERATURE_UNITS,
-                                                 timepoint_units=self._TIME_UNITS,
-                                                 fluid_units=self._FLUID_UNITS,
+                                                 temperature_units=list(ip_constants.TEMPERATURE_UNIT_MAP.keys()),
+                                                 timepoint_units=list(ip_constants.TIME_UNIT_MAP.keys()),
+                                                 fluid_units=list(ip_constants.FLUID_UNIT_MAP.keys()),
                                                  measurement_types=self._MEASUREMENT_TYPE,
                                                  file_type=self._file_types,
                                                  strain_mapping=strain_mapping)

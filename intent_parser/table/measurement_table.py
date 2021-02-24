@@ -210,7 +210,7 @@ class MeasurementTable(object):
             named_link, timepoint = cell_parser.PARSER.process_reagent_or_media_header(header_cell.get_text(),
                                                                                        header_cell.get_text_with_url(),
                                                                                        units=self._timepoint_units,
-                                                                                       unit_type='timepoints')
+                                                                                       unit_type=ip_constants.UNIT_TYPE_TIMEPOINTS)
         except TableException as err:
             message = err.get_message()
             self._validation_errors.append(message)
@@ -221,7 +221,7 @@ class MeasurementTable(object):
             try:
                 measured_units = cell_parser.PARSER.process_values_unit(text,
                                                                         units=self._fluid_units,
-                                                                        unit_type='fluid')
+                                                                        unit_type=ip_constants.UNIT_TYPE_FLUID)
                 reagent = ReagentIntent(named_link)
                 for measured_unit in measured_units:
                     reagent.add_reagent_value(measured_unit)
@@ -462,7 +462,7 @@ class MeasurementTable(object):
             text = cell.get_text()
             for measured_unit in cell_parser.PARSER.process_values_unit(text,
                                                                         units=self._temperature_units,
-                                                                        unit_type='temperature'):
+                                                                        unit_type=ip_constants.UNIT_TYPE_TEMPERATURE):
                 temperature = TemperatureIntent(float(measured_unit.get_value()), measured_unit.get_unit())
                 measurement.add_temperature(temperature)
         except TableException as err:
@@ -475,7 +475,9 @@ class MeasurementTable(object):
     def _process_timepoints(self, cell, measurement, row_index, column_index):
         text = cell.get_text()
         try:
-            for measured_unit in cell_parser.PARSER.process_values_unit(text, units=self._timepoint_units, unit_type='timepoints'):
+            for measured_unit in cell_parser.PARSER.process_values_unit(text,
+                                                                        units=self._timepoint_units,
+                                                                        unit_type=ip_constants.UNIT_TYPE_TIMEPOINTS):
                 timepoint = TimepointIntent(float(measured_unit.get_value()), measured_unit.get_unit())
                 measurement.add_timepoint(timepoint)
         except TableException as err:

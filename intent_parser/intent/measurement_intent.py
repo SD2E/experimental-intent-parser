@@ -1,6 +1,5 @@
 from intent_parser.intent.measure_property_intent import TemperatureIntent, TimepointIntent
 from intent_parser.intent.control_intent import ControlIntent
-from intent_parser.intent.sbol_dictionary_strain_intent import SBOLDictionaryStrainIntent
 from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.utils.id_provider import IdProvider
