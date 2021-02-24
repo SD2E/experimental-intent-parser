@@ -16,6 +16,11 @@ class StrateosAccessor(object):
     SYNC_PERIOD = timedelta(minutes=60)
     logger = logging.getLogger('intent_parser_strateos_accessor')
 
+    _SUPPORTING_PROTOCOLS = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL]
+                             # ip_constants.GROWTH_CURVE_PROTOCOL,
+                             # ip_constants.OBSTACLE_COURSE_PROTOCOL,
+                             # ip_constants.TIME_SERIES_HTP_PROTOCOL]
+
     def __init__(self, credential_path=None, use_cache=True):
         if credential_path:
             self.strateos_api = Connection.from_file(credential_path)
@@ -107,12 +112,9 @@ class StrateosAccessor(object):
         protocol_list = self.strateos_api.get_protocols()
 
         self.protocol_lock.acquire()
-        supported_protocols = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
-                               ip_constants.GROWTH_CURVE_PROTOCOL,
-                               ip_constants.OBSTACLE_COURSE_PROTOCOL,
-                               ip_constants.TIME_SERIES_HTP_PROTOCOL]
+
         for protocol in protocol_list:
-            if protocol['name'] not in supported_protocols:
+            if protocol['name'] not in self._SUPPORTING_PROTOCOLS:
                 continue
 
             self.logger.info('Fetching protocol %s' % protocol['name'])

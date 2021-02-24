@@ -1,7 +1,9 @@
+from intent_parser.intent.lab_intent import LabIntent
 from intent_parser.intent.measure_property_intent import MeasuredUnit, ReagentIntent, NamedLink, MediaIntent
 from intent_parser.intent.measurement_intent import MeasurementIntent
 from intent_parser.intent.parameter_intent import ParameterIntent
 from intent_parser.intent.strain_intent import StrainIntent
+from intent_parser.intent.experimental_protocol_intent import ExperimentalProtocolIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.table.table_processor.processor import Processor
 import intent_parser.constants.intent_parser_constants as ip_constants
@@ -10,20 +12,24 @@ import intent_parser.utils.opil_parameter_utils as opil_utils
 import logging
 
 
-class ExperimentalRequestProcessor(Processor):
+class ExperimentalProtocolProcessor(Processor):
     """
     Generate an experiment from a protocol request
     """
 
-    logger = logging.getLogger('protocol_request')
+    logger = logging.getLogger('experimental_protocol_processor')
 
     def __init__(self, opil_document, lab_name):
         super().__init__()
         self._opil_document = opil_document
         self._lab_name = lab_name
+        self._measurement_intents = None
+        self._parameter_intent = None
 
     def get_intent(self):
-        return None
+        lab_intent = LabIntent()
+        lab_intent.set_lab_id(self._lab_name)
+        return ExperimentalProtocolIntent(lab_intent, self._parameter_intent, self._measurement_intents)
 
     def process_protocol(self):
         combinatorial_derivations = sbol3_utils.get_combinatorial_derivations(self._opil_document)
@@ -41,14 +47,17 @@ class ExperimentalRequestProcessor(Processor):
         experiment_request = experimental_requests[-1]
         if experiment_request.measurements:
             if len(experiment_request.measurements) != len(measurement_intents):
-                raise IntentParserException('length of opil.Measurements does not match length of '
-                                            'sbol3.CombinatorialDerivations: %d != %d'
-                                            % (len(experiment_request.measurements), len(measurement_intents)))
+                error_message = 'length of opil.Measurements does not match length of ' \
+                                'sbol3.CombinatorialDerivations: %d != %d' \
+                                % (len(experiment_request.measurements), len(measurement_intents))
+                self.validation_errors.append(error_message)
+                return
             self._process_opil_measurements(experiment_request.measurements, measurement_intents)
+            self._measurement_intents = measurement_intents
 
         protocol_interfaces = opil_utils.get_protocol_interfaces_from_sbol_doc(self._opil_document)
         if experiment_request.has_parameter_value:
-            self._process_opil_parameters(protocol_interfaces, experiment_request.has_parameter_value)
+            self._parameter_intent = self._process_opil_parameters(protocol_interfaces, experiment_request.has_parameter_value)
 
     def _convert_combinatorial_derivations_to_measurement_intents(self, combinatorial_derivations):
         measurement_intents = []
@@ -187,5 +196,5 @@ class ExperimentalRequestProcessor(Processor):
         for parameter_value in opil_parameter_values:
             parameter_field = parameter_value.value_of
             parameter_intent.add_parameter(parameter_field.name, parameter_value.value)
-
+        return parameter_intent
 

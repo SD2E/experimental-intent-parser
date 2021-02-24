@@ -1,6 +1,7 @@
 from datacatalog.formats.common import map_experiment_reference
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
 from intent_parser.intent_parser_exceptions import IntentParserException
+from intent_parser.table.table_processor.experimental_protocol_processor import ExperimentalProtocolProcessor
 from intent_parser.table.table_processor.parameter_information_processor import ParameterInfoProcessor
 from intent_parser.table.table_processor.structured_request_processor import StructuredRequestProcessor
 from intent_parser.table.table_processor.opil_processor import OPILProcessor
@@ -20,8 +21,6 @@ import numpy as np
 class IntentParser(object):
     """
     Processes information from a lab experiment to:
-        - link information to/from a SynBioHub data repository
-        - generate and validate a structure request
     """
 
     logger = logging.getLogger('intent_parser')
@@ -39,6 +38,7 @@ class IntentParser(object):
         self.structured_request = {}
         self.validation_errors = []
         self.validation_warnings = []
+        self.experimental_protocol = None
         self.opil_request = None
         self.table_info = None
         self.ip_tables = None
@@ -222,6 +222,9 @@ class IntentParser(object):
         self.validation_warnings.extend(param_info_processor.get_warnings())
         self.table_info = param_info_processor.get_intent()
 
+    def get_experimental_protocol_request(self):
+        return self.experimental_protocol
+
     def get_opil_request(self):
         return self.opil_request
 
@@ -294,6 +297,13 @@ class IntentParser(object):
 
         lab_name = lab_table.get_intent().get_lab_name()
         self.processed_lab_name = lab_name
+
+    def process_experimental_protocol_request(self, lab_name, opil_doc):
+        experimental_protocol = ExperimentalProtocolProcessor(opil_doc, lab_name)
+        experimental_protocol.process_protocol()
+        self.validation_errors.extend(experimental_protocol.get_errors())
+        self.validation_warnings.extend(experimental_protocol.get_warnings())
+        self.experimental_protocol = experimental_protocol.get_intent()
 
     def process_opil_request(self, protocol_factory):
         filtered_tables = self.get_tables_by_type()
@@ -409,7 +419,9 @@ class IntentParser(object):
                 map_experiment_reference(self.datacatalog_config, experiment_ref)
                 return experiment_ref[dc_constants.CHALLENGE_PROBLEM]
         except Exception as err:
-            message = 'Failed to map challenge problem for doc id %s! Check that this document is in the Challenge Problem folder under DARPA SD2E Shared > CP Working Groups > ExperimentalRequests' % self.lab_experiment.document_id()
+            message = 'Failed to map challenge problem for doc id %s! Check that this document is in the ' \
+                      'Challenge Problem folder under DARPA SD2E Shared > CP Working Groups > ExperimentalRequests'\
+                      % self.lab_experiment.document_id()
             self.validation_errors.append(message)
             return dc_constants.UNDEFINED
 

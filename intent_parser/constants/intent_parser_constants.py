@@ -5,6 +5,7 @@ List of constants used for reading and writing contents from intent parser
 RELEASE_VERSION = '3.1'
 # name of labs Intent Parser has connection to
 LAB_TRANSCRIPTIC = 'Transcriptic'
+LAB_DUKE_HASE = 'Duke_Haase'
 STRATEOS_NAMESPACE = 'http://strateos.com/'
 
 # keywords used for calling POST methods

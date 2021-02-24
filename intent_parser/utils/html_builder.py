@@ -88,6 +88,21 @@ class AnalyzeHtmlBuilder(object):
     def build(self):
         return self.html
 
+class ExperimentalProtocolHtmlBuilder(object):
+    def __init__(self):
+        _curr_path = os.path.dirname(os.path.realpath(__file__))
+        html_file = intent_parser_utils.load_file(os.path.join(_curr_path, 'experimental_protocol_dialog.html'))
+        self.html = html_file
+
+    def cursor_child_index_html(self, cursor_child_index):
+        self.html = self.html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
+
+    def lab_names_html(self, lab_names):
+        self.html = self.html.replace('${LAB_NAMES}', lab_names)
+
+    def experimental_protocol_html(self, experimental_protocol_names):
+        self.html = self.html.replace('${EXPERIMENTAL_PROTOCOL_NAMES}', experimental_protocol_names)
+
 class ControlsTableHtmlBuilder(object):
     def __init__(self):
         _curr_path = os.path.dirname(os.path.realpath(__file__))
