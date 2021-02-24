@@ -46,6 +46,8 @@ UNIT_TYPE_FLUID = 'fluid'
 UNIT_TYPE_TEMPERATURE = 'temperature'
 UNIT_TYPE_TIMEPOINT = 'timepoint'
 
+UNIT_DAY = 'day'
+
 # Mappings used for submitting terms to SynBioHub
 LAB_IDS_LIST = ['BioFAB UID',
                 'CalTech UID',
@@ -88,7 +90,6 @@ ITEM_TYPES = {
 }
 
 SPARQL_LIMIT = 5
-
 # sbol3 encodings
 MEASUREMENT_TYPE_AUTOMATED_TEST = 'AUTOMATED_TEST'
 MEASUREMENT_TYPE_CFU = 'CFU'
@@ -118,6 +119,7 @@ NCIT_STRAIN_URI = 'https://identifiers.org/ncit:C14419'
 NCIT_CELSIUS = 'https://identifiers.org/ncit:C42559'
 NCIT_CONCENTRATION = 'https://identifiers.org/ncit:C41185'
 NCIT_DAY = 'https://identifiers.org/ncit:C25301'
+NCIT_CONCENTRATION_ENTITY_POOL = 'https://identifiers.org/SBO:0000196'
 NCIT_FAHRENHEIT = 'https://identifiers.org/ncit:C44277'
 NCIT_FOLD_CHANGE = 'https://identifiers.org/ncit:C60693'
 NCIT_HOUR = 'https://identifiers.org/ncit:C25529'
@@ -146,7 +148,7 @@ UO_MILLI_MOLAR = 'https://identifiers.org/UO:0000063'
 UO_GRAM_PER_LITER = 'https://identifiers.org/UO:0000175'
 UO_NANO_GRAM_PER_LITER = 'https://identifiers.org/UO:0010050'
 
-# measurement-typeis specific to SD2 project
+# measurement-type specific to SD2 project
 SD2_AUTOMATED_TEST_URI = 'http://sd2e.org#automatedTest'
 SD2_CONDITION_SPACE_URI = 'http://sd2e.org#conditionSpace'
 SD2_EXPERIMENTAL_DESIGN_URI = 'http://sd2e.org#experimentalDesign'

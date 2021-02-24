@@ -16,7 +16,7 @@ import intent_parser.constants.google_api_constants as google_constants
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.constants.ip_app_script_constants as ip_addon_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-import intent_parser.protocols.opil_parameter_utils as opil_util
+import intent_parser.utils.opil_parameter_utils as opil_util
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
 import logging.config

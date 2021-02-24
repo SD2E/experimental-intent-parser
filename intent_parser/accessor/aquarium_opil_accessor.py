@@ -1,5 +1,5 @@
 import intent_parser.utils.intent_parser_utils as ip_utils
-import intent_parser.protocols.opil_parameter_utils as opil_utils
+import intent_parser.utils.opil_parameter_utils as opil_utils
 import logging
 
 from intent_parser.intent_parser_exceptions import IntentParserException

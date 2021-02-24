@@ -7,7 +7,7 @@ from intent_parser.table.table_processor.processor import Processor
 from intent_parser.utils.id_provider import IdProvider
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-import intent_parser.protocols.opil_parameter_utils as opil_utils
+import intent_parser.utils.opil_parameter_utils as opil_utils
 import intent_parser.table.cell_parser as cell_parser
 import logging
 import opil

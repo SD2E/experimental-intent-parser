@@ -1,3 +1,8 @@
+"""
+methods for creating intent parser tables to use for testing.
+"""
+
+
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table import IntentParserTable
 import intent_parser.constants.intent_parser_constants as ip_constants

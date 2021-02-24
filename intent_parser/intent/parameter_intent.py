@@ -1,6 +1,6 @@
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.utils.id_provider import IdProvider
-import intent_parser.protocols.opil_parameter_utils as parameter_utils
+import intent_parser.utils.opil_parameter_utils as parameter_utils
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 

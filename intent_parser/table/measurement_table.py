@@ -1,6 +1,7 @@
 from intent_parser.intent.measurement_intent import ContentIntent, MeasurementIntent
 from intent_parser.intent.measure_property_intent import MediaIntent, NamedBooleanValue, NamedIntegerValue, NamedLink, NamedStringValue, ReagentIntent, TemperatureIntent, TimepointIntent
 from intent_parser.intent_parser_exceptions import TableException
+from intent_parser.intent.strain_intent import StrainIntent
 import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
@@ -39,7 +40,7 @@ class MeasurementTable(object):
         return self._measurement_intents
 
     def get_structured_request(self):
-        return [measurement.to_structure_request() for measurement in self._measurement_intents]
+        return [measurement.to_structured_request() for measurement in self._measurement_intents]
     
     def process_table(self, control_data={}, bookmarks={}):
         self._table_caption = self._intent_parser_table.caption()
@@ -437,9 +438,9 @@ class MeasurementTable(object):
                 self._validation_errors.append(message)
                 continue
 
-            strain_intent = self.strain_mapping[link]
-            if not strain_intent.has_lab_strain_name(parsed_strain):
-                lab_name = dictionary_constants.MAPPED_LAB_UID[strain_intent.get_lab_id()]
+            dictionary_strain_intent = self.strain_mapping[link]
+            if not dictionary_strain_intent.has_lab_strain_name(parsed_strain):
+                lab_name = dictionary_constants.MAPPED_LAB_UID[dictionary_strain_intent.get_lab_id()]
                 message = ('Measurement table at row %d column %d has invalid %s value: '
                            '%s is not listed under %s in the SBOL Dictionary.' % (row_index,
                                                                                   column_index,
@@ -449,7 +450,11 @@ class MeasurementTable(object):
                 self._validation_errors.append(message)
                 continue
 
-            strain_intent.set_selected_strain(parsed_strain)
+            strain_name = NamedLink(parsed_strain, link)
+            strain_intent = StrainIntent(strain_name)
+            strain_intent.set_strain_lab_name(dictionary_strain_intent.get_lab_id())
+            strain_intent.set_strain_common_name(dictionary_strain_intent.get_strain_common_name())
+
             measurement.add_strain(strain_intent)
 
     def _process_temperature(self, cell, measurement, row_index, column_index):

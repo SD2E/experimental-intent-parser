@@ -1,5 +1,7 @@
 from intent_parser.intent.control_intent import ControlIntent
+from intent_parser.intent.measure_property_intent import NamedLink
 from intent_parser.intent.measurement_intent import TimepointIntent
+from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
@@ -31,7 +33,7 @@ class ControlsTable(object):
         return self._control_intents
 
     def get_structure_request(self):
-        return [control.to_structure_request() for control in self._control_intents]
+        return [control.to_structured_request() for control in self._control_intents]
 
     def get_validation_errors(self):
         return self._validation_errors
@@ -129,9 +131,9 @@ class ControlsTable(object):
                 self._validation_errors.append(message)
                 continue
 
-            strain_intent = self._strain_mapping[link]
-            if not strain_intent.has_lab_strain_name(parsed_strain):
-                lab_name = dictionary_constants.MAPPED_LAB_UID[strain_intent.get_lab_id()]
+            dictionary_strain_intent = self._strain_mapping[link]
+            if not dictionary_strain_intent.has_lab_strain_name(parsed_strain):
+                lab_name = dictionary_constants.MAPPED_LAB_UID[dictionary_strain_intent.get_lab_id()]
                 message = ('Controls table at row %d column %d has invalid %s value: '
                            '%s is not listed under %s in the SBOL Dictionary.' % (row_index,
                                                                                   column_index,
@@ -141,7 +143,10 @@ class ControlsTable(object):
                 self._validation_errors.append(message)
                 continue
 
-            strain_intent.set_selected_strain(parsed_strain)
+            strain_name = NamedLink(parsed_strain, link)
+            strain_intent = StrainIntent(strain_name)
+            strain_intent.set_strain_lab_name(dictionary_strain_intent.get_lab_id())
+            strain_intent.set_strain_common_name(dictionary_strain_intent.get_strain_common_name())
             control.add_strain(strain_intent)
 
     def _process_control_type(self, cell, control, row_index, column_index):

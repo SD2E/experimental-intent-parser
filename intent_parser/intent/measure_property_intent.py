@@ -90,7 +90,7 @@ class MeasuredUnit(object):
             else:
                 return opil.Measure(float(self._value), ip_constants.NCIT_NOT_APPLICABLE)
 
-    def to_structure_request(self):
+    def to_structured_request(self):
         return {dc_constants.VALUE: float(self._value),
                 dc_constants.UNIT: self._unit}
 
@@ -216,7 +216,7 @@ class NamedLink(object):
     def get_link(self):
         return self._link
 
-    def to_structure_request(self):
+    def to_structured_request(self):
         return {dc_constants.LABEL: self._name,
                 dc_constants.SBH_URI: self._link if self._link else dc_constants.NO_PROGRAM_DICTIONARY}
 
@@ -230,8 +230,8 @@ class NamedBooleanValue(object):
     def get_value(self):
         return self._value
 
-    def to_structure_request(self):
-        return {dc_constants.NAME: self._named_link.to_structure_request(),
+    def to_structured_request(self):
+        return {dc_constants.NAME: self._named_link.to_structured_request(),
                 dc_constants.VALUE: str(self._value)}
 
 class NamedIntegerValue(object):
@@ -243,8 +243,8 @@ class NamedIntegerValue(object):
     def get_value(self):
         return self._value
 
-    def to_structure_request(self):
-        return {dc_constants.NAME: self._named_link.to_structure_request(),
+    def to_structured_request(self):
+        return {dc_constants.NAME: self._named_link.to_structured_request(),
                 dc_constants.VALUE: self._value}
 
 class NamedStringValue(object):
@@ -259,8 +259,8 @@ class NamedStringValue(object):
     def get_value(self):
         return self._value
 
-    def to_structure_request(self):
-        result = {dc_constants.NAME: self._named_link.to_structure_request()}
+    def to_structured_request(self):
+        result = {dc_constants.NAME: self._named_link.to_structured_request()}
         if self._value:
             result[dc_constants.VALUE] = self._value
         return result
@@ -326,13 +326,13 @@ class MediaIntent(object):
         media_variable.variants = media_variants
         return media_template, media_variable
 
-    def to_structure_request(self):
+    def to_structured_request(self):
         sr_media = []
         for value in self._media_values:
-            media = {dc_constants.NAME: self._media_name.to_structure_request(),
+            media = {dc_constants.NAME: self._media_name.to_structured_request(),
                      dc_constants.VALUE: value.get_name()}
             if self._timepoint:
-                media[dc_constants.TIMEPOINT] = self._timepoint.to_structure_request()
+                media[dc_constants.TIMEPOINT] = self._timepoint.to_structured_request()
             sr_media.append(media)
         return sr_media
 
@@ -393,13 +393,13 @@ class ReagentIntent(object):
 
         return reagent_template, reagent_variable, reagent_component
 
-    def to_structure_request(self):
+    def to_structured_request(self):
         sr_reagent = []
         for value in self._reagent_values:
-            reagent = {dc_constants.NAME: self._reagent_name.to_structure_request(),
+            reagent = {dc_constants.NAME: self._reagent_name.to_structured_request(),
                        dc_constants.VALUE: str(value.get_value()),
                        dc_constants.UNIT: value.get_unit()}
             if self._timepoint:
-                reagent[dc_constants.TIMEPOINT] = self._timepoint.to_structure_request()
+                reagent[dc_constants.TIMEPOINT] = self._timepoint.to_structured_request()
             sr_reagent.append(reagent)
         return sr_reagent
