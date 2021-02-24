@@ -1,11 +1,9 @@
-from intent_parser.intent.experimental_request_intent import ExperimentalRequestIntent
 from intent_parser.intent.measure_property_intent import MeasuredUnit, ReagentIntent, NamedLink, MediaIntent
 from intent_parser.intent.measurement_intent import MeasurementIntent
-from intent_parser.intent.sbol_dictionary_strain_intent import SBOLDictionaryStrainIntent
+from intent_parser.intent.parameter_intent import ParameterIntent
 from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.table.table_processor.processor import Processor
-
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.utils.sbol3_utils as sbol3_utils
 import intent_parser.utils.opil_parameter_utils as opil_utils
@@ -181,7 +179,9 @@ class ExperimentalRequestProcessor(Processor):
                 timepoint = MeasuredUnit(value, unit, unit_type=ip_constants.UNIT_TYPE_TIMEPOINTS)
                 measurement_intent.add_timepoint(timepoint)
             else:
-                self.validation_errors.append('timepoint unit uri not supported in Intent Parser: %s' % unit_uri)
+                self.validation_errors.append('timepoint unit not supported in Intent Parser: %s' % unit_uri)
 
     def _process_opil_parameters(self, protocol_interfaces, opil_parameter_values):
-        pass
+        parameter_intent = ParameterIntent()
+        for parameter_value in opil_parameter_values:
+            pass

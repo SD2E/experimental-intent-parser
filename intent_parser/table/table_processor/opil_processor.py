@@ -184,18 +184,24 @@ class OPILProcessor(Processor):
             if type(param_field) is opil.opil_factory.BooleanParameter:
                 boolean_value = cell_parser.PARSER.process_boolean_flag(param_value)
                 opil_value = opil_utils.create_opil_boolean_parameter_value(value_id, boolean_value[0])
-                param_field.default_value = opil_value
+                opil_value.value_of = opil_param_field
+                # todo: when to assign parameter field default_value?
+                opil_param_field.default_value = opil_value
                 opil_param_values.append(opil_value)
 
             elif type(param_field) is opil.opil_factory.EnumeratedParameter:
                 opil_value = opil_utils.create_opil_enumerated_parameter_value(value_id, param_value)
-                param_field.default_value = opil_value
+                opil_value.value_of = param_field
+                # todo: when to assign parameter field default_value?
+                opil_param_field.default_value = opil_value
                 opil_param_values.append(opil_value)
 
             elif type(param_field) is opil.opil_factory.IntegerParameter:
                 int_value = cell_parser.PARSER.process_numbers(param_value)
                 opil_value = opil_utils.create_opil_integer_parameter_value(value_id, int(int_value[0]))
-                param_field.default_value = opil_value
+                opil_value.value_of = opil_param_field
+                # todo: when to assign parameter field default_value?
+                opil_param_field.default_value = opil_value
                 opil_param_values.append(opil_value)
 
             elif type(param_field) is opil.opil_factory.MeasureParameter:
@@ -203,12 +209,16 @@ class OPILProcessor(Processor):
                     value = cell_parser.PARSER.process_numbers(param_value)
                     unit = ip_constants.NCIT_NOT_APPLICABLE
                     opil_value = opil_utils.create_opil_measurement_parameter_value(value_id, value[0], unit)
-                    param_field.default_value = opil_value
+                    opil_value.value_of = opil_param_field
+                    # todo: when to assign parameter field default_value?
+                    opil_param_field.default_value = opil_value
                     opil_param_values.append(opil_value)
                 elif cell_parser.PARSER.is_valued_cell(param_value):
                     value, unit = cell_parser.PARSER.process_value_unit_without_validation(param_value)
                     opil_value = opil_utils.create_opil_measurement_parameter_value(value_id, float(value), unit)
-                    param_field.default_value = opil_value
+                    opil_value.value_of = opil_param_field
+                    # todo: when to assign parameter field default_value?
+                    opil_param_field.default_value = opil_value
                     opil_param_values.append(opil_value)
                 else:
                     self.validation_errors.append('Unable to create an OPIL Measurement ParameterValue. '
@@ -217,12 +227,16 @@ class OPILProcessor(Processor):
 
             elif type(param_field) is opil.opil_factory.StringParameter:
                 opil_value = opil_utils.create_opil_string_parameter_value(value_id, param_value)
-                param_field.default_value = opil_value
+                opil_value.value_of = opil_param_field
+                # todo: when to assign parameter field default_value?
+                opil_param_field.default_value = opil_value
                 opil_param_values.append(opil_value)
 
             elif type(param_field) is opil.opil_factory.URIParameter:
                 opil_value = opil_utils.create_opil_URI_parameter_value(value_id, param_value)
-                param_field.default_value = opil_value
+                opil_value.value_of = opil_param_field
+                # todo: when to assign parameter field default_value?
+                opil_param_field.default_value = opil_value
                 opil_param_values.append(opil_value)
 
         return opil_param_fields, opil_param_values

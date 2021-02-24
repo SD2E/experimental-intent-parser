@@ -169,6 +169,8 @@ class ParameterIntent(object):
                                                                              ip_constants.PARAMETER_BASE_DIR)
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._base_dir)
+        parameter_value.value_of = parameter_field
+        # todo: when to assign parameter field default_value?
         parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
@@ -181,6 +183,8 @@ class ParameterIntent(object):
                                                                                      ip_constants.PARAMETER_CONTAINER_SEARCH_STRING)
             parameter_value = parameter_utils.create_opil_enumerated_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                                      dc_constants.GENERATE)
+            parameter_value.value_of = parameter_field
+            # todo: when to assign parameter field default_value?
             parameter_field.default_value = parameter_value
             parameter_fields.append(parameter_field)
             parameter_values.append(parameter_value)
@@ -190,6 +194,8 @@ class ParameterIntent(object):
                                                                                      ip_constants.PARAMETER_CONTAINER_SEARCH_STRING)
                 parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                                      self._container_search_strings[value_index])
+                parameter_value.value_of = parameter_field
+                # todo: when to assign parameter field default_value?
                 parameter_field.default_value = parameter_value
                 parameter_fields.append(parameter_field)
                 parameter_values.append(parameter_value)
@@ -201,6 +207,8 @@ class ParameterIntent(object):
                                                                              ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN)
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._experiment_reference_url_for_xplan)
+        parameter_value.value_of = parameter_field
+        # todo: when to assign parameter field default_value?
         parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
@@ -210,6 +218,8 @@ class ParameterIntent(object):
                                                                               ip_constants.PARAMETER_PLATE_NUMBER)
         parameter_value = parameter_utils.create_opil_integer_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                               self._plate_number)
+        parameter_value.value_of = parameter_field
+        # todo: when to assign parameter field default_value?
         parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
@@ -218,6 +228,8 @@ class ParameterIntent(object):
                                                                               ip_constants.PARAMETER_PLATE_SIZE)
         parameter_value = parameter_utils.create_opil_integer_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                               self._plate_size)
+        parameter_value.value_of = parameter_field
+        # todo: when to assign parameter field default_value?
         parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
@@ -226,6 +238,8 @@ class ParameterIntent(object):
                                                                              ip_constants.PARAMETER_PROTOCOL_ID)
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._protocol_id)
+        parameter_value.value_of = parameter_field
+        # todo: when to assign parameter field default_value?
         parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
@@ -234,6 +248,8 @@ class ParameterIntent(object):
                                                                              ip_constants.PARAMETER_PROTOCOL_NAME)
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._protocol_name)
+        parameter_value.value_of = parameter_field
+        # todo: when to assign parameter field default_value?
         parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
@@ -242,6 +258,8 @@ class ParameterIntent(object):
                                                                              ip_constants.PARAMETER_STRAIN_PROPERTY)
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._strain_property)
+        parameter_value.value_of = parameter_field
+        # todo: when to assign parameter field default_value?
         parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
@@ -250,6 +268,8 @@ class ParameterIntent(object):
                                                                               ip_constants.PARAMETER_SUBMIT)
         parameter_value = parameter_utils.create_opil_boolean_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                               self._submit)
+        parameter_value.value_of = parameter_field
+        # todo: when to assign parameter field default_value?
         parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
@@ -258,6 +278,8 @@ class ParameterIntent(object):
                                                                               ip_constants.PARAMETER_TEST_MODE)
         parameter_value = parameter_utils.create_opil_boolean_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                               self._test_mode)
+        parameter_value.value_of = parameter_field
+        # todo: when to assign parameter field default_value?
         parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
@@ -266,6 +288,8 @@ class ParameterIntent(object):
                                                                              ip_constants.PARAMETER_XPLAN_PATH)
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._xplan_path)
+        parameter_value.value_of = parameter_field
+        # todo: when to assign parameter field default_value?
         parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
@@ -274,6 +298,8 @@ class ParameterIntent(object):
                                                                              ip_constants.PARAMETER_XPLAN_REACTOR)
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._xplan_reactor)
+        parameter_value.value_of = parameter_field
+        # todo: when to assign parameter field default_value?
         parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
