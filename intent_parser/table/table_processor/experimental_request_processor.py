@@ -183,5 +183,9 @@ class ExperimentalRequestProcessor(Processor):
 
     def _process_opil_parameters(self, protocol_interfaces, opil_parameter_values):
         parameter_intent = ParameterIntent()
+        opil_parameter_fields = protocol_interfaces.has_parameter
         for parameter_value in opil_parameter_values:
-            pass
+            parameter_field = parameter_value.value_of
+            parameter_intent.add_parameter(parameter_field.name, parameter_value.value)
+
+
