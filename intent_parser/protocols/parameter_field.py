@@ -1,4 +1,4 @@
-import intent_parser.protocols.opil_parameter_utils as opil_utils
+import intent_parser.utils.opil_parameter_utils as opil_utils
 
 class ParameterField(object):
     """

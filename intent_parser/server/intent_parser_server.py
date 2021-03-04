@@ -472,6 +472,32 @@ class PostExperimentExecutionStatus(Resource):
         experiment_data = self._ip_processor.process_experiment_execution_status(request.get_json())
         return experiment_data, HTTPStatus.OK
 
+class PostExperimentalProtocol(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        """
+        Generate table templates for given an experimental protocol
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    documentId:
+                        type: string
+                    labName:
+                        type: string
+                    experimentalProtocolName:
+                        type: string
+        responses:
+            200:
+                description: TBD.
+        """
+        experiment_protocol_data = self._ip_processor.process_experimental_protocol_request(request.get_json())
+        return experiment_protocol_data, HTTPStatus.OK
+
 class PostExperimentStatus(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
@@ -833,6 +859,9 @@ class IntentParserServer(object):
                          resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(PostExperimentExecutionStatus,
                          '/experimentExecutionStatus',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostExperimentalProtocol,
+                         '/experimentalProtocol',
                          resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(PostExperimentStatus,
                          '/experiment_status',

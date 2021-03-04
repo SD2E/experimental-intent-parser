@@ -2,7 +2,8 @@
 Functions for generating views related to intent parser
 """
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
-from intent_parser.utils.html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, SpellcheckHtmlBuilder
+from intent_parser.utils.html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, SpellcheckHtmlBuilder, \
+    ExperimentalProtocolHtmlBuilder
 from intent_parser.utils.html_builder import ControlsTableHtmlBuilder, MeasurementTableHtmlBuilder, ParameterTableHtmlBuilder
 import intent_parser.constants.ip_app_script_constants as addon_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
@@ -82,6 +83,11 @@ def create_parameter_table_dialog(cursor_child_index,
     html_parameter = builder.build() 
     dialog_action = modal_dialog(html_parameter, 'Create Parameters Table', 600, 600)
     return dialog_action
+
+def create_experimental_protocol_dialog(cursor_index, lab_names):
+    builder = ExperimentalProtocolHtmlBuilder()
+    builder.cursor_child_index_html(cursor_index)
+    builder.lab_names_html(generate_html_options(lab_names))
 
 def create_measurement_table_dialog(cursor_child_index):
     catalog_accessor = CatalogAccessor()

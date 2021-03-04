@@ -147,7 +147,10 @@ class MeasurementIntent(object):
         if self._measurement_type is None:
             raise IntentParserException("Exporting opil must have a measurement-type but none is set.")
 
+        # convert required fields
         measurement_type = self._encode_measurement_type_using_opil(opil_measurement)
+
+        # convert optional fields
         if len(self._file_type) > 0:
             self._encode_file_type_using_opil(opil_measurement)
         if len(self._timepoints) > 0:
@@ -162,7 +165,7 @@ class MeasurementIntent(object):
 
         return opil_measurement, measurement_type
 
-    def to_structure_request(self):
+    def to_structured_request(self):
         if self._measurement_type is None:
             raise IntentParserException("A structured request must have a measurement-type but none is set.")
         if len(self._file_type) == 0:
@@ -173,20 +176,20 @@ class MeasurementIntent(object):
 
         if len(self._replicates) > 0:
             structure_request[dc_constants.REPLICATES] = self._replicates
-        if len(self._strains) > 0:
-            structure_request[dc_constants.STRAINS] = [strain.to_structure_request() for strain in self._strains]
+        if self._strains:
+            structure_request[dc_constants.STRAINS] = [strain.to_structured_request() for strain in self._strains]
         if len(self._optical_densities) > 0:
             structure_request[dc_constants.ODS] = self._optical_densities
         if len(self._temperatures) > 0:
-            structure_request[dc_constants.TEMPERATURES] = [temperature.to_structure_request() for temperature in self._temperatures]
+            structure_request[dc_constants.TEMPERATURES] = [temperature.to_structured_request() for temperature in self._temperatures]
         if len(self._timepoints) > 0:
-            structure_request[dc_constants.TIMEPOINTS] = [timepoint.to_structure_request() for timepoint in self._timepoints]
+            structure_request[dc_constants.TIMEPOINTS] = [timepoint.to_structured_request() for timepoint in self._timepoints]
         if len(self._batches) > 0:
             structure_request[dc_constants.BATCH] = self._batches
         if len(self._controls) > 0:
-            structure_request[dc_constants.CONTROLS] = [control.to_structure_request() for control in self._controls]
+            structure_request[dc_constants.CONTROLS] = [control.to_structured_request() for control in self._controls]
         if not self._contents.is_empty():
-            structure_request.update(self._contents.to_structure_request())
+            structure_request.update(self._contents.to_structured_request())
 
         return structure_request
 
@@ -316,8 +319,8 @@ class MeasurementContent(object):
     def is_empty(self):
         return len(self._contents) == 0
 
-    def to_structure_request(self):
-        return {dc_constants.CONTENTS: content.to_structure_request() for content in self._contents}
+    def to_structured_request(self):
+        return {dc_constants.CONTENTS: content.to_structured_request() for content in self._contents}
 
 class ContentIntent(object):
 
@@ -374,28 +377,28 @@ class ContentIntent(object):
                 len(self._reagents) == 0 and
                 len(self._medias) == 0)
 
-    def to_structure_request(self):
+    def to_structured_request(self):
         structure_request = []
         if len(self._num_neg_controls) > 0:
-            structure_request.append([num_neg_control.to_structure_request() for num_neg_control in self._num_neg_controls])
+            structure_request.append([num_neg_control.to_structured_request() for num_neg_control in self._num_neg_controls])
         if len(self._rna_inhibitor_reaction_flags) > 0:
-            structure_request.append([rna_inhibitor_reaction.to_structure_request() for rna_inhibitor_reaction in self._rna_inhibitor_reaction_flags])
+            structure_request.append([rna_inhibitor_reaction.to_structured_request() for rna_inhibitor_reaction in self._rna_inhibitor_reaction_flags])
         if len(self._dna_reaction_concentrations) > 0:
-            structure_request.append([dna_reaction_concentration.to_structure_request() for dna_reaction_concentration in self._dna_reaction_concentrations])
+            structure_request.append([dna_reaction_concentration.to_structured_request() for dna_reaction_concentration in self._dna_reaction_concentrations])
         if len(self._template_dna_values) > 0:
-            structure_request.append([template_dna.to_structure_request() for template_dna in self._template_dna_values])
+            structure_request.append([template_dna.to_structured_request() for template_dna in self._template_dna_values])
         if len(self._column_ids) > 0:
-            structure_request.append([col_id.to_structure_request() for col_id in self._column_ids])
+            structure_request.append([col_id.to_structured_request() for col_id in self._column_ids])
         if len(self._row_ids) > 0:
-            structure_request.append([row_id.to_structure_request() for row_id in self._row_ids])
+            structure_request.append([row_id.to_structured_request() for row_id in self._row_ids])
         if len(self._lab_ids) > 0:
-            structure_request.append([lab_id.to_structure_request() for lab_id in self._lab_ids])
+            structure_request.append([lab_id.to_structured_request() for lab_id in self._lab_ids])
         if len(self._reagents) > 0:
             for reagent in self._reagents:
-                structure_request.append(reagent.to_structure_request())
+                structure_request.append(reagent.to_structured_request())
         if len(self._medias) > 0:
             for media in self._medias:
-                structure_request.append(media.to_structure_request())
+                structure_request.append(media.to_structured_request())
 
         return structure_request
 
@@ -506,7 +509,6 @@ class ContentIntent(object):
             media_template, media_variable = media.to_sbol(sbol_document)
             media_templates.append(media_template)
             media_variables.append(media_variable)
-
         return media_templates, media_variables
 
     def _encode_number_of_negative_controls_using_sbol(self, sbol_document):

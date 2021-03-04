@@ -10,6 +10,10 @@ import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
 
 class StructuredRequestProcessor(Processor):
+    """
+    Generates a structured request from Intent Parser table templates.
+    This data encoding is comes in the form of a json object.
+    """
 
     logger = logging.getLogger('structured_request_processor')
     schema = {'$ref': 'https://schema.catalog.sd2e.org/schemas/structured_request.json'}
@@ -126,7 +130,7 @@ class StructuredRequestProcessor(Processor):
 
             meas_table.process_table(control_data=self.processed_controls, bookmarks=self.bookmark_ids)
 
-            self.processed_measurements.append({dc_constants.MEASUREMENTS: [meas_intent.to_structure_request() for meas_intent in meas_table.get_intents()]})
+            self.processed_measurements.append({dc_constants.MEASUREMENTS: [meas_intent.to_structured_request() for meas_intent in meas_table.get_intents()]})
             self.validation_errors.extend(meas_table.get_validation_errors())
             self.validation_warnings.extend(meas_table.get_validation_warnings())
         except (DictionaryMaintainerException, TableException) as err:

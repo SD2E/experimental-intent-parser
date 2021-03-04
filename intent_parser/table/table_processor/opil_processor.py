@@ -5,16 +5,22 @@ from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.parameter_table import ParameterTable
 from intent_parser.table.table_processor.processor import Processor
 from intent_parser.utils.id_provider import IdProvider
+from sbol3 import TextProperty
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-import intent_parser.protocols.opil_parameter_utils as opil_utils
+import intent_parser.utils.opil_parameter_utils as opil_utils
 import intent_parser.table.cell_parser as cell_parser
 import logging
 import opil
 
+
 class OPILProcessor(Processor):
+    """
+    Generates opil from Intent Parser table templates.
+    """
 
     logger = logging.getLogger('opil_processor')
+
 
     # units supported for opil conversion
     _CONTROL_TYPES = ['HIGH_FITC',
@@ -25,6 +31,7 @@ class OPILProcessor(Processor):
                       'BASELINE_MEDIA_PR',
                       'CELL_DEATH_NEG_CONTROL',
                       'CELL_DEATH_POS_CONTROL']
+
     _FLUID_UNITS = ['%',
                     'M',
                     'mM',
@@ -37,20 +44,19 @@ class OPILProcessor(Processor):
                     'mg/ml',
                     'ng/ul']
 
-    _TIME_UNITS = ['day',
-                   'hour',
-                   'femtosecond',
-                   'microsecond',
-                   'millisecond',
-                   'minute',
-                   'month',
-                   'nanosecond',
-                   'picosecond',
-                   'second',
-                   'week',
-                   'year']
+    _TIME_UNITS = [ip_constants.TIME_UNIT_DAY,
+                   ip_constants.TIME_UNIT_HOUR,
+                   ip_constants.TIME_UNIT_FEMTOSECOND,
+                   ip_constants.TIME_UNIT_MICROSECOND,
+                   ip_constants.TIME_UNIT_MILLISECOND,
+                   ip_constants.TIME_UNIT_MINUTE,
+                   ip_constants.TIME_UNIT_MONTH,
+                   ip_constants.TIME_UNIT_NANOSECOND,
+                   ip_constants.TIME_UNIT_PICOSECOND,
+                   ip_constants.TIME_UNIT_SECOND,
+                   ip_constants.TIME_UNIT_WEEK,
+                   ip_constants.TIME_UNIT_YEAR]
 
-    _TEMPERATURE_UNITS = ['celsius', 'fahrenheit']
     _MEASUREMENT_TYPE = [ip_constants.MEASUREMENT_TYPE_FLOW,
                          ip_constants.MEASUREMENT_TYPE_RNA_SEQ,
                          ip_constants.MEASUREMENT_TYPE_DNA_SEQ,
@@ -62,13 +68,23 @@ class OPILProcessor(Processor):
                          ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE,
                          ip_constants.MEASUREMENT_TYPE_EXPERIMENTAL_DESIGN]
 
-    def __init__(self, protocol_factory, sbol_dictionary, file_types=[], lab_names=[]):
+    def __init__(self,
+                 experiment_ref,
+                 experiment_ref_url,
+                 protocol_factory,
+                 sbol_dictionary,
+                 file_types=[],
+                 lab_names=[]):
         super().__init__()
         self._lab_names = lab_names
         self._protocol_factory = protocol_factory
         self._file_types = file_types
         self._sbol_dictionary = sbol_dictionary
         self._id_provider = IdProvider()
+
+        self._experiment_ref = experiment_ref
+        self._experiment_ref_url = experiment_ref_url
+        self._experiment_id = None
 
         self.processed_lab_name = ''
         self.processed_protocol_name = ''
@@ -133,6 +149,7 @@ class OPILProcessor(Processor):
 
         processed_lab = lab_table.get_intent()
         self.processed_lab_name = processed_lab.get_lab_name()
+        self._experiment_id = processed_lab.to_structured_request()[dc_constants.EXPERIMENT_ID]
         self.validation_errors.extend(lab_table.get_validation_errors())
         self.validation_warnings.extend(lab_table.get_validation_warnings())
 
@@ -141,7 +158,10 @@ class OPILProcessor(Processor):
             raise IntentParserException('lab %s not supported for exporting opil metadata.' % self.processed_lab_name)
 
         opil_experimental_result = opil.ExperimentalRequest(self._id_provider.get_unique_sd2_id())
-        opil_experimental_result.name = 'Experimental Result'
+        opil_experimental_result.name = 'Experimental Request'
+        self._annotate_experimental_id(opil_experimental_result)
+        self._annotate_experimental_reference(opil_experimental_result)
+        self._annotate_experimental_reference_url(opil_experimental_result)
 
         opil_measurements = []
         opil_measurement_types = []
@@ -163,6 +183,7 @@ class OPILProcessor(Processor):
             default_param_fields, default_param_values = self._process_default_parameters_as_opil(self.processed_parameter.get_default_parameters(),
                                                                                                   parameter_fields_from_lab,
                                                                                                   self.opil_document)
+
             all_param_values = run_param_values + default_param_values
             if len(all_param_values) > 0:
                 opil_experimental_result.has_parameter_value = all_param_values
@@ -180,6 +201,28 @@ class OPILProcessor(Processor):
         validation_report = self.opil_document.validate()
         if not validation_report.is_valid:
             raise IntentParserException(validation_report.message)
+
+    def _annotate_experimental_id(self, opil_experimental_result):
+        opil_experimental_result.experiment_id = TextProperty(opil_experimental_result,
+                                                  '%s#%s' % (ip_constants.SD2E_NAMESPACE, dc_constants.EXPERIMENT_ID),
+                                                  0,
+                                                  1)
+        opil_experimental_result.experiment_id = self._experiment_id
+
+    def _annotate_experimental_reference(self, opil_experimental_result):
+        opil_experimental_result.experiment_reference = TextProperty(opil_experimental_result,
+                                                  '%s#%s' % (ip_constants.SD2E_NAMESPACE, dc_constants.EXPERIMENT_REFERENCE),
+                                                  0,
+                                                  1)
+        opil_experimental_result.experiment_reference = self._experiment_ref
+
+    def _annotate_experimental_reference_url(self, opil_experimental_result):
+        opil_experimental_result.experiment_reference_url = TextProperty(opil_experimental_result,
+                                                  '%s#%s' % (ip_constants.SD2E_NAMESPACE, dc_constants.EXPERIMENT_REFERENCE_URL),
+                                                  0,
+                                                  1)
+        opil_experimental_result.experiment_reference_url = self._experiment_ref_url
+
 
     def _validate_parameters_from_lab(self, parameter_fields_from_document, parameter_fields_from_lab):
         # Check for required fields.
@@ -206,7 +249,7 @@ class OPILProcessor(Processor):
         opil_param_values = []
         opil_param_fields = []
         if not self._validate_parameters_from_lab(parameter_fields_from_document, parameter_fields_from_lab):
-            raise IntentParserException('Invalid parameter found.')
+            raise IntentParserException('Failed to validate parameters for protocol.')
 
         for param_key, param_value in parameter_fields_from_document.items():
             param_field = parameter_fields_from_lab[param_key].get_opil_template()
@@ -217,18 +260,24 @@ class OPILProcessor(Processor):
             if type(param_field) is opil.opil_factory.BooleanParameter:
                 boolean_value = cell_parser.PARSER.process_boolean_flag(param_value)
                 opil_value = opil_utils.create_opil_boolean_parameter_value(value_id, boolean_value[0])
-                param_field.default_value = opil_value
+                opil_value.value_of = opil_param_field
+                # todo: when to assign parameter field default_value?
+                opil_param_field.default_value = opil_value
                 opil_param_values.append(opil_value)
 
             elif type(param_field) is opil.opil_factory.EnumeratedParameter:
                 opil_value = opil_utils.create_opil_enumerated_parameter_value(value_id, param_value)
-                param_field.default_value = opil_value
+                opil_value.value_of = param_field
+                # todo: when to assign parameter field default_value?
+                opil_param_field.default_value = opil_value
                 opil_param_values.append(opil_value)
 
             elif type(param_field) is opil.opil_factory.IntegerParameter:
                 int_value = cell_parser.PARSER.process_numbers(param_value)
                 opil_value = opil_utils.create_opil_integer_parameter_value(value_id, int(int_value[0]))
-                param_field.default_value = opil_value
+                opil_value.value_of = opil_param_field
+                # todo: when to assign parameter field default_value?
+                opil_param_field.default_value = opil_value
                 opil_param_values.append(opil_value)
 
             elif type(param_field) is opil.opil_factory.MeasureParameter:
@@ -236,12 +285,16 @@ class OPILProcessor(Processor):
                     value = cell_parser.PARSER.process_numbers(param_value)
                     unit = ip_constants.NCIT_NOT_APPLICABLE
                     opil_value = opil_utils.create_opil_measurement_parameter_value(value_id, value[0], unit)
-                    param_field.default_value = opil_value
+                    opil_value.value_of = opil_param_field
+                    # todo: when to assign parameter field default_value?
+                    opil_param_field.default_value = opil_value
                     opil_param_values.append(opil_value)
                 elif cell_parser.PARSER.is_valued_cell(param_value):
                     value, unit = cell_parser.PARSER.process_value_unit_without_validation(param_value)
                     opil_value = opil_utils.create_opil_measurement_parameter_value(value_id, float(value), unit)
-                    param_field.default_value = opil_value
+                    opil_value.value_of = opil_param_field
+                    # todo: when to assign parameter field default_value?
+                    opil_param_field.default_value = opil_value
                     opil_param_values.append(opil_value)
                 else:
                     self.validation_errors.append('Unable to create an OPIL Measurement ParameterValue. '
@@ -250,12 +303,16 @@ class OPILProcessor(Processor):
 
             elif type(param_field) is opil.opil_factory.StringParameter:
                 opil_value = opil_utils.create_opil_string_parameter_value(value_id, param_value)
-                param_field.default_value = opil_value
+                opil_value.value_of = opil_param_field
+                # todo: when to assign parameter field default_value?
+                opil_param_field.default_value = opil_value
                 opil_param_values.append(opil_value)
 
             elif type(param_field) is opil.opil_factory.URIParameter:
                 opil_value = opil_utils.create_opil_URI_parameter_value(value_id, param_value)
-                param_field.default_value = opil_value
+                opil_value.value_of = opil_param_field
+                # todo: when to assign parameter field default_value?
+                opil_param_field.default_value = opil_value
                 opil_param_values.append(opil_value)
 
         return opil_param_fields, opil_param_values
@@ -282,7 +339,6 @@ class OPILProcessor(Processor):
         except IntentParserException as err:
             self.validation_errors.extend([err.get_message()])
 
-
     def _process_measurement_tables(self, measurement_tables, strain_mapping):
         if len(measurement_tables) > 1:
             message = ('There are more than one measurement table specified in this experiment.'
@@ -291,9 +347,9 @@ class OPILProcessor(Processor):
         try:
             table = measurement_tables[-1]
             measurement_table = MeasurementTable(table,
-                                                 temperature_units=self._TEMPERATURE_UNITS,
-                                                 timepoint_units=self._TIME_UNITS,
-                                                 fluid_units=self._FLUID_UNITS,
+                                                 temperature_units=list(ip_constants.TEMPERATURE_UNIT_MAP.keys()),
+                                                 timepoint_units=list(ip_constants.TIME_UNIT_MAP.keys()),
+                                                 fluid_units=list(ip_constants.FLUID_UNIT_MAP.keys()),
                                                  measurement_types=self._MEASUREMENT_TYPE,
                                                  file_type=self._file_types,
                                                  strain_mapping=strain_mapping)

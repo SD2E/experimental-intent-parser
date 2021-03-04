@@ -1,4 +1,5 @@
 from intent_parser.intent.measure_property_intent import ReagentIntent, NamedStringValue
+from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.utils.id_provider import IdProvider
 from sbol3 import CombinatorialDerivation, Component, LocalSubComponent, SubComponent, TextProperty, VariableFeature
@@ -23,7 +24,7 @@ class ControlIntent(object):
     def add_content(self, value):
         self._contents.append(value)
 
-    def add_strain(self, strain):
+    def add_strain(self, strain: StrainIntent):
         self._strains.append(strain)
 
     def add_timepoint(self, timepoint):
@@ -57,7 +58,7 @@ class ControlIntent(object):
         all_sample_templates = []
         all_sample_variables = []
 
-        if len(self._strains) > 0:
+        if self._strains:
             strain_template, strain_variable = self._encode_strains_using_sbol(sbol_document)
             all_sample_templates.append(strain_template)
             all_sample_variables.append(strain_variable)
@@ -80,19 +81,19 @@ class ControlIntent(object):
 
         return sample_combinations
 
-    def to_structure_request(self):
+    def to_structured_request(self):
         if self._control_type is None:
             raise IntentParserException('control-type is not set.')
 
         structure_request = {dc_constants.TYPE: self._control_type}
         if len(self._strains) > 0:
-            structure_request[dc_constants.STRAINS] = [strain.to_structure_request() for strain in self._strains]
+            structure_request[dc_constants.STRAINS] = [strain.to_structured_request() for strain in self._strains]
         if self._channel:
             structure_request[dc_constants.CHANNEL] = self._channel
         if len(self._contents) > 0:
-            structure_request[dc_constants.CONTENTS] = [content.to_structure_request() for content in self._contents]
+            structure_request[dc_constants.CONTENTS] = [content.to_structured_request() for content in self._contents]
         if len(self._timepoints) > 0:
-            structure_request[dc_constants.TIMEPOINTS] = [timepoint.to_structure_request() for timepoint in self._timepoints]
+            structure_request[dc_constants.TIMEPOINTS] = [timepoint.to_structured_request() for timepoint in self._timepoints]
         return structure_request
 
     def _encode_channel_using_opil(self, opil_measurement):
@@ -153,7 +154,6 @@ class ControlIntent(object):
         strain_template.name = 'strains template'
         strain_variable = VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
                                           cardinality=sbol_constants.SBOL_ONE)
-        strain_variable.name = 'strain VariableFeature'
         strain_variable.variable = strain_template
         strain_variable.variant = [strain.to_sbol(sbol_document) for strain in self._strains]
 

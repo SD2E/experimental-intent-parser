@@ -1,3 +1,4 @@
+from intent_parser.accessor.aquarium_opil_accessor import AquariumOpilAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.intent.measure_property_intent import TimepointIntent, ReagentIntent, NamedLink, MeasuredUnit
@@ -17,7 +18,8 @@ class OpilTest(unittest.TestCase):
     @patch('intent_parser.accessor.intent_parser_sbh.IntentParserSBH')
     def setUp(self, mock_intent_parser_sbh):
         strateos_accesor = StrateosAccessor()
-        protocol_factory = ProtocolFactory(strateos_accesor)
+        aquarium_accessor = AquariumOpilAccessor()
+        protocol_factory = ProtocolFactory(strateos_accesor, aquarium_accessor)
         protocol_factory.set_selected_lab(ip_constants.LAB_TRANSCRIPTIC)
 
         sbol_dictionary = SBOLDictionaryAccessor(ip_constants.SD2_SPREADSHEET_ID,
@@ -96,6 +98,7 @@ class OpilTest(unittest.TestCase):
 
         opil_measurement, _ = measurement_intent.to_opil()
         self.assertIsNotNone(opil_measurement)
+
         self.assertEqual(1, len(opil_measurement.time))
         opil_measurement_time = opil_measurement.time[0]
         expected_timepoint = timepoint.to_opil()

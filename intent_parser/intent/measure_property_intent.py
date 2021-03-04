@@ -7,35 +7,8 @@ import intent_parser.constants.intent_parser_constants as ip_constants
 import opil
 import sbol3.constants as sbol_constants
 
+
 class MeasuredUnit(object):
-    _FLUID_UNIT_MAP = {'%': ip_constants.NCIT_CONCENTRATION,
-                       'M': ip_constants.UO_MOLAR,
-                       'mM': ip_constants.UO_MILLI_MOLAR,
-                       'X': ip_constants.NCIT_FOLD_CHANGE,
-                       'g/L': ip_constants.UO_GRAM_PER_LITER,
-                       'ug/ml': ip_constants.NCIT_MICROGRAM_PER_MILLILITER,
-                       'micromole': ip_constants.NCIT_MICROMOLE,
-                       'nM': ip_constants.NCIT_NANOMOLE,
-                       'uM': ip_constants.NCIT_MICROMOLE,
-                       'mg/ml': ip_constants.UO_MILLIGRAM_PER_MILLILITER,
-                       'ng/ul': ip_constants.UO_NANO_GRAM_PER_LITER,
-                       'microlitre': ip_constants.OTU_MICROLITRE}
-
-    _TEMPERATURE_UNIT_MAP = {'celsius': ip_constants.NCIT_CELSIUS,
-                             'fahrenheit': ip_constants.NCIT_FAHRENHEIT}
-
-    _TIME_UNIT_MAP = {'day': ip_constants.NCIT_MONTH,
-                      'hour': ip_constants.NCIT_HOUR,
-                      'femtosecond': ip_constants.OTU_FEMTOSECOND,
-                      'microsecond': ip_constants.NCIT_MICROSECOND,
-                      'millisecond': ip_constants.NCIT_MILLISECOND,
-                      'minute': ip_constants.NCIT_MINUTE,
-                      'month': ip_constants.NCIT_MONTH,
-                      'nanosecond': ip_constants.NCIT_NANOSECOND,
-                      'picosecond': ip_constants.NCIT_PICOSECOND,
-                      'second': ip_constants.NCIT_SECOND,
-                      'week': ip_constants.NCIT_WEEK,
-                      'year': ip_constants.NCIT_YEAR}
 
     def __init__(self, value: Union[float, int], unit: str, unit_type=None):
         self._value = value
@@ -45,168 +18,25 @@ class MeasuredUnit(object):
     def get_unit(self):
         return self._unit
 
-    def get_unit_name_from_uri(self, unit_uri: str):
-        """
-        Get unit name from an measurement unit uri.
-        Args:
-            unit_uri: unit uri
-        Returns:
-            a string representing the unit name of the given unit uri.
-            An empty string is returned if no unit name is found for the given uri.
-        """
-        for key, value in self._FLUID_UNIT_MAP.items():
-            if value == unit_uri:
-                return key
-
-        for key, value in self._TEMPERATURE_UNIT_MAP.items():
-            if value == unit_uri:
-                return key
-
-        for key, value in self._TIME_UNIT_MAP.items():
-            if value == unit_uri:
-                return key
-
-        if unit_uri == ip_constants.OTU_NANOMETER:
-            return 'nanometer'
-
-        if unit_uri == ip_constants.OTU_HOUR:
-            return 'hour'
-
-        return ''
-
     def get_value(self):
         return self._value
 
     def to_opil(self):
-        if self._unit_type is not None:
-            return self._get_sbol_measure_by_unit_type()
+        if self._unit in ip_constants.FLUID_UNIT_MAP:
+            unit_uri = ip_constants.FLUID_UNIT_MAP[self._unit]
+            return opil.Measure(self._value, unit_uri)
+        elif self._unit in ip_constants.TEMPERATURE_UNIT_MAP:
+            unit_uri = ip_constants.TEMPERATURE_UNIT_MAP[self._unit]
+            return opil.Measure(self._value, unit_uri)
+        elif self._unit in ip_constants.TIME_UNIT_MAP:
+            unit_uri = ip_constants.TIME_UNIT_MAP[self._unit]
+            return opil.Measure(self._value, unit_uri)
         else:
-            if self._unit in self._FLUID_UNIT_MAP:
-                return self._encode_fluid_using_opil()
-            elif self._unit in self._TEMPERATURE_UNIT_MAP:
-                return self._encode_temperature_using_opil()
-            elif self._unit in self._TIME_UNIT_MAP:
-                return self._encode_timepoint_using_opil()
-            else:
-                return opil.Measure(float(self._value), ip_constants.NCIT_NOT_APPLICABLE)
+            raise IntentParserException('unit not supported in Intent Parser: %s' % self._unit)
 
-    def to_structure_request(self):
+    def to_structured_request(self):
         return {dc_constants.VALUE: float(self._value),
                 dc_constants.UNIT: self._unit}
-
-    def _get_sbol_measure_by_unit_type(self):
-        if self._unit_type == ip_constants.UNIT_TYPE_FLUID:
-            return self._encode_fluid_using_opil()
-        elif self._unit_type == ip_constants.UNIT_TYPE_TIMEPOINT:
-            return self._encode_timepoint_using_opil()
-        elif self._unit_type == ip_constants.UNIT_TYPE_TEMPERATURE:
-            return self._encode_temperature_using_opil()
-        else:
-            raise IntentParserException('%s measurement type not supported' % self._unit_type)
-
-    def _encode_fluid_using_opil(self):
-        if self._unit == '%':
-            measure = opil.Measure(self._value, ip_constants.NCIT_CONCENTRATION)
-            return measure
-        elif self._unit == 'M':
-            measure = opil.Measure(self._value, ip_constants.UO_MOLAR)
-            return measure
-        elif self._unit == 'mM':
-            measure = opil.Measure(self._value, ip_constants.UO_MILLI_MOLAR)
-            return measure
-        elif self._unit == 'X':
-            measure = opil.Measure(self._value, ip_constants.NCIT_FOLD_CHANGE)
-            return measure
-        elif self._unit == 'g/L':
-            measure = opil.Measure(self._value, ip_constants.UO_GRAM_PER_LITER)
-            return measure
-        elif self._unit == 'ug/ml':
-            measure = opil.Measure(self._value, ip_constants.NCIT_MICROGRAM_PER_MILLILITER)
-            return measure
-        elif self._unit == 'micromole':
-            measure = opil.Measure(self._value, ip_constants.NCIT_MICROMOLE)
-            return measure
-        elif self._unit == 'nM':
-            measure = opil.Measure(self._value, ip_constants.NCIT_NANOMOLE)
-            return measure
-        elif self._unit == 'uM':
-            measure = opil.Measure(self._value, ip_constants.NCIT_MICROMOLE)
-            return measure
-        elif self._unit == 'mg/ml':
-            measure = opil.Measure(self._value, ip_constants.UO_MILLIGRAM_PER_MILLILITER)
-            return measure
-        elif self._unit == 'ng/ul':
-            measure = opil.Measure(self._value, ip_constants.UO_NANO_GRAM_PER_LITER)
-            return measure
-        elif self._unit == 'microlitre':
-            measure = opil.Measure(self._value, ip_constants.OTU_MICROLITRE)
-            return measure
-        else:
-            raise IntentParserException('%s is not a supported unit.' % self._unit)
-
-    def _encode_temperature_using_opil(self):
-        if self._unit == 'celsius':
-            measure = opil.Measure(self._value, ip_constants.NCIT_CELSIUS)
-            measure.name = 'celsius'
-            return measure
-        elif self._unit == 'fahrenheit':
-            measure = opil.Measure(self._value, ip_constants.NCIT_FAHRENHEIT)
-            measure.name = 'fahrenheit'
-            return measure
-        else:
-            raise IntentParserException('%s is not a supported unit.' % self._unit)
-
-    def _encode_timepoint_using_opil(self):
-        if self._unit == 'day':
-            measure = opil.Measure(self._value, ip_constants.NCIT_DAY)
-            measure.name = 'day'
-            return measure
-        elif self._unit == 'hour':
-            measure = opil.Measure(self._value, ip_constants.NCIT_HOUR)
-            measure.name = 'hour'
-            return measure
-        elif self._unit == 'femtosecond':
-            measure = opil.Measure(self._value, ip_constants.OTU_FEMTOSECOND)
-            measure.name = 'femtosecond'
-            return measure
-        elif self._unit == 'microsecond':
-            measure = opil.Measure(self._value, ip_constants.NCIT_MICROSECOND)
-            measure.name = 'microsecond'
-            return measure
-        elif self._unit == 'millisecond':
-            measure = opil.Measure(self._value, ip_constants.NCIT_MILLISECOND)
-            measure.name = 'millisecond'
-            return measure
-        elif self._unit == 'minute':
-            measure = opil.Measure(self._value, ip_constants.NCIT_MINUTE)
-            measure.name = 'minute'
-            return measure
-        elif self._unit == 'month':
-            measure = opil.Measure(self._value, ip_constants.NCIT_MONTH)
-            measure.name = 'month'
-            return measure
-        elif self._unit == 'nanosecond':
-            measure = opil.Measure(self._value, ip_constants.NCIT_NANOSECOND)
-            measure.name = 'nanosecond'
-            return measure
-        elif self._unit == 'picosecond':
-            measure = opil.Measure(self._value, ip_constants.NCIT_PICOSECOND)
-            measure.name = 'picosecond'
-            return measure
-        elif self._unit == 'second':
-            measure = opil.Measure(self._value, ip_constants.NCIT_SECOND)
-            measure.name = 'second'
-            return measure
-        elif self._unit == 'week':
-            measure = opil.Measure(self._value, ip_constants.NCIT_WEEK)
-            measure.name = 'week'
-            return measure
-        elif self._unit == 'year':
-            measure = opil.Measure(self._value, ip_constants.NCIT_YEAR)
-            measure.name = 'year'
-            return measure
-        else:
-            raise IntentParserException('%s is not a supported unit.' % self._unit)
 
 class TemperatureIntent(MeasuredUnit):
 
@@ -216,7 +46,7 @@ class TemperatureIntent(MeasuredUnit):
 class TimepointIntent(MeasuredUnit):
 
     def __init__(self, value: Union[float, int], unit: str):
-        super().__init__(value, unit, unit_type=ip_constants.UNIT_TYPE_TIMEPOINT)
+        super().__init__(value, unit, unit_type=ip_constants.UNIT_TYPE_TIMEPOINTS)
 
 class NamedLink(object):
 
@@ -230,7 +60,7 @@ class NamedLink(object):
     def get_link(self):
         return self._link
 
-    def to_structure_request(self):
+    def to_structured_request(self):
         return {dc_constants.LABEL: self._name,
                 dc_constants.SBH_URI: self._link if self._link else dc_constants.NO_PROGRAM_DICTIONARY}
 
@@ -244,8 +74,8 @@ class NamedBooleanValue(object):
     def get_value(self):
         return self._value
 
-    def to_structure_request(self):
-        return {dc_constants.NAME: self._named_link.to_structure_request(),
+    def to_structured_request(self):
+        return {dc_constants.NAME: self._named_link.to_structured_request(),
                 dc_constants.VALUE: str(self._value)}
 
 class NamedIntegerValue(object):
@@ -257,8 +87,8 @@ class NamedIntegerValue(object):
     def get_value(self):
         return self._value
 
-    def to_structure_request(self):
-        return {dc_constants.NAME: self._named_link.to_structure_request(),
+    def to_structured_request(self):
+        return {dc_constants.NAME: self._named_link.to_structured_request(),
                 dc_constants.VALUE: self._value}
 
 class NamedStringValue(object):
@@ -273,8 +103,8 @@ class NamedStringValue(object):
     def get_value(self):
         return self._value
 
-    def to_structure_request(self):
-        result = {dc_constants.NAME: self._named_link.to_structure_request()}
+    def to_structured_request(self):
+        result = {dc_constants.NAME: self._named_link.to_structured_request()}
         if self._value:
             result[dc_constants.VALUE] = self._value
         return result
@@ -340,13 +170,13 @@ class MediaIntent(object):
         media_variable.variants = media_variants
         return media_template, media_variable
 
-    def to_structure_request(self):
+    def to_structured_request(self):
         sr_media = []
         for value in self._media_values:
-            media = {dc_constants.NAME: self._media_name.to_structure_request(),
+            media = {dc_constants.NAME: self._media_name.to_structured_request(),
                      dc_constants.VALUE: value.get_name()}
             if self._timepoint:
-                media[dc_constants.TIMEPOINT] = self._timepoint.to_structure_request()
+                media[dc_constants.TIMEPOINT] = self._timepoint.to_structured_request()
             sr_media.append(media)
         return sr_media
 
@@ -407,13 +237,13 @@ class ReagentIntent(object):
 
         return reagent_template, reagent_variable, reagent_component
 
-    def to_structure_request(self):
+    def to_structured_request(self):
         sr_reagent = []
         for value in self._reagent_values:
-            reagent = {dc_constants.NAME: self._reagent_name.to_structure_request(),
+            reagent = {dc_constants.NAME: self._reagent_name.to_structured_request(),
                        dc_constants.VALUE: str(value.get_value()),
                        dc_constants.UNIT: value.get_unit()}
             if self._timepoint:
-                reagent[dc_constants.TIMEPOINT] = self._timepoint.to_structure_request()
+                reagent[dc_constants.TIMEPOINT] = self._timepoint.to_structured_request()
             sr_reagent.append(reagent)
         return sr_reagent

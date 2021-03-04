@@ -2,12 +2,12 @@ from datetime import timedelta
 from intent_parser.intent_parser_exceptions import IntentParserException
 from transcriptic import Connection
 import intent_parser.constants.intent_parser_constants as ip_constants
-import intent_parser.protocols.opil_parameter_utils as opil_utils
+import intent_parser.utils.opil_parameter_utils as opil_utils
 import logging
 import opil
 import time
 import threading
-import sbol3
+
 
 class StrateosAccessor(object):
     """
@@ -15,6 +15,11 @@ class StrateosAccessor(object):
     """
     SYNC_PERIOD = timedelta(minutes=60)
     logger = logging.getLogger('intent_parser_strateos_accessor')
+
+    _SUPPORTING_PROTOCOLS = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
+                             ip_constants.GROWTH_CURVE_PROTOCOL,
+                             ip_constants.OBSTACLE_COURSE_PROTOCOL,
+                             ip_constants.TIME_SERIES_HTP_PROTOCOL]
 
     def __init__(self, credential_path=None, use_cache=True):
         if credential_path:
@@ -78,18 +83,6 @@ class StrateosAccessor(object):
 
         return self._map_name_to_protocol_interface[protocol_name]
 
-    def get_protocol_as_schema(self, protocol_name):
-        protocol_list = self.strateos_api.get_protocols()
-        selected_protocol = None
-        for protocol in protocol_list:
-            if protocol['name'] == protocol_name:
-                selected_protocol = protocol
-
-        if not selected_protocol:
-            raise IntentParserException('Strateos does not support %s as a protocol' % protocol_name)
-
-        return selected_protocol
-
     def start_synchronize_protocols(self):
         self._fetch_protocols()
         self._protocol_thread.start()
@@ -107,12 +100,9 @@ class StrateosAccessor(object):
         protocol_list = self.strateos_api.get_protocols()
 
         self.protocol_lock.acquire()
-        supported_protocols = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
-                               ip_constants.GROWTH_CURVE_PROTOCOL,
-                               ip_constants.OBSTACLE_COURSE_PROTOCOL,
-                               ip_constants.TIME_SERIES_HTP_PROTOCOL]
+
         for protocol in protocol_list:
-            if protocol['name'] not in supported_protocols:
+            if protocol['name'] not in self._SUPPORTING_PROTOCOLS:
                 continue
 
             self.logger.info('Fetching protocol %s' % protocol['name'])
@@ -126,16 +116,17 @@ class StrateosAccessor(object):
         strateos_namespace = 'http://strateos.com/'
         protocol_name = protocol['name']
         sg = opil.StrateosOpilGenerator()
-        sbol_doc = sg.parse_strateos_json(strateos_namespace,
+        opil_doc = sg.parse_strateos_json(strateos_namespace,
                                           protocol_name,
                                           protocol['id'],
                                           protocol['inputs'])
-        protocol_interfaces = opil_utils.get_protocol_interfaces_from_sbol_doc(sbol_doc)
+        protocol_interfaces = opil_utils.get_protocol_interfaces_from_sbol_doc(opil_doc)
         if len(protocol_interfaces) == 0:
-            raise IntentParserException('Unable to locate OPIL protocol interface when converting transcriptic protocol for %s ' % protocol_name)
+            raise IntentParserException('Unable to locate OPIL protocol interface when converting transcriptic '
+                                        'protocol for %s ' % protocol_name)
         if len(protocol_interfaces) > 1:
             raise IntentParserException(
                 'Expected to find one opil protocol interface for %s but more than one was found' % protocol_name)
 
-        return protocol_interfaces[0], sbol_doc
+        return protocol_interfaces[0], opil_doc
 
