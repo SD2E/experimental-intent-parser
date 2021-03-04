@@ -2,9 +2,12 @@
 Provides a list of functions for building opil objects.
 """
 from intent_parser.intent.measure_property_intent import MeasuredUnit
+from sbol3 import TextProperty
 import intent_parser.utils.sbol3_utils as sbol3_utils
 import opil
-import sbol3
+
+def create_custom_string_annotation(annotated_object, annotated_value):
+    annotated_object.annotation_property = TextProperty(rdf_predicate, cardinality_lower_bound, cardinality_upper_bound)
 
 def create_opil_boolean_parameter_field(field_id: str, field: str):
     parameter_field = opil.BooleanParameter(field_id)
@@ -92,7 +95,7 @@ def get_param_value_as_string(parameter_value):
 
 def get_protocol_id_from_annotaton(protocol):
     namespace = 'http://strateos.com/'
-    id_annotation = sbol3.TextProperty(protocol, namespace + 'strateos_id', 0, 1)
+    id_annotation = TextProperty(protocol, namespace + 'strateos_id', 0, 1)
     return id_annotation.property_owner.strateos_id
 
 def get_protocol_interfaces_from_sbol_doc(sbol_doc) -> list:

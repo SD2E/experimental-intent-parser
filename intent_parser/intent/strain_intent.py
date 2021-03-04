@@ -28,9 +28,6 @@ class StrainIntent(object):
         self._strain_commmon_name = common_name
 
     def to_sbol(self, sbol_document):
-        if self._strain_name:
-            raise IntentParserException('no strain values to encode to sbol')
-
         strain_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                      component_type=sbol_constants.SBO_DNA)
         strain_component.name = self._strain_name.get_name()

@@ -10,6 +10,10 @@ import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
 
 class StructuredRequestProcessor(Processor):
+    """
+    Generates a structured request from Intent Parser table templates.
+    This data encoding is comes in the form of a json object.
+    """
 
     logger = logging.getLogger('structured_request_processor')
     schema = {'$ref': 'https://schema.catalog.sd2e.org/schemas/structured_request.json'}

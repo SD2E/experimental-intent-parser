@@ -307,7 +307,11 @@ class IntentParser(object):
 
     def process_opil_request(self, protocol_factory):
         filtered_tables = self.get_tables_by_type()
-        opil_processor = OPILProcessor(protocol_factory,
+        experiment_ref = self._get_experiment_reference()
+        experiment_ref_url = self._get_experiment_reference_url()
+        opil_processor = OPILProcessor(experiment_ref,
+                                       experiment_ref_url,
+                                       protocol_factory,
                                        self.sbol_dictionary,
                                        file_types=self.catalog_accessor.get_file_types(),
                                        lab_names=[ip_constants.LAB_TRANSCRIPTIC])
