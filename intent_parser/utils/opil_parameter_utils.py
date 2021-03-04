@@ -82,8 +82,8 @@ def get_param_value_as_string(parameter_value):
             measure_number = float(parameter_value.has_measure.value)
             measure_unit = sbol3_utils.get_unit_name_from_uri(parameter_value.has_measure.unit)
             if measure_unit:
-                return '%d %s' % (measure_number, measure_unit)
-            return '%d' % measure_number
+                return str(measure_number) + ' ' + measure_unit
+            return str(measure_number)
     elif type(parameter_value) is opil.opil_factory.StringValue:
         return parameter_value.value if parameter_value.value else ' '
     elif type(parameter_value) is opil.opil_factory.URIValue:
