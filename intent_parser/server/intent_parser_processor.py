@@ -25,6 +25,9 @@ import os
 import traceback
 
 class IntentParserProcessor(object):
+    """
+    Process requests coming into Intent Parser Server.
+    """
 
     logger = logging.getLogger('intent_parser_processor')
 
@@ -1309,8 +1312,7 @@ class IntentParserProcessor(object):
         table_template.extend(required_parameters)
 
         selected_optional_parameters = data[ip_addon_constants.HTML_OPTIONALPARAMETERS]
-        optional_parameters = self._add_optional_parameters(parameter_fields_from_lab,
-                                                            selected_optional_parameters)
+        optional_parameters = self._add_optional_parameters(parameter_fields_from_lab)
         table_template.extend(optional_parameters)
 
         column_width = [len(header) for header in header_row]
@@ -1342,15 +1344,12 @@ class IntentParserProcessor(object):
 
         return required_parameters
 
-    def _add_optional_parameters(self, parameter_fields_from_lab, selected_optional_parameters):
+    def _add_optional_parameters(self, parameter_fields_from_lab):
         optional_parameters = []
-        for param_name in selected_optional_parameters:
-            if param_name not in parameter_fields_from_lab:
-                continue
-
-            parameter = parameter_fields_from_lab[param_name]
+        for param_name, parameter in parameter_fields_from_lab.items():
             parameter_values = parameter.get_valid_values()
-            parameter_value = opil_util.get_param_value_as_string(parameter_values[0]) if len(parameter_values) > 0 else ' '
+            parameter_value = opil_util.get_param_value_as_string(parameter_values[0]) if len(
+                parameter_values) > 0 else ' '
             row = [param_name, parameter_value]
             optional_parameters.append(row)
         return optional_parameters
