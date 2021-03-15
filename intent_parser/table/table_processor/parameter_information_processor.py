@@ -3,7 +3,7 @@ from intent_parser.table.lab_table import LabTable
 from intent_parser.table.parameter_table import ParameterTable
 from intent_parser.table.table_processor.processor import Processor
 import intent_parser.constants.intent_parser_constants as ip_constants
-import intent_parser.utils.opil_parameter_utils as opil_utils
+import intent_parser.utils.opil_utils as opil_utils
 import logging
 
 class ParameterInfoProcessor(Processor):

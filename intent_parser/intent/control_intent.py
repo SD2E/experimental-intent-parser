@@ -54,7 +54,7 @@ class ControlIntent(object):
         if len(self._timepoints) > 0:
             self._encode_timepoints_using_opil(opil_measurement)
 
-    def to_sbol(self, sbol_document):
+    def to_sbol_combinatorial_derivation(self, sbol_document):
         all_sample_templates = []
         all_sample_variables = []
 
@@ -155,6 +155,6 @@ class ControlIntent(object):
         strain_variable = VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
                                           cardinality=sbol_constants.SBOL_ONE)
         strain_variable.variable = strain_template
-        strain_variable.variant = [strain.to_sbol(sbol_document) for strain in self._strains]
+        strain_variable.variant = [strain.to_sbol_combinatorial_derivation(sbol_document) for strain in self._strains]
 
         return strain_template, strain_variable

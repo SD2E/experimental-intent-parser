@@ -2,7 +2,7 @@ from datetime import timedelta
 from intent_parser.intent_parser_exceptions import IntentParserException
 from transcriptic import Connection
 import intent_parser.constants.intent_parser_constants as ip_constants
-import intent_parser.utils.opil_parameter_utils as opil_utils
+import intent_parser.utils.opil_utils as opil_utils
 import logging
 import opil
 import time
