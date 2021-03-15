@@ -6,7 +6,7 @@ import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 import opil
 import sbol3.constants as sbol_constants
-
+import tyto
 
 class MeasuredUnit(object):
 
@@ -32,7 +32,7 @@ class MeasuredUnit(object):
             unit_uri = ip_constants.TIME_UNIT_MAP[self._unit]
             return opil.Measure(self._value, unit_uri)
         else:
-            raise IntentParserException('unit not supported in Intent Parser: %s' % self._unit)
+            return opil.Measure(self._value, tyto.OM.number)
 
     def to_structured_request(self):
         return {dc_constants.VALUE: float(self._value),

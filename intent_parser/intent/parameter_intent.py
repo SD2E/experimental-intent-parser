@@ -1,6 +1,6 @@
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.utils.id_provider import IdProvider
-import intent_parser.utils.opil_parameter_utils as parameter_utils
+import intent_parser.utils.opil_utils as parameter_utils
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 
@@ -170,8 +170,6 @@ class ParameterIntent(object):
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._base_dir)
         parameter_value.value_of = parameter_field
-        # todo: when to assign parameter field default_value?
-        parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
     def _create_opil_container_search_string(self):
@@ -184,8 +182,6 @@ class ParameterIntent(object):
             parameter_value = parameter_utils.create_opil_enumerated_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                                      dc_constants.GENERATE)
             parameter_value.value_of = parameter_field
-            # todo: when to assign parameter field default_value?
-            parameter_field.default_value = parameter_value
             parameter_fields.append(parameter_field)
             parameter_values.append(parameter_value)
         else:
@@ -195,8 +191,6 @@ class ParameterIntent(object):
                 parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                                      self._container_search_strings[value_index])
                 parameter_value.value_of = parameter_field
-                # todo: when to assign parameter field default_value?
-                parameter_field.default_value = parameter_value
                 parameter_fields.append(parameter_field)
                 parameter_values.append(parameter_value)
 
@@ -208,8 +202,6 @@ class ParameterIntent(object):
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._experiment_reference_url_for_xplan)
         parameter_value.value_of = parameter_field
-        # todo: when to assign parameter field default_value?
-        parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
 
@@ -219,8 +211,6 @@ class ParameterIntent(object):
         parameter_value = parameter_utils.create_opil_integer_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                               self._plate_number)
         parameter_value.value_of = parameter_field
-        # todo: when to assign parameter field default_value?
-        parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
     def _create_opil_plate_size(self):
@@ -229,8 +219,6 @@ class ParameterIntent(object):
         parameter_value = parameter_utils.create_opil_integer_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                               self._plate_size)
         parameter_value.value_of = parameter_field
-        # todo: when to assign parameter field default_value?
-        parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
     def _create_opil_protocol_id(self):
@@ -239,8 +227,6 @@ class ParameterIntent(object):
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._protocol_id)
         parameter_value.value_of = parameter_field
-        # todo: when to assign parameter field default_value?
-        parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
     def _create_opil_protocol_name(self):
@@ -249,8 +235,6 @@ class ParameterIntent(object):
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._protocol_name)
         parameter_value.value_of = parameter_field
-        # todo: when to assign parameter field default_value?
-        parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
     def _create_opil_strain_property(self):
@@ -259,8 +243,6 @@ class ParameterIntent(object):
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._strain_property)
         parameter_value.value_of = parameter_field
-        # todo: when to assign parameter field default_value?
-        parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
     def _create_opil_submit(self):
@@ -269,8 +251,6 @@ class ParameterIntent(object):
         parameter_value = parameter_utils.create_opil_boolean_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                               self._submit)
         parameter_value.value_of = parameter_field
-        # todo: when to assign parameter field default_value?
-        parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
     def _create_opil_test_mode(self):
@@ -279,8 +259,6 @@ class ParameterIntent(object):
         parameter_value = parameter_utils.create_opil_boolean_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                               self._test_mode)
         parameter_value.value_of = parameter_field
-        # todo: when to assign parameter field default_value?
-        parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
     def _create_xplan_path(self):
@@ -289,8 +267,6 @@ class ParameterIntent(object):
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._xplan_path)
         parameter_value.value_of = parameter_field
-        # todo: when to assign parameter field default_value?
-        parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 
     def _create_opil_xplan_reactor(self):
@@ -299,7 +275,5 @@ class ParameterIntent(object):
         parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
                                                                              self._xplan_reactor)
         parameter_value.value_of = parameter_field
-        # todo: when to assign parameter field default_value?
-        parameter_field.default_value = parameter_value
         return parameter_field, parameter_value
 

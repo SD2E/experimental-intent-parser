@@ -27,12 +27,14 @@ class StrainIntent(object):
                                         'Current common name set to %s' % self._strain_commmon_name)
         self._strain_commmon_name = common_name
 
-    def to_sbol(self, sbol_document):
+    def to_sbol_component(self, sbol_document):
         strain_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                      component_type=sbol_constants.SBO_DNA)
         strain_component.name = self._strain_name.get_name()
-        strain_sub_component = SubComponent(self._strain_name.get_link())
-        strain_component.features = [strain_sub_component]
+
+        if self._strain_name.get_link():
+            strain_sub_component = SubComponent(self._strain_name.get_link())
+            strain_component.features = [strain_sub_component]
         sbol_document.add(strain_component)
         return strain_component
 

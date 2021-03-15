@@ -4,6 +4,7 @@ from difflib import Match
 from http import HTTPStatus
 import json
 import Levenshtein
+import opil
 import sbol3
 import re
 
@@ -15,12 +16,13 @@ def get_google_doc_id(doc_url):
     doc_id = matched_pattern.group('id')
     return doc_id
 
-def load_sbol_xml_file(file_path):
-    sbol_doc = sbol3.Document()
+def load_opil_xml_file(file_path):
+    opil_doc = opil.Document()
     try:
-        sbol_doc.read(file_path, sbol3.RDF_XML)
+        opil_doc.read(file_path, sbol3.RDF_XML)
     except ValueError:
         raise IntentParserException('Unable to load sbol file.')
+    return opil_doc
 
 def load_json_file(file_path):
     with open(file_path, 'r') as file:
