@@ -2,12 +2,9 @@
 Provides a list of functions for building opil objects.
 """
 from intent_parser.intent.measure_property_intent import MeasuredUnit
-from sbol3 import TextProperty
 import intent_parser.utils.sbol3_utils as sbol3_utils
 import opil
-
-def create_custom_string_annotation(annotated_object, annotated_value):
-    annotated_object.annotation_property = TextProperty(rdf_predicate, cardinality_lower_bound, cardinality_upper_bound)
+import tyto
 
 def create_opil_boolean_parameter_field(field_id: str, field: str):
     parameter_field = opil.BooleanParameter(field_id)
@@ -44,7 +41,7 @@ def create_opil_measurement_parameter_field(field_id: str, field: str):
     parameter_field.name = field
     return parameter_field
 
-def create_opil_measurement_parameter_value(value_id: str, value: float, unit: str):
+def create_opil_measurement_parameter_value(value_id: str, value: float, unit=''):
     parameter_value = opil.MeasureValue(value_id)
     measure = MeasuredUnit(value, unit)
     parameter_value.has_measure = measure.to_opil()
@@ -71,43 +68,41 @@ def create_opil_URI_parameter_value(value_id: str, value: str):
     return parameter_value
 
 def get_param_value_as_string(parameter_value):
-    if type(parameter_value) is opil.opil_factory.BooleanValue:
+    if type(parameter_value) is opil.BooleanValue:
         return str(parameter_value.value)
-    elif type(parameter_value) is opil.opil_factory.EnumeratedValue:
+    elif type(parameter_value) is opil.EnumeratedValue:
         return str(parameter_value.value)
-    elif type(parameter_value) is opil.opil_factory.IntegerValue:
+    elif type(parameter_value) is opil.IntegerValue:
         return str(parameter_value.value)
-    elif type(parameter_value) is opil.opil_factory.MeasureValue:
+    elif type(parameter_value) is opil.MeasureValue:
         if parameter_value.has_measure:
             measure_number = float(parameter_value.has_measure.value)
             measure_unit = sbol3_utils.get_unit_name_from_uri(parameter_value.has_measure.unit)
             if measure_unit:
-                return str(measure_number) + ' ' + measure_unit
+                if measure_unit == tyto.OM.number:
+                    return str(measure_number)
+                else:
+                    return str(measure_number) + ' ' + measure_unit
             return str(measure_number)
-    elif type(parameter_value) is opil.opil_factory.StringValue:
+    elif type(parameter_value) is opil.StringValue:
         return parameter_value.value if parameter_value.value else ' '
-    elif type(parameter_value) is opil.opil_factory.URIValue:
+    elif type(parameter_value) is opil.URIValue:
         return str(parameter_value.value)
     elif isinstance(parameter_value, str):
         return parameter_value
-
     return ''
-
-def get_protocol_id_from_annotaton(protocol):
-    namespace = 'http://strateos.com/'
-    id_annotation = TextProperty(protocol, namespace + 'strateos_id', 0, 1)
-    return id_annotation.property_owner.strateos_id
 
 def get_protocol_interfaces_from_sbol_doc(sbol_doc) -> list:
     protocol_interfaces = []
     for obj in sbol_doc.objects:
-        if type(obj) is opil.opil_factory.ProtocolInterface:
+        if type(obj) is opil.ProtocolInterface:
             protocol_interfaces.append(obj)
     return protocol_interfaces
 
 def get_opil_experimental_requests(opil_doc):
     experimental_requests = []
     for opil_object in opil_doc.objects:
-        if type(opil_object) is opil.oil_factory.ExperimentalRequest:
+        if type(opil_object) is opil.ExperimentalRequest:
             experimental_requests.append(opil_object)
     return experimental_requests
+
