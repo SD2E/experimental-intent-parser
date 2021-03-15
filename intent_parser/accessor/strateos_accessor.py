@@ -113,10 +113,9 @@ class StrateosAccessor(object):
         self.protocol_lock.release()
 
     def convert_protocol_to_opil(self, protocol):
-        strateos_namespace = 'http://strateos.com/'
         protocol_name = protocol['name']
         sg = opil.StrateosOpilGenerator()
-        opil_doc = sg.parse_strateos_json(strateos_namespace,
+        opil_doc = sg.parse_strateos_json(ip_constants.STRATEOS_NAMESPACE,
                                           protocol_name,
                                           protocol['id'],
                                           protocol['inputs'])

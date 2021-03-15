@@ -128,7 +128,7 @@ class ExperimentalRequest(object):
     def _get_or_create_strain_template(self):
         strain = None
         for opil_component in self.opil_components:
-            if opil_component.type == ip_constants.NCIT_STRAIN_URI:
+            if ip_constants.NCIT_STRAIN_URI in opil_component.roles:
                 if not strain:
                     strain = opil_component
                 else:
@@ -147,11 +147,11 @@ class ExperimentalRequest(object):
     def _get_or_create_reagent_and_media_templates(self):
         medias_and_reagents = {}
         for opil_component in self.opil_components:
-            if opil_component.type == ip_constants.NCIT_REAGENT_URI:
+            if ip_constants.NCIT_REAGENT_URI in opil_component.roles:
                 medias_and_reagents[opil_component.name] = opil_component
-            elif opil_component.type == ip_constants.NCIT_MEDIA_URI:
+            elif ip_constants.NCIT_MEDIA_URI in opil_component.roles:
                 medias_and_reagents[opil_component.name] = opil_component
-            elif opil_component.type == ip_constants.NCIT_INDUCER_URI:
+            elif ip_constants.NCIT_INDUCER_URI in opil_component.roles:
                 medias_and_reagents[opil_component.name] = opil_component
 
         for ip_component in self._opil_component_template.media_and_reagent_templates:
@@ -174,6 +174,7 @@ class ExperimentalRequest(object):
         media_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                     component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
         media_component.name = media_name.get_name()
+        media_component.roles = [ip_constants.NCIT_MEDIA_URI]
         if media_name.get_link() is None:
             media_template = SubComponent(media_component)
             media_component.features = [media_template]
@@ -190,6 +191,7 @@ class ExperimentalRequest(object):
         reagent_name = ip_reagent.get_reagent_name()
         reagent_component = Component(identity=self._id_provider.get_unique_sd2_id(),
                                       component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        reagent_component.roles = [ip_constants.NCIT_REAGENT_URI]
         reagent_component.name = reagent_name.get_name()
         if reagent_name.get_link() is None:
             reagent_template = SubComponent(reagent_component)
