@@ -3,7 +3,7 @@ from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccess
 from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.intent.measure_property_intent import TimepointIntent, ReagentIntent, NamedLink, MeasuredUnit
 from intent_parser.intent.measurement_intent import MeasurementIntent, ContentIntent
-from intent_parser.protocols.protocol_factory import ProtocolFactory
+from intent_parser.protocols.lab_protocol_accessor import LabProtocolAccessor
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.table_processor.opil_processor import OPILProcessor
 from intent_parser.utils.id_provider import IdProvider
@@ -19,14 +19,16 @@ class OpilTest(unittest.TestCase):
     def setUp(self, mock_intent_parser_sbh):
         strateos_accesor = StrateosAccessor()
         aquarium_accessor = AquariumOpilAccessor()
-        protocol_factory = ProtocolFactory(strateos_accesor, aquarium_accessor)
+        protocol_factory = LabProtocolAccessor(strateos_accesor, aquarium_accessor)
         protocol_factory.set_selected_lab(ip_constants.LAB_TRANSCRIPTIC)
 
         sbol_dictionary = SBOLDictionaryAccessor(ip_constants.SD2_SPREADSHEET_ID,
                                                       mock_intent_parser_sbh)
         sbol_dictionary.initial_fetch()
 
-        self.opil_processor = OPILProcessor(protocol_factory,
+        self.opil_processor = OPILProcessor('some_experiment_ref',
+                                            'https://www.foo.com/experiment_ref_url',
+                                            protocol_factory,
                                             sbol_dictionary,
                                             file_types=['CSV'],
                                             lab_names=[ip_constants.LAB_TRANSCRIPTIC])
@@ -70,7 +72,7 @@ class OpilTest(unittest.TestCase):
         measurement_intent.add_file_type('CSV')
         opil_measurement, _ = measurement_intent.to_opil()
         self.assertIsNotNone(opil_measurement)
-        self.assertEqual(['CSV'], opil_measurement.file_type)
+        self.assertEqual(['CSV'], opil_measurement.file_types)
 
     def test_file_type_size_3(self):
         measurement_intent = MeasurementIntent()
@@ -80,8 +82,8 @@ class OpilTest(unittest.TestCase):
         measurement_intent.add_file_type('PDF')
         opil_measurement, _ = measurement_intent.to_opil()
         self.assertIsNotNone(opil_measurement)
-        self.assertEqual(3, len(opil_measurement.file_type))
-        self.assertEqual(['CSV', 'SPREADSHEET', 'PDF'], opil_measurement.file_type)
+        self.assertEqual(3, len(opil_measurement.file_types))
+        self.assertEqual(['CSV', 'SPREADSHEET', 'PDF'], opil_measurement.file_types)
 
     def test_timepoint_to_opil(self):
         timepoint = TimepointIntent(12.0, 'hour')

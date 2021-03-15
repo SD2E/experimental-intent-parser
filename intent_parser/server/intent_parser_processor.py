@@ -10,14 +10,14 @@ from intent_parser.document.intent_parser_document_factory import IntentParserDo
 from intent_parser.intent_parser_factory import LabExperiment
 from intent_parser.intent_parser_exceptions import RequestErrorException
 from intent_parser.intent_parser_exceptions import IntentParserException, TableException
-from intent_parser.protocols.protocol_factory import ProtocolFactory
+from intent_parser.protocols.lab_protocol_accessor import LabProtocolAccessor
 from intent_parser.table.intent_parser_table_type import TableType
 from intent_parser.table.table_creator import TableCreator
 import intent_parser.constants.google_api_constants as google_constants
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.constants.ip_app_script_constants as ip_addon_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-import intent_parser.utils.opil_parameter_utils as opil_util
+import intent_parser.utils.opil_utils as opil_util
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
 import logging.config
@@ -73,7 +73,7 @@ class IntentParserProcessor(object):
         validation_errors = []
         validation_warnings = []
         if table_type == 'parameter':
-            protocol_factory = ProtocolFactory(self.strateos_accessor, self.aquarium_accessor)
+            protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
             intent_parser.process_parameter_info(protocol_factory)
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
@@ -85,9 +85,9 @@ class IntentParserProcessor(object):
         return intent_parser.get_table_info()
 
     def process_opil_get_request(self, document_id):
-        protocol_factory = ProtocolFactory(self.strateos_accessor, self.aquarium_accessor)
+        lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-        intent_parser.process_opil_request(protocol_factory)
+        intent_parser.process_opil_request(lab_protocol_accessor)
         sbol_doc = intent_parser.get_opil_request()
         validation_warnings = intent_parser.get_validation_warnings()
         validation_errors = intent_parser.get_validation_errors()
@@ -104,7 +104,7 @@ class IntentParserProcessor(object):
         validation_warnings = []
 
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-        protocol_factory = ProtocolFactory(self.strateos_accessor, self.aquarium_accessor)
+        protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_opil_request(protocol_factory)
         validation_warnings.extend(intent_parser.get_validation_warnings())
@@ -131,7 +131,7 @@ class IntentParserProcessor(object):
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
         lab_name = json_body['labName']
         experimental_protocol_name = json_body['experimentalProtocolName']
-        protocol_factory = ProtocolFactory(self.strateos_accessor, self.aquarium_accessor)
+        protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
         protocol_factory.set_selected_lab(lab_name)
 
         opil_doc = protocol_factory.load_experimental_protocol_from_lab(experimental_protocol_name)
@@ -682,7 +682,7 @@ class IntentParserProcessor(object):
             intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
             intent_parser.process_lab_name()
             lab_name = intent_parser.get_lab_name()
-            protocol_factory = ProtocolFactory(self.strateos_accessor, self.aquarium_accessor)
+            protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
             protocol_factory.set_selected_lab(lab_name)
             protocol_names = [intent_parser_constants.PROTOCOL_PLACEHOLDER,
                               intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
@@ -1301,7 +1301,7 @@ class IntentParserProcessor(object):
         lab_name = data[ip_addon_constants.HTML_LAB]
         table_template.append([intent_parser_constants.PARAMETER_PROTOCOL_NAME, selected_protocol])
 
-        protocol_factory = ProtocolFactory(self.strateos_accessor, self.aquarium_accessor)
+        protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
         protocol_factory.set_selected_lab(lab_name)
         protocol_id = protocol_factory.get_protocol_id(selected_protocol)
         parameter_fields_from_lab = protocol_factory.map_parameter_values(selected_protocol)

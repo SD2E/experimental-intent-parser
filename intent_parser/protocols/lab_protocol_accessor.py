@@ -4,7 +4,7 @@ from typing import List
 import intent_parser.constants.intent_parser_constants as ip_constants
 import opil
 
-class ProtocolFactory(object):
+class LabProtocolAccessor(object):
 
     def __init__(self, transcriptic_accessor, aquarium_accessor):
         self._selected_lab_name = None
@@ -61,7 +61,7 @@ class ProtocolFactory(object):
             if parameter.default_value:
                 possible_values.append(parameter.default_value)
 
-            if type(parameter) is opil.opil_factory.EnumeratedParameter and parameter.allowed_value:
+            if type(parameter) is opil.EnumeratedParameter and parameter.allowed_value:
                 possible_values.extend(parameter.allowed_value)
 
             if not parameter.required:
