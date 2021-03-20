@@ -44,7 +44,7 @@ def create_opil_measurement_parameter_field(field_id: str, field: str):
 def create_opil_measurement_parameter_value(value_id: str, value: float, unit=''):
     parameter_value = opil.MeasureValue(value_id)
     measure = MeasuredUnit(value, unit)
-    parameter_value.has_measure = measure.to_opil()
+    parameter_value.has_measure = measure.to_opil_measure()
     return parameter_value
 
 def create_opil_string_parameter_field(field_id: str, field: str):

@@ -87,7 +87,7 @@ class OpilTest(unittest.TestCase):
 
     def test_timepoint_to_opil(self):
         timepoint = TimepointIntent(12.0, 'hour')
-        opil_timepoint = timepoint.to_opil()
+        opil_timepoint = timepoint.to_opil_measure()
         self.assertIsNotNone(opil_timepoint)
         self.assertEqual(opil_timepoint.value, 12.0)
         self.assertEqual(opil_timepoint.unit, ip_constants.NCIT_HOUR)
@@ -103,7 +103,7 @@ class OpilTest(unittest.TestCase):
 
         self.assertEqual(1, len(opil_measurement.time))
         opil_measurement_time = opil_measurement.time[0]
-        expected_timepoint = timepoint.to_opil()
+        expected_timepoint = timepoint.to_opil_measure()
 
         self.assertEqual(opil_measurement_time.value, expected_timepoint.value)
         self.assertEqual(opil_measurement_time.value, 12.0)
@@ -119,7 +119,7 @@ class OpilTest(unittest.TestCase):
 
         #TODO:
         reagent_doc = opil.Document()
-        reagent_template, reagent_variable, reagent_component = reagent.to_sbol(reagent_doc)
+        reagent_template, reagent_variable, reagent_component = reagent.reagent_values_to_opil_measures(reagent_doc)
 
     def _create_transcriptic_lab_table(self):
         lab_table = test_utils.create_fake_lab_table()

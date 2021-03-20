@@ -67,19 +67,6 @@ class ControlIntent(object):
             all_sample_templates.append(content_template)
             all_sample_variables.append(content_variable)
 
-        sample_template = Component(identity=self._id_provider.get_unique_sd2_id(),
-                                    component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-        sample_template.name = 'control template'
-        sample_template.features = all_sample_templates
-        sbol_document.add(sample_template)
-
-        sample_combinations = CombinatorialDerivation(identity=self._id_provider.get_unique_sd2_id(),
-                                                      template=sample_template)
-        sample_combinations.name = 'control combinatorial derivation'
-        sample_combinations.variable_features = all_sample_variables
-        sbol_document.add(sample_combinations)
-
-        return sample_combinations
 
     def to_structured_request(self):
         if self._control_type is None:
@@ -114,7 +101,7 @@ class ControlIntent(object):
         content_variant_derivations = []
         for content in self._contents:
             if isinstance(content, ReagentIntent):
-                reagent_template, reagent_variable, reagent_component = content.to_sbol(sbol_document)
+                reagent_template, reagent_variable, reagent_component = content.reagent_values_to_opil_measures(sbol_document)
                 reagent_combinatorial_derivation = CombinatorialDerivation(identity=self._id_provider.get_unique_sd2_id(),
                                                                            template=reagent_component)
                 reagent_combinatorial_derivation.name = 'content combinatorial derivation'
@@ -145,7 +132,7 @@ class ControlIntent(object):
     def _encode_timepoints_using_opil(self, opil_measurement):
         encoded_timepoints = []
         for timepoint in self._timepoints:
-            encoded_timepoints.append(timepoint.to_opil())
+            encoded_timepoints.append(timepoint.to_opil_measure())
         opil_measurement.time = encoded_timepoints
 
     def _encode_strains_using_sbol(self, sbol_document):
@@ -155,6 +142,6 @@ class ControlIntent(object):
         strain_variable = VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
                                           cardinality=sbol_constants.SBOL_ONE)
         strain_variable.variable = strain_template
-        strain_variable.variant = [strain.to_sbol_combinatorial_derivation(sbol_document) for strain in self._strains]
+        strain_variable.variant = [strain.to_opil_component() for strain in self._strains]
 
         return strain_template, strain_variable

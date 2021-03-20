@@ -118,130 +118,15 @@ class OpilProcessor2(Processor):
         opil_lab_template = self._lab_protocol_accessor.load_experimental_protocol_from_lab(self.processed_protocol_name)
         experimental_request = ExperimentalRequest(self._get_namespace_from_lab(),
                                                    opil_lab_template,
-                                                   opil_component_template)
-        opil_experimental_request = experimental_request.get_or_add_experimental_request()
-        self._annotate_experimental_id(opil_experimental_request)
-        self._annotate_experimental_reference(opil_experimental_request)
-        self._annotate_experimental_reference_url(opil_experimental_request)
-
+                                                   opil_component_template,
+                                                   self._experiment_id,
+                                                   self._experiment_ref,
+                                                   self._experiment_ref_url)
+        experimental_request.load_experimental_request()
         experimental_request.create_components_from_template()
-        sample_template = Component(identity=self._id_provider.get_unique_sd2_id(),
-                                    component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-        sample_template.features = all_sample_templates
-        for measurement_intent in self.measurement_table.get_intents():
-            sample_combinations = CombinatorialDerivation(identity=self._id_provider.get_unique_sd2_id(),
-                                                          template=sample_template)
-            all_sample_variables = self._create_combinatorial_derivation_from_measurement_intent(measurement_intent,)
-            sample_combinations.variable_features = all_sample_variables
-            self.opil_document.add(sample_combinations)
-
-    def _annotate_experimental_id(self, opil_experimental_result):
-        opil_experimental_result.experiment_id = TextProperty(opil_experimental_result,
-                                                  '%s#%s' % (ip_constants.SD2E_NAMESPACE, dc_constants.EXPERIMENT_ID),
-                                                  0,
-                                                  1)
-        opil_experimental_result.experiment_id = self._experiment_id
-
-    def _annotate_experimental_reference(self, opil_experimental_result):
-        opil_experimental_result.experiment_reference = TextProperty(opil_experimental_result,
-                                                  '%s#%s' % (ip_constants.SD2E_NAMESPACE, dc_constants.EXPERIMENT_REFERENCE),
-                                                  0,
-                                                  1)
-        opil_experimental_result.experiment_reference = self._experiment_ref
-
-    def _annotate_experimental_reference_url(self, opil_experimental_result):
-        opil_experimental_result.experiment_reference_url = TextProperty(opil_experimental_result,
-                                                  '%s#%s' % (ip_constants.SD2E_NAMESPACE, dc_constants.EXPERIMENT_REFERENCE_URL),
-                                                  0,
-                                                  1)
-        opil_experimental_result.experiment_reference_url = self._experiment_ref_url
-
-    def _create_combinatorial_derivation_from_measurement_intent(self,
-                                                                 measurement_intent,
-                                                                 sbol_measurement_template,
-                                                                 batch_template=None,
-                                                                 column_id_template=None,
-                                                                 control_template=None,
-                                                                 dna_reaction_concentration_template=None,
-                                                                 lab_id_template=None,
-                                                                 media_template=None,
-                                                                 num_neg_control_template=None,
-                                                                 ods_template=None,
-                                                                 row_id_template=None,
-                                                                 strains_template=None,
-                                                                 template_dna_template=None,
-                                                                 use_rna_inhib_template=None):
-        all_sample_variables = []
-        if measurement_intent.size_of_batches() > 0 and batch_template:
-            batch_variable = measurement_intent.batch_values_to_sbol_variable_feature(batch_template)
-            all_sample_variables.append(batch_variable)
-
-        if not measurement_intent.contents_is_empty():
-            measurement_contents = measurement_intent.get_contents()
-            for content in measurement_contents.get_contents():
-                # column_id
-                if content.size_of_column_id() > 0 and column_id_template:
-                    col_id_variable = content.col_id_values_to_sbol_variable_feature(self.opil_document,
-                                                                                     column_id_template)
-                    all_sample_variables.append(col_id_variable)
-                # dna_reaction_concentration
-                if content.size_of_dna_reaction_concentrations() > 0 and dna_reaction_concentration_template:
-                    dna_reaction_concentration_variable = content.dna_reaction_concentration_values_to_sbol_variable_feature(self.opil_document,
-                                                                                                                             dna_reaction_concentration_template)
-                    all_sample_variables.append(dna_reaction_concentration_variable)
-                # lab_id
-                if content.size_of_lab_ids() > 0 and lab_id_template:
-                    lab_id_variable = content.lab_id_values_to_sbol_variable_feature(self.opil_document,
-                                                                                     lab_id_template)
-                    all_sample_variables.append(lab_id_variable)
-                # media
-                if content.size_of_medias() > 0:
-                    pass # todo
-                # number_of_negative_controls
-                if content.size_of_num_of_neg_controls() > 0 and num_neg_control_template:
-                    num_neg_control_variable = content.number_of_negative_control_values_to_sbol_variable_feature(self.opil_document,
-                                                                                                                  num_neg_control_template)
-                    all_sample_variables.append(num_neg_control_variable)
-                # row_id
-                if content.size_of_row_ids() > 0 and row_id_template:
-                    row_id_variable = content.row_id_values_to_sbol_variable_feature(self.opil_document,
-                                                                                     row_id_template)
-                    all_sample_variables.append(row_id_variable)
-                # rna_inhibitor
-                if content.size_of_rna_inhibitor_flags() > 0 and use_rna_inhib_template:
-                    use_rna_inhib_variable = content.use_rna_inhibitor_values_to_sbol_variable_feature(self.opil_document,
-                                                                                                       use_rna_inhib_template)
-                    all_sample_variables.append(use_rna_inhib_variable)
-                # template_dna
-                if content.size_of_template_dna_values() > 0 and template_dna_template:
-                    template_dna_variable = content.template_dna_values_to_sbol_variable_feature(self.opil_document,
-                                                                                                 template_dna_template)
-                    all_sample_variables.append(template_dna_variable)
-                # reagent
-                if content.size_of_reagents() > 0:
-                    pass # todo
-        # control
-        if measurement_intent.size_of_controls() > 0 and control_template:
-            control_variable = measurement_intent.control_to_sbol_variable_feature(self.opil_document, control_template)
-            all_sample_variables.append(control_variable)
-
-        # ods
-        if measurement_intent.size_of_optical_density() > 0 and ods_template:
-            optical_density_variable = measurement_intent.optical_density_values_to_sbol_variable_feature(ods_template)
-            all_sample_variables.append(optical_density_variable)
-        # strains
-        if measurement_intent.size_of_strains() > 0 and strains_template:
-            strains_variables = measurement_intent.strain_values_to_sbol_variable_feature(strains_template)
-            all_sample_variables.append(strains_variables)
-        # temperature
-        if measurement_intent.size_of_temperatures() > 0:
-            if media_template:
-                temperature_variable = measurement_intent.temperature_values_to_sbol_variable_feature(media_template)
-                all_sample_variables.append(temperature_variable)
-            else:
-                self.validation_warnings.append('Skip opil encoding for temperatures since no media template to assign '
-                                                'temperature values to.')
-        return all_sample_variables
+        experimental_request.load_sample_template_from_experimental_request()
+        experimental_request.load_sample_set(len(self.measurement_table.get_intents()))
+        experimental_request.add_variable_features_from_measurement_intents(self.measurement_table.get_intents())
 
     def _get_namespace_from_lab(self):
         if self.processed_lab_name == dc_constants.LAB_TRANSCRIPTIC:

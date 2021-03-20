@@ -167,7 +167,7 @@ class OPILProcessor(Processor):
         opil_measurement_types = []
 
         for measurement_intent in self.process_measurements:
-            opil_measurement, measurement_type = measurement_intent.to_opil()
+            opil_measurement, measurement_type = measurement_intent.to_opil_measure()
             opil_measurement_types.append(measurement_type)
             opil_measurements.append(opil_measurement)
             measurement_intent.to_sbol_combinatorial_derivation(self.opil_document)
@@ -241,7 +241,7 @@ class OPILProcessor(Processor):
                                                                  use_rna_inhib_template=None):
         all_sample_variables = []
         if measurement_intent.size_of_batches() > 0 and batch_template:
-            batch_variable = measurement_intent.batch_values_to_sbol_variable_feature(batch_template)
+            batch_variable = measurement_intent.batch_values_to_opil_measures(batch_template)
             all_sample_variables.append(batch_variable)
 
         if not measurement_intent.contents_is_empty():
@@ -249,26 +249,26 @@ class OPILProcessor(Processor):
             for content in measurement_contents.get_contents():
                 # column_id
                 if content.size_of_column_id() > 0 and column_id_template:
-                    col_id_variable = content.col_id_values_to_sbol_variable_feature(self.opil_document,
-                                                                                     column_id_template)
+                    col_id_variable = content.col_id_values_to_opil_components(self.opil_document,
+                                                                               column_id_template)
                     all_sample_variables.append(col_id_variable)
                 # dna_reaction_concentration
                 if content.size_of_dna_reaction_concentrations() > 0 and dna_reaction_concentration_template:
-                    dna_reaction_concentration_variable = content.dna_reaction_concentration_values_to_sbol_variable_feature(self.opil_document,
-                                                                                                                             dna_reaction_concentration_template)
+                    dna_reaction_concentration_variable = content.dna_reaction_concentration_values_to_opil_components(self.opil_document,
+                                                                                                                       dna_reaction_concentration_template)
                     all_sample_variables.append(dna_reaction_concentration_variable)
                 # lab_id
                 if content.size_of_lab_ids() > 0 and lab_id_template:
-                    lab_id_variable = content.lab_id_values_to_sbol_variable_feature(self.opil_document,
-                                                                                     lab_id_template)
+                    lab_id_variable = content.lab_id_values_to_opil_components(self.opil_document,
+                                                                               lab_id_template)
                     all_sample_variables.append(lab_id_variable)
                 # media
                 if content.size_of_medias() > 0:
                     pass # todo
                 # number_of_negative_controls
                 if content.size_of_num_of_neg_controls() > 0 and num_neg_control_template:
-                    num_neg_control_variable = content.number_of_negative_control_values_to_sbol_variable_feature(self.opil_document,
-                                                                                                                  num_neg_control_template)
+                    num_neg_control_variable = content.number_of_negative_control_values_to_opil_components(self.opil_document,
+                                                                                                            num_neg_control_template)
                     all_sample_variables.append(num_neg_control_variable)
                 # row_id
                 if content.size_of_row_ids() > 0 and row_id_template:
@@ -277,29 +277,29 @@ class OPILProcessor(Processor):
                     all_sample_variables.append(row_id_variable)
                 # rna_inhibitor
                 if content.size_of_rna_inhibitor_flags() > 0 and use_rna_inhib_template:
-                    use_rna_inhib_variable = content.use_rna_inhibitor_values_to_sbol_variable_feature(self.opil_document,
-                                                                                                       use_rna_inhib_template)
+                    use_rna_inhib_variable = content.use_rna_inhibitor_values_to_opil_components(self.opil_document,
+                                                                                                 use_rna_inhib_template)
                     all_sample_variables.append(use_rna_inhib_variable)
                 # template_dna
                 if content.size_of_template_dna_values() > 0 and template_dna_template:
-                    template_dna_variable = content.template_dna_values_to_sbol_variable_feature(self.opil_document,
-                                                                                                 template_dna_template)
+                    template_dna_variable = content.template_dna_values_to_opil_components(self.opil_document,
+                                                                                           template_dna_template)
                     all_sample_variables.append(template_dna_variable)
                 # reagent
                 if content.size_of_reagents() > 0:
                     pass # todo
         # control
         if measurement_intent.size_of_controls() > 0 and control_template:
-            control_variable = measurement_intent.control_to_sbol_variable_feature(self.opil_document, control_template)
+            control_variable = measurement_intent.control_to_opil_samplet_set(self.opil_document, control_template)
             all_sample_variables.append(control_variable)
 
         # ods
         if measurement_intent.size_of_optical_density() > 0 and ods_template:
-            optical_density_variable = measurement_intent.optical_density_values_to_sbol_variable_feature(ods_template)
+            optical_density_variable = measurement_intent.optical_density_values_to_opil_measures(ods_template)
             all_sample_variables.append(optical_density_variable)
         # strains
         if measurement_intent.size_of_strains() > 0 and strains_template:
-            strains_variables = measurement_intent.strain_values_to_sbol_variable_feature(strains_template)
+            strains_variables = measurement_intent.strain_values_to_opil_components(strains_template)
             all_sample_variables.append(strains_variables)
         # temperature
         if measurement_intent.size_of_temperatures() > 0:
