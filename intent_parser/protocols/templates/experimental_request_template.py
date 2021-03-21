@@ -1,6 +1,9 @@
 from intent_parser.intent.measure_property_intent import ReagentIntent, MediaIntent
+from intent_parser.intent.parameter_intent import ParameterIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
+from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.measurement_table import MeasurementTable
+from intent_parser.table.parameter_table import ParameterTable
 from intent_parser.utils.id_provider import IdProvider
 from sbol3 import SubComponent, TextProperty, LocalSubComponent
 import intent_parser.constants.intent_parser_constants as ip_constants
@@ -40,7 +43,23 @@ class OpilDocumentTemplate(object):
             elif type(top_level) == opil.ProtocolInterface:
                 self.opil_protocol_interfaces.append(top_level)
 
-class OpilComponentTemplate(object):
+class OpilParameterTemplate(object):
+    def __init__(self):
+        self.parameter = None
+        self.parameter_value = None
+
+class OpilControlTemplate(object):
+    def __init__(self):
+        self.strains_template = None
+        self.contents_template = None
+
+    def load_from_control_table(self, control_table: ControlsTable):
+        if control_table.has_contents():
+            self.contents_template = ip_constants.HEADER_CONTENTS_VALUE
+        if control_table.has_strains():
+            self.strains_template = ip_constants.HEADER_STRAINS_VALUE
+
+class OpilMeasurementTemplate(object):
     def __init__(self):
         self.batch_template = None
         self.column_id_template = None
@@ -50,6 +69,7 @@ class OpilComponentTemplate(object):
         self.media_and_reagent_templates = []
         self.num_neg_control_template = None
         self.ods_template = None
+        self.replicate_template = None
         self.row_id_template = None
         self.strains_template = None
         self.template_dna_template = None
@@ -72,6 +92,8 @@ class OpilComponentTemplate(object):
             self.num_neg_control_template = ip_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE
         if measurement_table.has_ods():
             self.ods_template = ip_constants.HEADER_ODS_VALUE
+        if measurement_table.has_replicate():
+            self.replicate_template = ip_constants.HEADER_REPLICATE_VALUE
         if measurement_table.has_row_id():
             self.row_id_template = ip_constants.HEADER_ROW_ID_VALUE
         if measurement_table.has_rna_inhibitor():
@@ -87,7 +109,7 @@ class ExperimentalRequest(object):
     def __init__(self,
                  lab_namespace: str,
                  template: OpilDocumentTemplate,
-                 component_template: OpilComponentTemplate,
+                 component_template: OpilMeasurementTemplate,
                  experiment_id: str,
                  experiment_ref: str,
                  experiment_ref_url: str):
@@ -110,12 +132,14 @@ class ExperimentalRequest(object):
         self.media_template = None
         self.num_neg_control_template = None
         self.ods_template = None
+        self.replicate_template = None
         self.row_id_template = None
         self.strain_template = None
         self.template_dna_template = None
         self.use_rna_inhib_template = None
         self.media_and_reagents_templates = {}
         self.sample_template = None
+        self.lab_field_id_to_values = {}
 
     def add_variable_features_from_measurement_intents(self, measurement_intents):
         for index in range(len(measurement_intents)):
@@ -123,6 +147,27 @@ class ExperimentalRequest(object):
             sample_set = self.opil_sample_sets[index]
             all_sample_variables = self._create_sample_variables_from_measurement_intent(measurement_intent)
             sample_set.variable_features = all_sample_variables
+
+    def add_new_parameters(self, run_parameter_fields, run_parameter_values):
+        if not self.opil_protocol_interfaces:
+            self.opil_protocol_interfaces.append(opil.ProtocolInterface(identity=self._id_provider.get_unique_sd2_id()))
+        elif len(self.opil_protocol_interfaces) > 1:
+            raise IntentParserException('expecting 1 but got %d opil.ProtocolInterface.' % len(self.opil_protocol_interfaces))
+
+        if len(self.opil_experimental_requests) != 1:
+            raise IntentParserException(
+                'expecting 1 but got %d opil.ExperimentalRequest.' % len(self.opil_experimental_requests))
+
+        opil_protocol_inteface = self.opil_protocol_interfaces[0]
+        opil_experimental_request = self.opil_experimental_requests[0]
+        opil_protocol_inteface.parameter.has_parameter.extend(run_parameter_fields)
+        opil_experimental_request.has_parameter_value.extend(run_parameter_values)
+
+    def create_components_from_control_template(self, control_template: OpilControlTemplate):
+        if control_template.contents_template:
+            content_template = self._create_opil_local_subcomponent(control_template.contents_template)
+        if control_template.strains_template:
+            strain_template = self._create_opil_local_subcomponent(control_template.strains_template)
 
     def create_components_from_template(self):
         if self._opil_component_template.batch_template:
@@ -139,6 +184,8 @@ class ExperimentalRequest(object):
             self.num_neg_control_template = self._create_opil_local_subcomponent(self._opil_component_template.num_neg_control_template)
         if self._opil_component_template.ods_template:
             self.ods_template = self._create_opil_local_subcomponent(self._opil_component_template.ods_template)
+        if self._opil_component_template.replicate_template:
+            self.replicate_template = self._create_opil_local_subcomponent(self._opil_component_template.replicate_template)
         if self._opil_component_template.row_id_template:
             self.row_id_template = self._create_opil_local_subcomponent(self._opil_component_template.row_id_template)
         if self._opil_component_template.use_rna_inhib_template:
@@ -149,6 +196,30 @@ class ExperimentalRequest(object):
         self._load_strain_template()
         self._load_reagent_and_media_templates()
 
+    def load_lab_parameters(self):
+        if not self.opil_protocol_interfaces:
+            self.opil_protocol_interfaces.append(opil.ProtocolInterface(identity=self._id_provider.get_unique_sd2_id()))
+        elif len(self.opil_protocol_interfaces) > 1:
+            raise IntentParserException('expecting 1 but got %d opil.ProtocolInterface.' % len(self.opil_protocol_interfaces))
+
+        if len(self.opil_experimental_requests) != 1:
+            raise IntentParserException(
+                'expecting 1 but got %d opil.ExperimentalRequest.' % len(self.opil_experimental_requests))
+
+        opil_protocol_inteface = self.opil_protocol_interfaces[0]
+        opil_experimental_request = self.opil_experimental_requests[0]
+        for parameter in opil_protocol_inteface.parameter.has_parameter:
+            opil_parameter_template = OpilParameterTemplate()
+            opil_parameter_template.parameter = parameter
+            self.lab_field_id_to_values[parameter.identity] = opil_parameter_template
+
+        for parameter_value in opil_experimental_request.has_parameter_value:
+            parameter_id = parameter_value.value_of
+            if parameter_id not in self.lab_field_id_to_values:
+                raise IntentParserException('opil.ParameterValue %s points to an unknown parameter %s'
+                                            % (parameter_value.identity, parameter_id))
+            self.lab_field_id_to_values[parameter_id].parameter_value = parameter_value
+
     def load_experimental_request(self):
         if len(self.opil_experimental_requests) == 0:
             self.opil_experimental_requests.append(opil.ExperimentalRequest(self._id_provider.get_unique_sd2_id()))
@@ -158,6 +229,15 @@ class ExperimentalRequest(object):
         self._annotate_experimental_id(opil_experimental_request)
         self._annotate_experimental_reference(opil_experimental_request)
         self._annotate_experimental_reference_url(opil_experimental_request)
+
+    def load_measurement(self, measurement_intents):
+        if not self.opil_experimental_requests:
+            raise IntentParserException('No experimental request found.')
+        opil_experimental_request = self.opil_experimental_requests[0]
+        if len(opil_experimental_request.measurements) == 0:
+            opil_measurement = opil.Measurement(self._id_provider.get_unique_sd2_id())
+        elif len(opil_experimental_request.measurements) == len(measurement_intents):
+            pass
 
     def load_sample_set(self, number_of_sample_sets):
         sample_set = None
@@ -196,6 +276,15 @@ class ExperimentalRequest(object):
         for component in self.opil_protocol_interfaces:
             opil_doc.add(component)
         return opil_doc
+
+    def update_parameter_values(self, document_parameter_names_to_values):
+        name_to_parameter = {parameter.name: parameter for parameter in self.lab_field_id_to_values.values()}
+        for parameter_name, parameter_value in document_parameter_names_to_values.items():
+            if parameter_name in name_to_parameter:
+                opil_parameter_template = name_to_parameter[parameter_name]
+                opil_parameter_value = opil_parameter_template.parameter_value
+                opil_parameter_value.value = parameter_value
+
 
     def _annotate_experimental_id(self, opil_experimental_result):
         opil_experimental_result.experiment_id = TextProperty(opil_experimental_result,
@@ -310,6 +399,12 @@ class ExperimentalRequest(object):
             optical_density_variable = self._create_variable_feature_with_variant_measures(self.ods_template,
                                                                                            optical_density_measures)
             all_sample_variables.append(optical_density_variable)
+        # replicates
+        if measurement_intent.size_of_replicates() > 0 and self.replicate_template:
+            replicate_measures = measurement_intent.replicate_values_to_opil_measure()
+            replicate_variable = self._create_variable_feature_with_variant_measures(self.replicate_template,
+                                                                                     replicate_measures)
+            all_sample_variables.append(replicate_variable)
         # strains
         if measurement_intent.size_of_strains() > 0 and self.strains_template:
             strain_components = measurement_intent.strain_values_to_opil_components()

@@ -63,6 +63,9 @@ class MeasurementIntent(object):
     def get_file_types(self):
         return self._file_types
 
+    def get_timepoints(self):
+        return self._timepoints
+
     def get_measurement_type(self) -> str:
         return self._measurement_type
 
@@ -92,6 +95,9 @@ class MeasurementIntent(object):
 
     def size_of_optical_density(self):
         return len(self._optical_densities)
+
+    def size_of_replicates(self):
+        return len(self._replicates)
 
     def size_of_strains(self):
         return len(self._strains)
@@ -193,27 +199,18 @@ class MeasurementIntent(object):
     def control_to_opil_samplet_set(self):
         control_header_template = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
                                                  component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-        control_header_template.features = all_sample_templates
+        # control_header_template.features = all_sample_templates
 
         control_sampleset = opil.SampleSet(identity=self._id_provider.get_unique_sd2_id())
         control_sampleset.template = [control_header_template]
-        control_sampleset.variable_features = all_sample_variables
+        # control_sampleset.variable_features = all_sample_variables
         return control_sampleset
 
     def optical_density_values_to_opil_measures(self):
         return [opil.Measure(value, tyto.OM.number) for value in self._optical_densities]
 
-    def replicate_values_to_opil_samplesets(self, replicate_template):
-        replicate_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
-                                               types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
-        replicate_template.name = ip_constants.HEADER_REPLICATE_VALUE
-        sample_sets = []
-        for replicate_value in self._replicates:
-            sample_set = opil.SampleSet(identity=self._id_provider.get_unique_sd2_id(),
-                                        template=replicate_template)
-            sample_set.replicates = [replicate_value]
-            sample_sets.append(sample_set)
-        return sample_sets
+    def replicate_values_to_opil_measure(self):
+        return [opil.Measure(replicate_value, tyto.OM.number) for replicate_value in self._replicates]
 
     def strain_values_to_opil_components(self):
         return [strain.to_opil_component() for strain in self._strains]

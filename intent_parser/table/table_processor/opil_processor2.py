@@ -1,19 +1,15 @@
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, IntentParserException, TableException
-from intent_parser.protocols.templates.experimental_request_template import ExperimentalRequest, OpilComponentTemplate
+from intent_parser.protocols.templates.experimental_request_template import ExperimentalRequest, OpilMeasurementTemplate
 from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.lab_table import LabTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.parameter_table import ParameterTable
 from intent_parser.table.table_processor.processor import Processor
 from intent_parser.utils.id_provider import IdProvider
-from sbol3 import CombinatorialDerivation, Component, TextProperty, LocalSubComponent
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-import intent_parser.utils.opil_utils as opil_utils
-import intent_parser.table.cell_parser as cell_parser
 import logging
 import opil
-import sbol3.constants as sbol_constants
 
 
 class OpilProcessor2(Processor):
@@ -112,7 +108,7 @@ class OpilProcessor2(Processor):
             self._process_parameter_tables(parameter_tables)
 
     def _process_opil(self):
-        opil_component_template = OpilComponentTemplate()
+        opil_component_template = OpilMeasurementTemplate()
         opil_component_template.load_from_measurement_table(self.measurement_table)
 
         opil_lab_template = self._lab_protocol_accessor.load_experimental_protocol_from_lab(self.processed_protocol_name)
@@ -123,17 +119,24 @@ class OpilProcessor2(Processor):
                                                    self._experiment_ref,
                                                    self._experiment_ref_url)
         experimental_request.load_experimental_request()
+        # add measurement table info
         experimental_request.create_components_from_template()
         experimental_request.load_sample_template_from_experimental_request()
         experimental_request.load_sample_set(len(self.measurement_table.get_intents()))
         experimental_request.add_variable_features_from_measurement_intents(self.measurement_table.get_intents())
+        experimental_request.load_measurement(self.measurement_table.get_intents())
+
+        # add parameter table info
+        experimental_request.load_lab_parameters()
+        experimental_request.update_parameter_values(self.processed_parameter.get_default_parameters())
+        run_parameter_fields, run_parameter_values = self.processed_parameter.to_opil_for_experiment()
+        experimental_request.add_new_parameters(run_parameter_fields, run_parameter_values)
 
     def _get_namespace_from_lab(self):
         if self.processed_lab_name == dc_constants.LAB_TRANSCRIPTIC:
             return ip_constants.STRATEOS_NAMESPACE
         elif self.processed_lab_name == dc_constants.LAB_DUKE_HAASE:
             return 'http://aquarium.bio/'
-
         return ip_constants.SD2E_NAMESPACE
 
     def _process_opil_output(self, opil):
