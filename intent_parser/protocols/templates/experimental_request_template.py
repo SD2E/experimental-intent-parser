@@ -109,7 +109,6 @@ class ExperimentalRequest(object):
     def __init__(self,
                  lab_namespace: str,
                  template: OpilDocumentTemplate,
-                 component_template: OpilMeasurementTemplate,
                  experiment_id: str,
                  experiment_ref: str,
                  experiment_ref_url: str):
@@ -121,7 +120,7 @@ class ExperimentalRequest(object):
         self._experiment_ref = experiment_ref
         self._experiment_ref_url = experiment_ref_url
         self._lab_namespace = lab_namespace
-        self._opil_component_template = component_template
+        self._opil_component_template = OpilMeasurementTemplate()
         self._id_provider = IdProvider()
 
         self.batch_template = None
@@ -198,17 +197,17 @@ class ExperimentalRequest(object):
 
     def load_lab_parameters(self):
         if not self.opil_protocol_interfaces:
-            self.opil_protocol_interfaces.append(opil.ProtocolInterface(identity=self._id_provider.get_unique_sd2_id()))
+            raise IntentParserException('ExperimentalRequest does not a opil ProtocolInterface.')
         elif len(self.opil_protocol_interfaces) > 1:
-            raise IntentParserException('expecting 1 but got %d opil.ProtocolInterface.' % len(self.opil_protocol_interfaces))
+            raise IntentParserException('expecting 1 but got %d opil ProtocolInterface.' % len(self.opil_protocol_interfaces))
 
         if len(self.opil_experimental_requests) != 1:
             raise IntentParserException(
                 'expecting 1 but got %d opil.ExperimentalRequest.' % len(self.opil_experimental_requests))
 
-        opil_protocol_inteface = self.opil_protocol_interfaces[0]
+        opil_protocol_interface = self.opil_protocol_interfaces[0]
         opil_experimental_request = self.opil_experimental_requests[0]
-        for parameter in opil_protocol_inteface.parameter.has_parameter:
+        for parameter in opil_protocol_interface.parameter.has_parameter:
             opil_parameter_template = OpilParameterTemplate()
             opil_parameter_template.parameter = parameter
             self.lab_field_id_to_values[parameter.identity] = opil_parameter_template
@@ -230,11 +229,15 @@ class ExperimentalRequest(object):
         self._annotate_experimental_reference(opil_experimental_request)
         self._annotate_experimental_reference_url(opil_experimental_request)
 
+    def load_from_measurement_table(self, measurement_table):
+        self._opil_component_template.load_from_measurement_table(measurement_table)
+
     def load_measurement(self, measurement_intents):
         if not self.opil_experimental_requests:
             raise IntentParserException('No experimental request found.')
         opil_experimental_request = self.opil_experimental_requests[0]
         if len(opil_experimental_request.measurements) == 0:
+            # create opil
             opil_measurement = opil.Measurement(self._id_provider.get_unique_sd2_id())
         elif len(opil_experimental_request.measurements) == len(measurement_intents):
             pass

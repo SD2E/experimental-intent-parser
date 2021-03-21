@@ -71,7 +71,7 @@ class OpilProcessor2(Processor):
         self.processed_lab_name = ''
         self.processed_protocol_name = ''
         self.processed_controls = {}
-        self.process_measurements = []
+        self.measurement_table = None
         self.processed_parameter = None
         self._experiment_id = None
         self._experiment_ref = experiment_ref
@@ -108,29 +108,33 @@ class OpilProcessor2(Processor):
             self._process_parameter_tables(parameter_tables)
 
     def _process_opil(self):
-        opil_component_template = OpilMeasurementTemplate()
-        opil_component_template.load_from_measurement_table(self.measurement_table)
+        if not self.processed_protocol_name:
+            raise IntentParserException('Name of lab must be provided for describing an experimental request but'
+                                        'none was given.')
 
         opil_lab_template = self._lab_protocol_accessor.load_experimental_protocol_from_lab(self.processed_protocol_name)
         experimental_request = ExperimentalRequest(self._get_namespace_from_lab(),
                                                    opil_lab_template,
-                                                   opil_component_template,
                                                    self._experiment_id,
                                                    self._experiment_ref,
                                                    self._experiment_ref_url)
         experimental_request.load_experimental_request()
+
         # add measurement table info
-        experimental_request.create_components_from_template()
-        experimental_request.load_sample_template_from_experimental_request()
-        experimental_request.load_sample_set(len(self.measurement_table.get_intents()))
-        experimental_request.add_variable_features_from_measurement_intents(self.measurement_table.get_intents())
-        experimental_request.load_measurement(self.measurement_table.get_intents())
+        if self.measurement_table:
+            experimental_request.load_from_measurement_table(self.measurement_table)
+            experimental_request.create_components_from_template()
+            experimental_request.load_sample_template_from_experimental_request()
+            experimental_request.load_sample_set(len(self.measurement_table.get_intents()))
+            experimental_request.add_variable_features_from_measurement_intents(self.measurement_table.get_intents())
+            experimental_request.load_measurement(self.measurement_table.get_intents())
 
         # add parameter table info
-        experimental_request.load_lab_parameters()
-        experimental_request.update_parameter_values(self.processed_parameter.get_default_parameters())
-        run_parameter_fields, run_parameter_values = self.processed_parameter.to_opil_for_experiment()
-        experimental_request.add_new_parameters(run_parameter_fields, run_parameter_values)
+        if self.processed_parameter:
+            experimental_request.load_lab_parameters()
+            experimental_request.update_parameter_values(self.processed_parameter.get_default_parameters())
+            run_parameter_fields, run_parameter_values = self.processed_parameter.to_opil_for_experiment()
+            experimental_request.add_new_parameters(run_parameter_fields, run_parameter_values)
 
     def _get_namespace_from_lab(self):
         if self.processed_lab_name == dc_constants.LAB_TRANSCRIPTIC:
