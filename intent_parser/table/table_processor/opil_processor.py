@@ -304,7 +304,7 @@ class OPILProcessor(Processor):
         # temperature
         if measurement_intent.size_of_temperatures() > 0:
             if media_template:
-                temperature_variable = measurement_intent.temperature_values_to_sbol_variable_feature(media_template)
+                temperature_variable = measurement_intent.temperature_values_to_opil_measure(media_template)
                 all_sample_variables.append(temperature_variable)
             else:
                 self.validation_warnings.append('Skip opil encoding for temperatures since no media template to assign '

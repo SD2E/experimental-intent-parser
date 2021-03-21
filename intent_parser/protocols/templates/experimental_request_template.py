@@ -232,15 +232,21 @@ class ExperimentalRequest(object):
     def load_from_measurement_table(self, measurement_table):
         self._opil_component_template.load_from_measurement_table(measurement_table)
 
-    def load_measurement(self, measurement_intents):
+    def load_and_update_measurement(self, measurement_intents):
         if not self.opil_experimental_requests:
             raise IntentParserException('No experimental request found.')
+
         opil_experimental_request = self.opil_experimental_requests[0]
-        if len(opil_experimental_request.measurements) == 0:
-            # create opil
-            opil_measurement = opil.Measurement(self._id_provider.get_unique_sd2_id())
-        elif len(opil_experimental_request.measurements) == len(measurement_intents):
-            pass
+        opil_measurement_intent_pairs, unmapped_measurement_intents = self._map_opil_measurement_to_intent(measurement_intents,
+                                                                                                           opil_experimental_request.measurements)
+        if len(unmapped_measurement_intents) > 0:
+            opil_experimental_request.measurements.extend(unmapped_measurement_intents)
+        for opil_measurement, intent in opil_measurement_intent_pairs:
+            if intent.size_of_file_types() > 0:
+                intent.file_types_to_opil_measurement_annotation(opil_measurement)
+            if intent.size_of_timepoints() > 0:
+                timepoint_measures = intent.timepoint_values_to_opil_measures()
+                opil_measurement.time = timepoint_measures
 
     def load_sample_set(self, number_of_sample_sets):
         sample_set = None
@@ -289,6 +295,42 @@ class ExperimentalRequest(object):
                 opil_parameter_value.value = parameter_value
 
 
+    def _map_opil_measurement_to_intent(self, measurement_intents, opil_measurements):
+        measurement_type_to_intent = {}
+        opil_measurement_intent_pairs = []
+        unmapped_measurement_intents = []
+
+        # Collect measurement intents by type
+        for measurement_intent in measurement_intents:
+            measurement_type = measurement_intent.get_measurement_type()
+            if measurement_type:
+                if measurement_type not in measurement_type_to_intent:
+                    measurement_type_to_intent[measurement_type] = []
+                measurement_type_to_intent[measurement_type].append(measurement_intent)
+            else:
+                raise IntentParserException('Measurement type is missing.')
+
+        # Mapping existing opil objects to intent
+        for opil_measurement in opil_measurements:
+            opil_measurement_type = opil_measurement.instance_of.type
+            if opil_measurement_type not in measurement_type_to_intent:
+                raise IntentParserException('Invalid measurement type not used in document %s' % opil_measurement_type)
+            if not measurement_type_to_intent[opil_measurement_type]:
+                raise IntentParserException('Unable to map opil to intent')
+            opil_intent = measurement_type_to_intent[opil_measurement_type].pop()
+            opil_measurement_intent_pairs.append((opil_measurement, opil_intent))
+
+        # Collecting intents that are not mapped and need to be created.
+        for intents in measurement_type_to_intent.values():
+            for intent in intents:
+                new_opil_measurement = opil.Measurement(self._id_provider.get_unique_sd2_id())
+                new_opil_measurement_type = intent.measurement_type_to_opil_measurement_type()
+                new_opil_measurement.instance_of = new_opil_measurement_type
+                unmapped_measurement_intents.append(new_opil_measurement)
+                opil_measurement_intent_pairs.append((new_opil_measurement, intent))
+
+        return opil_measurement_intent_pairs, unmapped_measurement_intents
+
     def _annotate_experimental_id(self, opil_experimental_result):
         opil_experimental_result.experiment_id = TextProperty(opil_experimental_result,
                                                   '%s#%s' % (ip_constants.SD2E_NAMESPACE, dc_constants.EXPERIMENT_ID),
@@ -312,6 +354,7 @@ class ExperimentalRequest(object):
 
     def _create_sample_variables_from_measurement_intent(self, measurement_intent):
         all_sample_variables = []
+        last_encoded_media_template = None
         if measurement_intent.size_of_batches() > 0 and self.batch_template:
             batch_measures = measurement_intent.batch_values_to_opil_measures()
             batch_variable = self._create_variable_feature_with_variant_measures(self.batch_template,
@@ -347,6 +390,7 @@ class ExperimentalRequest(object):
                     for media in content.get_medias():
                         if media.get_name() in self.media_and_reagents_templates:
                             media_template = self.media_and_reagents_templates[media.get_name()]
+                            last_encoded_media_template = media_template
                             media_components = media.values_to_opil_components()
                             self.opil_components.extend(media_components)
                             media_variable = self._create_variable_feature_with_variants(media_template,
@@ -417,12 +461,14 @@ class ExperimentalRequest(object):
             all_sample_variables.append(strains_variables)
         # temperature
         if measurement_intent.size_of_temperatures() > 0:
-            if media_template:
-                temperature_variable = measurement_intent.temperature_values_to_sbol_variable_feature(media_template)
+            if last_encoded_media_template:
+                temperature_measures = measurement_intent.temperature_values_to_opil_measure(last_encoded_media_template)
+                temperature_variable = self._create_variable_feature_with_variant_measures(last_encoded_media_template,
+                                                                                           temperature_measures)
                 all_sample_variables.append(temperature_variable)
             else:
-                self.validation_warnings.append('Skip opil encoding for temperatures since no media template to assign '
-                                                'temperature values to.')
+                raise IntentParserException('Skip opil encoding for temperatures since no media template was created '
+                                            'to assign temperature values.')
         return all_sample_variables
 
     def _create_opil_local_subcomponent(self, template_name):

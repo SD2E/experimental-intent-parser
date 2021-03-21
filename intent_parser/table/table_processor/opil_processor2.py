@@ -127,7 +127,7 @@ class OpilProcessor2(Processor):
             experimental_request.load_sample_template_from_experimental_request()
             experimental_request.load_sample_set(len(self.measurement_table.get_intents()))
             experimental_request.add_variable_features_from_measurement_intents(self.measurement_table.get_intents())
-            experimental_request.load_measurement(self.measurement_table.get_intents())
+            experimental_request.load_and_update_measurement(self.measurement_table.get_intents())
 
         # add parameter table info
         if self.processed_parameter:

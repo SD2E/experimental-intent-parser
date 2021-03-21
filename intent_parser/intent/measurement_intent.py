@@ -93,6 +93,9 @@ class MeasurementIntent(object):
     def size_of_controls(self):
         return len(self._controls)
 
+    def size_of_file_types(self):
+        return len(self._file_types)
+
     def size_of_optical_density(self):
         return len(self._optical_densities)
 
@@ -105,29 +108,8 @@ class MeasurementIntent(object):
     def size_of_temperatures(self):
         return len(self._temperatures)
 
-    def to_opil(self):
-        opil_measurement = opil.Measurement(self._id_provider.get_unique_sd2_id())
-        opil_measurement.name = 'measurement'
-        if self._measurement_type is None:
-            raise IntentParserException("Exporting opil must have a measurement-type but none is set.")
-
-        # convert required fields
-        measurement_type = self._encode_measurement_type_using_opil(opil_measurement)
-
-        # convert optional fields
-        if len(self._file_types) > 0:
-            self._encode_file_type_using_opil(opil_measurement)
-        if len(self._timepoints) > 0:
-            self._encode_timepoint_using_opil(opil_measurement)
-        if len(self._controls) > 0:
-            for control_index in range(len(self._controls)):
-                control = self._controls[control_index]
-                control.to_opil_measure(opil_measurement)
-                # TODO: opil does not allow more than one custom annotation assign to an opil_measurement.
-                # temporary assign one control to a measurement.
-                break
-
-        return opil_measurement, measurement_type
+    def size_of_timepoints(self):
+        return len(self._timepoints)
 
     def to_structured_request(self):
         if self._measurement_type is None:
@@ -160,14 +142,17 @@ class MeasurementIntent(object):
     def batch_values_to_opil_measures(self):
         return [opil.Measure(value, tyto.OM.number) for value in self._batches]
 
-    def _encode_file_type_using_opil(self, opil_measurement):
+    def file_types_to_opil_measurement_annotation(self, opil_measurement):
         opil_measurement.file_types = TextProperty(opil_measurement,
                                                   '%s#file_type' % ip_constants.SD2E_NAMESPACE,
                                                    0,
                                                    inf)
         opil_measurement.file_types = self._file_types
 
-    def _encode_measurement_type_using_opil(self, opil_measurement):
+    def get_measurement_type(self):
+        return self._measurement_type
+
+    def measurement_type_to_opil_measurement_type(self):
         measurement_type = opil.MeasurementType(self._id_provider.get_unique_sd2_id())
         measurement_type.required = True
         if self._measurement_type == ip_constants.MEASUREMENT_TYPE_FLOW:
@@ -193,7 +178,6 @@ class MeasurementIntent(object):
         else:
             raise IntentParserException(
                 'Unable to create an opil measurement-type: %s not supported' % self._measurement_type)
-        opil_measurement.instance_of = measurement_type
         return measurement_type
 
     def control_to_opil_samplet_set(self):
@@ -215,18 +199,18 @@ class MeasurementIntent(object):
     def strain_values_to_opil_components(self):
         return [strain.to_opil_component() for strain in self._strains]
 
-    def _encode_timepoint_using_opil(self, opil_measurement):
+    def timepoint_values_to_opil_measures(self):
         encoded_timepoints = []
         for timepoint in self._timepoints:
             encoded_timepoints.append(timepoint.to_opil_measure())
-        opil_measurement.time = encoded_timepoints
+        return encoded_timepoints
 
-    def temperature_values_to_sbol_variable_feature(self, media_template):
-        temperature_variable = opil.VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
-                                               cardinality=sbol_constants.SBOL_ONE)
-        temperature_variable.variable = media_template
-        temperature_variable.variant_measure = [temperature.to_opil_measure() for temperature in self._temperatures]
-        return temperature_variable
+    def temperature_values_to_opil_measure(self):
+        # temperature_variable = opil.VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
+        #                                        cardinality=sbol_constants.SBOL_ONE)
+        # temperature_variable.variable = media_template
+        # temperature_variable.variant_measure = [temperature.to_opil_measure() for temperature in self._temperatures]
+        return [temperature.to_opil_measure() for temperature in self._temperatures]
 
 class MeasurementContent(object):
 
