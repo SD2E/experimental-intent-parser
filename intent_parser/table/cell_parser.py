@@ -305,6 +305,13 @@ class CellParser(object):
             raise TableException('%s cannot be parsed as a reagent' % text)
 
     def process_table_caption_index(self, text):
+        """
+        Process table caption.
+        Args:
+            text: Table caption.
+        Return:
+            a integer value to represent the table index.
+        """
         tokens = self._table_tokenizer.tokenize(text, keep_separator=False, keep_skip=False)
         table_value = self._get_token_value(tokens[1])
         return int(table_value)

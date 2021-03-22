@@ -73,6 +73,8 @@ class OpilProcessor2(Processor):
         self.processed_controls = {}
         self.measurement_table = None
         self.processed_parameter = None
+        self.opil_document = None
+
         self._experiment_id = None
         self._experiment_ref = experiment_ref
         self._experiment_ref_url = experiment_ref_url
@@ -81,6 +83,9 @@ class OpilProcessor2(Processor):
         self._lab_protocol_accessor = lab_protocol_accessor
         self._lab_names = lab_names
         self._id_provider = IdProvider()
+
+    def get_intent(self):
+        return self.opil_document
 
     def process_intent(self, lab_tables=[], control_tables=[], parameter_tables=[], measurement_tables=[]):
         self._process_tables(lab_tables, control_tables, parameter_tables, measurement_tables)
@@ -120,6 +125,11 @@ class OpilProcessor2(Processor):
                                                    self._experiment_ref_url)
         experimental_request.load_experimental_request()
 
+        # add control table info
+        if self.processed_controls:
+            for control_table in self.processed_controls.values():
+                experimental_request.load_from_control_table(control_table)
+
         # add measurement table info
         if self.measurement_table:
             experimental_request.load_from_measurement_table(self.measurement_table)
@@ -136,15 +146,14 @@ class OpilProcessor2(Processor):
             run_parameter_fields, run_parameter_values = self.processed_parameter.to_opil_for_experiment()
             experimental_request.add_new_parameters(run_parameter_fields, run_parameter_values)
 
+        self.opil_document = experimental_request.to_opil()
+
     def _get_namespace_from_lab(self):
         if self.processed_lab_name == dc_constants.LAB_TRANSCRIPTIC:
             return ip_constants.STRATEOS_NAMESPACE
         elif self.processed_lab_name == dc_constants.LAB_DUKE_HAASE:
-            return 'http://aquarium.bio/'
+            return ip_constants.AQUARIUM_NAMESPACE
         return ip_constants.SD2E_NAMESPACE
-
-    def _process_opil_output(self, opil):
-        pass
 
     def _process_control_tables(self, control_tables, strain_mapping):
         if not control_tables:
@@ -159,9 +168,8 @@ class OpilProcessor2(Processor):
                                                strain_mapping=strain_mapping)
                 controls_table.process_table()
                 table_caption = controls_table.get_table_caption()
-                control_intents = controls_table.get_intents()
                 if table_caption:
-                    self.processed_controls[table_caption] = control_intents
+                    self.processed_controls[table_caption] = controls_table
 
                 self.validation_errors.extend(controls_table.get_validation_errors())
                 self.validation_warnings.extend(controls_table.get_validation_warnings())
@@ -205,7 +213,10 @@ class OpilProcessor2(Processor):
                                                  file_type=self._file_types,
                                                  strain_mapping=strain_mapping)
 
-            measurement_table.process_table(control_data=self.processed_controls)
+            control_data = {}
+            for table_caption, control_table in self.processed_controls.values():
+                control_data[table_caption] = control_table.get_intents()
+            measurement_table.process_table(control_data=control_data)
 
             self.measurement_table = measurement_table
             self.validation_warnings.extend(measurement_table.get_validation_warnings())

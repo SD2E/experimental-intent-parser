@@ -6,6 +6,7 @@ RELEASE_VERSION = '3.1'
 # name of labs Intent Parser has connection to
 LAB_TRANSCRIPTIC = 'Transcriptic'
 LAB_DUKE_HASE = 'Duke_Haase'
+AQUARIUM_NAMESPACE = 'http://aquarium.bio/'
 STRATEOS_NAMESPACE = 'http://strateos.com/'
 
 # keywords used for calling POST methods

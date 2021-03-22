@@ -60,6 +60,9 @@ class MeasurementIntent(object):
     def get_contents(self):
         return self._contents
 
+    def get_controls(self):
+        return self._controls
+
     def get_file_types(self):
         return self._file_types
 
@@ -149,9 +152,6 @@ class MeasurementIntent(object):
                                                    inf)
         opil_measurement.file_types = self._file_types
 
-    def get_measurement_type(self):
-        return self._measurement_type
-
     def measurement_type_to_opil_measurement_type(self):
         measurement_type = opil.MeasurementType(self._id_provider.get_unique_sd2_id())
         measurement_type.required = True
@@ -206,10 +206,6 @@ class MeasurementIntent(object):
         return encoded_timepoints
 
     def temperature_values_to_opil_measure(self):
-        # temperature_variable = opil.VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
-        #                                        cardinality=sbol_constants.SBOL_ONE)
-        # temperature_variable.variable = media_template
-        # temperature_variable.variant_measure = [temperature.to_opil_measure() for temperature in self._temperatures]
         return [temperature.to_opil_measure() for temperature in self._temperatures]
 
 class MeasurementContent(object):
@@ -384,7 +380,7 @@ class ContentIntent(object):
             use_rna_inhib_components.append(use_rna_inhib_component)
         return use_rna_inhib_components
 
-    def row_id_values_to_sbol_variable_feature(self):
+    def row_id_values_to_opil_components(self):
         row_id_components = []
         for value in self._row_ids:
             row_id_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),

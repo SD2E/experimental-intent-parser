@@ -272,8 +272,8 @@ class OPILProcessor(Processor):
                     all_sample_variables.append(num_neg_control_variable)
                 # row_id
                 if content.size_of_row_ids() > 0 and row_id_template:
-                    row_id_variable = content.row_id_values_to_sbol_variable_feature(self.opil_document,
-                                                                                     row_id_template)
+                    row_id_variable = content.row_id_values_to_opil_components(self.opil_document,
+                                                                               row_id_template)
                     all_sample_variables.append(row_id_variable)
                 # rna_inhibitor
                 if content.size_of_rna_inhibitor_flags() > 0 and use_rna_inhib_template:

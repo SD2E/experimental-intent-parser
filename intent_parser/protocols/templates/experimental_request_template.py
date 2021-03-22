@@ -1,4 +1,4 @@
-from intent_parser.intent.measure_property_intent import ReagentIntent, MediaIntent
+from intent_parser.intent.measure_property_intent import ReagentIntent, MediaIntent, NamedStringValue
 from intent_parser.intent.parameter_intent import ParameterIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.table.controls_table import ControlsTable
@@ -52,12 +52,40 @@ class OpilControlTemplate(object):
     def __init__(self):
         self.strains_template = None
         self.contents_template = None
+        self.template = None
+        self.opil_components = []
+        self.opil_sample_sets = []
+        self._id_provider = IdProvider()
+
+    def add_opil_components(self, opil_components):
+        self.opil_components.extend(opil_components)
+
+    def add_sample_set(self, sample_set):
+        self.opil_sample_sets.append(sample_set)
+
+    def get_template(self):
+        return self.template
 
     def load_from_control_table(self, control_table: ControlsTable):
+        table_header_templates = []
         if control_table.has_contents():
-            self.contents_template = ip_constants.HEADER_CONTENTS_VALUE
+            self.contents_template = self._create_opil_local_subcomponent(ip_constants.HEADER_CONTENTS_VALUE)
+            table_header_templates.append(self.contents_template)
+
         if control_table.has_strains():
-            self.strains_template = ip_constants.HEADER_STRAINS_VALUE
+            self.strains_template = self._create_opil_local_subcomponent(ip_constants.HEADER_STRAINS_VALUE)
+            table_header_templates.append(self.strains_template)
+        self.template = opil.Component(self._id_provider.get_unique_sd2_id())
+
+        if len(table_header_templates) == 0:
+            raise IntentParserException('Unable to create control templates because Control Table missing table headers.')
+        self.template.features = table_header_templates
+
+    def _create_opil_local_subcomponent(self, template_name):
+        component_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
+                                               types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        component_template.name = template_name
+        return component_template
 
 class OpilMeasurementTemplate(object):
     def __init__(self):
@@ -120,7 +148,8 @@ class ExperimentalRequest(object):
         self._experiment_ref = experiment_ref
         self._experiment_ref_url = experiment_ref_url
         self._lab_namespace = lab_namespace
-        self._opil_component_template = OpilMeasurementTemplate()
+        self._opil_measurement_template = OpilMeasurementTemplate()
+        self._opil_control_templates = {}
         self._id_provider = IdProvider()
 
         self.batch_template = None
@@ -162,35 +191,29 @@ class ExperimentalRequest(object):
         opil_protocol_inteface.parameter.has_parameter.extend(run_parameter_fields)
         opil_experimental_request.has_parameter_value.extend(run_parameter_values)
 
-    def create_components_from_control_template(self, control_template: OpilControlTemplate):
-        if control_template.contents_template:
-            content_template = self._create_opil_local_subcomponent(control_template.contents_template)
-        if control_template.strains_template:
-            strain_template = self._create_opil_local_subcomponent(control_template.strains_template)
-
     def create_components_from_template(self):
-        if self._opil_component_template.batch_template:
-            self.batch_template = self._create_opil_local_subcomponent(self._opil_component_template.batch_template)
-        if self._opil_component_template.column_id_template:
-            self.col_id_template = self._create_opil_local_subcomponent(self._opil_component_template.column_id_template)
-        if self._opil_component_template.control_template:
-            self.control_template = self._create_opil_local_subcomponent(self._opil_component_template.control_template)
-        if self._opil_component_template.dna_reaction_concentration_template:
-            self.dna_reaction_concentration_template = self._create_opil_local_subcomponent(self._opil_component_template.dna_reaction_concentration_template)
-        if self._opil_component_template.lab_id_template:
-            self.lab_id_template = self._create_opil_local_subcomponent(self._opil_component_template.lab_id_template)
-        if self._opil_component_template.num_neg_control_template:
-            self.num_neg_control_template = self._create_opil_local_subcomponent(self._opil_component_template.num_neg_control_template)
-        if self._opil_component_template.ods_template:
-            self.ods_template = self._create_opil_local_subcomponent(self._opil_component_template.ods_template)
-        if self._opil_component_template.replicate_template:
-            self.replicate_template = self._create_opil_local_subcomponent(self._opil_component_template.replicate_template)
-        if self._opil_component_template.row_id_template:
-            self.row_id_template = self._create_opil_local_subcomponent(self._opil_component_template.row_id_template)
-        if self._opil_component_template.use_rna_inhib_template:
-            self.use_rna_inhib_template = self._create_opil_local_subcomponent(self._opil_component_template.use_rna_inhib_template)
-        if self._opil_component_template.template_dna_template:
-            self.template_dna_template = self._create_opil_local_subcomponent(self._opil_component_template.template_dna_template)
+        if self._opil_measurement_template.batch_template:
+            self.batch_template = self._create_opil_local_subcomponent(self._opil_measurement_template.batch_template)
+        if self._opil_measurement_template.column_id_template:
+            self.col_id_template = self._create_opil_local_subcomponent(self._opil_measurement_template.column_id_template)
+        if self._opil_measurement_template.control_template:
+            self.control_template = self._create_opil_local_subcomponent(self._opil_measurement_template.control_template)
+        if self._opil_measurement_template.dna_reaction_concentration_template:
+            self.dna_reaction_concentration_template = self._create_opil_local_subcomponent(self._opil_measurement_template.dna_reaction_concentration_template)
+        if self._opil_measurement_template.lab_id_template:
+            self.lab_id_template = self._create_opil_local_subcomponent(self._opil_measurement_template.lab_id_template)
+        if self._opil_measurement_template.num_neg_control_template:
+            self.num_neg_control_template = self._create_opil_local_subcomponent(self._opil_measurement_template.num_neg_control_template)
+        if self._opil_measurement_template.ods_template:
+            self.ods_template = self._create_opil_local_subcomponent(self._opil_measurement_template.ods_template)
+        if self._opil_measurement_template.replicate_template:
+            self.replicate_template = self._create_opil_local_subcomponent(self._opil_measurement_template.replicate_template)
+        if self._opil_measurement_template.row_id_template:
+            self.row_id_template = self._create_opil_local_subcomponent(self._opil_measurement_template.row_id_template)
+        if self._opil_measurement_template.use_rna_inhib_template:
+            self.use_rna_inhib_template = self._create_opil_local_subcomponent(self._opil_measurement_template.use_rna_inhib_template)
+        if self._opil_measurement_template.template_dna_template:
+            self.template_dna_template = self._create_opil_local_subcomponent(self._opil_measurement_template.template_dna_template)
 
         self._load_strain_template()
         self._load_reagent_and_media_templates()
@@ -229,8 +252,51 @@ class ExperimentalRequest(object):
         self._annotate_experimental_reference(opil_experimental_request)
         self._annotate_experimental_reference_url(opil_experimental_request)
 
+    def load_from_control_table(self, control_table: ControlsTable):
+        opil_control_template = OpilControlTemplate()
+        opil_control_template.load_from_control_table(control_table)
+        self._opil_control_templates[control_table.get_table_caption()] = opil_control_template
+
+        for control_intent in control_table.get_intents():
+            sample_set = opil.SampleSet(identity=self._id_provider.get_unique_sd2_id())
+            sample_set.template = opil_control_template.template
+            all_sample_variables = []
+            if control_intent.size_of_contents() > 0 and opil_control_template.contents_template:
+                content_variables = self._create_variable_features_from_control_contents(opil_control_template.contents_template,
+                                                                                         control_intent.get_contents())
+                all_sample_variables.extend(content_variables)
+            if control_intent.size_of_strains() > 0 and opil_control_template.strains_template:
+                strain_components = control_intent.strain_values_to_opil_components()
+                opil_control_template.add_opil_components(strain_components)
+                strains_variables = self._create_variable_feature_with_variants(opil_control_template.strains_template,
+                                                                                strain_components)
+                all_sample_variables.append(strains_variables)
+            sample_set.variable_features = all_sample_variables
+            opil_control_template.add_sample_set(sample_set)
+
+    def _create_variable_features_from_control_contents(self, control_contents, content_template):
+        all_sample_variables = []
+        for content in control_contents:
+            if isinstance(content, ReagentIntent):
+                reagent_measures = content.reagent_values_to_opil_measures()
+                reagent_variable = self._create_variable_feature_with_variant_measures(content_template,
+                                                                                       reagent_measures)
+                all_sample_variables.append(reagent_variable)
+            elif isinstance(content, NamedStringValue):
+                content_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
+                                                   component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+                content_component.name = content.get_named_link().get_name()
+                self.opil_components.append(content_component)
+                if content.get_named_link().get_link() is not None:
+                    content_sub_component = SubComponent(content.get_named_link().get_link())
+                    content_component.features = [content_sub_component]
+                content_variable = self._create_variable_feature_with_variants(content_template,
+                                                                               content_component)
+                all_sample_variables.append(content_variable)
+        return all_sample_variables
+
     def load_from_measurement_table(self, measurement_table):
-        self._opil_component_template.load_from_measurement_table(measurement_table)
+        self._opil_measurement_template.load_from_measurement_table(measurement_table)
 
     def load_and_update_measurement(self, measurement_intents):
         if not self.opil_experimental_requests:
@@ -253,8 +319,8 @@ class ExperimentalRequest(object):
         if len(self.opil_sample_sets) == 1:
             sample_set = self.opil_sample_sets[0]
         elif len(self.opil_sample_sets) == 0:
-            sample_set = opil.SampleSet(identity=self._id_provider.get_unique_sd2_id(),
-                                        template=self.sample_template)
+            sample_set = opil.SampleSet(identity=self._id_provider.get_unique_sd2_id())
+            sample_set.template = self.sample_template
         else:
             raise IntentParserException('More than one SampleSet found from lab protocol.')
 
@@ -270,6 +336,7 @@ class ExperimentalRequest(object):
             self.sample_template = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
                                                   component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
             self.sample_template.features = self._get_opil_features()
+            self.opil_components.append(self.sample_template)
         else:
             # Assume only one per request.
             self.sample_template = unique_templates.pop()
@@ -293,7 +360,6 @@ class ExperimentalRequest(object):
                 opil_parameter_template = name_to_parameter[parameter_name]
                 opil_parameter_value = opil_parameter_template.parameter_value
                 opil_parameter_value.value = parameter_value
-
 
     def _map_opil_measurement_to_intent(self, measurement_intents, opil_measurements):
         measurement_type_to_intent = {}
@@ -405,7 +471,7 @@ class ExperimentalRequest(object):
                     all_sample_variables.append(num_neg_control_variable)
                 # row_id
                 if content.size_of_row_ids() > 0 and self.row_id_template:
-                    row_id_components = content.row_id_values_to_sbol_variable_feature()
+                    row_id_components = content.row_id_values_to_opil_components()
                     self.opil_components.extend(row_id_components)
                     row_id_variable = self._create_variable_feature_with_variants(self.row_id_template,
                                                                                   row_id_components)
@@ -436,7 +502,12 @@ class ExperimentalRequest(object):
 
         # control
         if measurement_intent.size_of_controls() > 0 and self.control_template:
-            control_samplesets = None # todo
+            opil_control_templates = []
+            for control_intent in measurement_intent.get_controls():
+                table_caption = control_intent.get_table_caption()
+                if table_caption in self._opil_control_templates and table_caption not in opil_control_templates:
+                    opil_control_templates.append(self._opil_control_templates[table_caption])
+            control_samplesets = [opil_control_template.opil_sample_sets for opil_control_template in opil_control_templates]
             control_variable = self._create_variable_feature_with_variant_derivation(self.control_template,
                                                                                      control_samplesets)
             all_sample_variables.append(control_variable)
@@ -453,7 +524,7 @@ class ExperimentalRequest(object):
                                                                                      replicate_measures)
             all_sample_variables.append(replicate_variable)
         # strains
-        if measurement_intent.size_of_strains() > 0 and self.strains_template:
+        if measurement_intent.size_of_strains() > 0 and self.strain_template:
             strain_components = measurement_intent.strain_values_to_opil_components()
             self.opil_components.extend(strain_components)
             strains_variables = self._create_variable_feature_with_variants(self.strain_template,
@@ -475,7 +546,6 @@ class ExperimentalRequest(object):
         component_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
                                                types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
         component_template.name = template_name
-        self.opil_components.append(component_template)
         return component_template
 
     def _create_variable_feature_with_variants(self, variable, variants):
@@ -521,7 +591,7 @@ class ExperimentalRequest(object):
     def _create_reagent_template(self, ip_reagent):
         reagent_name = ip_reagent.get_reagent_name()
         reagent_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                      component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+                                           component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
         reagent_component.roles = [ip_constants.NCIT_REAGENT_URI]
         reagent_component.name = reagent_name.get_name()
         if reagent_name.get_link() is None:
@@ -582,7 +652,7 @@ class ExperimentalRequest(object):
             raise IntentParserException('Expected one strain but %d were found in experimental request %s'
                                         % (len(strain), self.opil_experimental_requests[0].name))
         elif len(strain) == 0:
-            self.strain_template = self._create_opil_local_subcomponent(self._opil_component_template.strains_template)
+            self.strain_template = self._create_opil_local_subcomponent(self._opil_measurement_template.strains_template)
             self.opil_components.append(strain)
         else:
             self.strain_template = strain[0]
@@ -596,7 +666,7 @@ class ExperimentalRequest(object):
             elif tyto.NCIT.get_uri_by_term(ip_constants.NCIT_INDUCER_NAME) in opil_component.roles:
                 self.media_and_reagents_templates[opil_component.name] = opil_component
 
-        for ip_component in self._opil_component_template.media_and_reagent_templates:
+        for ip_component in self._opil_measurement_template.media_and_reagent_templates:
             if isinstance(ip_component, ReagentIntent):
                 reagent_name = ip_component.get_reagent_name()
                 if reagent_name.get_name() not in self.media_and_reagents_templates:
