@@ -12,7 +12,7 @@ import logging
 import opil
 
 
-class OpilProcessor2(Processor):
+class OpilProcessor(Processor):
 
     logger = logging.getLogger('opil_processor')
     _CONTROL_TYPES = ['HIGH_FITC',

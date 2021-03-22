@@ -502,12 +502,12 @@ class ExperimentalRequest(object):
 
         # control
         if measurement_intent.size_of_controls() > 0 and self.control_template:
-            opil_control_templates = []
+            unique_control_templates = []
             for control_intent in measurement_intent.get_controls():
                 table_caption = control_intent.get_table_caption()
-                if table_caption in self._opil_control_templates and table_caption not in opil_control_templates:
-                    opil_control_templates.append(self._opil_control_templates[table_caption])
-            control_samplesets = [opil_control_template.opil_sample_sets for opil_control_template in opil_control_templates]
+                if table_caption in self._opil_control_templates and table_caption not in unique_control_templates:
+                    unique_control_templates.append(self._opil_control_templates[table_caption])
+            control_samplesets = [opil_control_template.opil_sample_sets for opil_control_template in unique_control_templates]
             control_variable = self._create_variable_feature_with_variant_derivation(self.control_template,
                                                                                      control_samplesets)
             all_sample_variables.append(control_variable)
