@@ -2,9 +2,9 @@ from datacatalog.formats.common import map_experiment_reference
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.table.table_processor.experimental_protocol_processor import ExperimentalProtocolProcessor
+from intent_parser.table.table_processor.opil_processor2 import OpilProcessor2
 from intent_parser.table.table_processor.parameter_information_processor import ParameterInfoProcessor
 from intent_parser.table.table_processor.structured_request_processor import StructuredRequestProcessor
-from intent_parser.table.table_processor.opil_processor import OPILProcessor
 from intent_parser.table.experiment_specification_table import ExperimentSpecificationTable
 from intent_parser.table.experiment_status_table import ExperimentStatusTableParser
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
@@ -309,16 +309,16 @@ class IntentParser(object):
         filtered_tables = self.get_tables_by_type()
         experiment_ref = self._get_experiment_reference()
         experiment_ref_url = self._get_experiment_reference_url()
-        opil_processor = OPILProcessor(experiment_ref,
-                                       experiment_ref_url,
-                                       protocol_factory,
-                                       self.sbol_dictionary,
-                                       file_types=self.catalog_accessor.get_file_types(),
-                                       lab_names=[ip_constants.LAB_TRANSCRIPTIC])
-        opil_processor.process_intent(filtered_tables[TableType.LAB],
-                                      filtered_tables[TableType.CONTROL],
-                                      filtered_tables[TableType.PARAMETER],
-                                      filtered_tables[TableType.MEASUREMENT])
+        opil_processor = OpilProcessor2(experiment_ref,
+                                        experiment_ref_url,
+                                        protocol_factory,
+                                        self.sbol_dictionary,
+                                        file_types=self.catalog_accessor.get_file_types(),
+                                        lab_names=[ip_constants.LAB_TRANSCRIPTIC, ip_constants.LAB_DUKE_HASE])
+        opil_processor.process_intent(lab_tables=filtered_tables[TableType.LAB],
+                                      control_tables=filtered_tables[TableType.CONTROL],
+                                      parameter_tables=filtered_tables[TableType.PARAMETER],
+                                      measurement_tables=filtered_tables[TableType.MEASUREMENT])
         self.validation_errors.extend(opil_processor.get_errors())
         self.validation_warnings.extend(opil_processor.get_warnings())
         self.opil_request = opil_processor.get_intent()

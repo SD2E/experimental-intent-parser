@@ -1,5 +1,5 @@
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException, IntentParserException, TableException
-from intent_parser.protocols.templates.experimental_request_template import ExperimentalRequest, OpilMeasurementTemplate
+from intent_parser.protocols.templates.experimental_request_template import ExperimentalRequest
 from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.lab_table import LabTable
 from intent_parser.table.measurement_table import MeasurementTable

@@ -88,7 +88,7 @@ class IntentParserProcessor(object):
         lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_opil_request(lab_protocol_accessor)
-        sbol_doc = intent_parser.get_opil_request()
+        opil_doc = intent_parser.get_opil_request()
         validation_warnings = intent_parser.get_validation_warnings()
         validation_errors = intent_parser.get_validation_errors()
         if len(validation_errors) > 0:
@@ -96,7 +96,7 @@ class IntentParserProcessor(object):
             errors.extend(validation_errors)
             raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=errors, warnings=validation_warnings)
 
-        xml_string = sbol_doc.write_string('xml')
+        xml_string = opil_doc.write_string('xml')
         return xml_string
 
     def process_opil_post_request(self, http_host, json_body):
