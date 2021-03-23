@@ -18,6 +18,8 @@ class OpilDocumentTemplate(object):
         self.opil_components = []
         self.opil_sample_sets = []
         self.opil_experimental_requests = []
+        self.opil_measurements = []
+        self.opil_parameter_values = []
         self.opil_protocol_interfaces = []
 
     def get_components(self):
@@ -29,19 +31,29 @@ class OpilDocumentTemplate(object):
     def get_experimental_requests(self):
         return self.opil_experimental_requests
 
+    def get_measurements(self):
+        return self.opil_measurements
+
+    def get_parameter_values(self):
+        return self.opil_parameter_values
+
     def get_protocol_interfaces(self):
         return self.opil_protocol_interfaces
 
     def load_from_template(self, template: opil.Document):
         for top_level in template.objects:
-            if type(top_level) == opil.Component:
+            if isinstance(top_level, opil.Component):
                 self.opil_components.append(top_level)
-            elif type(top_level) == opil.SampleSet:
+            elif isinstance(top_level, opil.SampleSet):
                 self.opil_sample_sets.append(top_level)
-            elif type(top_level) == opil.ExperimentalRequest:
+            elif isinstance(top_level, opil.ExperimentalRequest):
                 self.opil_experimental_requests.append(top_level)
-            elif type(top_level) == opil.ProtocolInterface:
+            elif isinstance(top_level, opil.Measurement):
+                self.opil_measurements.append(top_level)
+            elif isinstance(top_level, opil.ProtocolInterface):
                 self.opil_protocol_interfaces.append(top_level)
+            elif isinstance(top_level, opil.ParameterValue):
+                self.opil_parameter_values.append(top_level)
 
 class OpilParameterTemplate(object):
     def __init__(self):
@@ -143,7 +155,9 @@ class ExperimentalRequest(object):
         self.opil_components = [component.copy() for component in template.get_components()]
         self.opil_sample_sets = [component.copy() for component in template.get_sample_sets()]
         self.opil_experimental_requests = [component.copy() for component in template.get_experimental_requests()]
+        self.opil_measurements = [component.copy() for component in template.get_measurements()]
         self.opil_protocol_interfaces = [component.copy() for component in template.get_protocol_interfaces()]
+        self.opil_parameter_values = [component.copy() for component in template.get_parameter_values()]
         self._experiment_id = experiment_id
         self._experiment_ref = experiment_ref
         self._experiment_ref_url = experiment_ref_url
@@ -186,16 +200,16 @@ class ExperimentalRequest(object):
             raise IntentParserException(
                 'expecting 1 but got %d opil.ExperimentalRequest.' % len(self.opil_experimental_requests))
 
-        opil_protocol_inteface = self.opil_protocol_interfaces[0]
+        opil_protocol_interface = self.opil_protocol_interfaces[0]
         opil_experimental_request = self.opil_experimental_requests[0]
-        opil_protocol_inteface.parameter.has_parameter.extend(run_parameter_fields)
+        opil_protocol_interface.parameter.has_parameter.extend(run_parameter_fields)
         opil_experimental_request.has_parameter_value.extend(run_parameter_values)
 
     def create_components_from_template(self):
         if self._opil_measurement_template.batch_template:
             self.batch_template = self._create_opil_local_subcomponent(self._opil_measurement_template.batch_template)
         if self._opil_measurement_template.column_id_template:
-            self.col_id_template = self._create_opil_local_subcomponent(self._opil_measurement_template.column_id_template)
+            self.column_id_template = self._create_opil_local_subcomponent(self._opil_measurement_template.column_id_template)
         if self._opil_measurement_template.control_template:
             self.control_template = self._create_opil_local_subcomponent(self._opil_measurement_template.control_template)
         if self._opil_measurement_template.dna_reaction_concentration_template:
@@ -245,7 +259,7 @@ class ExperimentalRequest(object):
     def load_experimental_request(self):
         if len(self.opil_experimental_requests) == 0:
             self.opil_experimental_requests.append(opil.ExperimentalRequest(self._id_provider.get_unique_sd2_id()))
-        elif len(self.opil_experimental_requests) > 1:
+        else:
             raise IntentParserException('expecting 1 but got %d opil.ExperimentalRequest.' % len(self.opil_experimental_requests))
         opil_experimental_request = self.opil_experimental_requests[0]
         self._annotate_experimental_id(opil_experimental_request)
@@ -304,7 +318,7 @@ class ExperimentalRequest(object):
 
         opil_experimental_request = self.opil_experimental_requests[0]
         opil_measurement_intent_pairs, unmapped_measurement_intents = self._map_opil_measurement_to_intent(measurement_intents,
-                                                                                                           opil_experimental_request.measurements)
+                                                                                                           self.opil_measurements)
         if len(unmapped_measurement_intents) > 0:
             opil_experimental_request.measurements.extend(unmapped_measurement_intents)
         for opil_measurement, intent in opil_measurement_intent_pairs:
@@ -612,8 +626,8 @@ class ExperimentalRequest(object):
         all_sample_templates = []
         if self.batch_template:
             all_sample_templates.append(self.batch_template)
-        if self.col_id_template:
-            all_sample_templates.append(self.col_id_template)
+        if self.column_id_template:
+            all_sample_templates.append(self.column_id_template)
         if self.control_template:
             all_sample_templates.append(self.control_template)
         if self.dna_reaction_concentration_template:
@@ -649,8 +663,8 @@ class ExperimentalRequest(object):
     def _load_strain_template(self):
         strain = self._filter_components_by_role(ip_constants.NCIT_STRAIN_NAME)
         if len(strain) > 1:
-            raise IntentParserException('Expected one strain but %d were found in experimental request %s'
-                                        % (len(strain), self.opil_experimental_requests[0].name))
+            raise IntentParserException('Expecting 1 strain template but %d were found in experimental protocol'
+                                        % len(strain))
         elif len(strain) == 0:
             self.strain_template = self._create_opil_local_subcomponent(self._opil_measurement_template.strains_template)
             self.opil_components.append(strain)

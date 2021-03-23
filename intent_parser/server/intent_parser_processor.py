@@ -134,9 +134,9 @@ class IntentParserProcessor(object):
         protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
         protocol_factory.set_selected_lab(lab_name)
 
-        opil_doc = protocol_factory.load_experimental_protocol_from_lab(experimental_protocol_name)
+        opil_document_template = protocol_factory.load_experimental_protocol_from_lab(experimental_protocol_name)
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-        intent_parser.process_experimental_protocol_request(lab_name, opil_doc)
+        intent_parser.process_experimental_protocol_request(lab_name, opil_document_template)
         experimental_protocol = intent_parser.get_experimental_protocol_request()
         # todo: create google doc table templates
         measurement_table_data = []

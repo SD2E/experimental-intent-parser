@@ -298,8 +298,8 @@ class IntentParser(object):
         lab_name = lab_table.get_intent().get_lab_name()
         self.processed_lab_name = lab_name
 
-    def process_experimental_protocol_request(self, lab_name, opil_doc):
-        experimental_protocol = ExperimentalProtocolProcessor(opil_doc, lab_name)
+    def process_experimental_protocol_request(self, lab_name, opil_document_template):
+        experimental_protocol = ExperimentalProtocolProcessor(opil_document_template, lab_name)
         experimental_protocol.process_protocol()
         self.validation_errors.extend(experimental_protocol.get_errors())
         self.validation_warnings.extend(experimental_protocol.get_warnings())
