@@ -6,6 +6,7 @@ RELEASE_VERSION = '3.1'
 # name of labs Intent Parser has connection to
 LAB_TRANSCRIPTIC = 'Transcriptic'
 LAB_DUKE_HASE = 'Duke_Haase'
+AQUARIUM_NAMESPACE = 'http://aquarium.bio/'
 STRATEOS_NAMESPACE = 'http://strateos.com/'
 
 # keywords used for calling POST methods
@@ -103,10 +104,18 @@ MEASUREMENT_TYPE_PLATE_READER = 'PLATE_READER'
 MEASUREMENT_TYPE_PROTEOMICS = 'PROTEOMICS'
 MEASUREMENT_TYPE_RNA_SEQ = 'RNA_SEQ'
 MEASUREMENT_TYPE_SEQUENCING_CHROMATOGRAM = 'SEQUENCING_CHROMATOGRAM'
+MEASUREMENT_TYPE_FLUOESCENE_MICROSCOPY = 'FLUORESCENCE MICROSCOPY'
+
+NCIT_INDUCER_NAME = 'Inducer'
+NCIT_MEDIA_NAME = 'Growth Medium'
+NCIT_REAGENT_NAME = 'Reagent'
+NCIT_STRAIN_NAME = 'Organism Strain'
+
 
 NCIT_CFU_URI = 'https://identifiers.org/ncit:C68742'
 NCIT_DNA_SEQ_URI = 'https://identifiers.org/ncit:C153598'
 NCIT_FLOW_URI = 'https://identifiers.org/ncit:C78806'
+NCIT_FLUORESCENCE_MICROSCOPY = 'https://identifiers.org/NCIT:C16856'
 NCIT_IMAGE_URI = 'https://identifiers.org/ncit:C16853'
 NCIT_INDUCER_URI = 'https://identifiers.org/ncit:C120268'
 NCIT_MEDIA_URI = 'https://identifiers.org/ncit:C85504'

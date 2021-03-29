@@ -2,7 +2,7 @@ from datetime import timedelta
 from intent_parser.intent_parser_exceptions import IntentParserException
 from transcriptic import Connection
 import intent_parser.constants.intent_parser_constants as ip_constants
-import intent_parser.utils.opil_parameter_utils as opil_utils
+import intent_parser.utils.opil_utils as opil_utils
 import logging
 import opil
 import time
@@ -16,10 +16,10 @@ class StrateosAccessor(object):
     SYNC_PERIOD = timedelta(minutes=60)
     logger = logging.getLogger('intent_parser_strateos_accessor')
 
-    _SUPPORTING_PROTOCOLS = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
-                             ip_constants.GROWTH_CURVE_PROTOCOL,
-                             ip_constants.OBSTACLE_COURSE_PROTOCOL,
-                             ip_constants.TIME_SERIES_HTP_PROTOCOL]
+    _SUPPORTING_PROTOCOLS = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL]
+                             # ip_constants.GROWTH_CURVE_PROTOCOL,
+                             # ip_constants.OBSTACLE_COURSE_PROTOCOL,
+                             # ip_constants.TIME_SERIES_HTP_PROTOCOL]
 
     def __init__(self, credential_path=None, use_cache=True):
         if credential_path:
@@ -34,6 +34,9 @@ class StrateosAccessor(object):
         self._map_name_to_protocol_interface = {}
         self._map_name_to_protocol_id = {}
         self._protocol_thread = threading.Thread(target=self._periodically_fetch_protocols)
+
+    def get_experimental_protocol_names(self):
+        return []
 
     def get_list_of_protocol_interface(self):
         return self._map_name_to_protocol_interface.values()
@@ -113,10 +116,9 @@ class StrateosAccessor(object):
         self.protocol_lock.release()
 
     def convert_protocol_to_opil(self, protocol):
-        strateos_namespace = 'http://strateos.com/'
         protocol_name = protocol['name']
         sg = opil.StrateosOpilGenerator()
-        opil_doc = sg.parse_strateos_json(strateos_namespace,
+        opil_doc = sg.parse_strateos_json(ip_constants.STRATEOS_NAMESPACE,
                                           protocol_name,
                                           protocol['id'],
                                           protocol['inputs'])

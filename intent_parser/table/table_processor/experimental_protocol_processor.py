@@ -4,13 +4,12 @@ from intent_parser.intent.measurement_intent import MeasurementIntent
 from intent_parser.intent.parameter_intent import ParameterIntent
 from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.intent.experimental_protocol_intent import ExperimentalProtocolIntent
-from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.table.table_processor.processor import Processor
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.utils.sbol3_utils as sbol3_utils
-import intent_parser.utils.opil_parameter_utils as opil_utils
+import intent_parser.utils.opil_utils as opil_utils
 import logging
-
+import tyto
 
 class ExperimentalProtocolProcessor(Processor):
     """
@@ -32,7 +31,6 @@ class ExperimentalProtocolProcessor(Processor):
         return ExperimentalProtocolIntent(lab_intent, self._parameter_intent, self._measurement_intents)
 
     def process_protocol(self):
-        combinatorial_derivations = sbol3_utils.get_combinatorial_derivations(self._opil_document)
         measurement_intents = self._convert_combinatorial_derivations_to_measurement_intents(combinatorial_derivations)
 
         experimental_requests = opil_utils.get_opil_experimental_requests(self._opil_document)
@@ -59,7 +57,8 @@ class ExperimentalProtocolProcessor(Processor):
         if experiment_request.has_parameter_value:
             self._parameter_intent = self._process_opil_parameters(protocol_interfaces, experiment_request.has_parameter_value)
 
-    def _convert_combinatorial_derivations_to_measurement_intents(self, combinatorial_derivations):
+    def _convert_combinatorial_derivations_to_measurement_intents(self):
+        combinatorial_derivations = sbol3_utils.get_combinatorial_derivations(self._opil_document)
         measurement_intents = []
         # each combinatorial_derivation corresponds to a measurement row in a measurement table
         for combinatorial_derivation in combinatorial_derivations:

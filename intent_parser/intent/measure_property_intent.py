@@ -1,12 +1,12 @@
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.utils.id_provider import IdProvider
-from sbol3 import Component, SubComponent, VariableFeature
+from sbol3 import SubComponent
 from typing import Union
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 import opil
 import sbol3.constants as sbol_constants
-
+import tyto
 
 class MeasuredUnit(object):
 
@@ -21,7 +21,7 @@ class MeasuredUnit(object):
     def get_value(self):
         return self._value
 
-    def to_opil(self):
+    def to_opil_measure(self):
         if self._unit in ip_constants.FLUID_UNIT_MAP:
             unit_uri = ip_constants.FLUID_UNIT_MAP[self._unit]
             return opil.Measure(self._value, unit_uri)
@@ -32,7 +32,7 @@ class MeasuredUnit(object):
             unit_uri = ip_constants.TIME_UNIT_MAP[self._unit]
             return opil.Measure(self._value, unit_uri)
         else:
-            raise IntentParserException('unit not supported in Intent Parser: %s' % self._unit)
+            return opil.Measure(self._value, tyto.OM.number)
 
     def to_structured_request(self):
         return {dc_constants.VALUE: float(self._value),
@@ -123,6 +123,9 @@ class MediaIntent(object):
     def get_media_name(self) -> NamedLink:
         return self._media_name
 
+    def get_media_values(self):
+        return self._media_values
+
     def get_timepoint(self) -> TimepointIntent:
         return self._timepoint
 
@@ -135,40 +138,18 @@ class MediaIntent(object):
 
         self._timepoint = timepoint
 
-    def to_sbol(self, sbol_document):
-        media_component = Component(identity=self._id_provider.get_unique_sd2_id(),
-                                    component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-        media_component.name = self._media_name.get_name()
-        if self._media_name.get_link() is None:
-            media_template = SubComponent(media_component)
-            media_component.features = [media_template]
-            sbol_document.add(media_component)
-        else:
-            media_template = SubComponent(self._media_name.get_link())
-            media_component.features = [media_template]
-            sbol_document.add(media_component)
-
-        if self._timepoint is not None:
-            media_timepoint_measure = self._timepoint.to_opil()
-            media_template.measures = [media_timepoint_measure]
-
-        media_variable = VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
-                                         cardinality=sbol_constants.SBOL_ONE)
-        media_variable.variable = media_template
-
+    def values_to_opil_components(self):
         media_variants = []
         for media_value in self._media_values:
-            media_value_component = Component(identity=self._id_provider.get_unique_sd2_id(),
-                                              component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            media_value_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
+                                                   component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
             media_value_component.name = media_value.get_name()
 
             if media_value.get_link() is not None:
                 media_value_sub_component = SubComponent(media_value.get_link())
                 media_value_component.features = [media_value_sub_component]
             media_variants.append(media_value_component)
-
-        media_variable.variants = media_variants
-        return media_template, media_variable
+        return media_variants
 
     def to_structured_request(self):
         sr_media = []
@@ -210,32 +191,8 @@ class ReagentIntent(object):
 
         self._timepoint = timepoint
 
-    def to_sbol(self, sbol_document):
-        reagent_component = Component(identity=self._id_provider.get_unique_sd2_id(),
-                                      component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-        reagent_component.name = self._reagent_name.get_name()
-        if self._reagent_name.get_link() is None:
-            reagent_template = SubComponent(reagent_component)
-            reagent_component.features = [reagent_template]
-            sbol_document.add(reagent_component)
-        else:
-            reagent_template = SubComponent(self._reagent_name.get_link())
-            reagent_component.features = [reagent_template]
-            sbol_document.add(reagent_component)
-
-        if self._timepoint is not None:
-            reagent_timepoint_measure = self._timepoint.to_opil()
-            reagent_template.measures = [reagent_timepoint_measure]
-
-        reagent_variable = VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
-                                           cardinality=sbol_constants.SBOL_ONE)
-        reagent_variable.variable = reagent_template
-
-        reagent_variant_measures = [reagent_value.to_opil() for reagent_value in self._reagent_values]
-        if len(reagent_variant_measures) > 0:
-            reagent_variable.variant_measure = reagent_variant_measures
-
-        return reagent_template, reagent_variable, reagent_component
+    def reagent_values_to_opil_measures(self):
+        return [reagent_value.to_opil_measure() for reagent_value in self._reagent_values]
 
     def to_structured_request(self):
         sr_reagent = []

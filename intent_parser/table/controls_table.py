@@ -25,6 +25,9 @@ class ControlsTable(object):
         self._table_caption = ''
         self._control_intents = []
 
+        self._has_strains = False
+        self._has_contents = False
+
     def get_table_caption(self):
         return self._table_caption
 
@@ -40,6 +43,12 @@ class ControlsTable(object):
     def get_validation_warnings(self):
         return self._validation_warnings
 
+    def has_contents(self):
+        return self._has_contents
+
+    def has_strains(self):
+        return self._has_strains
+
     def process_table(self):
         self._table_caption = self._intent_parser_table.caption()
         for row_index in range(self._intent_parser_table.data_row_start_index(), self._intent_parser_table.number_of_rows()):
@@ -48,6 +57,9 @@ class ControlsTable(object):
     def _process_row(self, row_index):
         row = self._intent_parser_table.get_row(row_index)
         control = ControlIntent()
+        if self._table_caption:
+            raise TableException('Control Table must have a caption but non was found.')
+        control.set_table_caption(self._table_caption)
         row_offset = row_index # Used for reporting row value to users
 
         for cell_index in range(len(row)):
@@ -97,6 +109,7 @@ class ControlsTable(object):
     
     def _process_contents(self, cell, control, row_index, column_index):
         try:
+            self._has_contents = True
             contents = cell_parser.PARSER.parse_content_item(cell.get_text(),
                                                              cell.get_text_with_url(),
                                                              fluid_units=self._fluid_units,
@@ -111,6 +124,7 @@ class ControlsTable(object):
             self._validation_errors.append(message)
 
     def _process_control_strains(self, cell, control, row_index, column_index):
+        self._has_strains = True
         for input_strain, link in cell_parser.PARSER.process_names_with_uri(cell.get_text(), text_with_uri=cell.get_text_with_url()):
             parsed_strain = input_strain.strip()
             if link is None:

@@ -28,7 +28,27 @@ class MeasurementTable(object):
         self._fluid_units = fluid_units
         self._measurement_types = measurement_types
         self._file_type = file_type
-        self.strain_mapping = strain_mapping
+        self._strain_mapping = strain_mapping
+
+        self._processed_reagents_and_medias = []
+
+        self._has_batch = False
+        self._has_column_id = False
+        self._has_control = False
+        self._has_dna_reaction_concentration = False
+        self._has_file_types = False
+        self._has_measurement_type = False
+        self._has_lab_id = False
+        self._has_medias_and_reagents = False
+        self._has_number_of_negative_controls = False
+        self._has_ods = False
+        self._has_replicates = False
+        self._has_rna_inhibitor_reaction = False
+        self._has_row_id = False
+        self._has_strains = False
+        self._has_temperature = False
+        self._has_template_dna = False
+        self._has_timepoints = False
 
         self._validation_errors = []
         self._validation_warnings = []
@@ -39,8 +59,65 @@ class MeasurementTable(object):
     def get_intents(self):
         return self._measurement_intents
 
+    def get_processed_reagents_and_medias(self):
+        return self._processed_reagents_and_medias
+
     def get_structured_request(self):
         return [measurement.to_structured_request() for measurement in self._measurement_intents]
+
+    def has_batch(self):
+        return self._has_batch
+
+    def has_column_id(self):
+        return self._has_column_id
+
+    def has_control(self):
+        return self._has_control
+
+    def has_dna_reaction_concentration(self):
+        return self._has_dna_reaction_concentration
+
+    def has_file_types(self):
+        return self._has_file_types
+
+    def has_lab_id(self):
+        return self._has_lab_id
+
+    def has_measurement_type(self):
+        return self._has_measurement_type
+
+    def has_medias_and_reagents(self):
+        return self._has_medias_and_reagents
+
+    def has_number_of_negative_controls(self):
+        return self._has_number_of_negative_controls
+
+    def has_ods(self):
+        return self._has_ods
+
+    def has_reagents(self):
+        return self._has_medias_and_reagents
+
+    def has_replicate(self):
+        return self._has_replicates
+
+    def has_row_id(self):
+        return self._has_row_id
+
+    def has_rna_inhibitor(self):
+        return self._has_rna_inhibitor_reaction
+
+    def has_strains(self):
+        return self._has_strains
+
+    def has_temperature(self):
+        return self._has_temperature
+
+    def has_template_dna(self):
+        return self._has_template_dna
+
+    def has_timepoints(self):
+        return self._has_timepoints
     
     def process_table(self, control_data={}, bookmarks={}):
         self._table_caption = self._intent_parser_table.caption()
@@ -146,11 +223,16 @@ class MeasurementTable(object):
                     content_intent.set_lab_ids(lab_ids)
             else:
                 reagents_and_medias = self._process_reagent_or_media(cell, header_cell, row_offset, column_offset)
+                self._processed_reagents_and_medias.extend(reagents_and_medias)
+                self._has_medias_and_reagents = True
                 for reagent_or_media in reagents_and_medias:
                     if isinstance(reagent_or_media, ReagentIntent):
                         content_intent.add_reagent(reagent_or_media)
                     elif isinstance(reagent_or_media, MediaIntent):
                         content_intent.add_media(reagent_or_media)
+                    else:
+                        self._validation_errors.append('Expected to process reagent or media but got %s'
+                                                       % isinstance(reagent_or_media))
 
         if not content_intent.is_empty():
             measurement.add_content(content_intent)
@@ -184,7 +266,7 @@ class MeasurementTable(object):
                                                                                           ip_constants.HEADER_ROW_ID_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
-
+        self._has_row_id = True
         return row_ids
 
     def _process_col_id(self, cell, row_index, column_index):
@@ -200,7 +282,7 @@ class MeasurementTable(object):
                                                                                           ip_constants.HEADER_COLUMN_ID_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
-
+        self._has_column_id = True
         return column_ids
     
     def _process_reagent_or_media(self, cell, header_cell, row_index, column_index):
@@ -268,7 +350,8 @@ class MeasurementTable(object):
                                                                                           ip_constants.HEADER_BATCH_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
-    
+        self._has_batch = True
+
     def _process_control(self, cell, control_data, measurement):
         if not control_data:
             self._validation_errors.append('Unable to process controls from a Measurement table without Control Tables.')
@@ -283,7 +366,7 @@ class MeasurementTable(object):
 
         for control_intent in control_intents:
             measurement.add_control(control_intent)
-
+        self._has_control = True
 
     def _process_control_with_bookmarks(self, cell, control_tables):
         controls = []
@@ -316,6 +399,7 @@ class MeasurementTable(object):
                                                                                           err)
             self._validation_errors.append(message)
 
+        self._has_dna_reaction_concentration = True
         return dna_reaction_concentrations
 
     def _process_template_dna(self, cell, row_index, column_index):
@@ -331,6 +415,7 @@ class MeasurementTable(object):
                                                                                           ip_constants.HEADER_TEMPLATE_DNA_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
+        self._has_template_dna = True
         return dna_templates
 
     def _process_file_type(self, cell, measurement, row_index, column_index):
@@ -345,6 +430,7 @@ class MeasurementTable(object):
                 self._validation_errors.append(message)
             else:
                 measurement.add_file_type(file_type)
+        self._has_file_types = True
 
     def _process_measurement_type(self, cell, measurement, row_index, column_index):
         measurement_type = cell.get_text().strip()
@@ -357,6 +443,7 @@ class MeasurementTable(object):
             self._validation_errors.append(message)
         else:
             measurement.set_measurement_type(measurement_type)
+        self._has_measurement_type = True
 
     def _process_num_neg_controls(self, cell, row_index, column_index):
         num_neg_controls = []
@@ -371,7 +458,7 @@ class MeasurementTable(object):
                                                                                           ip_constants.HEADER_NUMBER_OF_NEGATIVE_CONTROLS_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
-
+        self._has_number_of_negative_controls = True
         return num_neg_controls
 
     def _process_ods(self, cell, measurement, row_index, column_index):
@@ -384,6 +471,7 @@ class MeasurementTable(object):
                                                                                           column_index,
                                                                                           err)
             self._validation_errors.append(message)
+        self._has_ods = True
 
     def _process_replicate(self, cell, measurement, row_index, column_index):
         try:
@@ -401,6 +489,7 @@ class MeasurementTable(object):
                                                                                           ip_constants.HEADER_REPLICATE_VALUE,
                                                                                           err)
             self._validation_errors.append(message)
+        self._has_replicates = True
 
     def _process_rna_inhibitor_reaction(self, cell, row_index, column_index):
         rna_inhibitor_reactions = []
@@ -416,6 +505,7 @@ class MeasurementTable(object):
                                                                                           err)
             self._validation_errors.append(message)
 
+        self._has_rna_inhibitor_reaction = True
         return rna_inhibitor_reactions
 
     def _process_strains(self, cell, measurement, row_index, column_index):
@@ -429,7 +519,7 @@ class MeasurementTable(object):
                 self._validation_errors.append(message)
                 continue
 
-            if link not in self.strain_mapping:
+            if link not in self._strain_mapping:
                 message = ('Measurement table at row %d column %d has invalid %s value: '
                            '%s is an invalid link not supported in the SBOL Dictionary Strains tab.' % (row_index,
                                                                                                         column_index,
@@ -438,7 +528,7 @@ class MeasurementTable(object):
                 self._validation_errors.append(message)
                 continue
 
-            dictionary_strain_intent = self.strain_mapping[link]
+            dictionary_strain_intent = self._strain_mapping[link]
             if not dictionary_strain_intent.has_lab_strain_name(parsed_strain):
                 lab_name = dictionary_constants.MAPPED_LAB_UID[dictionary_strain_intent.get_lab_id()]
                 message = ('Measurement table at row %d column %d has invalid %s value: '
@@ -456,6 +546,7 @@ class MeasurementTable(object):
             strain_intent.set_strain_common_name(dictionary_strain_intent.get_strain_common_name())
 
             measurement.add_strain(strain_intent)
+        self._has_strains = True
 
     def _process_temperature(self, cell, measurement, row_index, column_index):
         try:
@@ -471,6 +562,7 @@ class MeasurementTable(object):
                                                                                           ip_constants.HEADER_TEMPERATURE_VALUE,
                                                                                           err.get_message())
             self._validation_errors.append(message)
+        self._has_temperature = True
 
     def _process_timepoints(self, cell, measurement, row_index, column_index):
         text = cell.get_text()
@@ -486,4 +578,5 @@ class MeasurementTable(object):
                                                                                           ip_constants.HEADER_TIMEPOINT_VALUE,
                                                                                           err.get_message())
             self._validation_errors.append(message)
+        self._has_timepoints = True
 

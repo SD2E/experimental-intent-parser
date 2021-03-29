@@ -2,7 +2,7 @@ from flask import Flask, make_response, request, redirect
 from flask_restful import Api, Resource
 from flasgger import Swagger
 from http import HTTPStatus
-from intent_parser.accessor.strateos_accessor import StrateosAccessor
+from intent_parser.protocols.labs.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.intent_parser_exceptions import IntentParserException, RequestErrorException
 from intent_parser.intent_parser_factory import IntentParserFactory
@@ -94,6 +94,31 @@ class GetDocumentReport(Resource):
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
+class GetExperimentalProtocols(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def get(self):
+        """
+        Get a list of experimental protocols for supporting labs.
+        ---
+        responses:
+            200:
+                schema:
+                    properties:
+                    doc_id:
+                        type: object
+        """
+        try:
+            report = self._ip_processor.process_get_experimental_protocol_names()
+            return report, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_warnings()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class GetExperimentRequestDocuments(Resource):
     def __init__(self, ip_processor):
@@ -822,6 +847,9 @@ class IntentParserServer(object):
                          resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(GetGenerateStructuredRequest,
                          '/generateStructuredRequest/d/<string:doc_id>',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(GetExperimentalProtocols,
+                         '/experimentalProtocols',
                          resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(GetExperimentRequestDocuments,
                          '/experiment_request_documents',
