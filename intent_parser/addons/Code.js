@@ -1,5 +1,5 @@
 var serverURL = 'http://intentparser.sd2e.org';
-var versionString = '3.1';
+var versionString = '3.2';
 
 function onOpen() {
 	const ui = DocumentApp.getUi();
@@ -23,11 +23,12 @@ function onOpen() {
 	menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor');
 	menu.addItem('Analyze from top', 'sendAnalyzeFromTop');
 	menu.addItem('Calculate samples for measurements table', 'calculateSamples');
+    menu.addItem('Import Experimental Protocol', 'experimentalProtocol');
     menu.addItem('Generate OPIL', 'sendOpilRequest');
 	menu.addItem('Generate Report', 'sendGenerateReport');
 	menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest');
 	menu.addItem('Report Experiment Status', 'reportExperimentStatus');
-	menu.addItem('Request Experiment Execution', 'executeExperiment');
+	menu.addItem('Run Experiment', 'executeExperiment');
 	menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor');
 	menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling');
 	menu.addItem('Update experimental results', 'updateExperimentalResults');
@@ -36,6 +37,13 @@ function onOpen() {
 	menu.addItem('File Issues', 'reportIssues');
 	menu.addSubMenu(helpMenu);
 	menu.addToUi();
+}
+
+function experimentalProtocol(){
+    // get list of experiment names for lab
+    var response = UrlFetchApp.fetch(serverURL + '/experimentalProtocols');
+    // user select experiment
+    // ip return table templates for experiment
 }
 
 function reportParametersInfo(){
