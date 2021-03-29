@@ -35,6 +35,9 @@ class StrateosAccessor(object):
         self._map_name_to_protocol_id = {}
         self._protocol_thread = threading.Thread(target=self._periodically_fetch_protocols)
 
+    def get_experimental_protocol_names(self):
+        return []
+
     def get_list_of_protocol_interface(self):
         return self._map_name_to_protocol_interface.values()
 

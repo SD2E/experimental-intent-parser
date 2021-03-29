@@ -23,6 +23,8 @@ CHILD_INDEX = 'childIndex'
 CURSOR_CHILD_INDEX = 'cursorChildIndex'
 DATA = 'data'
 DOCUMENT_ID = 'documentId'
+EXPERIMENT_PROTOCOL_NAME = 'experimentalProtocolName'
+LAB_NAME = 'labName'
 USER_ID = 'user_id'
 
 HTML_BATCH = 'batch'

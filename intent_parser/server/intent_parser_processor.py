@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from intent_parser.accessor.aquarium_opil_accessor import AquariumOpilAccessor
+from intent_parser.protocols.labs.aquarium_opil_accessor import AquariumOpilAccessor
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
 from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
@@ -127,14 +127,22 @@ class IntentParserProcessor(object):
         actions = {'actions': action_list}
         return actions
 
+    def process_get_experimental_protocol_names(self):
+        lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
+        return lab_protocol_accessor.map_name_to_experimental_protocols()
+
     def process_experimental_protocol_request(self, json_body):
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-        lab_name = json_body['labName']
-        experimental_protocol_name = json_body['experimentalProtocolName']
-        protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
-        protocol_factory.set_selected_lab(lab_name)
+        if ip_addon_constants.LAB_NAME not in json_body:
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=['Missing %s' % ip_addon_constants.LAB_NAME])
+        if ip_addon_constants.EXPERIMENT_PROTOCOL_NAME not in json_body:
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=['Missing %s' % ip_addon_constants.EXPERIMENT_PROTOCOL_NAME])
 
-        opil_document_template = protocol_factory.load_experimental_protocol_from_lab(experimental_protocol_name)
+        lab_name = json_body[ip_addon_constants.LAB_NAME]
+        experimental_protocol_name = json_body[ip_addon_constants.EXPERIMENT_PROTOCOL_NAME]
+        protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
+        opil_document_template = protocol_factory.load_experimental_protocol_from_lab(experimental_protocol_name,
+                                                                                      lab_name)
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_experimental_protocol_request(lab_name, opil_document_template)
         er_table_templates = intent_parser.get_experimental_protocol_request()
@@ -681,46 +689,15 @@ class IntentParserProcessor(object):
             intent_parser.process_lab_name()
             lab_name = intent_parser.get_lab_name()
             protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
-            protocol_factory.set_selected_lab(lab_name)
-            protocol_names = [intent_parser_constants.PROTOCOL_PLACEHOLDER,
-                              intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
-                              intent_parser_constants.GROWTH_CURVE_PROTOCOL,
-                              intent_parser_constants.OBSTACLE_COURSE_PROTOCOL,
-                              intent_parser_constants.TIME_SERIES_HTP_PROTOCOL]
-            # TODO: uncomment when opil fixes this protocol
-            cell_free_riboswitch_parameters = self._get_optional_parameter_names(protocol_factory,
-                                                                                 intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL)
-
-            growth_curve_parameters = self._get_optional_parameter_names(protocol_factory,
-                                                                         intent_parser_constants.GROWTH_CURVE_PROTOCOL)
-
-            obstacle_course_parameters = self._get_optional_parameter_names(protocol_factory,
-                                                                            intent_parser_constants.OBSTACLE_COURSE_PROTOCOL)
-
-            time_series_parameters = self._get_optional_parameter_names(protocol_factory,
-                                                                        intent_parser_constants.TIME_SERIES_HTP_PROTOCOL)
-
+            protocol_names = protocol_factory.get_protocol_names_from_lab(lab_name)
             dialog_action = intent_parser_view.create_parameter_table_dialog(cursor_child_index,
-                                                                             protocol_names,
-                                                                             timeseries_optional_fields=time_series_parameters,
-                                                                             growthcurve_optional_fields=growth_curve_parameters,
-                                                                             obstaclecourse_optional_fields=obstacle_course_parameters,
-                                                                             cellfreeriboswitch_options=cell_free_riboswitch_parameters)
+                                                                             protocol_names)
             action_list.append(dialog_action)
         else:
             self.logger.warning('Table type not supported: %s' % table_type)
 
         actions = {'actions': action_list}
         return actions
-
-    def _get_optional_parameter_names(self, protocol_factory, protocol_name):
-        protocol_parameters = protocol_factory.map_parameter_values(protocol_name)
-        optional_param_names = []
-        for param_name, parameter in protocol_parameters.items():
-            if not parameter.is_required():
-                optional_param_names.append(param_name)
-
-        return optional_param_names
 
     def get_common_names_for_optional_parameter_fields(self, parameters: dict):
         common_names = []
@@ -1300,26 +1277,10 @@ class IntentParserProcessor(object):
         table_template.append([intent_parser_constants.PARAMETER_PROTOCOL_NAME, selected_protocol])
 
         protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
-        protocol_factory.set_selected_lab(lab_name)
-        protocol_id = protocol_factory.get_protocol_id(selected_protocol)
-        parameter_fields_from_lab = protocol_factory.map_parameter_values(selected_protocol)
+        protocol_id = protocol_factory.get_protocol_id(selected_protocol, lab_name)
+        parameter_fields_from_lab = protocol_factory.map_name_to_parameters(selected_protocol, lab_name)
 
-        required_parameters = self._add_required_parameters(parameter_fields_from_lab,
-                                                            google_constants.GOOGLE_DOC_URL_PREFIX + document_id,
-                                                            protocol_id)
-        table_template.extend(required_parameters)
-
-        selected_optional_parameters = data[ip_addon_constants.HTML_OPTIONALPARAMETERS]
-        optional_parameters = self._add_optional_parameters(parameter_fields_from_lab)
-        table_template.extend(optional_parameters)
-
-        column_width = [len(header) for header in header_row]
-        return intent_parser_view.create_table_template(data[ip_addon_constants.CURSOR_CHILD_INDEX],
-                                                        table_template,
-                                                        ip_addon_constants.TABLE_TYPE_PARAMETERS,
-                                                        column_width)
-
-    def _add_required_parameters(self, parameter_fields_from_lab, experiment_ref_url, protocol_id):
+        experiment_ref_url = google_constants.GOOGLE_DOC_URL_PREFIX + document_id
         required_parameters = [[intent_parser_constants.PROTOCOL_FIELD_XPLAN_BASE_DIRECTORY, ''],
                                [intent_parser_constants.PROTOCOL_FIELD_XPLAN_REACTOR, 'xplan'],
                                [intent_parser_constants.PROTOCOL_FIELD_PLATE_SIZE, ''],
@@ -1331,18 +1292,17 @@ class IntentParserProcessor(object):
                                [intent_parser_constants.PROTOCOL_FIELD_PROTOCOL_ID, protocol_id],
                                [intent_parser_constants.PROTOCOL_FIELD_TEST_MODE, 'False'],
                                [intent_parser_constants.PROTOCOL_FIELD_EXPERIMENT_REFERENCE_URL_FOR_XPLAN, experiment_ref_url]]
+        table_template.extend(required_parameters)
+        optional_parameters = self._add_default_parameter_values(parameter_fields_from_lab)
+        table_template.extend(optional_parameters)
 
-        for param_name, parameter in parameter_fields_from_lab.items():
-            if not parameter.is_required():
-                continue
-            parameter_values = parameter.get_valid_values()
-            parameter_value = opil_util.get_param_value_as_string(parameter_values[0]) if len(parameter_values) > 0 else ' '
-            row = [param_name, parameter_value]
-            required_parameters.append(row)
+        column_width = [len(header) for header in header_row]
+        return intent_parser_view.create_table_template(data[ip_addon_constants.CURSOR_CHILD_INDEX],
+                                                        table_template,
+                                                        ip_addon_constants.TABLE_TYPE_PARAMETERS,
+                                                        column_width)
 
-        return required_parameters
-
-    def _add_optional_parameters(self, parameter_fields_from_lab):
+    def _add_default_parameter_values(self, parameter_fields_from_lab):
         optional_parameters = []
         for param_name, parameter in parameter_fields_from_lab.items():
             parameter_values = parameter.get_valid_values()

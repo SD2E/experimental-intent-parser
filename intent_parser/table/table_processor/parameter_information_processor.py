@@ -10,10 +10,10 @@ class ParameterInfoProcessor(Processor):
 
     logger = logging.getLogger('ParameterInfoProcessor')
 
-    def __init__(self, protocol_factory, lab_names=[]):
+    def __init__(self, lab_protocol_accessor, lab_names=[]):
         super().__init__()
         self._lab_names = lab_names
-        self._protocol_factory = protocol_factory
+        self._lab_protocol_accessor = lab_protocol_accessor
 
         self.intent = []
         self.processed_lab_name = ''
@@ -75,18 +75,19 @@ class ParameterInfoProcessor(Processor):
 
     def process_intent(self, lab_tables=[], parameter_tables=[]):
         self._process_lab_tables(lab_tables)
-        self._protocol_factory.set_selected_lab(self.processed_lab_name)
 
         if len(parameter_tables) == 0:
             self.validation_errors.append('Unable to get information about parameters: No parameter table to parse from document.')
             return
 
         self._process_parameter_tables(parameter_tables)
-        parameter_fields_from_lab = self._protocol_factory.map_parameter_values(self.processed_parameter.get_protocol_name())
+        parameter_fields_from_lab = self._lab_protocol_accessor.map_name_to_parameters(self.processed_parameter.get_protocol_name(),
+                                                                                       self.processed_lab_name)
         for field in parameter_fields_from_lab.values():
             self.intent.append(field)
 
-        self.processed_protocol_id = self._protocol_factory.get_protocol_id(self.processed_parameter.get_protocol_name())
+        self.processed_protocol_id = self._lab_protocol_accessor.get_protocol_id(self.processed_parameter.get_protocol_name(),
+                                                                                 self.processed_lab_name)
 
     def _process_lab_tables(self, lab_tables):
         if len(lab_tables) == 0:

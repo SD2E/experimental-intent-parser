@@ -98,7 +98,6 @@ class OpilProcessor(Processor):
     def _process_tables(self, lab_tables, control_tables, parameter_tables, measurement_tables):
         self._process_lab_tables(lab_tables)
         opil.set_namespace(self._get_namespace_from_lab())
-        self._lab_protocol_accessor.set_selected_lab(self.processed_lab_name)
         strain_mapping = self._sbol_dictionary.get_mapped_strain(self.processed_lab_name)
 
         if len(control_tables) == 0:
@@ -121,7 +120,8 @@ class OpilProcessor(Processor):
             raise IntentParserException('Name of lab must be provided for describing an experimental request but'
                                         'none was given.')
 
-        opil_lab_template = self._lab_protocol_accessor.load_experimental_protocol_from_lab(self.processed_protocol_name)
+        opil_lab_template = self._lab_protocol_accessor.load_experimental_protocol_from_lab(self.processed_protocol_name,
+                                                                                            self.processed_lab_name)
         experimental_request = ExperimentalRequest(self._get_namespace_from_lab(),
                                                    opil_lab_template,
                                                    self._experiment_id,

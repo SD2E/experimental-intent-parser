@@ -35,7 +35,7 @@ class ExperimentalProtocolProcessor2(Processor):
     def process_protocol_interface(self):
         protocol_interfaces = self._opil_document_template.get_protocol_interfaces()
         if not protocol_interfaces:
-            raise IntentParserException('No lab ProtocolInterface found.' % protocol_interfaces[0].identity)
+            raise IntentParserException('No ProtocolInterface found for lab: %s' % self._lab_intent.get_lab_name())
         if len(protocol_interfaces) > 1:
             raise IntentParserException('Expecting 1 ProtocolInterface but %d were found' % len(protocol_interfaces))
 

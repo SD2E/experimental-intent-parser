@@ -212,9 +212,9 @@ class IntentParser(object):
     def get_table_info(self):
         return self.table_info
 
-    def process_parameter_info(self, protocol_factory):
+    def process_parameter_info(self, lab_protocol_accessor):
         filtered_tables = self.get_tables_by_type()
-        param_info_processor = ParameterInfoProcessor(protocol_factory,
+        param_info_processor = ParameterInfoProcessor(lab_protocol_accessor,
                                                       lab_names=[ip_constants.LAB_TRANSCRIPTIC])
 
         param_info_processor.process_intent(lab_tables=filtered_tables[TableType.LAB],
@@ -306,13 +306,13 @@ class IntentParser(object):
         self.validation_warnings.extend(experimental_protocol.get_warnings())
         self.experimental_protocol = experimental_protocol.get_intent()
 
-    def process_opil_request(self, protocol_factory):
+    def process_opil_request(self, lab_protocol_accessor):
         filtered_tables = self.get_tables_by_type()
         experiment_ref = self._get_experiment_reference()
         experiment_ref_url = self._get_experiment_reference_url()
         opil_processor = OpilProcessor(experiment_ref,
                                        experiment_ref_url,
-                                       protocol_factory,
+                                       lab_protocol_accessor,
                                        self.sbol_dictionary,
                                        file_types=self.catalog_accessor.get_file_types(),
                                        lab_names=[ip_constants.LAB_TRANSCRIPTIC, ip_constants.LAB_DUKE_HASE])

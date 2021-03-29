@@ -76,10 +76,10 @@ def create_parameter_table_dialog(cursor_child_index,
     builder.cursor_child_index_html(cursor_child_index)
     builder.protocol_names_html(html_protocols)
 
-    builder.growthcurve_optional_parameter_fields(create_optional_fields_checkbox(growthcurve_optional_fields))
-    builder.obstaclecourse_optional_parameter_fields(create_optional_fields_checkbox(obstaclecourse_optional_fields))
-    builder.timeseries_optional_parameter_fields(create_optional_fields_checkbox(timeseries_optional_fields))
-    builder.cellfreeriboswitch_optional_parameter_fields(create_optional_fields_checkbox(cellfreeriboswitch_options))
+    # builder.growthcurve_optional_parameter_fields(create_optional_fields_checkbox(growthcurve_optional_fields))
+    # builder.obstaclecourse_optional_parameter_fields(create_optional_fields_checkbox(obstaclecourse_optional_fields))
+    # builder.timeseries_optional_parameter_fields(create_optional_fields_checkbox(timeseries_optional_fields))
+    # builder.cellfreeriboswitch_optional_parameter_fields(create_optional_fields_checkbox(cellfreeriboswitch_options))
     html_parameter = builder.build() 
     dialog_action = modal_dialog(html_parameter, 'Create Parameters Table', 600, 600)
     return dialog_action
