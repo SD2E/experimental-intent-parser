@@ -736,7 +736,7 @@ class IntentParserProcessor(object):
             action_list.append(dialog_action)
         elif table_type == ip_addon_constants.TABLE_TYPE_EXPERIMENT_PROTOCOLS:
             lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
-            lab_names = lab_protocol_accessor.get_lab_names()
+            lab_names = [intent_parser_constants.LAB_DUKE_HASE]
             aquarium_protocols = lab_protocol_accessor.get_protocol_names_from_lab(intent_parser_constants.LAB_DUKE_HASE)
             dialog_action = intent_parser_view.create_experimental_protocol_dialog(cursor_child_index, lab_names, aquarium_protocols)
             action_list.append(dialog_action)

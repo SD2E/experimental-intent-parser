@@ -1,5 +1,14 @@
 <!DOCTYPE html>
 <html>
+<style>
+  #selectLabId {
+        width: 150px;
+    }
+
+  #selectExperimentProtocolId {
+        width: 150px;
+    }
+</style>
 <body>
   <script>
     function onSuccess() {
@@ -24,13 +33,12 @@
     function insertProtocolOptions(){
         var theForm = this.createExperimentProtocolTablesForm;
         var selectedLab = theForm.labNames.value;
-        var tableCell = document.getElementById("experimentProtocolId");
 
         if(selectedLab == "Duke_Haase"){
-            tableCell.innerHTML = "<select id='selectExperimentProtocolId' name='experimentalProtocolName'>"+this.aquarium +"</select>";
+            document.getElementById("selectExperimentProtocolId").innerHTML = this.aquarium;
         }
         else{
-            tableCell.innerHTML = "<select id='selectExperimentProtocolId' name='experimentalProtocolName'><option>None</option></select>";
+            document.getElementById("selectExperimentProtocolId").innerHTML = "<option>None</option>";
         }
     }
 
@@ -43,7 +51,7 @@
       <input type="hidden" name="formName" value="createExperimentProtocolTables">
       <table stype="width:600px">
         <tr>
-          <td align="center">Select Lab:</td>
+          <td align="left">Select Lab:</td>
           <td align="center">
             <select id="selectLabId" name="labNames" onchange="insertProtocolOptions()">
               ${LAB_NAMES}
@@ -51,9 +59,9 @@
           </td>
         </tr>
         <tr>
-          <td align="center">Select Protocol:</td>
+          <td align="left">Select Protocol:</td>
           <td align="center" id="experimentProtocolId">
-            <select id="selectExperimentProtocolId" name="experimentalProtocolName">${AQUARIUMOPTIONS}</select>
+            <select id="selectExperimentProtocolId" name="experimentalProtocolName"><option>None</option></select>
           </td>
         </tr>
       </table>
