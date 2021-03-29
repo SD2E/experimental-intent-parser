@@ -1,14 +1,11 @@
 from intent_parser.intent.measure_property_intent import ReagentIntent, MediaIntent, NamedStringValue
-from intent_parser.intent.parameter_intent import ParameterIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.measurement_table import MeasurementTable
-from intent_parser.table.parameter_table import ParameterTable
 from intent_parser.utils.id_provider import IdProvider
 from sbol3 import SubComponent, TextProperty, LocalSubComponent
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-import intent_parser.utils.opil_utils as opil_utils
 import opil
 import sbol3.constants as sbol_constants
 import tyto
@@ -48,7 +45,7 @@ class OpilDocumentTemplate(object):
                 self.opil_sample_sets.append(top_level)
             elif isinstance(top_level, opil.ExperimentalRequest):
                 self.opil_experimental_requests.append(top_level)
-            elif isinstance(top_level, opil.Measurement):
+            elif isinstance(top_level, opil.MeasurementType):
                 self.opil_measurements.append(top_level)
             elif isinstance(top_level, opil.ProtocolInterface):
                 self.opil_protocol_interfaces.append(top_level)
@@ -566,21 +563,21 @@ class ExperimentalRequest(object):
         variable_feature = opil.VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
                                                 cardinality=sbol_constants.SBOL_ONE)
         variable_feature.variable = variable
-        variable_feature.variant = variants
+        variable_feature.variants = variants
         return variable_feature
 
     def _create_variable_feature_with_variant_derivation(self, variable, variant_derivations):
         variable_feature = opil.VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
                                                 cardinality=sbol_constants.SBOL_ONE)
         variable_feature.variable = variable
-        variable_feature.variant_derivation = variant_derivations
+        variable_feature.variant_derivations = variant_derivations
         return variable_feature
 
     def _create_variable_feature_with_variant_measures(self, variable, variant_measures):
         variable_feature = opil.VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
                                                 cardinality=sbol_constants.SBOL_ONE)
         variable_feature.variable = variable
-        variable_feature.variant_measure = variant_measures
+        variable_feature.variant_measures = variant_measures
         return variable_feature
 
     def _create_media_template(self, ip_media):
@@ -667,6 +664,7 @@ class ExperimentalRequest(object):
                                         % len(strain))
         elif len(strain) == 0:
             self.strain_template = self._create_opil_local_subcomponent(self._opil_measurement_template.strains_template)
+            self.strain_template.roles = [tyto.NCIT.get_uri_by_term(ip_constants.NCIT_STRAIN_NAME)]
             self.opil_components.append(strain)
         else:
             self.strain_template = strain[0]

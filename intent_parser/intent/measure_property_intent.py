@@ -123,6 +123,9 @@ class MediaIntent(object):
     def get_media_name(self) -> NamedLink:
         return self._media_name
 
+    def get_media_values(self):
+        return self._media_values
+
     def get_timepoint(self) -> TimepointIntent:
         return self._timepoint
 

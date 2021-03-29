@@ -67,6 +67,9 @@ class ParameterIntent(object):
     def set_xplan_reactor(self, value: str):
         self._xplan_reactor = value
 
+    def size_of_default_parameters(self):
+        return len(self._default_parameters)
+
     def to_structure_request(self):
         return self._default_parameters
 

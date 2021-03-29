@@ -17,6 +17,9 @@ class StrainIntent(object):
         self._strain_name = strain
         self._strain_commmon_name = ''
 
+    def get_name(self) -> NamedLink:
+        return self._strain_name
+
     def set_strain_lab_name(self, lab_name):
         if self._lab_name:
             raise IntentParserException('conflict setting stran lab name: Current lab set to %s' % self._lab_name)

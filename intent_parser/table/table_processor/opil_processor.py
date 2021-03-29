@@ -50,6 +50,7 @@ class OpilProcessor(Processor):
                    ip_constants.TIME_UNIT_YEAR]
 
     _MEASUREMENT_TYPE = [ip_constants.MEASUREMENT_TYPE_FLOW,
+                         ip_constants.MEASUREMENT_TYPE_FLUOESCENE_MICROSCOPY,
                          ip_constants.MEASUREMENT_TYPE_RNA_SEQ,
                          ip_constants.MEASUREMENT_TYPE_DNA_SEQ,
                          ip_constants.MEASUREMENT_TYPE_PROTEOMICS,
@@ -89,7 +90,10 @@ class OpilProcessor(Processor):
 
     def process_intent(self, lab_tables=[], control_tables=[], parameter_tables=[], measurement_tables=[]):
         self._process_tables(lab_tables, control_tables, parameter_tables, measurement_tables)
-        self._process_opil()
+        try:
+            self._process_opil()
+        except IntentParserException as err:
+            self.validation_errors.append(err.get_message())
 
     def _process_tables(self, lab_tables, control_tables, parameter_tables, measurement_tables):
         self._process_lab_tables(lab_tables)

@@ -14,7 +14,7 @@ class AquariumOpilAccessor(object):
     """
 
     logger = logging.getLogger('aqurium_opil_accessor')
-    _SUPPORTED_PROTOCOLS = {'jellyfish': 'jellyfish_htc.xml'}
+    _SUPPORTED_PROTOCOLS = {'High-Throughput Culturing': 'jellyfish_htc.xml'}
 
     def __init__(self):
        self.cached_protocols = {}

@@ -57,6 +57,9 @@ class MeasurementIntent(object):
     def add_timepoint(self, timepoint: TimepointIntent):
         self._timepoints.append(timepoint)
 
+    def has_measurement_type(self):
+        return True if self._measurement_type else False
+
     def get_contents(self):
         return self._contents
 
@@ -66,11 +69,17 @@ class MeasurementIntent(object):
     def get_file_types(self):
         return self._file_types
 
-    def get_timepoints(self):
-        return self._timepoints
-
     def get_measurement_type(self) -> str:
         return self._measurement_type
+
+    def get_strains(self):
+        return self._strains
+
+    def get_temperatures(self):
+        return self._temperatures
+
+    def get_timepoints(self):
+        return self._timepoints
 
     def is_empty(self):
         return (self._measurement_type is None and
@@ -179,16 +188,6 @@ class MeasurementIntent(object):
             raise IntentParserException(
                 'Unable to create an opil measurement-type: %s not supported' % self._measurement_type)
         return measurement_type
-
-    def control_to_opil_samplet_set(self):
-        control_header_template = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                                 component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-        # control_header_template.features = all_sample_templates
-
-        control_sampleset = opil.SampleSet(identity=self._id_provider.get_unique_sd2_id())
-        control_sampleset.template = [control_header_template]
-        # control_sampleset.variable_features = all_sample_variables
-        return control_sampleset
 
     def optical_density_values_to_opil_measures(self):
         return [opil.Measure(value, tyto.OM.number) for value in self._optical_densities]

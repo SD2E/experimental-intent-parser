@@ -137,10 +137,8 @@ class IntentParserProcessor(object):
         opil_document_template = protocol_factory.load_experimental_protocol_from_lab(experimental_protocol_name)
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_experimental_protocol_request(lab_name, opil_document_template)
-        experimental_protocol = intent_parser.get_experimental_protocol_request()
-        # todo: create google doc table templates
-        measurement_table_data = []
-        return {'measurementTable': measurement_table_data}
+        er_table_templates = intent_parser.get_experimental_protocol_request()
+        return er_table_templates
 
     def process_document_report(self, document_id):
         """

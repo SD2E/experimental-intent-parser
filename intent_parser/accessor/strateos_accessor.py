@@ -16,10 +16,10 @@ class StrateosAccessor(object):
     SYNC_PERIOD = timedelta(minutes=60)
     logger = logging.getLogger('intent_parser_strateos_accessor')
 
-    _SUPPORTING_PROTOCOLS = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
-                             ip_constants.GROWTH_CURVE_PROTOCOL,
-                             ip_constants.OBSTACLE_COURSE_PROTOCOL,
-                             ip_constants.TIME_SERIES_HTP_PROTOCOL]
+    _SUPPORTING_PROTOCOLS = [ip_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL]
+                             # ip_constants.GROWTH_CURVE_PROTOCOL,
+                             # ip_constants.OBSTACLE_COURSE_PROTOCOL,
+                             # ip_constants.TIME_SERIES_HTP_PROTOCOL]
 
     def __init__(self, credential_path=None, use_cache=True):
         if credential_path:
