@@ -85,8 +85,6 @@ class AnalyzeHtmlBuilder(object):
     def button_script(self, button_script):
         self.html = self.html.replace('${BUTTONS_SCRIPT}', button_script)
 
-    def build(self):
-        return self.html
 
 class ExperimentalProtocolHtmlBuilder(object):
     def __init__(self):
@@ -100,14 +98,19 @@ class ExperimentalProtocolHtmlBuilder(object):
     def lab_names_html(self, lab_names):
         self.html = self.html.replace('${LAB_NAMES}', lab_names)
 
-    def experimental_protocol_html(self, experimental_protocol_names):
-        self.html = self.html.replace('${EXPERIMENTAL_PROTOCOL_NAMES}', experimental_protocol_names)
+    def set_aquarium_html(self, aquarium_options):
+        self.html = self.html.replace('${AQUARIUMOPTIONS}', aquarium_options)
+
+    def build(self):
+        return self.html
+
 
 class ControlsTableHtmlBuilder(object):
     def __init__(self):
         _curr_path = os.path.dirname(os.path.realpath(__file__))
         html_file = intent_parser_utils.load_file(os.path.join(_curr_path, 'create_controls_table.html'))
-        self.html = html_file  
+        self.html = html_file
+
     def cursor_child_index_html(self, cursor_child_index):
         self.html = self.html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
 
@@ -116,6 +119,7 @@ class ControlsTableHtmlBuilder(object):
 
     def build(self):
         return self.html
+
 
 class MeasurementTableHtmlBuilder(object):
     def __init__(self):
@@ -140,7 +144,8 @@ class MeasurementTableHtmlBuilder(object):
 
     def build(self):
         return self.html
-    
+
+
 class ParameterTableHtmlBuilder(object):
     def __init__(self):
         _curr_path = os.path.dirname(os.path.realpath(__file__))
@@ -167,6 +172,7 @@ class ParameterTableHtmlBuilder(object):
 
     def build(self):
         return self.html
+
 
 class SpellcheckHtmlBuilder(object):
     def __init__(self):

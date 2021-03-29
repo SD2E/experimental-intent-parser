@@ -40,11 +40,24 @@ function onOpen() {
 }
 
 function experimentalProtocol(){
-    // get list of experiment names for lab
-    var response = UrlFetchApp.fetch(serverURL + '/experimentalProtocols');
-    // user select experiment
-    // ip return table templates for experiment
+    let doc = DocumentApp.getActiveDocument();
+	let cursorPosition = doc.getCursor();
+
+	if(cursorPosition == null) {
+		// Cursor position is null, so assume a selection
+		const selectionRange = doc.getSelection();
+		const rangeElement = selectionRange.getRangeElements()[0];
+		// Extract element and offset from end of selection
+		var el = rangeElement.getElement();
+	} else {
+		// Select element and off set from current position
+		var el = cursorPosition.getElement();
+	}
+	const childIndex = doc.getBody().getChildIndex(el);
+	const data = {'childIndex' : childIndex, 'tableType' : 'experimentProtocols'};
+	sendPost('/createTableTemplate', data);
 }
+
 
 function reportParametersInfo(){
 	var docId = DocumentApp.getActiveDocument().getId();

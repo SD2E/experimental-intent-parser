@@ -11,106 +11,53 @@
     }
 
     function handleSubmit() {
-        var extra = {"action": "createParameterTable"};
-        var theForm = this.createParameterTableForm;
+        var extra = {"action": "createExperimentProtocolTables"};
+        var theForm = this.createExperimentProtocolTablesForm;
         var formInfo = {"cursorChildIndex" : theForm.cursorChildIndex.value,
                         "formName" : theForm.formName.value,
-                        "protocol" : theForm.protocols.value,
-                        "optionalParameters": getSelectedOptionalParameters(),
-                        "lab": "Transcriptic"
-                        };
+                        "labName": theForm.labNames.value,
+                        "experimentalProtocolName": theForm.experimentalProtocolName.value};
         formInfo.extra = extra;
         google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);
     }
 
-    function getSelectedOptionalParameters(){
-        var parameterFields = new Array();
-        var checkboxes = document.getElementsByName("optionalParameter");
-        for (var checkbox of checkboxes) {
-            if (checkbox.checked){
-                parameterFields.push(checkbox.value);
-            }
+    function insertProtocolOptions(){
+        var theForm = this.createExperimentProtocolTablesForm;
+        var selectedLab = theForm.labNames.value;
+        var tableCell = document.getElementById("experimentProtocolId");
+
+        if(selectedLab == "Duke_Haase"){
+            tableCell.innerHTML = "<select id='selectExperimentProtocolId' name='experimentalProtocolName'>"+this.aquarium +"</select>";
         }
-        return parameterFields;
-    }
-
-    function insertOptions(){
-        var theForm = this.createParameterTableForm;
-        var selectedProtocol = theForm.protocols.value;
-        resetOptionsTable();
-        if(selectedProtocol == "GrowthCurve"){
-            var listOfOptions = self.growthCurve.split(",");
-            createOptionTable(listOfOptions);
-        }
-        else if(selectedProtocol == "TimeSeriesHTP"){
-            var listOfOptions = self.timeSeries.split(",");
-            createOptionTable(listOfOptions);
-        }
-        else if(selectedProtocol == "ObstacleCourse"){
-            var listOfOptions = self.obstacleCourse.split(",");
-            createOptionTable(listOfOptions);
-        }
-        else if(selectedProtocol == "CellFreeRiboswitches"){
-          var listOfOptions = self.cellFreeRiboSwitch.split(",");
-          createOptionTable(listOfOptions)
-        }
-
-    }
-
-    function resetOptionsTable(){
-        var table = document.getElementById("optionalFields");
-        table.innerHTML = "";
-    }
-
-    function createOptionTable(listOfOptions){
-        var table = document.getElementById("optionalFields");
-        var header = table.createTHead();
-        header.innerHTML += "<tr><td colspan='2'>Optional Parameter(s):</td></tr>";
-
-        for (var index=0; index<listOfOptions.length; index++){
-            var checkbox = document.createElement("input");
-            checkbox.setAttribute("type", "checkbox");
-            checkbox.setAttribute("id", "chkIfParam" + index);
-            checkbox.setAttribute("name", "optionalParameter");
-            checkbox.setAttribute("value", listOfOptions[index]);
-
-            var label = document.createElement("label");
-            label.setAttribute("for", "chkIfParam"+index);
-            label.appendChild(document.createTextNode(listOfOptions[index]));
-
-            var newRow = table.insertRow();
-            var col1 = newRow.insertCell(0);
-            col1.appendChild(checkbox);
-
-            var col2 = newRow.insertCell(1);
-            col2.appendChild(label);
+        else{
+            tableCell.innerHTML = "<select id='selectExperimentProtocolId' name='experimentalProtocolName'><option>None</option></select>";
         }
     }
-    this.growthCurve= "${GROWTHCURVEPARAMETEROPTIONS}";
-    this.timeSeries ="${TIMESERIESPARAMETEROPTIONS}";
-    this.obstacleCourse = "${OBSTACLECOURSEPARAMETEROPTIONS}";
-    this.cellFreeRiboSwitch = "${CELLFREERIBOSWITCHOPTIONS}";
+
+    this.aquarium = "${AQUARIUMOPTIONS}";
   </script>
 
   <center>
-    <form name="createParameterTableForm" action="/add">
+    <form name="createExperimentProtocolTablesForm" action="/add">
       <input type="hidden" name="cursorChildIndex" value="${CURSOR_CHILD_INDEX}">
-      <input type="hidden" name="formName" value="createParameterTable">
+      <input type="hidden" name="formName" value="createExperimentProtocolTables">
       <table stype="width:600px">
         <tr>
-          <td align="center"><b>Select Lab:</b>
-            <select id="protocol_opt" name="protocols" onchange="insertOptions()">
+          <td align="center">Select Lab:</td>
+          <td align="center">
+            <select id="selectLabId" name="labNames" onchange="insertProtocolOptions()">
               ${LAB_NAMES}
             </select>
           </td>
         </tr>
         <tr>
-          <td>
-            <table id="optionalFields" stype="width:100%"></table>
+          <td align="center">Select Protocol:</td>
+          <td align="center" id="experimentProtocolId">
+            <select id="selectExperimentProtocolId" name="experimentalProtocolName">${AQUARIUMOPTIONS}</select>
           </td>
         </tr>
       </table>
-      <input type="button" value="Submit" id="submitButton" title="Submit form and generate a parameter table template." onclick="handleSubmit()">
+      <input type="button" value="Submit" id="submitButton" title="Submit form to generate table templates for the desired experimental protocol." onclick="handleSubmit()">
       <input type="button" value="Cancel" id="cancelButton" onclick="handleCancel()">
     </form>
   </center>

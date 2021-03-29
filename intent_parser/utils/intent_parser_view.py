@@ -76,7 +76,7 @@ def create_parameter_table_dialog(cursor_child_index,
     builder.cursor_child_index_html(cursor_child_index)
     builder.protocol_names_html(html_protocols)
 
-    # builder.growthcurve_optional_parameter_fields(create_optional_fields_checkbox(growthcurve_optional_fields))
+    builder.growthcurve_optional_parameter_fields(create_optional_fields_checkbox(growthcurve_optional_fields))
     # builder.obstaclecourse_optional_parameter_fields(create_optional_fields_checkbox(obstaclecourse_optional_fields))
     # builder.timeseries_optional_parameter_fields(create_optional_fields_checkbox(timeseries_optional_fields))
     # builder.cellfreeriboswitch_optional_parameter_fields(create_optional_fields_checkbox(cellfreeriboswitch_options))
@@ -84,10 +84,14 @@ def create_parameter_table_dialog(cursor_child_index,
     dialog_action = modal_dialog(html_parameter, 'Create Parameters Table', 600, 600)
     return dialog_action
 
-def create_experimental_protocol_dialog(cursor_index, lab_names):
+def create_experimental_protocol_dialog(cursor_index, lab_names, aquarium_protocols):
     builder = ExperimentalProtocolHtmlBuilder()
     builder.cursor_child_index_html(cursor_index)
     builder.lab_names_html(generate_html_options(lab_names))
+    builder.set_aquarium_html(generate_html_options(aquarium_protocols))
+    html = builder.build()
+    dialog_action = modal_dialog(html, 'Experimental Protocols', 600, 600)
+    return dialog_action
 
 def create_measurement_table_dialog(cursor_child_index):
     catalog_accessor = CatalogAccessor()
@@ -144,10 +148,7 @@ def generate_existing_link_html(title, target, two_col=False):
 def generate_html_options(options):
     options_html = ''
     for item_type in options:
-        options_html += '''
-        <option>%s</option> 
-        ''' % item_type
-
+        options_html += '''<option>%s</option> ''' % item_type
     return options_html
     
 def get_download_structured_request_link(host: str, document_id: str):

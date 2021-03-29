@@ -15,8 +15,11 @@ class LabProtocolAccessor(object):
         """
         experimental_protocols = {}
         for lab_name, lab_accessor in self._lab_accessors.items():
-            experimental_protocols[lab_name] = lab_accessor.map_name_to_experimental_protocols()
+            experimental_protocols[lab_name] = self.get_protocol_names_from_lab(lab_name)
         return experimental_protocols
+
+    def get_lab_names(self):
+        return list(self._lab_accessors.keys())
 
     def get_protocol_names_from_lab(self, lab_name):
         """
