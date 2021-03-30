@@ -60,8 +60,11 @@ class LabProtocolAccessor(object):
             raise IntentParserException('No lab ProtocolInterface found with protocol name: %s' % protocol_name)
         if len(protocol_interfaces) > 1:
             raise IntentParserException('Expecting 1 ProtocolInterface but %d were found' % len(protocol_interfaces))
+
         protocol_interface = protocol_interfaces[0]
-        return protocol_interface.strateos_id # todo check syntax
+        if lab_name == ip_constants.LAB_TRANSCRIPTIC:
+            return protocol_interface.strateos_id
+        return ''
 
     def map_name_to_parameters(self, protocol_name, lab_name):
         """
