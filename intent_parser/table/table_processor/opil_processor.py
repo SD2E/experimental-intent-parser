@@ -150,6 +150,7 @@ class OpilProcessor(Processor):
             run_parameter_fields, run_parameter_values = self.processed_parameter.to_opil_for_experiment()
             experimental_request.add_new_parameters(run_parameter_fields, run_parameter_values)
 
+        experimental_request.connect_properties()
         self.opil_document = experimental_request.to_opil()
 
     def _get_namespace_from_lab(self):

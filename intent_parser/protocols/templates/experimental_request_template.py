@@ -200,8 +200,20 @@ class ExperimentalRequest(object):
 
         opil_protocol_interface = self.opil_protocol_interfaces[0]
         opil_experimental_request = self.opil_experimental_requests[0]
-        opil_protocol_interface.parameter.has_parameter.extend(run_parameter_fields)
+        opil_protocol_interface.has_parameter.extend(run_parameter_fields)
         opil_experimental_request.has_parameter_value.extend(run_parameter_values)
+
+    def connect_properties(self):
+        if len(self.opil_experimental_requests) != 1:
+            raise IntentParserException('Expecting 1 ExperimentalRequest but %d were found'
+                                        % len(self.opil_experimental_requests))
+        experimental_request = self.opil_experimental_requests[0]
+        experimental_request.measurements = [measurement.identity for measurement in self.opil_measurements]
+        experimental_request.sample_set = self.opil_sample_sets
+        if len(self.opil_protocol_interfaces) != 1:
+            raise IntentParserException('Expecting 1 ProtocolInterface but %d were found.' % len(self.opil_protocol_interfaces))
+        experimental_request.instance_of = self.opil_protocol_interfaces[0].identity
+        experimental_request.has_parameter_value = self.opil_parameter_values
 
     def create_components_from_template(self):
         if self._opil_measurement_template.batch_template:
@@ -241,14 +253,14 @@ class ExperimentalRequest(object):
                 'expecting 1 but got %d opil.ExperimentalRequest.' % len(self.opil_experimental_requests))
 
         opil_protocol_interface = self.opil_protocol_interfaces[0]
-        opil_experimental_request = self.opil_experimental_requests[0]
+        # opil_experimental_request = self.opil_experimental_requests[0]
         for parameter in opil_protocol_interface.has_parameter:
             opil_parameter_template = OpilParameterTemplate()
             opil_parameter_template.parameter = parameter
             self.lab_field_id_to_values[parameter.identity] = opil_parameter_template
 
-        for parameter_value in opil_experimental_request.has_parameter_value:
-            parameter_id = parameter_value.value_of
+        for parameter_value in self.opil_parameter_values:
+            parameter_id = str(parameter_value.value_of)
             if parameter_id not in self.lab_field_id_to_values:
                 raise IntentParserException('opil.ParameterValue %s points to an unknown parameter %s'
                                             % (parameter_value.identity, parameter_id))
@@ -337,21 +349,40 @@ class ExperimentalRequest(object):
             raise IntentParserException('More than one SampleSet found from lab protocol.')
 
         while len(self.opil_sample_sets) < number_of_sample_sets:
-            self.opil_sample_sets.append(sample_set.copy())
+            sample_set = opil.SampleSet(identity=self._id_provider.get_unique_sd2_id())
+            sample_set.template = self.sample_template
+            self.opil_sample_sets.append(sample_set)
 
     def load_sample_template_from_experimental_request(self):
         if not self.opil_experimental_requests:
             raise IntentParserException('No experimental request found.')
+        uris_to_components = {}
+        for component in self.opil_components:
+            if component.identity not in uris_to_components:
+                uris_to_components[component.identity] = component
+            else:
+                if uris_to_components[component.identity]:
+                    raise IntentParserException('conflict mapping opil.Components with same identity.')
 
-        unique_templates = {sample_set.template for sample_set in self.opil_sample_sets if sample_set.template}
+        unique_templates = []
+        for sample in self.opil_sample_sets:
+            str_template = str(sample.template)
+            if not sample.template:
+                raise IntentParserException('A SampleSet must have a template but none was set: %s' % sample.identity)
+            if str_template not in uris_to_components:
+                raise IntentParserException('No Component found for SampleSet.template: %s' % str_template)
+            unique_templates.append(uris_to_components[str_template])
+
         if not unique_templates:
             self.sample_template = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
                                                   component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
             self.sample_template.features = self._get_opil_features()
             self.opil_components.append(self.sample_template)
-        else:
+        elif len(unique_templates) > 1:
+            raise IntentParserException('Expecting 1 SampleSet template but %d were found' % len(unique_templates))
             # Assume only one per request.
-            self.sample_template = unique_templates.pop()
+        self.sample_template = unique_templates.pop()
+
 
     def to_opil(self):
         opil_doc = opil.Document()
@@ -481,8 +512,8 @@ class ExperimentalRequest(object):
                 # media
                 if content.size_of_medias() > 0:
                     for media in content.get_medias():
-                        if media.get_name() in self.media_and_reagents_templates:
-                            media_template = self.media_and_reagents_templates[media.get_name()]
+                        if media.get_media_name().get_name() in self.media_and_reagents_templates:
+                            media_template = self.media_and_reagents_templates[media.get_media_name().get_name()]
                             last_encoded_media_template = media_template
                             media_components = media.values_to_opil_components()
                             self.opil_components.extend(media_components)
@@ -520,8 +551,8 @@ class ExperimentalRequest(object):
                 # reagent
                 if content.size_of_reagents() > 0:
                     for reagent in content.get_reagents():
-                        if reagent.get_name() in self.media_and_reagents_templates:
-                            reagent_template = self.media_and_reagents_templates[reagent.get_name()]
+                        if reagent.get_reagent_name().get_name() in self.media_and_reagents_templates:
+                            reagent_template = self.media_and_reagents_templates[reagent.get_reagent_name().get_name()]
                             reagent_measures = reagent.reagent_values_to_opil_measures()
                             reagent_variable = self._create_variable_feature_with_variant_measures(reagent_template,
                                                                                                    reagent_measures)

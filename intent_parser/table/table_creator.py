@@ -20,10 +20,55 @@ class TableCreator(object):
 
         protocol_name = parameter_intent.get_protocol_name() if parameter_intent.get_protocol_name() else ' '
         parameter_table.append([ip_constants.PARAMETER_PROTOCOL_NAME, protocol_name])
-
+        required_parameters = [[ip_constants.PROTOCOL_FIELD_XPLAN_BASE_DIRECTORY, ''],
+                               [ip_constants.PROTOCOL_FIELD_XPLAN_REACTOR, 'xplan'],
+                               [ip_constants.PROTOCOL_FIELD_PLATE_SIZE, ''],
+                               [ip_constants.PROTOCOL_FIELD_PLATE_NUMBER, ' '],
+                               [ip_constants.PROTOCOL_FIELD_CONTAINER_SEARCH_STRING, ' '],
+                               [ip_constants.PROTOCOL_FIELD_STRAIN_PROPERTY, ' '],
+                               [ip_constants.PROTOCOL_FIELD_XPLAN_PATH, ''],
+                               [ip_constants.PROTOCOL_FIELD_SUBMIT, 'True'],
+                               [ip_constants.PROTOCOL_FIELD_PROTOCOL_ID, ''],
+                               [ip_constants.PROTOCOL_FIELD_TEST_MODE, 'False'],
+                               [ip_constants.PROTOCOL_FIELD_EXPERIMENT_REFERENCE_URL_FOR_XPLAN,'']]
+        parameter_table.extend(required_parameters)
         for name, value in parameter_intent.get_default_parameters().items():
             parameter_table.append([name, str(value)])
         return parameter_table
+
+    def _add_run_parameters(self, parameter_intent, parameter_table):
+        parameter_value = parameter_intent.get_xplan_base_dir() if parameter_intent.get_xplan_base_dir() else ' '
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_XPLAN_BASE_DIRECTORY, parameter_value])
+
+        parameter_value = parameter_intent.get_xplan_reactor() if parameter_intent.get_xplan_reactor() else 'xplan'
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_XPLAN_REACTOR, parameter_value])
+
+        parameter_value = parameter_intent.get_plate_size() if parameter_intent.get_plate_size() else ' '
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_PLATE_SIZE, parameter_value])
+
+        parameter_value = parameter_intent.get_plate_number() if parameter_intent.get_plate_number() else ' '
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_PLATE_NUMBER, parameter_value])
+
+        parameter_value = parameter_intent.get_container_search_string() if parameter_intent.get_container_search_string() else ' '
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_CONTAINER_SEARCH_STRING, parameter_value])
+
+        parameter_value = parameter_intent.get_strain_property() if parameter_intent.get_strain_property() else ' '
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_STRAIN_PROPERTY, parameter_value])
+
+        parameter_value = parameter_intent.get_xplan_path() if parameter_intent.get_xplan_path() else ' '
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_XPLAN_PATH, parameter_value])
+
+        parameter_value = parameter_intent.get_submit_flag() if parameter_intent.get_submit_flag() else 'True'
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_SUBMIT, parameter_value])
+
+        parameter_value = parameter_intent.get_protocol_id() if parameter_intent.get_protocol_id() else ' '
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_PROTOCOL_ID, parameter_value])
+
+        parameter_value = parameter_intent.get_test_mode() if parameter_intent.get_test_mode() else 'False'
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_TEST_MODE, parameter_value])
+
+        parameter_value = parameter_intent.get_experiment_ref_url() if parameter_intent.get_experiment_ref_url() else ' '
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_EXPERIMENT_REFERENCE_URL_FOR_XPLAN, parameter_value])
 
     def create_measurement_table_from_intents(self, measurement_intents):
         measurement_headers = self._create_measurement_table_header(measurement_intents)

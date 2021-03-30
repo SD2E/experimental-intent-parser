@@ -13,7 +13,7 @@ import intent_parser.utils.opil_utils as opil_utils
 import intent_parser.utils.sbol3_utils as sbol3_utils
 import logging
 
-class ExperimentalProtocolProcessor2(Processor):
+class ExperimentalProtocolProcessor(Processor):
     """
     Generate an experiment from a protocol request
     """
