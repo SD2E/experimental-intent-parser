@@ -6,7 +6,7 @@ from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccess
 from intent_parser.intent_parser_exceptions import IntentParserException, RequestErrorException
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.accessor.intent_parser_sbh import IntentParserSBH
-from intent_parser.protocols.labs.strateos_accessor2 import StrateosAccessor2
+from intent_parser.protocols.labs.strateos_accessor import StrateosAccessor
 from intent_parser.server.intent_parser_processor import IntentParserProcessor
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import logging.config
@@ -810,7 +810,7 @@ class IntentParserServer(object):
         sbh = IntentParserSBH(self._sbh_username, self._sbh_password)
         sbol_dictionary = SBOLDictionaryAccessor(intent_parser_constants.SD2_SPREADSHEET_ID, sbh)
         datacatalog_config = {"mongodb": {"database": "catalog_staging", "authn": self._datacatalog_authn}}
-        strateos_accessor = StrateosAccessor2(self._transcriptic_credential)
+        strateos_accessor = StrateosAccessor(self._transcriptic_credential)
         intent_parser_factory = IntentParserFactory(datacatalog_config, sbh, sbol_dictionary)
         self.ip_processor = IntentParserProcessor(sbh, sbol_dictionary, strateos_accessor, intent_parser_factory)
         self.ip_processor.initialize_intent_parser_processor()

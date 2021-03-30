@@ -10,7 +10,7 @@ import time
 import threading
 
 
-class StrateosAccessor2(OpilLabAccessors):
+class StrateosAccessor(OpilLabAccessors):
     """
     Retrieve protocols from Strateos
     """
