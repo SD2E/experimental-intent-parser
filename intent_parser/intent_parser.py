@@ -1,7 +1,6 @@
 from datacatalog.formats.common import map_experiment_reference
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
 from intent_parser.intent_parser_exceptions import IntentParserException
-from intent_parser.table.table_processor.experimental_protocol_processor import ExperimentalProtocolProcessor
 from intent_parser.table.table_processor.experimental_protocol_processor2 import ExperimentalProtocolProcessor2
 from intent_parser.table.table_processor.opil_processor import OpilProcessor
 from intent_parser.table.table_processor.parameter_information_processor import ParameterInfoProcessor
