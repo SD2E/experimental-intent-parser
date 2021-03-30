@@ -6,6 +6,7 @@ from intent_parser.utils.id_provider import IdProvider
 from sbol3 import SubComponent, TextProperty, LocalSubComponent
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
+import intent_parser.utils.opil_utils as opil_utils
 import opil
 import sbol3.constants as sbol_constants
 import tyto
@@ -241,7 +242,7 @@ class ExperimentalRequest(object):
 
         opil_protocol_interface = self.opil_protocol_interfaces[0]
         opil_experimental_request = self.opil_experimental_requests[0]
-        for parameter in opil_protocol_interface.parameter.has_parameter:
+        for parameter in opil_protocol_interface.has_parameter:
             opil_parameter_template = OpilParameterTemplate()
             opil_parameter_template.parameter = parameter
             self.lab_field_id_to_values[parameter.identity] = opil_parameter_template
@@ -365,12 +366,27 @@ class ExperimentalRequest(object):
         return opil_doc
 
     def update_parameter_values(self, document_parameter_names_to_values):
-        name_to_parameter = {parameter.name: parameter for parameter in self.lab_field_id_to_values.values()}
+        name_to_parameter = {}
+        for opil_parameter_template in self.lab_field_id_to_values.values():
+            opil_parameter = opil_parameter_template.parameter
+            if not opil_parameter.name:
+                raise IntentParserException('Opil Parameter missing a name: %s' % opil_parameter.identity)
+            if opil_parameter.name in name_to_parameter:
+                raise IntentParserException('More than one opil Parameter with the same name: %s' % opil_parameter.name)
+            name_to_parameter[opil_parameter.name] = opil_parameter_template
+
         for parameter_name, parameter_value in document_parameter_names_to_values.items():
             if parameter_name in name_to_parameter:
                 opil_parameter_template = name_to_parameter[parameter_name]
+                opil_parameter = opil_parameter_template.parameter
                 opil_parameter_value = opil_parameter_template.parameter_value
-                opil_parameter_value.value = parameter_value
+                if not opil_parameter_value:
+                    opil_parameter_value = opil_utils.create_parameter_value_from_parameter(opil_parameter,
+                                                                                            opil_parameter_value,
+                                                                                            parameter_value)
+                    self.opil_parameter_values.append(opil_parameter_value)
+                else:
+                    opil_parameter_value.value = parameter_value
 
     def _map_opil_measurement_to_intent(self, measurement_intents, opil_measurements):
         measurement_type_to_intent = {}
@@ -445,7 +461,7 @@ class ExperimentalRequest(object):
                 if content.size_of_column_id() > 0 and self.column_id_template:
                     col_id_components = content.col_id_values_to_opil_components()
                     self.opil_components.extend(col_id_components)
-                    col_id_variable = self._create_variable_feature_with_variants(self.col_id_template,
+                    col_id_variable = self._create_variable_feature_with_variants(self.column_id_template,
                                                                                   col_id_components)
                     all_sample_variables.append(col_id_variable)
                 # dna_reaction_concentration
