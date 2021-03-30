@@ -2,7 +2,6 @@ from flask import Flask, make_response, request, redirect
 from flask_restful import Api, Resource
 from flasgger import Swagger
 from http import HTTPStatus
-from intent_parser.protocols.labs.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.intent_parser_exceptions import IntentParserException, RequestErrorException
 from intent_parser.intent_parser_factory import IntentParserFactory
