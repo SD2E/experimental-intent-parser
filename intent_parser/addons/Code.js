@@ -23,7 +23,7 @@ function onOpen() {
 	menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor');
 	menu.addItem('Analyze from top', 'sendAnalyzeFromTop');
 	menu.addItem('Calculate samples for measurements table', 'calculateSamples');
-    menu.addItem('Import Experimental Protocol', 'experimentalProtocol');
+    menu.addItem('Import Experimental Protocol template', 'experimentalProtocol');
     menu.addItem('Generate OPIL', 'sendOpilRequest');
 	menu.addItem('Generate Report', 'sendGenerateReport');
 	menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest');

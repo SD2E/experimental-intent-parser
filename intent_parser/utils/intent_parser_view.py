@@ -67,6 +67,7 @@ def create_controls_table_dialog(cursor_index):
 
 def create_parameter_table_dialog(cursor_child_index,
                                   protocol_names,
+                                  lab_name,
                                   timeseries_optional_fields=[],
                                   growthcurve_optional_fields=[],
                                   obstaclecourse_optional_fields=[],
@@ -75,8 +76,9 @@ def create_parameter_table_dialog(cursor_child_index,
     builder = ParameterTableHtmlBuilder()
     builder.cursor_child_index_html(cursor_child_index)
     builder.protocol_names_html(html_protocols)
+    builder.lab_name_html(lab_name)
 
-    builder.growthcurve_optional_parameter_fields(create_optional_fields_checkbox(growthcurve_optional_fields))
+    # builder.growthcurve_optional_parameter_fields(create_optional_fields_checkbox(growthcurve_optional_fields))
     # builder.obstaclecourse_optional_parameter_fields(create_optional_fields_checkbox(obstaclecourse_optional_fields))
     # builder.timeseries_optional_parameter_fields(create_optional_fields_checkbox(timeseries_optional_fields))
     # builder.cellfreeriboswitch_optional_parameter_fields(create_optional_fields_checkbox(cellfreeriboswitch_options))

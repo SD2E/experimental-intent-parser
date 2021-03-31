@@ -155,6 +155,9 @@ class ParameterTableHtmlBuilder(object):
     def cursor_child_index_html(self, cursor_child_index):
         self.html = self.html.replace('${CURSOR_CHILD_INDEX}', cursor_child_index)
 
+    def lab_name_html(self, lab_name):
+        self.html = self.html.replace('${LABNAME}', lab_name)
+
     def protocol_names_html(self, html_protocols):
         self.html = self.html.replace('${PROTOCOLNAMES}', html_protocols)
 
