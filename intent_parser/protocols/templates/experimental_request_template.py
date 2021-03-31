@@ -215,7 +215,10 @@ class ExperimentalRequest(object):
         experimental_request.instance_of = self.opil_protocol_interfaces[0].identity
         experimental_request.has_parameter_value = self.opil_parameter_values
 
-    def create_components_from_template(self):
+    def create_subcomponents_from_template(self):
+        if not self.sample_template:
+            raise IntentParserException('Expecting value set for SampleSet.template but none was found.')
+        local_sub_components = self.sample_template.features
         if self._opil_measurement_template.batch_template:
             self.batch_template = self._create_opil_local_subcomponent(self._opil_measurement_template.batch_template)
         if self._opil_measurement_template.column_id_template:
@@ -239,8 +242,9 @@ class ExperimentalRequest(object):
         if self._opil_measurement_template.template_dna_template:
             self.template_dna_template = self._create_opil_local_subcomponent(self._opil_measurement_template.template_dna_template)
 
-        self._load_strain_template()
-        self._load_reagent_and_media_templates()
+        self._load_strain_template(local_sub_components)
+        self._load_reagent_and_media_templates(local_sub_components)
+        self.sample_template.features = self._get_opil_features()
 
     def load_lab_parameters(self):
         if not self.opil_protocol_interfaces:
@@ -376,8 +380,8 @@ class ExperimentalRequest(object):
         if not unique_templates:
             self.sample_template = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
                                                   component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
-            self.sample_template.features = self._get_opil_features()
             self.opil_components.append(self.sample_template)
+            return
         elif len(unique_templates) > 1:
             raise IntentParserException('Expecting 1 SampleSet template but %d were found' % len(unique_templates))
             # Assume only one per request.
@@ -415,6 +419,7 @@ class ExperimentalRequest(object):
                     opil_parameter_value = opil_utils.create_parameter_value_from_parameter(opil_parameter,
                                                                                             opil_parameter_value,
                                                                                             parameter_value)
+                    opil_parameter_value.value_of = opil_parameter
                     self.opil_parameter_values.append(opil_parameter_value)
                 else:
                     opil_parameter_value.value = parameter_value
@@ -597,18 +602,21 @@ class ExperimentalRequest(object):
                                          component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
         media_component.name = media_name.get_name()
         media_component.roles = [ip_constants.NCIT_MEDIA_URI]
+        media_template = None
         if media_name.get_link() is None:
             media_template = SubComponent(media_component)
+            media_template.name = media_name.get_name()
             media_component.features = [media_template]
         else:
             media_template = SubComponent(media_name.get_link())
+            media_template.name = media_name.get_name()
             media_component.features = [media_template]
 
         if ip_media.get_timepoint():
             media_timepoint_measure = ip_media.get_timepoint().to_opil_measure()
             media_template.measures = [media_timepoint_measure]
         self.opil_components.append(media_component)
-        return media_component
+        return media_template
 
     def _create_reagent_template(self, ip_reagent):
         reagent_name = ip_reagent.get_reagent_name()
@@ -616,11 +624,14 @@ class ExperimentalRequest(object):
                                            component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
         reagent_component.roles = [ip_constants.NCIT_REAGENT_URI]
         reagent_component.name = reagent_name.get_name()
+        reagent_template = None
         if reagent_name.get_link() is None:
             reagent_template = SubComponent(reagent_component)
+            reagent_template.name = reagent_name.get_name()
             reagent_component.features = [reagent_template]
         else:
             reagent_template = SubComponent(reagent_name.get_link())
+            reagent_template.name = reagent_name.get_name()
             reagent_component.features = [reagent_template]
 
         if ip_reagent.get_timepoint():
@@ -628,7 +639,7 @@ class ExperimentalRequest(object):
             reagent_template.measures = [reagent_timepoint_measure]
 
         self.opil_components.append(reagent_component)
-        return reagent_component
+        return reagent_template
 
     def _get_opil_features(self):
         all_sample_templates = []
@@ -668,26 +679,25 @@ class ExperimentalRequest(object):
         # Assume only one per request.
         return unique_templates.pop()
 
-    def _load_strain_template(self):
-        strain = self._filter_components_by_role(ip_constants.NCIT_STRAIN_NAME)
+    def _load_strain_template(self, local_sub_components):
+        strain = [component for component in local_sub_components if ip_constants.NCIT_STRAIN_URI in component.roles]
         if len(strain) > 1:
             raise IntentParserException('Expecting 1 strain template but %d were found in experimental protocol'
                                         % len(strain))
         elif len(strain) == 0:
             self.strain_template = self._create_opil_local_subcomponent(self._opil_measurement_template.strains_template)
             self.strain_template.roles = [tyto.NCIT.get_uri_by_term(ip_constants.NCIT_STRAIN_NAME)]
-            self.opil_components.append(strain)
         else:
             self.strain_template = strain[0]
 
-    def _load_reagent_and_media_templates(self):
-        for opil_component in self.opil_components:
-            if tyto.NCIT.get_uri_by_term(ip_constants.NCIT_REAGENT_NAME) in opil_component.roles:
-                self.media_and_reagents_templates[opil_component.name] = opil_component
-            elif tyto.NCIT.get_uri_by_term(ip_constants.NCIT_MEDIA_NAME) in opil_component.roles:
-                self.media_and_reagents_templates[opil_component.name] = opil_component
-            elif tyto.NCIT.get_uri_by_term(ip_constants.NCIT_INDUCER_NAME) in opil_component.roles:
-                self.media_and_reagents_templates[opil_component.name] = opil_component
+    def _load_reagent_and_media_templates(self, local_sub_components):
+        for opil_local_subcomponent in local_sub_components:
+            if ip_constants.NCIT_REAGENT_URI in opil_local_subcomponent.roles:
+                self.media_and_reagents_templates[opil_local_subcomponent.name] = opil_local_subcomponent
+            elif ip_constants.NCIT_MEDIA_URI in opil_local_subcomponent.roles:
+                self.media_and_reagents_templates[opil_local_subcomponent.name] = opil_local_subcomponent
+            elif ip_constants.NCIT_INDUCER_URI in opil_local_subcomponent.roles:
+                self.media_and_reagents_templates[opil_local_subcomponent.name] = opil_local_subcomponent
 
         for ip_component in self._opil_measurement_template.media_and_reagent_templates:
             if isinstance(ip_component, ReagentIntent):

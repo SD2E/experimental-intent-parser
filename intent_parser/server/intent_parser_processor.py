@@ -148,8 +148,14 @@ class IntentParserProcessor(object):
                                                                                       lab_name)
         intent_parser = self.intent_parser_factory.create_intent_parser(doc_id)
         intent_parser.process_experimental_protocol_request(lab_name, opil_document_template)
-        er_table_templates = intent_parser.get_experimental_protocol_request()
+        validation_warnings = intent_parser.get_validation_warnings()
+        validation_errors = intent_parser.get_validation_errors()
+        if len(validation_errors) > 0:
+            errors = ['Unable to generate experimental protocol.']
+            errors.extend(validation_errors)
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=errors, warnings=validation_warnings)
 
+        er_table_templates = intent_parser.get_experimental_protocol_request()
         actions = []
         if 'parameterTable' in er_table_templates:
             lab_table_len = self._calculate_table_dimensions(er_table_templates['parameterTable'])
@@ -732,7 +738,8 @@ class IntentParserProcessor(object):
             lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
             protocol_names = lab_protocol_accessor.get_protocol_names_from_lab(lab_name)
             dialog_action = intent_parser_view.create_parameter_table_dialog(cursor_child_index,
-                                                                             protocol_names)
+                                                                             protocol_names,
+                                                                             lab_name)
             action_list.append(dialog_action)
         elif table_type == ip_addon_constants.TABLE_TYPE_EXPERIMENT_PROTOCOLS:
             lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)

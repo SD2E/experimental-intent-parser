@@ -137,8 +137,8 @@ class OpilProcessor(Processor):
         # add measurement table info
         if self.measurement_table:
             experimental_request.load_from_measurement_table(self.measurement_table)
-            experimental_request.create_components_from_template()
             experimental_request.load_sample_template_from_experimental_request()
+            experimental_request.create_subcomponents_from_template()
             experimental_request.load_sample_set(len(self.measurement_table.get_intents()))
             experimental_request.add_variable_features_from_measurement_intents(self.measurement_table.get_intents())
             experimental_request.load_and_update_measurement(self.measurement_table.get_intents())
