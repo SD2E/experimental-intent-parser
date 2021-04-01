@@ -327,14 +327,13 @@ class ExperimentalRequest(object):
         self._opil_measurement_template.load_from_measurement_table(measurement_table)
 
     def load_and_update_measurement(self, measurement_intents):
-        if not self.opil_experimental_requests:
-            raise IntentParserException('No experimental request found.')
-
-        opil_experimental_request = self.opil_experimental_requests[0]
+        if not self.opil_protocol_interfaces:
+            raise IntentParserException('No Protocol Interface found')
+        if len(self.opil_protocol_interfaces) > 1:
+            raise IntentParserException('Expecting 1 ProtocolInterface but %d were found.' % len(self.opil_protocol_interfaces))
+        protocol_interface = self.opil_protocol_interfaces[0]
         opil_measurement_intent_pairs, unmapped_measurement_intents = self._map_opil_measurement_to_intent(measurement_intents,
-                                                                                                           self.opil_measurements)
-        if len(unmapped_measurement_intents) > 0:
-            opil_experimental_request.measurements.extend(unmapped_measurement_intents)
+                                                                                                           protocol_interface.protocol_measurement_type)
         for opil_measurement, intent in opil_measurement_intent_pairs:
             if intent.size_of_file_types() > 0:
                 intent.file_types_to_opil_measurement_annotation(opil_measurement)
@@ -711,7 +710,7 @@ class ExperimentalRequest(object):
                     media_component = self._create_media_template(ip_component)
                     self.media_and_reagents_templates[media_component.name] = media_component
 
-    def _map_opil_measurement_to_intent(self, measurement_intents, opil_measurements):
+    def _map_opil_measurement_to_intent(self, measurement_intents, opil_measurement_types):
         measurement_type_to_intent = {}
         opil_measurement_intent_pairs = []
         unmapped_measurement_intents = []
@@ -727,14 +726,13 @@ class ExperimentalRequest(object):
                 raise IntentParserException('Measurement type is missing.')
 
         # Mapping existing opil objects to intent
-        for opil_measurement in opil_measurements:
-            opil_measurement_type = opil_measurement.instance_of.type
+        for opil_measurement_type in opil_measurement_types:
             if opil_measurement_type not in measurement_type_to_intent:
                 raise IntentParserException('Invalid measurement type not used in document %s' % opil_measurement_type)
             if not measurement_type_to_intent[opil_measurement_type]:
                 raise IntentParserException('Unable to map opil to intent')
             opil_intent = measurement_type_to_intent[opil_measurement_type].pop()
-            opil_measurement_intent_pairs.append((opil_measurement, opil_intent))
+            opil_measurement_intent_pairs.append((opil_measurement_type, opil_intent))
 
         # Collecting intents that are not mapped and need to be created.
         for intents in measurement_type_to_intent.values():
@@ -742,6 +740,7 @@ class ExperimentalRequest(object):
                 new_opil_measurement = opil.Measurement(self._id_provider.get_unique_sd2_id())
                 new_opil_measurement_type = intent.measurement_type_to_opil_measurement_type()
                 new_opil_measurement.instance_of = new_opil_measurement_type
+                self.opil_measurements.append(new_opil_measurement)
                 unmapped_measurement_intents.append(new_opil_measurement)
                 opil_measurement_intent_pairs.append((new_opil_measurement, intent))
 
