@@ -1,4 +1,3 @@
-from intent_parser.intent_parser_exceptions import IntentParserException
 from sbol3 import CombinatorialDerivation
 import intent_parser.constants.intent_parser_constants as ip_constants
 

@@ -332,8 +332,8 @@ class ExperimentalRequest(object):
         if len(self.opil_protocol_interfaces) > 1:
             raise IntentParserException('Expecting 1 ProtocolInterface but %d were found.' % len(self.opil_protocol_interfaces))
         protocol_interface = self.opil_protocol_interfaces[0]
-        opil_measurement_intent_pairs, unmapped_measurement_intents = self._map_opil_measurement_to_intent(measurement_intents,
-                                                                                                           protocol_interface.protocol_measurement_type)
+        opil_measurement_intent_pairs = self._map_opil_measurement_to_intent(measurement_intents,
+                                                                             protocol_interface.protocol_measurement_type)
         for opil_measurement, intent in opil_measurement_intent_pairs:
             if intent.size_of_file_types() > 0:
                 intent.file_types_to_opil_measurement_annotation(opil_measurement)
@@ -678,6 +678,32 @@ class ExperimentalRequest(object):
         # Assume only one per request.
         return unique_templates.pop()
 
+    def _get_measurement_type_from_uri(self, opil_measurement_type):
+        if opil_measurement_type == ip_constants.NCIT_FLOW_URI:
+            return ip_constants.MEASUREMENT_TYPE_FLOW
+        elif opil_measurement_type == ip_constants.NCIT_RNA_SEQ_URI:
+            return ip_constants.MEASUREMENT_TYPE_RNA_SEQ
+        elif opil_measurement_type == ip_constants.NCIT_DNA_SEQ_URI:
+            return ip_constants.MEASUREMENT_TYPE_DNA_SEQ
+        elif opil_measurement_type == ip_constants.NCIT_PROTEOMICS_URI:
+            return ip_constants.MEASUREMENT_TYPE_PROTEOMICS
+        elif opil_measurement_type == ip_constants.NCIT_SEQUENCING_CHROMATOGRAM_URI:
+            return ip_constants.MEASUREMENT_TYPE_SEQUENCING_CHROMATOGRAM
+        elif opil_measurement_type == ip_constants.SD2_AUTOMATED_TEST_URI:
+            return ip_constants.MEASUREMENT_TYPE_AUTOMATED_TEST
+        elif opil_measurement_type == ip_constants.NCIT_CFU_URI:
+            return ip_constants.MEASUREMENT_TYPE_CFU
+        elif opil_measurement_type == ip_constants.NCIT_PLATE_READER_URI:
+            return ip_constants.MEASUREMENT_TYPE_PLATE_READER
+        elif opil_measurement_type == ip_constants.SD2_CONDITION_SPACE_URI:
+            return ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE
+        elif opil_measurement_type == ip_constants.SD2_EXPERIMENTAL_DESIGN_URI:
+            return ip_constants.MEASUREMENT_TYPE_EXPERIMENTAL_DESIGN
+        elif opil_measurement_type == ip_constants.NCIT_FLUORESCENCE_MICROSCOPY:
+            return ip_constants.MEASUREMENT_TYPE_FLUOESCENE_MICROSCOPY
+        else:
+            raise IntentParserException('opil.MeasurementType not supported in Intent parser: %s' % opil_measurement_type)
+
     def _load_strain_template(self, local_sub_components):
         strain = [component for component in local_sub_components if ip_constants.NCIT_STRAIN_URI in component.roles]
         if len(strain) > 1:
@@ -713,7 +739,6 @@ class ExperimentalRequest(object):
     def _map_opil_measurement_to_intent(self, measurement_intents, opil_measurement_types):
         measurement_type_to_intent = {}
         opil_measurement_intent_pairs = []
-        unmapped_measurement_intents = []
 
         # Collect measurement intents by type
         for measurement_intent in measurement_intents:
@@ -727,7 +752,10 @@ class ExperimentalRequest(object):
 
         # Mapping existing opil objects to intent
         for opil_measurement_type in opil_measurement_types:
-            if opil_measurement_type not in measurement_type_to_intent:
+            if not opil_measurement_type.type:
+                raise IntentParserException('A MeasurementType.type is required but none was found: s' % opil_measurement_type.identity)
+            measurement_type = self._get_measurement_type_from_uri(opil_measurement_type.type)
+            if measurement_type not in measurement_type_to_intent:
                 raise IntentParserException('Invalid measurement type not used in document %s' % opil_measurement_type)
             if not measurement_type_to_intent[opil_measurement_type]:
                 raise IntentParserException('Unable to map opil to intent')
@@ -741,10 +769,9 @@ class ExperimentalRequest(object):
                 new_opil_measurement_type = intent.measurement_type_to_opil_measurement_type()
                 new_opil_measurement.instance_of = new_opil_measurement_type
                 self.opil_measurements.append(new_opil_measurement)
-                unmapped_measurement_intents.append(new_opil_measurement)
                 opil_measurement_intent_pairs.append((new_opil_measurement, intent))
 
-        return opil_measurement_intent_pairs, unmapped_measurement_intents
+        return opil_measurement_intent_pairs
 
     def _validate_parameters_from_lab(self):
         pass # todo

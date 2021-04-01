@@ -2,13 +2,12 @@
 Provides a list of functions for building opil objects.
 """
 from intent_parser.intent.measure_property_intent import MeasuredUnit
+from intent_parser.intent_parser_exceptions import IntentParserException
 import intent_parser.utils.sbol3_utils as sbol3_utils
 import intent_parser.table.cell_parser as cell_parser
 import intent_parser.constants.intent_parser_constants as ip_constants
 import opil
 import tyto
-
-from intent_parser.intent_parser_exceptions import IntentParserException
 
 
 def create_opil_boolean_parameter_field(field_id: str, field: str):
