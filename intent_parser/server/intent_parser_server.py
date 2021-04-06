@@ -685,6 +685,39 @@ class PostRunExperiment(Resource):
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
+
+class PostRunOpilExperiment(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        """
+        Executes a given experiment with opil data.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
+        """
+        # previously called executeExperiment
+        try:
+            experiment_data = self._ip_processor.process_run_opil_experiment_post(request.get_json())
+            return experiment_data, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_warnings()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
+
+
 class PostSearchSynBioHub(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
@@ -902,6 +935,9 @@ class IntentParserServer(object):
                          resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(PostRunExperiment,
                          '/run_experiment',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostRunOpilExperiment,
+                         '/run_opil_experiment',
                          resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(PostSearchSynBioHub,
                          '/searchSynBioHub',

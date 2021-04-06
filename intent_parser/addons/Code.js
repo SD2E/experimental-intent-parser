@@ -14,6 +14,10 @@ function onOpen() {
 	tableHelpMenu.addItem('Measurements', 'reportMeasurementsInfo');
 	tableHelpMenu.addItem('Parameters', 'reportParametersInfo');
 
+	const runExperimentMenu = ui.createMenu('Run Experiment');
+	runExperimentMenu.addItem('with Structured Request', 'executeExperiment');
+	runExperimentMenu.addItem('with OPIL', 'executeOpilExperiment');
+
 	const helpMenu = ui.createMenu('Help');
 	helpMenu.addSubMenu(tableHelpMenu);
 	helpMenu.addItem('About', 'showHelp');
@@ -28,7 +32,7 @@ function onOpen() {
 	menu.addItem('Generate Report', 'sendGenerateReport');
 	menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest');
 	menu.addItem('Report Experiment Status', 'reportExperimentStatus');
-	menu.addItem('Run Experiment', 'executeExperiment');
+	menu.addSubMenu(runExperimentMenu);
 	menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor');
 	menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling');
 	menu.addItem('Update experimental results', 'updateExperimentalResults');
@@ -205,6 +209,10 @@ function enterLinkPrompt(title, msg) {
 
 function executeExperiment() {
 	sendPost('/run_experiment');
+}
+
+function executeOpilExperiment() {
+	sendPost('/run_opil_experiment');
 }
 
 function reportExperimentStatus() {
@@ -818,4 +826,3 @@ function createParameterTable(){
 	const data = {'childIndex' : childIndex, 'tableType' : 'parameters'};
 	sendPost('/createTableTemplate', data);
 }
-

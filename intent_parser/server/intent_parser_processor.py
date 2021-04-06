@@ -20,6 +20,7 @@ import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.utils.opil_utils as opil_util
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
+import json
 import logging.config
 import os
 import traceback
@@ -264,7 +265,7 @@ class IntentParserProcessor(object):
         validation_errors.extend(intent_parser.get_validation_errors())
 
         request_data = intent_parser.get_experiment_request()
-        response_json = TACCGoAccessor().execute_experiment(request_data)
+        response_json = TACCGoAccessor().execute_experiment(json.dumps(request_data))
         if '_links' not in response_json and 'self' not in response_json['_links']:
             validation_errors.append('Intent Parser unable to get redirect link to TACC authentication webpage.')
 
@@ -287,7 +288,41 @@ class IntentParserProcessor(object):
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
             request_data = intent_parser.get_experiment_request()
-            response_json = TACCGoAccessor().execute_experiment(request_data)
+            response_json = TACCGoAccessor().execute_experiment(json.dumps(request_data))
+
+        action_list = []
+        if not response_json or ('_links' not in response_json and 'self' not in response_json['_links']):
+            validation_errors.append('Intent Parser unable to get redirect link to TACC authentication webpage.')
+
+        if len(validation_errors) == 0:
+            link = response_json['_links']['self']
+            action_list.append(intent_parser_view.create_execute_experiment_dialog(link))
+        else:
+            all_messages = []
+            all_messages.extend(validation_warnings)
+            all_messages.extend(validation_errors)
+            dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to execute experiment',
+                                                                            all_messages)
+            action_list.append(dialog_action)
+        actions = {'actions': action_list}
+        return actions
+
+    def process_run_opil_experiment_post(self, json_body):
+        validation_errors = []
+        validation_warnings = []
+        response_json = {}
+        if json_body is None:
+            validation_errors.append('Unable to get information from Google document.')
+        else:
+            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+            intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+            lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
+            intent_parser.process_opil_request(lab_protocol_accessor)
+            validation_warnings.extend(intent_parser.get_validation_warnings())
+            validation_errors.extend(intent_parser.get_validation_errors())
+            opil_doc = intent_parser.get_opil_request()
+            request_data = opil_doc.write_string('xml')
+            response_json = TACCGoAccessor().execute_experiment(request_data, content_type='text/xml')
 
         action_list = []
         if not response_json or ('_links' not in response_json and 'self' not in response_json['_links']):
