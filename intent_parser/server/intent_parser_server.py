@@ -2,11 +2,11 @@ from flask import Flask, make_response, request, redirect
 from flask_restful import Api, Resource
 from flasgger import Swagger
 from http import HTTPStatus
-from intent_parser.protocols.labs.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.intent_parser_exceptions import IntentParserException, RequestErrorException
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.accessor.intent_parser_sbh import IntentParserSBH
+from intent_parser.protocols.labs.strateos_accessor import StrateosAccessor
 from intent_parser.server.intent_parser_processor import IntentParserProcessor
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import logging.config
@@ -104,10 +104,7 @@ class GetExperimentalProtocols(Resource):
         ---
         responses:
             200:
-                schema:
-                    properties:
-                    doc_id:
-                        type: object
+                description: a dictionary containing name of labs and their supporting experimental protocols.
         """
         try:
             report = self._ip_processor.process_get_experimental_protocol_names()

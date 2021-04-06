@@ -2,7 +2,6 @@ from datacatalog.formats.common import map_experiment_reference
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.table.table_processor.experimental_protocol_processor import ExperimentalProtocolProcessor
-from intent_parser.table.table_processor.experimental_protocol_processor2 import ExperimentalProtocolProcessor2
 from intent_parser.table.table_processor.opil_processor import OpilProcessor
 from intent_parser.table.table_processor.parameter_information_processor import ParameterInfoProcessor
 from intent_parser.table.table_processor.structured_request_processor import StructuredRequestProcessor
@@ -300,7 +299,7 @@ class IntentParser(object):
         self.processed_lab_name = lab_name
 
     def process_experimental_protocol_request(self, lab_name, opil_document_template):
-        experimental_protocol = ExperimentalProtocolProcessor2(opil_document_template, lab_name)
+        experimental_protocol = ExperimentalProtocolProcessor(opil_document_template, lab_name)
         experimental_protocol.process_protocol_interface()
         self.validation_errors.extend(experimental_protocol.get_errors())
         self.validation_warnings.extend(experimental_protocol.get_warnings())

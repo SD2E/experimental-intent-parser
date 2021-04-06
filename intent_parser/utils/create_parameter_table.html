@@ -17,7 +17,7 @@
                         "formName" : theForm.formName.value,
                         "protocol" : theForm.protocols.value,
                         "optionalParameters": getSelectedOptionalParameters(),
-                        "lab": "Transcriptic"
+                        "lab": this.labName
                         };
         formInfo.extra = extra;
         google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);
@@ -90,6 +90,7 @@
     this.timeSeries ="${TIMESERIESPARAMETEROPTIONS}";
     this.obstacleCourse = "${OBSTACLECOURSEPARAMETEROPTIONS}";
     this.cellFreeRiboSwitch = "${CELLFREERIBOSWITCHOPTIONS}";
+    this.labName= "${LABNAME}";
   </script>
 
   <center>

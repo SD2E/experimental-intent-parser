@@ -137,8 +137,8 @@ class OpilProcessor(Processor):
         # add measurement table info
         if self.measurement_table:
             experimental_request.load_from_measurement_table(self.measurement_table)
-            experimental_request.create_components_from_template()
             experimental_request.load_sample_template_from_experimental_request()
+            experimental_request.create_subcomponents_from_template()
             experimental_request.load_sample_set(len(self.measurement_table.get_intents()))
             experimental_request.add_variable_features_from_measurement_intents(self.measurement_table.get_intents())
             experimental_request.load_and_update_measurement(self.measurement_table.get_intents())
@@ -150,6 +150,7 @@ class OpilProcessor(Processor):
             run_parameter_fields, run_parameter_values = self.processed_parameter.to_opil_for_experiment()
             experimental_request.add_new_parameters(run_parameter_fields, run_parameter_values)
 
+        experimental_request.connect_properties()
         self.opil_document = experimental_request.to_opil()
 
     def _get_namespace_from_lab(self):

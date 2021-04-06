@@ -25,11 +25,44 @@ class ParameterIntent(object):
     def add_parameter(self, field, value):
         self._default_parameters[field] = value
 
+    def get_container_search_string(self):
+        return self._container_search_strings
+
     def get_default_parameters(self) -> dict:
         return self._default_parameters
 
+    def get_experiment_ref_url(self):
+        return self._experiment_reference_url_for_xplan
+
+    def get_plate_number(self):
+        return self._plate_number
+
+    def get_plate_size(self):
+        return self._plate_size
+
+    def get_protocol_id(self):
+        return self._protocol_id
+
     def get_protocol_name(self):
         return self._protocol_name
+
+    def get_strain_property(self):
+        return self._strain_property
+
+    def get_submit_flag(self):
+        return self._submit
+
+    def get_test_mode(self):
+        return self._test_mode
+
+    def get_xplan_base_dir(self):
+        return self._base_dir
+
+    def get_xplan_path(self):
+        return self._xplan_path
+
+    def get_xplan_reactor(self):
+        return self._xplan_reactor
 
     def set_base_dir(self, value: str):
         self._base_dir = value

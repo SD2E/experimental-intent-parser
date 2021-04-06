@@ -131,8 +131,11 @@ class IntentParserProcessor(object):
         lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
         return lab_protocol_accessor.map_name_to_experimental_protocols()
 
-    def process_experimental_protocol_request(self, json_body):
-        document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+    def process_experimental_protocol_request(self, json_body, document_id=''):
+        doc_id = document_id
+        if not document_id:
+            doc_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+
         if ip_addon_constants.LAB_NAME not in json_body:
             raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=['Missing %s' % ip_addon_constants.LAB_NAME])
         if ip_addon_constants.EXPERIMENT_PROTOCOL_NAME not in json_body:
@@ -143,10 +146,50 @@ class IntentParserProcessor(object):
         protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
         opil_document_template = protocol_factory.load_experimental_protocol_from_lab(experimental_protocol_name,
                                                                                       lab_name)
-        intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+        intent_parser = self.intent_parser_factory.create_intent_parser(doc_id)
         intent_parser.process_experimental_protocol_request(lab_name, opil_document_template)
+        validation_warnings = intent_parser.get_validation_warnings()
+        validation_errors = intent_parser.get_validation_errors()
+        if len(validation_errors) > 0:
+            errors = ['Unable to generate experimental protocol.']
+            errors.extend(validation_errors)
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=errors, warnings=validation_warnings)
+
         er_table_templates = intent_parser.get_experimental_protocol_request()
-        return er_table_templates
+        actions = []
+        if 'parameterTable' in er_table_templates:
+            lab_table_len = self._calculate_table_dimensions(er_table_templates['parameterTable'])
+            parameter_table = intent_parser_view.create_table_template(json_body[ip_addon_constants.CURSOR_CHILD_INDEX],
+                                                 er_table_templates['parameterTable'],
+                                                 ip_addon_constants.TABLE_TYPE_PARAMETERS,
+                                                 lab_table_len)
+            actions.extend(parameter_table)
+        if 'measurementTable' in er_table_templates and 'labTable' in er_table_templates:
+            measurement_table_len = self._calculate_table_dimensions(er_table_templates['measurementTable'])
+            measurement_table = intent_parser_view.create_table_template(json_body[ip_addon_constants.CURSOR_CHILD_INDEX],
+                                                                         er_table_templates['measurementTable'],
+                                                                         ip_addon_constants.TABLE_TYPE_MEASUREMENTS,
+                                                                         measurement_table_len,
+                                                                         additional_info={ip_addon_constants.TABLE_TYPE_LAB: er_table_templates['labTable']})
+            actions.extend(measurement_table)
+        if 'labTable' in er_table_templates:
+            lab_table_len = self._calculate_table_dimensions(er_table_templates['labTable'])
+            lab_table = intent_parser_view.create_table_template(json_body[ip_addon_constants.CURSOR_CHILD_INDEX],
+                                                                 er_table_templates['labTable'],
+                                                                 ip_addon_constants.TABLE_TYPE_MEASUREMENTS,
+                                                                 lab_table_len)
+            actions.extend(lab_table)
+        return actions
+
+    def _calculate_table_dimensions(self, table_template):
+        table_len = []
+        for row_index in range(len(table_template)):
+            row_length = []
+            for col_index in range(len(table_template[row_index])):
+                col_size = len(table_template[row_index][col_index])
+                row_length.append(col_size)
+            table_len.append(row_length)
+            return table_len
 
     def process_document_report(self, document_id):
         """
@@ -438,6 +481,10 @@ class IntentParserProcessor(object):
             actions = self.process_create_parameter_table(data, json_body['documentId'])
             result['actions'] = actions
             result['results'] = {'operationSucceeded': True}
+        elif action_type == 'createExperimentProtocolTables':
+            actions = self.process_experimental_protocol_request(data, document_id=document_id)
+            result['actions'] = actions
+            result['results'] = {'operationSucceeded': True}
         else:
             message = 'Request %s not supported in Intent Parser' % action_type
             result = intent_parser_view.operation_failed(message)
@@ -688,10 +735,17 @@ class IntentParserProcessor(object):
             intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
             intent_parser.process_lab_name()
             lab_name = intent_parser.get_lab_name()
-            protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
-            protocol_names = protocol_factory.get_protocol_names_from_lab(lab_name)
+            lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
+            protocol_names = lab_protocol_accessor.get_protocol_names_from_lab(lab_name)
             dialog_action = intent_parser_view.create_parameter_table_dialog(cursor_child_index,
-                                                                             protocol_names)
+                                                                             protocol_names,
+                                                                             lab_name)
+            action_list.append(dialog_action)
+        elif table_type == ip_addon_constants.TABLE_TYPE_EXPERIMENT_PROTOCOLS:
+            lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
+            lab_names = ['select lab', intent_parser_constants.LAB_DUKE_HASE]
+            aquarium_protocols = lab_protocol_accessor.get_protocol_names_from_lab(intent_parser_constants.LAB_DUKE_HASE)
+            dialog_action = intent_parser_view.create_experimental_protocol_dialog(cursor_child_index, lab_names, aquarium_protocols)
             action_list.append(dialog_action)
         else:
             self.logger.warning('Table type not supported: %s' % table_type)

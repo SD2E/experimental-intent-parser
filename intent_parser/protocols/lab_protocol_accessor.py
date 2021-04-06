@@ -15,8 +15,11 @@ class LabProtocolAccessor(object):
         """
         experimental_protocols = {}
         for lab_name, lab_accessor in self._lab_accessors.items():
-            experimental_protocols[lab_name] = lab_accessor.map_name_to_experimental_protocols()
+            experimental_protocols[lab_name] = self.get_protocol_names_from_lab(lab_name)
         return experimental_protocols
+
+    def get_lab_names(self):
+        return list(self._lab_accessors.keys())
 
     def get_protocol_names_from_lab(self, lab_name):
         """
@@ -57,8 +60,11 @@ class LabProtocolAccessor(object):
             raise IntentParserException('No lab ProtocolInterface found with protocol name: %s' % protocol_name)
         if len(protocol_interfaces) > 1:
             raise IntentParserException('Expecting 1 ProtocolInterface but %d were found' % len(protocol_interfaces))
+
         protocol_interface = protocol_interfaces[0]
-        return protocol_interface.strateos_id # todo check syntax
+        if lab_name == ip_constants.LAB_TRANSCRIPTIC:
+            return protocol_interface.strateos_id
+        return ''
 
     def map_name_to_parameters(self, protocol_name, lab_name):
         """

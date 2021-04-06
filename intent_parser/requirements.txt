@@ -19,5 +19,5 @@ sbol2
 sbol3==1.0a6
 six==1.13.0
 tenacity
-transcriptic
+transcriptic==9.1.0
 tyto==1.0a4
