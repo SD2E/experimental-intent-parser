@@ -251,7 +251,6 @@ class ExperimentalRequest(object):
                 'expecting 1 but got %d opil.ExperimentalRequest.' % len(self.opil_experimental_requests))
 
         opil_protocol_interface = self.opil_protocol_interfaces[0]
-        # opil_experimental_request = self.opil_experimental_requests[0]
         for parameter in opil_protocol_interface.has_parameter:
             opil_parameter_template = OpilParameterTemplate()
             opil_parameter_template.parameter = parameter

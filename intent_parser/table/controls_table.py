@@ -176,7 +176,6 @@ class ControlsTable(object):
 
     def _process_timepoint(self, cell, control, row_index, column_index):
         try:
-            result = []
             for measured_unit in cell_parser.PARSER.process_values_unit(cell.get_text(),
                                                                         units=self._timepoint_units,
                                                                         unit_type=ip_constants.UNIT_TYPE_TIMEPOINTS):
