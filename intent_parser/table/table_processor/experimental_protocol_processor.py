@@ -110,7 +110,6 @@ class ExperimentalProtocolProcessor(Processor):
             parameter_id_to_param_value[opil_parameter_value.value_of] = opil_parameter_value
 
         for opil_parameter in parameters:
-            parameter_intent = ParameterIntent()
             if not opil_parameter.name:
                 raise IntentParserException('No name assigned to Parameter %s.' % opil_parameter.identity)
             parameter_name = opil_parameter.name
