@@ -11,7 +11,6 @@ import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
 import opil
 
-
 class OpilProcessor(Processor):
 
     logger = logging.getLogger('opil_processor')
@@ -147,8 +146,7 @@ class OpilProcessor(Processor):
         if self.processed_parameter:
             experimental_request.load_lab_parameters()
             experimental_request.update_parameter_values(self.processed_parameter.get_default_parameters())
-            run_parameter_fields, run_parameter_values = self.processed_parameter.to_opil_for_experiment()
-            experimental_request.add_new_parameters(run_parameter_fields, run_parameter_values)
+            experimental_request.add_run_parameters(self.processed_parameter)
 
         experimental_request.connect_properties()
         self.opil_document = experimental_request.to_opil()

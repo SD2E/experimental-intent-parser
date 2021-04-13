@@ -1,4 +1,5 @@
 from intent_parser.intent.measure_property_intent import ReagentIntent, MediaIntent, NamedStringValue
+from intent_parser.intent.parameter_intent import ParameterIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.measurement_table import MeasurementTable
@@ -10,6 +11,7 @@ import intent_parser.utils.opil_utils as opil_utils
 import opil
 import sbol3.constants as sbol_constants
 import tyto
+
 
 class OpilDocumentTemplate(object):
     def __init__(self):
@@ -173,7 +175,7 @@ class ExperimentalRequest(object):
         self.use_rna_inhib_template = None
         self.media_and_reagents_templates = {}
         self.sample_template = None
-        self.lab_field_id_to_values = {}
+        self.lab_parameter_field_id_to_values = {}
 
     def add_variable_features_from_measurement_intents(self, measurement_intents):
         for index in range(len(measurement_intents)):
@@ -182,20 +184,124 @@ class ExperimentalRequest(object):
             all_sample_variables = self._create_sample_variables_from_measurement_intent(measurement_intent)
             sample_set.variable_features = all_sample_variables
 
-    def add_new_parameters(self, run_parameter_fields, run_parameter_values):
-        if not self.opil_protocol_interfaces:
-            self.opil_protocol_interfaces.append(opil.ProtocolInterface(identity=self._id_provider.get_unique_sd2_id()))
-        elif len(self.opil_protocol_interfaces) > 1:
-            raise IntentParserException('expecting 1 but got %d opil.ProtocolInterface.' % len(self.opil_protocol_interfaces))
-
-        if len(self.opil_experimental_requests) != 1:
-            raise IntentParserException(
-                'expecting 1 but got %d opil.ExperimentalRequest.' % len(self.opil_experimental_requests))
-
+    def add_run_parameters(self, parameter_intent: ParameterIntent):
+        """Adds run configurations for experiment as a parameter to a ProtocolInterface.
+        Note: Unlike a structured request, protocol name is not encoded as run parameters in opil but rather ProtocolInterface
+              Similarly, protocol_id is represented as a cutom annotation and not as parameters
+        Args:
+            parameter_intent: refer to parameters processed from a paramater table
+        """
+        if len(self.opil_protocol_interfaces) != 1:
+            raise IntentParserException('Expecting 1 but got %d opil.ProtocolInterface(s).' % len(self.opil_protocol_interfaces))
         opil_protocol_interface = self.opil_protocol_interfaces[0]
-        opil_experimental_request = self.opil_experimental_requests[0]
-        opil_protocol_interface.has_parameter.extend(run_parameter_fields)
-        opil_experimental_request.has_parameter_value.extend(run_parameter_values)
+
+        if parameter_intent.get_xplan_base_dir() is None:
+            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_BASE_DIR)
+        base_dir = self._create_opil_string_parameter_field(ip_constants.PARAMETER_BASE_DIR)
+        opil_protocol_interface.has_parameter.append(base_dir)
+        base_dir_value = self._create_opil_string_parameter_value(parameter_intent.get_xplan_base_dir())
+        base_dir_value.value_of = base_dir
+        self.opil_parameter_values.append(base_dir_value)
+
+        xplan_reactor = self._create_opil_string_parameter_field(ip_constants.PARAMETER_XPLAN_REACTOR)
+        opil_protocol_interface.has_parameter.append(xplan_reactor)
+        xplan_reactor_value = self._create_opil_string_parameter_value(parameter_intent.get_xplan_reactor())
+        xplan_reactor_value.value_of = xplan_reactor
+        self.opil_parameter_values.append(xplan_reactor_value)
+
+        if parameter_intent.get_plate_size() is None:
+            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_PLATE_SIZE)
+        plate_size = self._create_opil_integer_parameter_field(ip_constants.PARAMETER_PLATE_SIZE)
+        opil_protocol_interface.has_parameter.append(plate_size)
+        plate_size_value = self._create_opil_integer_parameter_value(parameter_intent.get_plate_size())
+        plate_size_value.value_of = plate_size
+        self.opil_parameter_values.append(plate_size_value)
+
+        if parameter_intent.get_plate_number() is None:
+            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_PLATE_NUMBER)
+        plate_number = self._create_opil_integer_parameter_field(ip_constants.PARAMETER_PLATE_NUMBER)
+        opil_protocol_interface.has_parameter.append(plate_number)
+        plate_number_value = self._create_opil_integer_parameter_value(parameter_intent.get_plate_number())
+        plate_number_value.value_of = plate_number
+        self.opil_parameter_values.append(plate_number_value)
+
+        container_search_string = self._create_opil_string_parameter_field(ip_constants.PARAMETER_CONTAINER_SEARCH_STRING)
+        opil_protocol_interface.has_parameter.append(container_search_string)
+        if parameter_intent.get_container_search_string() == dc_constants.GENERATE:
+            container_search_string_value = self._create_opil_string_parameter_value(parameter_intent.get_container_search_string())
+            container_search_string_value.value_of = container_search_string
+            self.opil_parameter_values.append(container_search_string_value)
+        else:
+            for value in parameter_intent.get_container_search_string():
+                container_search_string_value = self._create_opil_string_parameter_value(value)
+                container_search_string_value.value_of = container_search_string
+                self.opil_parameter_values.append(container_search_string_value)
+
+        if parameter_intent.get_strain_property() is None:
+            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_STRAIN_PROPERTY)
+        strain_property = self._create_opil_string_parameter_field(ip_constants.PARAMETER_STRAIN_PROPERTY)
+        opil_protocol_interface.has_parameter.append(strain_property)
+        strain_property_value = self._create_opil_string_parameter_value(parameter_intent.get_strain_property())
+        strain_property_value.value_of = strain_property
+        self.opil_parameter_values.append(strain_property_value)
+
+        if parameter_intent.get_xplan_path() is None:
+            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_XPLAN_PATH)
+        xplan_path = self._create_opil_string_parameter_field(ip_constants.PARAMETER_XPLAN_PATH)
+        opil_protocol_interface.has_parameter.append(xplan_path)
+        xplan_path_value = self._create_opil_string_parameter_value(parameter_intent.get_xplan_path())
+        xplan_path_value.value_of = xplan_path
+        self.opil_parameter_values.append(xplan_path_value)
+
+        submit = self._create_opil_boolean_parameter_field(ip_constants.PARAMETER_SUBMIT)
+        opil_protocol_interface.has_parameter.append(submit)
+        submit_value = self._create_opil_boolean_parameter_value(parameter_intent.get_submit_flag())
+        submit_value.value_of = submit
+        self.opil_parameter_values.append(submit_value)
+
+        test_mode = self._create_opil_boolean_parameter_field(ip_constants.PARAMETER_TEST_MODE)
+        opil_protocol_interface.has_parameter.append(test_mode)
+        test_mode_value = self._create_opil_boolean_parameter_value(parameter_intent.get_submit_flag())
+        test_mode_value.value_of = test_mode
+        self.opil_parameter_values.append(test_mode_value)
+
+        if parameter_intent.get_experiment_ref_url() is None:
+            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN)
+        experiment_ref_url = self._create_opil_string_parameter_field(ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN)
+        opil_protocol_interface.has_parameter.append(experiment_ref_url)
+        experiment_ref_url_value = self._create_opil_string_parameter_value(parameter_intent.get_experiment_ref_url())
+        experiment_ref_url_value.value_of = experiment_ref_url
+        self.opil_parameter_values.append(experiment_ref_url_value)
+
+    def _create_opil_boolean_parameter_field(self, field: str):
+        parameter_field = opil.BooleanParameter()
+        parameter_field.name = field
+        return parameter_field
+
+    def _create_opil_boolean_parameter_value(self, value: bool):
+        parameter_value = opil.BooleanValue()
+        parameter_value.value = value
+        return parameter_value
+
+    def _create_opil_integer_parameter_field(self, field: str):
+        parameter_field = opil.IntegerParameter()
+        parameter_field.name = field
+        return parameter_field
+
+    def _create_opil_integer_parameter_value(self, value: int):
+        parameter_value = opil.IntegerValue()
+        parameter_value.value = value
+        return parameter_value
+
+    def _create_opil_string_parameter_field(self, field: str):
+        parameter_field = opil.StringParameter()
+        parameter_field.name = field
+        return parameter_field
+
+    def _create_opil_string_parameter_value(self, value: str):
+        parameter_value = opil.StringValue()
+        parameter_value.value = value
+        return parameter_value
 
     def connect_properties(self):
         if len(self.opil_experimental_requests) != 1:
@@ -254,14 +360,14 @@ class ExperimentalRequest(object):
         for parameter in opil_protocol_interface.has_parameter:
             opil_parameter_template = OpilParameterTemplate()
             opil_parameter_template.parameter = parameter
-            self.lab_field_id_to_values[parameter.identity] = opil_parameter_template
+            self.lab_parameter_field_id_to_values[parameter.identity] = opil_parameter_template
 
         for parameter_value in self.opil_parameter_values:
             parameter_id = str(parameter_value.value_of)
-            if parameter_id not in self.lab_field_id_to_values:
+            if parameter_id not in self.lab_parameter_field_id_to_values:
                 raise IntentParserException('opil.ParameterValue %s points to an unknown parameter %s'
                                             % (parameter_value.identity, parameter_id))
-            self.lab_field_id_to_values[parameter_id].parameter_value = parameter_value
+            self.lab_parameter_field_id_to_values[parameter_id].parameter_value = parameter_value
 
     def load_experimental_request(self):
         if len(self.opil_experimental_requests) == 0:
@@ -395,7 +501,7 @@ class ExperimentalRequest(object):
 
     def update_parameter_values(self, document_parameter_names_to_values):
         name_to_parameter = {}
-        for opil_parameter_template in self.lab_field_id_to_values.values():
+        for opil_parameter_template in self.lab_parameter_field_id_to_values.values():
             opil_parameter = opil_parameter_template.parameter
             if not opil_parameter.name:
                 raise IntentParserException('Opil Parameter missing a name: %s' % opil_parameter.identity)
