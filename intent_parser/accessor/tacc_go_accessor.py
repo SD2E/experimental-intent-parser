@@ -30,10 +30,10 @@ class TACCGoAccessor(object):
         headers = {
             'Content-type': content_type,
         }
-        # payload = json.dumps(data)
+        payload = json.dumps(data)
         response = requests.post(tacc_constants.EXPERIMENT_AUTHENTICATION_URL + self._execution_token,
                                  headers=headers,
-                                 data=data)
+                                 data=payload)
 
         if response.status_code != HTTPStatus.OK:
             output_data = dump.dump_all(response)

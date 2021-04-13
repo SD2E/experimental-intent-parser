@@ -96,8 +96,8 @@ class IntentParserProcessor(object):
             errors = ['No OPIL output generated.']
             errors.extend(validation_errors)
             raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=errors, warnings=validation_warnings)
-
-        xml_string = opil_doc.write_string('xml')
+        opil_doc.write('opil_output.json', file_format='json-ld')
+        xml_string = opil_doc.write_string('json-ld')
         return xml_string
 
     def process_opil_post_request(self, http_host, json_body):
@@ -265,7 +265,7 @@ class IntentParserProcessor(object):
         validation_errors.extend(intent_parser.get_validation_errors())
 
         request_data = intent_parser.get_experiment_request()
-        response_json = TACCGoAccessor().execute_experiment(json.dumps(request_data))
+        response_json = TACCGoAccessor().execute_experiment(request_data)
         if '_links' not in response_json and 'self' not in response_json['_links']:
             validation_errors.append('Intent Parser unable to get redirect link to TACC authentication webpage.')
 
@@ -288,7 +288,7 @@ class IntentParserProcessor(object):
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
             request_data = intent_parser.get_experiment_request()
-            response_json = TACCGoAccessor().execute_experiment(json.dumps(request_data))
+            response_json = TACCGoAccessor().execute_experiment(request_data)
 
         action_list = []
         if not response_json or ('_links' not in response_json and 'self' not in response_json['_links']):
@@ -316,13 +316,11 @@ class IntentParserProcessor(object):
         else:
             document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
             intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-            lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
-            intent_parser.process_opil_request(lab_protocol_accessor)
+            intent_parser.process_experiment_run_request()
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
-            opil_doc = intent_parser.get_opil_request()
-            request_data = opil_doc.write_string('xml')
-            response_json = TACCGoAccessor().execute_experiment(request_data, content_type='text/xml')
+            request_data = intent_parser.get_experiment_request()
+            response_json = TACCGoAccessor().execute_experiment(request_data)
 
         action_list = []
         if not response_json or ('_links' not in response_json and 'self' not in response_json['_links']):
