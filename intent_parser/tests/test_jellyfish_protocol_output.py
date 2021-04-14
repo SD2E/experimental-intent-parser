@@ -1,33 +1,23 @@
-from intent_parser.accessor.google_accessor import GoogleAccessor
-from intent_parser.intent_parser_factory import IntentParserFactory
-from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
-from datetime import datetime
-from intent_parser.protocols.labs.aquarium_opil_accessor import AquariumOpilAccessor
-from unittest.mock import patch
-import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-import intent_parser.constants.intent_parser_constants as ip_constants
-import intent_parser.utils.intent_parser_utils as intent_parser_utils
-import os
-import json
-import unittest
-
 from intent_parser.protocols.lab_protocol_accessor import LabProtocolAccessor
+from intent_parser.protocols.labs.aquarium_opil_accessor import AquariumOpilAccessor
 from intent_parser.protocols.labs.strateos_accessor import StrateosAccessor
 from intent_parser.protocols.templates.experimental_request_template import ExperimentalRequest
-from intent_parser.table.table_processor.opil_processor import OpilProcessor
+from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
+from intent_parser.table.measurement_table import MeasurementTable
+from unittest.mock import MagicMock, patch
+import intent_parser.constants.intent_parser_constants as ip_constants
+import unittest
 
 
 class JellyFishProtocolOutputTest(unittest.TestCase):
 
-    @patch('intent_parser.accessor.intent_parser_sbh.IntentParserSBH')
-    def setUp(self, mock_intent_parser_sbh):
+    def setUp(self):
         aquarium_accessor = AquariumOpilAccessor()
         strateos_accessor = StrateosAccessor()
         lab_protocol_accessor = LabProtocolAccessor(strateos_accessor, aquarium_accessor)
         self.opil_lab_template = lab_protocol_accessor.load_experimental_protocol_from_lab('High-Throughput Culturing',
-                                                                                      ip_constants.LAB_DUKE_HASE)
-
-
+                                                                                           ip_constants.LAB_DUKE_HASE)
+        self.ip_table_factory = IntentParserTableFactory()
 
     def test_size_of_load_experimental_request(self):
         experimental_request = ExperimentalRequest(ip_constants.AQUARIUM_NAMESPACE,
@@ -88,6 +78,79 @@ class JellyFishProtocolOutputTest(unittest.TestCase):
         self.assertEqual('http://aquarium.bio/htc_design',
                          experimental_request.sample_template.identity)
 
+    def test_size_of_create_subcomponents_from_template(self):
+        experimental_request = ExperimentalRequest(ip_constants.AQUARIUM_NAMESPACE,
+                                                   self.opil_lab_template,
+                                                   'foo_id',
+                                                   'IntentParserCopy_foo',
+                                                   'https://docs.google.com/document/d/foo')
+        measurement_table = MeasurementTable(self._create_dummy_measurement_table())
+        measurement_table.process_table()
+        experimental_request.load_from_measurement_table(measurement_table)
+        experimental_request.load_sample_template_from_protocol_interface()
+        experimental_request.create_subcomponents_from_template()
+        self.assertEqual(4, len(experimental_request.sample_template.features))
+
+    def test_subcomponent_names(self):
+        experimental_request = ExperimentalRequest(ip_constants.AQUARIUM_NAMESPACE,
+                                                   self.opil_lab_template,
+                                                   'foo_id',
+                                                   'IntentParserCopy_foo',
+                                                   'https://docs.google.com/document/d/foo')
+        measurement_table = MeasurementTable(self._create_dummy_measurement_table())
+        measurement_table.process_table()
+        experimental_request.load_from_measurement_table(measurement_table)
+        experimental_request.load_sample_template_from_protocol_interface()
+        experimental_request.create_subcomponents_from_template()
+        expected_subcomponent_names = ['Antibiotic', 'Inducer', 'Media', 'Strain']
+        for feature in experimental_request.sample_template.features:
+            self.assertTrue(feature.name in expected_subcomponent_names)
+
+
+
+    def _create_dummy_measurement_table(self):
+        input_table = {'tableRows': [
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                                'content': 'measurement-type'}}]}}]},
+                            {'content': [{'paragraph': {'elements': [{'textRun': {
+                                'content': 'Strains'}}]}}]},
+                            {'content': [{'paragraph': {'elements': [{'textRun': {
+                                'content': 'Inducer'}}]}}]},
+                            {'content': [{'paragraph': {'elements': [{'textRun': {
+                                'content': 'Media'}}]}}]},
+                            {'content': [{'paragraph': {'elements': [{'textRun': {
+                                'content': 'Antibiotic'}}]}}]}
+            ]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'FLOW'}}]}}]},
+                {'content': [{'paragraph': {'elements': [{'textRun': {
+                    'content': 'NOR00',
+                    'textStyle': {'link': {'url': 'https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1'}}}}]}}]},
+                {'content': [{'paragraph': {'elements': [{'textRun': {
+                    'content': '-1.0'}}]}}]},
+                {'content': [{'paragraph': {'elements': [{'textRun': {
+                    'content': 'Sytox'}}]}}]},
+                {'content': [{'paragraph': {'elements': [{'textRun': {
+                    'content': '-1.0'}}]}}]}
+            ]},
+            {'tableCells': [{'content': [{'paragraph': {'elements': [{'textRun': {
+                'content': 'FLOW'}}]}}]},
+                {'content': [{'paragraph': {'elements': [{'textRun': {
+                    'content': 'NOR00',
+                    'textStyle': {'link': {'url': 'https://hub.sd2e.org/user/sd2e/design/UWBF_6390/1'}}}}]}}]},
+                {'content': [{'paragraph': {'elements': [{'textRun': {
+                    'content': '-1.0'}}]}}]},
+                {'content': [{'paragraph': {'elements': [{'textRun': {
+                    'content': 'Sytox'}}]}}]},
+                {'content': [{'paragraph': {'elements': [{'textRun': {
+                    'content': '-1.0'}}]}}]}
+            ]}
+        ]
+        }
+        ip_table = self.ip_table_factory.from_google_doc({'table': input_table,
+                                                          'startIndex': 0,
+                                                          'endIndex': 100})
+        return ip_table
 
 
     def tearDown(self):
