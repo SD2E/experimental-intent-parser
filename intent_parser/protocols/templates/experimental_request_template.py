@@ -168,7 +168,6 @@ class ExperimentalRequest(object):
         self.media_template = None
         self.num_neg_control_template = None
         self.ods_template = None
-        self.replicate_template = None
         self.row_id_template = None
         self.strain_template = None
         self.template_dna_template = None
@@ -333,8 +332,6 @@ class ExperimentalRequest(object):
             self.num_neg_control_template = self._create_opil_local_subcomponent(self._opil_measurement_template.num_neg_control_template)
         if self._opil_measurement_template.ods_template:
             self.ods_template = self._create_opil_local_subcomponent(self._opil_measurement_template.ods_template)
-        if self._opil_measurement_template.replicate_template:
-            self.replicate_template = self._create_opil_local_subcomponent(self._opil_measurement_template.replicate_template)
         if self._opil_measurement_template.row_id_template:
             self.row_id_template = self._create_opil_local_subcomponent(self._opil_measurement_template.row_id_template)
         if self._opil_measurement_template.use_rna_inhib_template:
@@ -647,12 +644,6 @@ class ExperimentalRequest(object):
             optical_density_variable = self._create_variable_feature_with_variant_measures(self.ods_template,
                                                                                            optical_density_measures)
             all_sample_variables.append(optical_density_variable)
-        # replicates
-        if measurement_intent.size_of_replicates() > 0 and self.replicate_template:
-            replicate_measures = measurement_intent.replicate_values_to_opil_measure()
-            replicate_variable = self._create_variable_feature_with_variant_measures(self.replicate_template,
-                                                                                     replicate_measures)
-            all_sample_variables.append(replicate_variable)
         # strains
         if measurement_intent.size_of_strains() > 0 and self.strain_template:
             strain_components = measurement_intent.strain_values_to_opil_components()
@@ -811,7 +802,7 @@ class ExperimentalRequest(object):
     def _load_strain_template(self, local_sub_components):
         strain = [component for component in local_sub_components if ip_constants.NCIT_STRAIN_URI in component.roles]
         if len(strain) > 1:
-            raise IntentParserException('Expecting 1 strain template but %d were found in experimental protocol'
+            raise IntentParserException('Expecting 1 strain template but found %d in ExperimentalProtocol'
                                         % len(strain))
         elif len(strain) == 0:
             self.strain_template = self._create_opil_local_subcomponent(self._opil_measurement_template.strains_template)
