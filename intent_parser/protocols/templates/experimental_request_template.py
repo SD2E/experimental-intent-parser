@@ -456,9 +456,11 @@ class ExperimentalRequest(object):
             sample_set.template = self.sample_template
             self.opil_sample_sets.append(sample_set)
 
-    def load_sample_template_from_experimental_request(self):
-        if not self.opil_experimental_requests:
-            raise IntentParserException('No experimental request found.')
+    def load_sample_template_from_protocol_interface(self):
+        if len(self.opil_protocol_interfaces) != 1:
+            raise IntentParserException(
+                'Expecting 1 ProtocolInterface but found %d.' % len(self.opil_protocol_interfaces))
+
         uris_to_components = {}
         for component in self.opil_components:
             if component.identity not in uris_to_components:
@@ -469,6 +471,8 @@ class ExperimentalRequest(object):
 
         unique_templates = []
         for sample in self.opil_sample_sets:
+            if sample.identity not in self.opil_protocol_interfaces[0].allowed_samples:
+                raise IntentParserException('SampleSet not found in ProtocolInterface: %s' % sample.identity)
             str_template = str(sample.template)
             if not sample.template:
                 raise IntentParserException('A SampleSet must have a template but none was set: %s' % sample.identity)
@@ -482,8 +486,8 @@ class ExperimentalRequest(object):
             self.opil_components.append(self.sample_template)
             return
         elif len(unique_templates) > 1:
-            raise IntentParserException('Expecting 1 SampleSet template but %d were found' % len(unique_templates))
-            # Assume only one per request.
+            raise IntentParserException('Expecting 1 SampleSet.template but found %d.' % len(unique_templates))
+
         self.sample_template = unique_templates.pop()
 
 

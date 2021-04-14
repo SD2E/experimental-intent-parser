@@ -68,7 +68,25 @@ class JellyFishProtocolOutputTest(unittest.TestCase):
         self.assertEqual('https://docs.google.com/document/d/foo',
                          experimental_request.opil_experimental_requests[0].experiment_reference_url)
 
+    def test_size_of_load_sampleset_from_protocol_interface(self):
+        experimental_request = ExperimentalRequest(ip_constants.AQUARIUM_NAMESPACE,
+                                                   self.opil_lab_template,
+                                                   'foo_id',
+                                                   'IntentParserCopy_foo',
+                                                   'https://docs.google.com/document/d/foo')
+        experimental_request.load_sample_template_from_protocol_interface()
+        self.assertEqual(1, len(experimental_request.opil_sample_sets))
 
+    def test_size_of_load_sampleset_template_from_protocol_interface(self):
+        experimental_request = ExperimentalRequest(ip_constants.AQUARIUM_NAMESPACE,
+                                                   self.opil_lab_template,
+                                                   'foo_id',
+                                                   'IntentParserCopy_foo',
+                                                   'https://docs.google.com/document/d/foo')
+        experimental_request.load_sample_template_from_protocol_interface()
+        self.assertIsNotNone(experimental_request.sample_template)
+        self.assertEqual('http://aquarium.bio/htc_design',
+                         experimental_request.sample_template.identity)
 
 
 
