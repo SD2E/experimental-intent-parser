@@ -202,6 +202,23 @@ class ExperimentalProtocolProcessor(Processor):
                                                                reagent_intent)
                 content_intent.add_reagent(reagent_intent)
                 measurement_intent.add_content(content_intent)
+            else:
+                # process unidentified opil.LocalSubComponent as reagent or media base of of its value encoding
+                if variable_feature.variant_measures:
+                    reagent_name = NamedLink(local_or_subcomponent_template.name)
+                    reagent_intent = ReagentIntent(reagent_name)
+                    self._add_reagent_values_from_variant_measures(variable_feature.variant_measures,
+                                                                   reagent_intent)
+                    content_intent.add_reagent(reagent_intent)
+                    measurement_intent.add_content(content_intent)
+                elif variable_feature.variants:
+                    media_name = NamedLink(local_or_subcomponent_template.name)
+                    media_intent = MediaIntent(media_name)
+                    self._add_media_values_from_variants(variable_feature.variants,
+                                                         media_intent,
+                                                         uris_to_components)
+                    content_intent.add_media(media_intent)
+                    measurement_intent.add_content(content_intent)
 
     def _process_variants_as_strain_values(self, variants, measurement_intent, uris_to_components):
         # no default values provided for strains
