@@ -106,6 +106,35 @@ class JellyFishProtocolOutputTest(unittest.TestCase):
         for feature in experimental_request.sample_template.features:
             self.assertTrue(feature.name in expected_subcomponent_names)
 
+    def test_size_of_sample_sets(self):
+        experimental_request = ExperimentalRequest(ip_constants.AQUARIUM_NAMESPACE,
+                                                   self.opil_lab_template,
+                                                   'foo_id',
+                                                   'IntentParserCopy_foo',
+                                                   'https://docs.google.com/document/d/foo')
+        measurement_table = MeasurementTable(self._create_dummy_measurement_table())
+        measurement_table.process_table()
+        experimental_request.load_from_measurement_table(measurement_table)
+        experimental_request.load_sample_template_from_protocol_interface()
+        experimental_request.create_subcomponents_from_template()
+        experimental_request.load_sample_set(len(measurement_table.get_intents()))
+        self.assertEqual(2, len(experimental_request.opil_sample_sets))
+
+    def test_for_original_sample_set_by_identity(self):
+        experimental_request = ExperimentalRequest(ip_constants.AQUARIUM_NAMESPACE,
+                                                   self.opil_lab_template,
+                                                   'foo_id',
+                                                   'IntentParserCopy_foo',
+                                                   'https://docs.google.com/document/d/foo')
+        measurement_table = MeasurementTable(self._create_dummy_measurement_table())
+        measurement_table.process_table()
+        experimental_request.load_from_measurement_table(measurement_table)
+        experimental_request.load_sample_template_from_protocol_interface()
+        experimental_request.create_subcomponents_from_template()
+        experimental_request.load_sample_set(len(measurement_table.get_intents()))
+        actual_sample_set_identities = [sample.identity for sample in experimental_request.opil_sample_sets]
+        self.assertTrue('http://aquarium.bio/culture_conditions' in actual_sample_set_identities)
+
 
 
     def _create_dummy_measurement_table(self):
