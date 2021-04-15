@@ -10,7 +10,6 @@ import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.utils.opil_utils as opil_utils
 import opil
 import sbol3.constants as sbol_constants
-import tyto
 
 
 class OpilDocumentTemplate(object):
@@ -763,9 +762,6 @@ class ExperimentalRequest(object):
             all_sample_templates.append(media_or_reagent_template)
         return all_sample_templates
 
-    def _filter_components_by_role(self, role_name):
-        return [opil_component for opil_component in self.opil_components if tyto.NCIT.get_uri_by_term(role_name)]
-
     def _filter_sampleset_for_unique_templates(self):
         unique_templates = {sample_set.template for sample_set in self.opil_sample_sets if sample_set.template}
         if not unique_templates:
@@ -806,7 +802,7 @@ class ExperimentalRequest(object):
                                         % len(strain))
         elif len(strain) == 0:
             self.strain_template = self._create_opil_local_subcomponent(self._opil_measurement_template.strains_template)
-            self.strain_template.roles = [tyto.NCIT.get_uri_by_term(ip_constants.NCIT_STRAIN_NAME)]
+            self.strain_template.roles = [ip_constants.NCIT_STRAIN_URI]
         else:
             self.strain_template = strain[0]
 

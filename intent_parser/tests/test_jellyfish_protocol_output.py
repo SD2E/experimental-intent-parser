@@ -135,6 +135,24 @@ class JellyFishProtocolOutputTest(unittest.TestCase):
         actual_sample_set_identities = [sample.identity for sample in experimental_request.opil_sample_sets]
         self.assertTrue('http://aquarium.bio/culture_conditions' in actual_sample_set_identities)
 
+    def test_size_of_add_variable_features_from_measurement_intents(self):
+        experimental_request = ExperimentalRequest(ip_constants.AQUARIUM_NAMESPACE,
+                                                   self.opil_lab_template,
+                                                   'foo_id',
+                                                   'IntentParserCopy_foo',
+                                                   'https://docs.google.com/document/d/foo')
+        measurement_table = MeasurementTable(self._create_dummy_measurement_table())
+        measurement_table.process_table()
+        experimental_request.load_from_measurement_table(measurement_table)
+        experimental_request.load_sample_template_from_protocol_interface()
+        experimental_request.create_subcomponents_from_template()
+        experimental_request.load_sample_set(len(measurement_table.get_intents()))
+        experimental_request.add_variable_features_from_measurement_intents(measurement_table.get_intents())
+        self.assertEqual(2, len(experimental_request.opil_sample_sets))
+        sample_set1 = experimental_request.opil_sample_sets[0]
+        sample_set2 = experimental_request.opil_sample_sets[1]
+        self.assertEqual(3, len(sample_set1.variable_features))
+        self.assertEqual(3, len(sample_set2.variable_features))
 
 
     def _create_dummy_measurement_table(self):
