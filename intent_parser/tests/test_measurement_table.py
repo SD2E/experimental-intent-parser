@@ -1113,7 +1113,7 @@ class MeasurementTableTest(unittest.TestCase):
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
         meas_result = meas_table.get_intents()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'Media', dc_constants.SBH_URI: media_uri},
                     dc_constants.VALUE: 'sc_media'}

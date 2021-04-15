@@ -57,8 +57,8 @@ class ControlsTable(object):
     def _process_row(self, row_index):
         row = self._intent_parser_table.get_row(row_index)
         control = ControlIntent()
-        if self._table_caption:
-            raise TableException('Control Table must have a caption but non was found.')
+        if not self._table_caption:
+            raise TableException('Control Table must have a caption but none was found.')
         control.set_table_caption(self._table_caption)
         row_offset = row_index # Used for reporting row value to users
 
