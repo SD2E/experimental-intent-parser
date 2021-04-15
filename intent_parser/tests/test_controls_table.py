@@ -25,7 +25,7 @@ class ControlsTableTest(unittest.TestCase):
         pass
 
     def test_table_with_control_type(self):
-        ip_table = test_utils.create_fake_controls_table()
+        ip_table = test_utils.create_fake_controls_table(1)
         control_type = IntentParserCell()
         control_type.add_paragraph('HIGH_FITC')
         data_row = test_utils.create_control_table_row(control_type_cell=control_type)
@@ -39,7 +39,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(expected_result, control_result[0].to_structured_request())
         
     def test_table_with_1_channel(self):
-        ip_table = test_utils.create_fake_controls_table()
+        ip_table = test_utils.create_fake_controls_table(1)
         control_type = IntentParserCell()
         control_type.add_paragraph('HIGH_FITC')
 
@@ -57,7 +57,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(expected_result, control_result[0].to_structured_request())
     
     def test_table_with_multiple_channels(self):
-        ip_table = test_utils.create_fake_controls_table()
+        ip_table = test_utils.create_fake_controls_table(1)
         control_type = IntentParserCell()
         control_type.add_paragraph('HIGH_FITC')
 
@@ -75,7 +75,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(expected_result, control_result[0].to_structured_request())
         
     def test_table_with_1_strain(self):
-        ip_table = test_utils.create_fake_controls_table()
+        ip_table = test_utils.create_fake_controls_table(1)
         strains = IntentParserCell()
         strains.add_paragraph('UWBF_25784')
 
@@ -94,7 +94,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(expected_result, control_result[0].to_structured_request())
 
     def test_table_with_1_timepoint(self):
-        ip_table = test_utils.create_fake_controls_table()
+        ip_table = test_utils.create_fake_controls_table(1)
         content = IntentParserCell()
         content.add_paragraph('8 hour')
 
@@ -115,7 +115,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(expected_result, control_result[0].to_structured_request())
 
     def test_strains_with_uris(self):
-        ip_table = test_utils.create_fake_controls_table()
+        ip_table = test_utils.create_fake_controls_table(1)
         control_type = IntentParserCell()
         control_type.add_paragraph('HIGH_FITC')
 
@@ -138,7 +138,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(expected_result, control_result[0].to_structured_request())
     
     def test_strains_with_uri_and_trailing_strings(self):
-        ip_table = test_utils.create_fake_controls_table()
+        ip_table = test_utils.create_fake_controls_table(1)
         control_type = IntentParserCell()
         control_type.add_paragraph('HIGH_FITC')
 
@@ -163,7 +163,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(expected_result, control_result[0].to_structured_request())
         
     def test_strains_with_string_and_trailing_uris(self):
-        ip_table = test_utils.create_fake_controls_table()
+        ip_table = test_utils.create_fake_controls_table(1)
         control_type = IntentParserCell()
         control_type.add_paragraph('HIGH_FITC')
 
@@ -192,7 +192,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(expected_result, control_result[0].to_structured_request())
     
     def test_strains_with_mix_string_and_uri(self):
-        ip_table = test_utils.create_fake_controls_table()
+        ip_table = test_utils.create_fake_controls_table(1)
         control_type = IntentParserCell()
         control_type.add_paragraph('HIGH_FITC')
 
@@ -220,7 +220,7 @@ class ControlsTableTest(unittest.TestCase):
         self.assertEqual(expected_result, control_result[0].to_structured_request())
     
     def test_table_with_contents(self):
-        ip_table = test_utils.create_fake_controls_table()
+        ip_table = test_utils.create_fake_controls_table(1)
         control_type = IntentParserCell()
         control_type.add_paragraph('HIGH_FITC')
 
