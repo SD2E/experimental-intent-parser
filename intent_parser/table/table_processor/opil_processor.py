@@ -11,6 +11,7 @@ import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
 import opil
 
+
 class OpilProcessor(Processor):
 
     logger = logging.getLogger('opil_processor')
@@ -22,6 +23,10 @@ class OpilProcessor(Processor):
                       'BASELINE_MEDIA_PR',
                       'CELL_DEATH_NEG_CONTROL',
                       'CELL_DEATH_POS_CONTROL']
+
+    _FILE_TYPES = ['CSV',
+                   'FCS'
+                   ]
 
     _FLUID_UNITS = ['%',
                     'M',
@@ -65,7 +70,6 @@ class OpilProcessor(Processor):
                  experiment_ref_url,
                  lab_protocol_accessor,
                  sbol_dictionary,
-                 file_types=[],
                  lab_names=[]):
         super().__init__()
         self.processed_lab_name = ''
@@ -78,7 +82,6 @@ class OpilProcessor(Processor):
         self._experiment_id = None
         self._experiment_ref = experiment_ref
         self._experiment_ref_url = experiment_ref_url
-        self._file_types = file_types
         self._sbol_dictionary = sbol_dictionary
         self._lab_protocol_accessor = lab_protocol_accessor
         self._lab_names = lab_names
@@ -213,7 +216,7 @@ class OpilProcessor(Processor):
                                                  timepoint_units=list(ip_constants.TIME_UNIT_MAP.keys()),
                                                  fluid_units=list(ip_constants.FLUID_UNIT_MAP.keys()),
                                                  measurement_types=self._MEASUREMENT_TYPE,
-                                                 file_type=self._file_types,
+                                                 file_type=self._FILE_TYPES,
                                                  strain_mapping=strain_mapping)
 
             control_data = {}
