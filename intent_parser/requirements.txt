@@ -8,7 +8,7 @@ google-auth-oauthlib
 gunicorn
 jsonschema
 oauth2client
-opil==1.0b3.post2
+opil==1.0b4
 pymongo
 pyspellchecker
 python-docx
