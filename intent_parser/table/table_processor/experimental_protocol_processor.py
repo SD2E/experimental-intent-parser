@@ -32,19 +32,40 @@ class ExperimentalProtocolProcessor(Processor):
     def get_intent(self):
         return self._experimental_protocol_intent
 
-    def process_protocol_interface(self):
+    def process_protocol_interface(self, experiment_reference_url):
+        self._parameter_intent.set_xplan_reactor('xplan')
+        self._parameter_intent.set_experiment_reference_url_for_xplan(experiment_reference_url)
+        self._parameter_intent.set_submit(False)
+        self._parameter_intent.set_test_mode(False)
         protocol_interfaces = self._opil_document_template.get_protocol_interfaces()
         if not protocol_interfaces:
-            raise IntentParserException('No ProtocolInterface found for lab: %s' % self._lab_intent.get_lab_name())
+            message = 'No ProtocolInterface found for lab: %s' % self._lab_intent.get_lab_name()
+            self.validation_errors.append(message)
+            return
         if len(protocol_interfaces) > 1:
-            raise IntentParserException('Expecting 1 ProtocolInterface but %d were found' % len(protocol_interfaces))
-
+            message = 'Expecting 1 ProtocolInterface but found %d' % len(protocol_interfaces)
+            self.validation_errors.append(message)
+            return
         protocol_interface = protocol_interfaces[0]
-        if protocol_interface.name:
+        protocol_name = protocol_interface.name
+        if protocol_name:
             self._parameter_intent.set_protocol_name(protocol_interface.name)
-        self._process_protocol_measurement_type(protocol_interface.protocol_measurement_type)
-        self._process_parameters(protocol_interface.has_parameter)
-        self._process_sample_set(self._get_samplesets(protocol_interface.allowed_samples))
+        try:
+            if protocol_interface.strateos_id:
+                self._parameter_intent.set_protocol_id(protocol_interface.strateos_id)
+        except AttributeError:
+            self.logger.warning('%s does not have a protocol id for %s' % (self._lab_intent.get_lab_name(),
+                                                                           protocol_interface.name))
+
+        if protocol_interface.protocol_measurement_type:
+            self._process_protocol_measurement_type(protocol_interface.protocol_measurement_type)
+        if protocol_interface.has_parameter:
+            self._process_parameters(protocol_interface.has_parameter)
+        if protocol_interface.allowed_samples:
+            try:
+                self._process_sample_set(self._get_samplesets(protocol_interface.allowed_samples))
+            except IntentParserException as err:
+                self.validation_errors.append(err.get_message())
         self._process_output()
 
     def _get_samplesets(self, sampleset_uris):
@@ -56,21 +77,24 @@ class ExperimentalProtocolProcessor(Processor):
         for uri in sampleset_uris:
             uri_string = str(uri)
             if uri_string not in uris_to_samplesets:
-                raise IntentParserException('Unable to locate SampleSet with identity: %s' % uri_string)
+                message = 'Unable to locate SampleSet with identity: %s' % uri_string
+                self.validation_errors.append(message)
+                continue
             samplesets.append(uris_to_samplesets[uri_string])
         return samplesets
 
     def _process_output(self):
         table_creator = TableCreator()
+
         lab_table = table_creator.create_lab_table_from_intent(self._lab_intent)
         self._experimental_protocol_intent['labTable'] = lab_table
+
         if len(self._measurement_intents) > 0:
             measurement_table = table_creator.create_measurement_table_from_intents(self._measurement_intents)
             self._experimental_protocol_intent['measurementTable'] = measurement_table
-        if self._parameter_intent.size_of_default_parameters() > 0:
-            parameter_table = table_creator.create_parameter_table_from_intent(self._parameter_intent)
-            self._experimental_protocol_intent['parameterTable'] = parameter_table
 
+        parameter_table = table_creator.create_parameter_table_from_intent(self._parameter_intent)
+        self._experimental_protocol_intent['parameterTable'] = parameter_table
 
     def _process_protocol_measurement_type(self, measurement_types):
         for opil_measurement_type in measurement_types:
@@ -98,28 +122,29 @@ class ExperimentalProtocolProcessor(Processor):
             elif opil_measurement_type.type == ip_constants.NCIT_FLUORESCENCE_MICROSCOPY:
                 measurement_intent.set_measurement_type(ip_constants.MEASUREMENT_TYPE_FLUOESCENE_MICROSCOPY)
             else:
-                raise IntentParserException('Measurement-type %s not supported in Intent parser'
-                                            % opil_measurement_type.type)
+                message = 'Measurement-type %s not supported in Intent parser' % opil_measurement_type.type
+                self.validation_errors.append(message)
+                continue
             self._measurement_intents.append(measurement_intent)
 
     def _process_parameters(self, parameters):
-        parameter_id_to_param_value = {}
-        for opil_parameter_value in self._opil_document_template.get_parameter_values():
-            if not opil_parameter_value.value_of:
-                raise IntentParserException('No value assigned to ParameterValue %s' % opil_parameter_value.identity)
-            parameter_id_to_param_value[opil_parameter_value.value_of] = opil_parameter_value
-
+        # ignore specific strateos opil parameters.
+        ignore_parameters = ['Experiment ID', 'Experiment Reference', 'Experiment Reference URL']
         for opil_parameter in parameters:
             if not opil_parameter.name:
-                raise IntentParserException('No name assigned to Parameter %s.' % opil_parameter.identity)
-            parameter_name = opil_parameter.name
+                message = 'No name assigned to Parameter: %s.' % opil_parameter.identity
+                self.validation_warnings.append(message)
+                continue
 
-            if opil_parameter.identity in parameter_id_to_param_value:
-                opil_parameter_value = parameter_id_to_param_value[opil_parameter.identity]
+            if opil_parameter.name in ignore_parameters:
+                continue
+
+            if opil_parameter.default_value:
+                opil_parameter_value = opil_parameter.default_value
                 string_parameter_value = opil_utils.get_param_value_as_string(opil_parameter_value)
-                self._parameter_intent.add_parameter(parameter_name, string_parameter_value)
+                self._parameter_intent.add_parameter(opil_parameter.name, string_parameter_value)
             else:
-                self._parameter_intent.add_parameter(parameter_name, ' ')
+                self._parameter_intent.add_parameter(opil_parameter.name, ' ')
 
     def _process_sample_set(self, samplesets):
         uris_to_components = {}
@@ -129,7 +154,7 @@ class ExperimentalProtocolProcessor(Processor):
                 uris_to_components[component.identity] = component
             else:
                 if uris_to_components[component.identity]:
-                    raise IntentParserException('conflict mapping opil.Components with same identity.')
+                    raise IntentParserException('conflict mapping Components with same identity.')
         if len(samplesets) > len(self._measurement_intents):
             raise IntentParserException('Number of SampleSets must be less than or equal to number of '
                                         'IP measurement-intent: %d > %d'
@@ -159,7 +184,7 @@ class ExperimentalProtocolProcessor(Processor):
             uris_to_template[str_template] = uris_to_components[str_template]
 
         if len(uris_to_template) != 1:
-            raise IntentParserException('Expecting one unique SampleSet.template but %d found' % len(uris_to_template))
+            raise IntentParserException('Expecting one unique SampleSet.template but found %d.' % len(uris_to_template))
 
         uris_to_local_and_subcomponents = {}
         for template in uris_to_template.values():
@@ -170,10 +195,14 @@ class ExperimentalProtocolProcessor(Processor):
     def _process_variable_features(self, variable_features, uris_to_localsubcomponents, uris_to_components, measurement_intent):
         for variable_feature in variable_features:
             if not variable_feature.variable:
-                raise IntentParserException('No variable set to VariableFeature %s' % variable_feature.identity)
+                message = 'No variable set to VariableFeature %s' % variable_feature.identity
+                self.validation_errors.append(message)
+                return
             str_variable = str(variable_feature.variable)
             if str_variable not in uris_to_localsubcomponents:
-                raise IntentParserException('No LocalSubComponent found with id: %s' % str_variable)
+                message = 'No LocalSubComponent found with id: %s' % str_variable
+                self.validation_errors.append(message)
+                return
 
             content_intent = ContentIntent()
             local_or_subcomponent_template = uris_to_localsubcomponents[str_variable]
@@ -181,29 +210,8 @@ class ExperimentalProtocolProcessor(Processor):
                 self._process_variants_as_strain_values(variable_feature.variants,
                                                         measurement_intent,
                                                         uris_to_components)
-            elif ip_constants.NCIT_MEDIA_URI in local_or_subcomponent_template.roles:
-                if variable_feature.variant_measures:
-                    self._add_temperature_values_from_variant_measures(variable_feature.variant_measure,
-                                                                       measurement_intent)
-                media_name = NamedLink(local_or_subcomponent_template.name)
-                media_intent = MediaIntent(media_name)
-                if variable_feature.variants:
-                    self._add_media_values_from_variants(variable_feature.variants,
-                                                         media_intent,
-                                                         uris_to_components)
-                content_intent.add_media(media_intent)
-                measurement_intent.add_content(content_intent)
-            elif (ip_constants.NCIT_INDUCER_URI in local_or_subcomponent_template.roles
-                  or ip_constants.NCIT_REAGENT_URI in local_or_subcomponent_template.roles):
-                # process as reagent
-                reagent_name = NamedLink(local_or_subcomponent_template.name)
-                reagent_intent = ReagentIntent(reagent_name)
-                self._add_reagent_values_from_variant_measures(variable_feature.variant_measures,
-                                                               reagent_intent)
-                content_intent.add_reagent(reagent_intent)
-                measurement_intent.add_content(content_intent)
             else:
-                # process unidentified opil.LocalSubComponent as reagent or media base of of its value encoding
+                # process unidentified opil.LocalSubComponent as reagent or media using value encoding
                 if variable_feature.variant_measures:
                     reagent_name = NamedLink(local_or_subcomponent_template.name)
                     reagent_intent = ReagentIntent(reagent_name)
@@ -230,7 +238,9 @@ class ExperimentalProtocolProcessor(Processor):
         # strains were provided in template
         for variant in variants:
             if variant not in uris_to_components:
-                raise IntentParserException('Strain variant not found: %s' % variant)
+                message = 'Strain variant not found: %s' % variant
+                self.validation_errors.append(message)
+                continue
             strain_component = uris_to_components[variant]
             strain_name = NamedLink(strain_component.name)
             strain_intent = StrainIntent(strain_name)
@@ -239,7 +249,9 @@ class ExperimentalProtocolProcessor(Processor):
     def _add_media_values_from_variants(self, variants, media_intent, uris_to_components):
         for variant in variants:
             if variant not in uris_to_components:
-                raise IntentParserException('No Component found for Media variant: %s' % variant)
+                message = 'No Component found for Media variant: %s' % variant
+                self.validation_errors.append(message)
+                continue
             media_component = uris_to_components[variant]
             media_value = NamedLink(media_component.name)
             media_intent.add_media_value(media_value)

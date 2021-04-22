@@ -1,6 +1,6 @@
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.utils.id_provider import IdProvider
-from sbol3 import SubComponent
+from sbol3 import Component, Measure, SubComponent
 from typing import Union
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
@@ -24,15 +24,15 @@ class MeasuredUnit(object):
     def to_opil_measure(self):
         if self._unit in ip_constants.FLUID_UNIT_MAP:
             unit_uri = ip_constants.FLUID_UNIT_MAP[self._unit]
-            return opil.Measure(self._value, unit_uri)
+            return Measure(self._value, unit_uri)
         elif self._unit in ip_constants.TEMPERATURE_UNIT_MAP:
             unit_uri = ip_constants.TEMPERATURE_UNIT_MAP[self._unit]
-            return opil.Measure(self._value, unit_uri)
+            return Measure(self._value, unit_uri)
         elif self._unit in ip_constants.TIME_UNIT_MAP:
             unit_uri = ip_constants.TIME_UNIT_MAP[self._unit]
-            return opil.Measure(self._value, unit_uri)
+            return Measure(self._value, unit_uri)
         else:
-            return opil.Measure(self._value, tyto.OM.number)
+            return Measure(self._value, tyto.OM.number)
 
     def to_structured_request(self):
         return {dc_constants.VALUE: float(self._value),
@@ -141,8 +141,8 @@ class MediaIntent(object):
     def values_to_opil_components(self):
         media_variants = []
         for media_value in self._media_values:
-            media_value_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                                   component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            media_value_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                              types=sbol_constants.SBO_FUNCTIONAL_ENTITY)
             media_value_component.name = media_value.get_name()
 
             if media_value.get_link() is not None:

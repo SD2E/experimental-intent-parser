@@ -1,11 +1,9 @@
-from intent_parser.intent.measure_property_intent import ReagentIntent, NamedStringValue
 from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.utils.id_provider import IdProvider
-from sbol3 import CombinatorialDerivation, Component, LocalSubComponent, SubComponent, TextProperty, VariableFeature
+from sbol3 import TextProperty
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
-import sbol3.constants as sbol_constants
 
 """
 Intent Parser's representation for a control.

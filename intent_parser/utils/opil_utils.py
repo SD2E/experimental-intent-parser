@@ -10,64 +10,63 @@ import opil
 import tyto
 
 
-def create_opil_boolean_parameter_value(value_id: str, value: bool):
-    parameter_value = opil.BooleanValue(value_id)
+def create_opil_boolean_parameter_value(value: bool):
+    parameter_value = opil.BooleanValue()
     parameter_value.value = value
     return parameter_value
 
 
-def create_opil_enumerated_parameter_value(value_id: str, value: str):
-    parameter_value = opil.EnumeratedValue(value_id)
+def create_opil_enumerated_parameter_value(value: str):
+    parameter_value = opil.EnumeratedValue()
     parameter_value.value = value
     return parameter_value
 
 
-def create_opil_integer_parameter_value(value_id: str, value: int):
-    parameter_value = opil.IntegerValue(value_id)
+def create_opil_integer_parameter_value(value: int):
+    parameter_value = opil.IntegerValue()
     parameter_value.value = value
     return parameter_value
 
 
-def create_opil_measurement_parameter_value(value_id: str, value: float, unit=''):
-    parameter_value = opil.MeasureValue(value_id)
+def create_opil_measurement_parameter_value(value: float, unit=''):
+    parameter_value = opil.MeasureValue()
     measure = MeasuredUnit(value, unit)
     parameter_value.has_measure = measure.to_opil_measure()
     return parameter_value
 
 
-def create_opil_string_parameter_value(value_id: str, value: str):
-    parameter_value = opil.StringValue(value_id)
+def create_opil_string_parameter_value(value: str):
+    parameter_value = opil.StringValue()
     parameter_value.value = value
     return parameter_value
 
 
-def create_opil_URI_parameter_value(value_id: str, value: str):
-    parameter_value = opil.URIValue(value_id)
+def create_opil_URI_parameter_value(value: str):
+    parameter_value = opil.URIValue()
     parameter_value.value = value
     return parameter_value
 
 
-def create_parameter_value_from_parameter(opil_parameter, parameter_value, unique_id):
+def create_parameter_value_from_parameter(opil_parameter, parameter_value):
     if isinstance(opil_parameter, opil.BooleanParameter):
-        return create_opil_boolean_parameter_value(unique_id, bool(parameter_value))
+        return create_opil_boolean_parameter_value(bool(parameter_value))
     elif isinstance(opil_parameter, opil.EnumeratedParameter):
-        return create_opil_enumerated_parameter_value(unique_id, str(parameter_value))
+        return create_opil_enumerated_parameter_value(str(parameter_value))
     elif isinstance(opil_parameter, opil.IntegerParameter):
-        return create_opil_integer_parameter_value(unique_id, int(parameter_value))
+        return create_opil_integer_parameter_value(int(parameter_value))
     elif isinstance(opil_parameter, opil.MeasureParameter):
-        possible_units = list(ip_constants.FLUID_UNIT_MAP.values())
+        possible_units = list(ip_constants.FLUID_UNIT_MAP.keys()) + list(ip_constants.TIME_UNIT_MAP.keys())
         measured_units = cell_parser.PARSER.process_values_unit(parameter_value,
                                                                 units=possible_units,
-                                                                unit_type=ip_constants.FLUID_UNIT_MAP)
+                                                                unit_type='fluid')
         if len(measured_units) != 1:
             raise IntentParserException('Expecting one Measurement Parameter value but %d were found.' % len(measured_units))
-        return create_opil_measurement_parameter_value(unique_id,
-                                                       float(measured_units[0].get_value()),
+        return create_opil_measurement_parameter_value(float(measured_units[0].get_value()),
                                                        measured_units[0].get_unit())
     elif isinstance(opil_parameter, opil.StringParameter):
-        return create_opil_string_parameter_value(unique_id, str(parameter_value))
+        return create_opil_string_parameter_value(str(parameter_value))
     elif isinstance(opil_parameter, opil.URIParameter):
-        return create_opil_URI_parameter_value(unique_id, str(parameter_value))
+        return create_opil_URI_parameter_value(str(parameter_value))
 
 
 def get_param_value_as_string(parameter_value):

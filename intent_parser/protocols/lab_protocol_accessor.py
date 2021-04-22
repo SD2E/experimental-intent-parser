@@ -11,19 +11,16 @@ class LabProtocolAccessor(object):
 
     def map_name_to_experimental_protocols(self):
         """
-        Get name of labs and their supporting experimental protocols.
+        Get name of lab and their supporting protocol interface.
         """
         experimental_protocols = {}
         for lab_name, lab_accessor in self._lab_accessors.items():
             experimental_protocols[lab_name] = self.get_protocol_names_from_lab(lab_name)
         return experimental_protocols
 
-    def get_lab_names(self):
-        return list(self._lab_accessors.keys())
-
     def get_protocol_names_from_lab(self, lab_name):
         """
-        Retrieve names of all protocols supported in a lab.
+        Retrieve protocol names supported in a lab.
         Args:
             lab_name: name of lab
         Returns:
@@ -32,17 +29,17 @@ class LabProtocolAccessor(object):
         lab_accessor = self._get_lab_accessor(lab_name)
         return lab_accessor.get_experimental_protocol_names()
 
-    def load_experimental_protocol_from_lab(self, experiment_name, lab_name):
+    def load_protocol_interface_from_lab(self, protocol_interface_name, lab_name):
         """
-        Retrieve an experimental protocol.
+        Retrieve protocol interface.
         Args:
-            experiment_name: name of experimental protocol
-            lab_name: name of lab where experimental protocol is found in
+            protocol_interface_name: name of protocol interface
+            lab_name: name of lab that supports the protocol interface
         Returns:
             an Intent Parser OpilDocumentTemplate
         """
         lab_accessor = self._get_lab_accessor(lab_name)
-        return lab_accessor.get_experimental_protocol(experiment_name)
+        return lab_accessor.get_experimental_protocol(protocol_interface_name)
 
     def get_protocol_id(self, protocol_name, lab_name):
         """
@@ -51,7 +48,7 @@ class LabProtocolAccessor(object):
              protocol_name: name of protocol
              lab_name: name of lab
         Returns:
-            a string representing a protocol ID.
+            A string representing a protocol ID. An empty string is returned if no protocol ID is assigned.
         """
         lab_accessor = self._get_lab_accessor(lab_name)
         opil_document_template = lab_accessor.get_experimental_protocol(protocol_name)

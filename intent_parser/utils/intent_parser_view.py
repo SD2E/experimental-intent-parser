@@ -86,13 +86,14 @@ def create_parameter_table_dialog(cursor_child_index,
     dialog_action = modal_dialog(html_parameter, 'Create Parameters Table', 600, 600)
     return dialog_action
 
-def create_experimental_protocol_dialog(cursor_index, lab_names, aquarium_protocols):
+def create_experimental_protocol_dialog(cursor_index, lab_names, aquarium_protocols, strateos_protocols):
     builder = ExperimentalProtocolHtmlBuilder()
     builder.cursor_child_index_html(cursor_index)
     builder.lab_names_html(generate_html_options(lab_names))
     builder.set_aquarium_html(generate_html_options(aquarium_protocols))
+    builder.set_strateos_html(generate_html_options(strateos_protocols))
     html = builder.build()
-    dialog_action = modal_dialog(html, 'Experimental Protocols', 600, 600)
+    dialog_action = modal_dialog(html, 'Experimental Protocols', 300, 150)
     return dialog_action
 
 def create_measurement_table_dialog(cursor_child_index):

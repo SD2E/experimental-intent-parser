@@ -8,7 +8,7 @@ import logging
 import opil
 import time
 import threading
-
+import sbol3
 
 class StrateosAccessor(OpilLabAccessors):
     """
@@ -52,6 +52,7 @@ class StrateosAccessor(OpilLabAccessors):
                                           protocol_name,
                                           protocol['id'],
                                           protocol['inputs'])
+
         template = OpilDocumentTemplate()
         template.load_from_template(opil_doc)
         return template

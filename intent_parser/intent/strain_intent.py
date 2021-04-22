@@ -1,7 +1,7 @@
 from intent_parser.intent.measure_property_intent import NamedLink
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.utils.id_provider import IdProvider
-from sbol3 import SubComponent
+from sbol3 import Component, SubComponent
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import opil
 import sbol3.constants as sbol_constants
@@ -32,8 +32,8 @@ class StrainIntent(object):
         self._strain_commmon_name = common_name
 
     def to_opil_component(self):
-        strain_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                          component_type=sbol_constants.SBO_DNA)
+        strain_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                     types=sbol_constants.SBO_DNA)
         strain_component.name = self._strain_name.get_name()
 
         if self._strain_name.get_link():

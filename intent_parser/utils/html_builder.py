@@ -101,6 +101,9 @@ class ExperimentalProtocolHtmlBuilder(object):
     def set_aquarium_html(self, aquarium_options):
         self.html = self.html.replace('${AQUARIUMOPTIONS}', aquarium_options)
 
+    def set_strateos_html(self, strateos_options):
+        self.html = self.html.replace('${STRATEOSOPTIONS}', strateos_options)
+
     def build(self):
         return self.html
 

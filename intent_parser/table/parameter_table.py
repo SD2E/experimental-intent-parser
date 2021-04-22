@@ -126,7 +126,10 @@ class ParameterTable(object):
             plate_size = [int(value) for value in cell_parser.PARSER.process_numbers(parameter_value)]
             self._parameter_intent.set_plate_size(plate_size[0])
         elif parameter_field == intent_parser_constants.PARAMETER_PROTOCOL_NAME:
-            self._parameter_intent.set_protocol_name(parameter_value)
+            if parameter_value == 'growth_curve':
+                self._parameter_intent.set_protocol_name(intent_parser_constants.GROWTH_CURVE_PROTOCOL)
+            else:
+                self._parameter_intent.set_protocol_name(parameter_value)
         elif parameter_field == intent_parser_constants.PROTOCOL_FIELD_PLATE_NUMBER:
             plate_number = [int(value) for value in cell_parser.PARSER.process_numbers(parameter_value)]
             self._parameter_intent.set_plate_number(plate_number[0])
@@ -156,7 +159,6 @@ class ParameterTable(object):
             parameter_id = parameter_field
             if parameter_field in self._parameter_fields:
                 parameter_id = self._parameter_fields[parameter_id]
-
             self._parameter_intent.add_parameter(parameter_id, parameter_value)
         else:
             parameter_id = parameter_field
@@ -178,6 +180,9 @@ class ParameterTable(object):
             try:
                 if parameter_value:
                     json_parameter_value = json.loads(parameter_value)
+                    # if self.run_as_opil:
+                    #     if self.
+                    # else:
                     computed_value = [json_parameter_value]
                     self._flatten_parameter_values(parameter_field, computed_value)
             except JSONDecodeError:

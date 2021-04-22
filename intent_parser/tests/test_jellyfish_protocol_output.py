@@ -15,8 +15,8 @@ class JellyFishProtocolOutputTest(unittest.TestCase):
         aquarium_accessor = AquariumOpilAccessor()
         strateos_accessor = StrateosAccessor()
         lab_protocol_accessor = LabProtocolAccessor(strateos_accessor, aquarium_accessor)
-        self.opil_lab_template = lab_protocol_accessor.load_experimental_protocol_from_lab('High-Throughput Culturing',
-                                                                                           ip_constants.LAB_DUKE_HASE)
+        self.opil_lab_template = lab_protocol_accessor.load_protocol_interface_from_lab('High-Throughput Culturing',
+                                                                                        ip_constants.LAB_DUKE_HASE)
         self.ip_table_factory = IntentParserTableFactory()
 
     def test_size_of_load_experimental_request(self):

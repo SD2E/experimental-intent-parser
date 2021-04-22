@@ -1,24 +1,30 @@
+import sbol3
+
 from intent_parser.intent.measure_property_intent import ReagentIntent, MediaIntent, NamedStringValue
 from intent_parser.intent.parameter_intent import ParameterIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.utils.id_provider import IdProvider
-from sbol3 import SubComponent, TextProperty, LocalSubComponent
+from sbol3 import Component, SubComponent, LocalSubComponent, TextProperty, VariableFeature
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.utils.opil_utils as opil_utils
+import logging
 import opil
 import sbol3.constants as sbol_constants
 
 
 class OpilDocumentTemplate(object):
+
+    _LOGGER = logging.getLogger('OpilDocumentTemplate')
+
     def __init__(self):
         self.opil_components = []
         self.opil_sample_sets = []
         self.opil_experimental_requests = []
-        self.opil_parameter_values = []
         self.opil_protocol_interfaces = []
+        self.opil_unidentifieds = []
 
     def get_components(self):
         return self.opil_components
@@ -29,15 +35,15 @@ class OpilDocumentTemplate(object):
     def get_experimental_requests(self):
         return self.opil_experimental_requests
 
-    def get_parameter_values(self):
-        return self.opil_parameter_values
-
     def get_protocol_interfaces(self):
         return self.opil_protocol_interfaces
 
+    def get_unidentifieds(self):
+        return self.opil_unidentifieds
+
     def load_from_template(self, template: opil.Document):
         for top_level in template.objects:
-            if isinstance(top_level, opil.Component):
+            if isinstance(top_level, Component):
                 self.opil_components.append(top_level)
             elif isinstance(top_level, opil.SampleSet):
                 self.opil_sample_sets.append(top_level)
@@ -45,15 +51,21 @@ class OpilDocumentTemplate(object):
                 self.opil_experimental_requests.append(top_level)
             elif isinstance(top_level, opil.ProtocolInterface):
                 self.opil_protocol_interfaces.append(top_level)
-            elif isinstance(top_level, opil.ParameterValue):
-                self.opil_parameter_values.append(top_level)
+            else:
+                self.opil_unidentifieds.append(top_level)
 
 class OpilParameterTemplate(object):
+
+    _LOGGER = logging.getLogger('OpilParameterTemplate')
+
     def __init__(self):
         self.parameter = None
         self.parameter_value = None
 
 class OpilControlTemplate(object):
+
+    _LOGGER = logging.getLogger('OpilControlTemplate')
+
     def __init__(self):
         self.strains_template = None
         self.contents_template = None
@@ -80,19 +92,22 @@ class OpilControlTemplate(object):
         if control_table.has_strains():
             self.strains_template = self._create_opil_local_subcomponent(ip_constants.HEADER_STRAINS_VALUE)
             table_header_templates.append(self.strains_template)
-        self.template = opil.Component(self._id_provider.get_unique_sd2_id())
+        self.template = Component(self._id_provider.get_unique_sd2_id(),
+                                  types=sbol_constants.SBO_FUNCTIONAL_ENTITY)
 
         if len(table_header_templates) == 0:
             raise IntentParserException('Unable to create control templates because Control Table missing table headers.')
         self.template.features = table_header_templates
 
     def _create_opil_local_subcomponent(self, template_name):
-        component_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
-                                               types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        component_template = LocalSubComponent(types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
         component_template.name = template_name
         return component_template
 
 class OpilMeasurementTemplate(object):
+
+    _LOGGER = logging.getLogger('OpilMeasurementTemplate')
+
     def __init__(self):
         self.batch_template = None
         self.column_id_template = None
@@ -139,6 +154,9 @@ class OpilMeasurementTemplate(object):
 
 class ExperimentalRequest(object):
     """An experimental request is ..."""
+
+    _LOGGER = logging.getLogger('ExperimentalRequest')
+
     def __init__(self,
                  lab_namespace: str,
                  template: OpilDocumentTemplate,
@@ -150,7 +168,7 @@ class ExperimentalRequest(object):
         self.opil_experimental_requests = [component.copy() for component in template.get_experimental_requests()]
         self.opil_measurements = []
         self.opil_protocol_interfaces = [component.copy() for component in template.get_protocol_interfaces()]
-        self.opil_parameter_values = [component.copy() for component in template.get_parameter_values()]
+        self.opil_parameter_values = []
         self._experiment_id = experiment_id
         self._experiment_ref = experiment_ref
         self._experiment_ref_url = experiment_ref_url
@@ -184,8 +202,8 @@ class ExperimentalRequest(object):
 
     def add_run_parameters(self, parameter_intent: ParameterIntent):
         """Adds run configurations for experiment as a parameter to a ProtocolInterface.
-        Note: Unlike a structured request, protocol name is not encoded as run parameters in opil but rather ProtocolInterface
-              Similarly, protocol_id is represented as a cutom annotation and not as parameters
+        Note: In opil, protocol name is not encoded as a run parameter but rather as a ProtocolInterface
+              Similarly, protocol_id is represented as a custom annotation and not as parameters
         Args:
             parameter_intent: refer to parameters processed from a paramater table
         """
@@ -308,6 +326,7 @@ class ExperimentalRequest(object):
         experimental_request = self.opil_experimental_requests[0]
         experimental_request.measurements = self.opil_measurements
         experimental_request.sample_set = self.opil_sample_sets
+        # protocol_interface.allowed_samples.append(sample_set)
         if len(self.opil_protocol_interfaces) != 1:
             raise IntentParserException('Expecting 1 ProtocolInterface but %d were found.' % len(self.opil_protocol_interfaces))
         experimental_request.instance_of = self.opil_protocol_interfaces[0].identity
@@ -348,10 +367,6 @@ class ExperimentalRequest(object):
         elif len(self.opil_protocol_interfaces) > 1:
             raise IntentParserException('expecting 1 but got %d opil ProtocolInterface.' % len(self.opil_protocol_interfaces))
 
-        if len(self.opil_experimental_requests) != 1:
-            raise IntentParserException(
-                'expecting 1 but got %d opil.ExperimentalRequest.' % len(self.opil_experimental_requests))
-
         opil_protocol_interface = self.opil_protocol_interfaces[0]
         for parameter in opil_protocol_interface.has_parameter:
             opil_parameter_template = OpilParameterTemplate()
@@ -369,7 +384,7 @@ class ExperimentalRequest(object):
         if len(self.opil_experimental_requests) == 0:
             self.opil_experimental_requests.append(opil.ExperimentalRequest(self._id_provider.get_unique_sd2_id()))
         else:
-            raise IntentParserException('expecting 1 but got %d opil.ExperimentalRequest.' % len(self.opil_experimental_requests))
+            raise IntentParserException('expecting 0 but got %d opil.ExperimentalRequest.' % len(self.opil_experimental_requests))
         opil_experimental_request = self.opil_experimental_requests[0]
         self._annotate_experimental_id(opil_experimental_request)
         self._annotate_experimental_reference(opil_experimental_request)
@@ -381,12 +396,12 @@ class ExperimentalRequest(object):
         self._opil_control_templates[control_table.get_table_caption()] = opil_control_template
 
         for control_intent in control_table.get_intents():
-            sample_set = opil.SampleSet(identity=self._id_provider.get_unique_sd2_id())
-            sample_set.template = opil_control_template.template
+            sample_set = opil.SampleSet(identity=self._id_provider.get_unique_sd2_id(),
+                                        template=opil_control_template.template)
             all_sample_variables = []
             if control_intent.size_of_contents() > 0 and opil_control_template.contents_template:
-                content_variables = self._create_variable_features_from_control_contents(opil_control_template.contents_template,
-                                                                                         control_intent.get_contents())
+                content_variables = self._create_variable_features_from_control_contents(control_intent.get_contents(),
+                                                                                         opil_control_template.contents_template)
                 all_sample_variables.extend(content_variables)
             if control_intent.size_of_strains() > 0 and opil_control_template.strains_template:
                 strain_components = control_intent.strain_values_to_opil_components()
@@ -406,15 +421,16 @@ class ExperimentalRequest(object):
                                                                                        reagent_measures)
                 all_sample_variables.append(reagent_variable)
             elif isinstance(content, NamedStringValue):
-                content_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                                   component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+                content_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                              types=sbol_constants.SBO_FUNCTIONAL_ENTITY)
                 content_component.name = content.get_named_link().get_name()
                 self.opil_components.append(content_component)
                 if content.get_named_link().get_link() is not None:
                     content_sub_component = SubComponent(content.get_named_link().get_link())
                     content_component.features = [content_sub_component]
+                variants = [content_component]
                 content_variable = self._create_variable_feature_with_variants(content_template,
-                                                                               content_component)
+                                                                               variants)
                 all_sample_variables.append(content_variable)
         return all_sample_variables
 
@@ -430,7 +446,7 @@ class ExperimentalRequest(object):
         opil_measurement_intent_pairs = self._map_opil_measurement_to_intent(measurement_intents,
                                                                              protocol_interface.protocol_measurement_type)
         for opil_measurement, intent in opil_measurement_intent_pairs:
-            self.opil_measurements.append(opil_measurement)
+            # self.opil_measurements.append(opil_measurement)
             if intent.size_of_file_types() > 0:
                 intent.file_types_to_opil_measurement_annotation(opil_measurement)
             if intent.size_of_timepoints() > 0:
@@ -438,18 +454,11 @@ class ExperimentalRequest(object):
                 opil_measurement.time = timepoint_measures
 
     def load_sample_set(self, number_of_sample_sets):
-        sample_set = None
-        if len(self.opil_sample_sets) == 1:
-            sample_set = self.opil_sample_sets[0]
-        elif len(self.opil_sample_sets) == 0:
-            sample_set = opil.SampleSet(identity=self._id_provider.get_unique_sd2_id())
-            sample_set.template = self.sample_template
-        else:
-            raise IntentParserException('More than one SampleSet found from lab protocol.')
-
+        protocol_interface = self.opil_protocol_interfaces[0]
         while len(self.opil_sample_sets) < number_of_sample_sets:
-            sample_set = opil.SampleSet(identity=self._id_provider.get_unique_sd2_id())
-            sample_set.template = self.sample_template
+            sample_set = opil.SampleSet(identity=self._id_provider.get_unique_sd2_id(),
+                                        template=self.sample_template)
+            protocol_interface.allowed_samples.append(sample_set)
             self.opil_sample_sets.append(sample_set)
 
     def load_sample_template_from_protocol_interface(self):
@@ -463,7 +472,7 @@ class ExperimentalRequest(object):
                 uris_to_components[component.identity] = component
             else:
                 if uris_to_components[component.identity]:
-                    raise IntentParserException('conflict mapping opil.Components with same identity.')
+                    raise IntentParserException('conflict mapping Components with same identity.')
 
         unique_templates = []
         for sample in self.opil_sample_sets:
@@ -477,8 +486,8 @@ class ExperimentalRequest(object):
             unique_templates.append(uris_to_components[str_template])
 
         if not unique_templates:
-            self.sample_template = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                                  component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            self.sample_template = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                             types=sbol_constants.SBO_FUNCTIONAL_ENTITY)
             self.opil_components.append(self.sample_template)
             return
         elif len(unique_templates) > 1:
@@ -501,27 +510,42 @@ class ExperimentalRequest(object):
 
     def update_parameter_values(self, document_parameter_names_to_values):
         name_to_parameter = {}
+        dotname_to_name = {}
         for opil_parameter_template in self.lab_parameter_field_id_to_values.values():
             opil_parameter = opil_parameter_template.parameter
             if not opil_parameter.name:
                 raise IntentParserException('Opil Parameter missing a name: %s' % opil_parameter.identity)
             if opil_parameter.name in name_to_parameter:
-                raise IntentParserException('More than one opil Parameter with the same name: %s' % opil_parameter.name)
+                message = 'More than one opil Parameter with the same name: %s' % opil_parameter.name
+                # raise IntentParserException(message)
+                self._LOGGER.warning(message)
+                continue
+            try:
+                opil_parameter.dotname = sbol3.TextProperty(opil_parameter, 'http://strateos.com/dotname', 0, 1)
+                if opil_parameter.dotname:
+                    dotname_to_name[opil_parameter.dotname] = opil_parameter.name
+            except AttributeError:
+                self._LOGGER.warning('Parameter does not have a dotname: %s' % opil_parameter.identity)
             name_to_parameter[opil_parameter.name] = opil_parameter_template
 
         for parameter_name, parameter_value in document_parameter_names_to_values.items():
-            if parameter_name in name_to_parameter:
-                opil_parameter_template = name_to_parameter[parameter_name]
+            filtered_name = parameter_name
+            if parameter_name in dotname_to_name:
+                filtered_name = dotname_to_name[parameter_name]
+
+            if filtered_name in name_to_parameter:
+                opil_parameter_template = name_to_parameter[filtered_name]
                 opil_parameter = opil_parameter_template.parameter
                 opil_parameter_value = opil_parameter_template.parameter_value
                 if not opil_parameter_value:
                     opil_parameter_value = opil_utils.create_parameter_value_from_parameter(opil_parameter,
-                                                                                            opil_parameter_value,
                                                                                             parameter_value)
                     opil_parameter_value.value_of = opil_parameter
                     self.opil_parameter_values.append(opil_parameter_value)
                 else:
                     opil_parameter_value.value = parameter_value
+            # else:
+            #     raise IntentParserException('Parameter not supported in protocol: %s' % filtered_name)
 
     def _annotate_experimental_id(self, opil_experimental_result):
         opil_experimental_result.experiment_id = TextProperty(opil_experimental_result,
@@ -653,7 +677,7 @@ class ExperimentalRequest(object):
         # temperature
         if measurement_intent.size_of_temperatures() > 0:
             if last_encoded_media_template:
-                temperature_measures = measurement_intent.temperature_values_to_opil_measure(last_encoded_media_template)
+                temperature_measures = measurement_intent.temperature_values_to_opil_measure()
                 temperature_variable = self._create_variable_feature_with_variant_measures(last_encoded_media_template,
                                                                                            temperature_measures)
                 all_sample_variables.append(temperature_variable)
@@ -663,47 +687,43 @@ class ExperimentalRequest(object):
         return all_sample_variables
 
     def _create_opil_local_subcomponent(self, template_name):
-        component_template = LocalSubComponent(identity=self._id_provider.get_unique_sd2_id(),
-                                               types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
+        component_template = LocalSubComponent(types=[sbol_constants.SBO_FUNCTIONAL_ENTITY])
         component_template.name = template_name
         return component_template
 
     def _create_variable_feature_with_variants(self, variable, variants):
-        variable_feature = opil.VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
-                                                cardinality=sbol_constants.SBOL_ONE)
-        variable_feature.variable = variable
+        variable_feature = VariableFeature(cardinality=sbol_constants.SBOL_ONE,
+                                           variable=variable)
         variable_feature.variants = variants
         return variable_feature
 
     def _create_variable_feature_with_variant_derivation(self, variable, variant_derivations):
-        variable_feature = opil.VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
-                                                cardinality=sbol_constants.SBOL_ONE)
-        variable_feature.variable = variable
+        variable_feature = VariableFeature(cardinality=sbol_constants.SBOL_ONE,
+                                           variable=variable)
         variable_feature.variant_derivations = variant_derivations
         return variable_feature
 
     def _create_variable_feature_with_variant_measures(self, variable, variant_measures):
-        variable_feature = opil.VariableFeature(identity=self._id_provider.get_unique_sd2_id(),
-                                                cardinality=sbol_constants.SBOL_ONE)
-        variable_feature.variable = variable
+        variable_feature = VariableFeature(cardinality=sbol_constants.SBOL_ONE,
+                                           variable=variable)
         variable_feature.variant_measures = variant_measures
         return variable_feature
 
     def _create_media_template(self, ip_media):
         media_name = ip_media.get_media_name()
-        media_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                         component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        media_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                    types=sbol_constants.SBO_FUNCTIONAL_ENTITY)
         media_component.name = media_name.get_name()
         media_component.roles = [ip_constants.NCIT_MEDIA_URI]
         media_template = None
         if media_name.get_link() is None:
             media_template = SubComponent(media_component)
             media_template.name = media_name.get_name()
-            media_component.features = [media_template]
+            # media_component.features = [media_template]
         else:
             media_template = SubComponent(media_name.get_link())
             media_template.name = media_name.get_name()
-            media_component.features = [media_template]
+            # media_component.features = [media_template]
 
         if ip_media.get_timepoint():
             media_timepoint_measure = ip_media.get_timepoint().to_opil_measure()
@@ -713,19 +733,19 @@ class ExperimentalRequest(object):
 
     def _create_reagent_template(self, ip_reagent):
         reagent_name = ip_reagent.get_reagent_name()
-        reagent_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                           component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+        reagent_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                      types=sbol_constants.SBO_FUNCTIONAL_ENTITY)
         reagent_component.roles = [ip_constants.NCIT_REAGENT_URI]
         reagent_component.name = reagent_name.get_name()
         reagent_template = None
         if reagent_name.get_link() is None:
             reagent_template = SubComponent(reagent_component)
             reagent_template.name = reagent_name.get_name()
-            reagent_component.features = [reagent_template]
+            # reagent_component.features = [reagent_template]
         else:
             reagent_template = SubComponent(reagent_name.get_link())
             reagent_template.name = reagent_name.get_name()
-            reagent_component.features = [reagent_template]
+            # reagent_component.features = [reagent_template]
 
         if ip_reagent.get_timepoint():
             reagent_timepoint_measure = ip_reagent.get_timepoint().to_opil_measure()
@@ -830,7 +850,7 @@ class ExperimentalRequest(object):
     def _map_opil_measurement_to_intent(self, measurement_intents, opil_measurement_types):
         measurement_type_to_intent = {}
         opil_measurement_intent_pairs = []
-
+        protocol_interface = self.opil_protocol_interfaces[0]
         # Collect measurement intents by type
         for measurement_intent in measurement_intents:
             measurement_type = measurement_intent.get_measurement_type()
@@ -851,7 +871,8 @@ class ExperimentalRequest(object):
             if not measurement_type_to_intent[measurement_type]:
                 raise IntentParserException('Unable to map opil to intent')
             opil_intent = measurement_type_to_intent[measurement_type].pop()
-            new_opil_measurement = opil.Measurement(self._id_provider.get_unique_sd2_id())
+            new_opil_measurement = opil.Measurement()
+            protocol_interface.protocol_measurement_type.append(opil_measurement_type)
             new_opil_measurement.instance_of = opil_measurement_type
             self.opil_measurements.append(new_opil_measurement)
             opil_measurement_intent_pairs.append((new_opil_measurement, opil_intent))
@@ -859,13 +880,30 @@ class ExperimentalRequest(object):
         # Collecting intents that are not mapped and need to be created.
         for intents in measurement_type_to_intent.values():
             for intent in intents:
-                new_opil_measurement = opil.Measurement(self._id_provider.get_unique_sd2_id())
+                new_opil_measurement = opil.Measurement()
                 new_opil_measurement_type = intent.measurement_type_to_opil_measurement_type()
-                new_opil_measurement.instance_of = new_opil_measurement_type
+                protocol_interface.protocol_measurement_type.append(new_opil_measurement_type)
+                new_opil_measurement.instance_of = new_opil_measurement_type.identity
                 self.opil_measurements.append(new_opil_measurement)
                 opil_measurement_intent_pairs.append((new_opil_measurement, intent))
 
         return opil_measurement_intent_pairs
 
-    def _validate_parameters_from_lab(self):
-        pass # todo
+    def _validate_parameters_from_lab(self, parameter_fields_from_lab, parameter_fields_from_document):
+        # todo
+        # Check for required fields.
+        is_valid = True
+        # for field in parameter_fields_from_lab.values():
+        #     if field.is_required() and field.get_field_name() not in parameter_fields_from_document:
+        #         self.validation_errors.append('missing required parameter field %s' % field.get_field_name())
+        #         is_valid = False
+        # # Check for valid values.
+        # for name, value in parameter_fields_from_document.items():
+        #     if name not in parameter_fields_from_lab:
+        #         is_valid = False
+        #         self.validation_errors.append('%s is not a supported parameter field for protocol %s' % (name, self.processed_parameter.get_protocol_name()))
+        #     elif not parameter_fields_from_lab[name].is_valid_value(value):
+        #         is_valid = False
+        #         self.validation_errors.append('%s is not a valid parameter value for parameter field %s' % (
+        #             value, name))
+        # return is_valid

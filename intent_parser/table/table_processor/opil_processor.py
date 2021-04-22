@@ -99,7 +99,7 @@ class OpilProcessor(Processor):
 
     def _process_tables(self, lab_tables, control_tables, parameter_tables, measurement_tables):
         self._process_lab_tables(lab_tables)
-        opil.set_namespace(self._get_namespace_from_lab())
+        # opil.set_namespace(self._get_namespace_from_lab())
         strain_mapping = self._sbol_dictionary.get_mapped_strain(self.processed_lab_name)
 
         if len(control_tables) == 0:
@@ -122,8 +122,8 @@ class OpilProcessor(Processor):
             raise IntentParserException('Name of lab must be provided for describing an experimental request but'
                                         'none was given.')
 
-        opil_lab_template = self._lab_protocol_accessor.load_experimental_protocol_from_lab(self.processed_protocol_name,
-                                                                                            self.processed_lab_name)
+        opil_lab_template = self._lab_protocol_accessor.load_protocol_interface_from_lab(self.processed_protocol_name,
+                                                                                         self.processed_lab_name)
         experimental_request = ExperimentalRequest(self._get_namespace_from_lab(),
                                                    opil_lab_template,
                                                    self._experiment_id,
@@ -220,7 +220,7 @@ class OpilProcessor(Processor):
                                                  strain_mapping=strain_mapping)
 
             control_data = {}
-            for table_caption, control_table in self.processed_controls.values():
+            for table_caption, control_table in self.processed_controls.items():
                 control_data[table_caption] = control_table.get_intents()
             measurement_table.process_table(control_data=control_data)
 
@@ -238,7 +238,10 @@ class OpilProcessor(Processor):
             self.validation_warnings.extend([message])
         try:
             table = parameter_tables[-1]
-            parameter_table = ParameterTable(table, run_as_opil=True)
+            strateos_dictionary_mapping = self._sbol_dictionary.map_common_names_and_transcriptic_id()
+            parameter_table = ParameterTable(table,
+                                             parameter_fields=strateos_dictionary_mapping,
+                                             run_as_opil=True)
             parameter_table.process_table()
 
             self.validation_warnings.extend(parameter_table.get_validation_warnings())
