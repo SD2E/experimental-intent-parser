@@ -18,6 +18,10 @@ class LabProtocolAccessor(object):
             experimental_protocols[lab_name] = self.get_protocol_names_from_lab(lab_name)
         return experimental_protocols
 
+    def get_experiment_from_lab_protocol(self, lab_name, protocol_name):
+        lab_accessor = self._get_lab_accessor(lab_name)
+        return lab_accessor.get_experiment_id_from_protocol(protocol_name)
+
     def get_protocol_names_from_lab(self, lab_name):
         """
         Retrieve protocol names supported in a lab.

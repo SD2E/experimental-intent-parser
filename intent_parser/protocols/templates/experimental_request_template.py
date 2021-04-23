@@ -6,7 +6,7 @@ from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.utils.id_provider import IdProvider
-from sbol3 import Component, SubComponent, LocalSubComponent, TextProperty, VariableFeature
+from sbol3 import Component, IntProperty, SubComponent, LocalSubComponent, TextProperty, VariableFeature
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.utils.opil_utils as opil_utils
@@ -197,6 +197,23 @@ class ExperimentalRequest(object):
         for index in range(len(measurement_intents)):
             measurement_intent = measurement_intents[index]
             sample_set = self.opil_sample_sets[index]
+            # replicates
+            if measurement_intent.size_of_replicates() > 0:
+                replicate_values = measurement_intent.get_replicates()
+                if len(replicate_values) == 1:
+                    sample_set.replicates = replicate_values[0]
+                elif len(replicate_values) == 2:
+                    sample_set.min_replicates = IntProperty(sample_set,
+                                                            '%s#min_replicates' % ip_constants.SD2E_NAMESPACE,
+                                                            0, 1)
+                    sample_set.min_replicates = min(replicate_values)
+                    sample_set.max_replicates = IntProperty(sample_set,
+                                                            '%s#max_replicates' % ip_constants.SD2E_NAMESPACE,
+                                                            0, 1)
+                    sample_set.max_replicates = max(replicate_values)
+                else:
+                    self._LOGGER.warning('Expecting 1-2 replicate values but found %d' % len(replicate_values))
+
             all_sample_variables = self._create_sample_variables_from_measurement_intent(measurement_intent)
             sample_set.variable_features = all_sample_variables
 
@@ -446,7 +463,6 @@ class ExperimentalRequest(object):
         opil_measurement_intent_pairs = self._map_opil_measurement_to_intent(measurement_intents,
                                                                              protocol_interface.protocol_measurement_type)
         for opil_measurement, intent in opil_measurement_intent_pairs:
-            # self.opil_measurements.append(opil_measurement)
             if intent.size_of_file_types() > 0:
                 intent.file_types_to_opil_measurement_annotation(opil_measurement)
             if intent.size_of_timepoints() > 0:

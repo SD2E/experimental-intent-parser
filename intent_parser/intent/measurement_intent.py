@@ -72,6 +72,9 @@ class MeasurementIntent(object):
     def get_measurement_type(self) -> str:
         return self._measurement_type
 
+    def get_replicates(self):
+        return self._replicates
+
     def get_strains(self):
         return self._strains
 
@@ -191,9 +194,6 @@ class MeasurementIntent(object):
 
     def optical_density_values_to_opil_measures(self):
         return [Measure(value, tyto.OM.number) for value in self._optical_densities]
-
-    def replicate_values_to_opil_measure(self):
-        return [Measure(replicate_value, tyto.OM.number) for replicate_value in self._replicates]
 
     def strain_values_to_opil_components(self):
         return [strain.to_opil_component() for strain in self._strains]

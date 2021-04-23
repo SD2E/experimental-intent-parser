@@ -75,11 +75,11 @@ class OpilProcessor(Processor):
         self.processed_lab_name = ''
         self.processed_protocol_name = ''
         self.processed_controls = {}
+        self.processed_lab = None
         self.measurement_table = None
         self.processed_parameter = None
         self.opil_document = None
 
-        self._experiment_id = None
         self._experiment_ref = experiment_ref
         self._experiment_ref_url = experiment_ref_url
         self._sbol_dictionary = sbol_dictionary
@@ -99,7 +99,6 @@ class OpilProcessor(Processor):
 
     def _process_tables(self, lab_tables, control_tables, parameter_tables, measurement_tables):
         self._process_lab_tables(lab_tables)
-        # opil.set_namespace(self._get_namespace_from_lab())
         strain_mapping = self._sbol_dictionary.get_mapped_strain(self.processed_lab_name)
 
         if len(control_tables) == 0:
@@ -124,9 +123,13 @@ class OpilProcessor(Processor):
 
         opil_lab_template = self._lab_protocol_accessor.load_protocol_interface_from_lab(self.processed_protocol_name,
                                                                                          self.processed_lab_name)
+        protocol_id = self._lab_protocol_accessor.get_experiment_from_lab_protocol(self.processed_lab_name,
+                                                                                     self.processed_protocol_name)
+        self.processed_lab.set_experiment_id(protocol_id)
+        experiment_id = self.processed_lab.to_structured_request()[dc_constants.EXPERIMENT_ID]
         experimental_request = ExperimentalRequest(self._get_namespace_from_lab(),
                                                    opil_lab_template,
-                                                   self._experiment_id,
+                                                   experiment_id,
                                                    self._experiment_ref,
                                                    self._experiment_ref_url)
         experimental_request.load_experimental_request()
@@ -200,7 +203,7 @@ class OpilProcessor(Processor):
 
         processed_lab = lab_table.get_intent()
         self.processed_lab_name = processed_lab.get_lab_name()
-        self._experiment_id = processed_lab.to_structured_request()[dc_constants.EXPERIMENT_ID]
+        self.processed_lab = processed_lab
         self.validation_errors.extend(lab_table.get_validation_errors())
         self.validation_warnings.extend(lab_table.get_validation_warnings())
 

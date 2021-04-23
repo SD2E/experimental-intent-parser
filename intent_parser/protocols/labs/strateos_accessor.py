@@ -29,6 +29,12 @@ class StrateosAccessor(OpilLabAccessors):
         self._name_to_json = {}
         self._protocol_thread = threading.Thread(target=self._periodically_fetch_protocols)
 
+    def get_experiment_id_from_protocol(self, protocol_name):
+        if protocol_name not in self._name_to_json:
+            raise IntentParserException('Protocol not supported by Strateos: %s' % protocol_name)
+        protocol = self._name_to_json[protocol_name]
+        return protocol['id']
+
     def get_experimental_protocol(self, experimental_request_name):
         if experimental_request_name not in self._name_to_json:
             raise IntentParserException('Protocol not supported by Strateos: %s' % experimental_request_name)
