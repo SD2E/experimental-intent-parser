@@ -55,6 +55,8 @@ def create_parameter_value_from_parameter(opil_parameter, parameter_value):
     elif isinstance(opil_parameter, opil.IntegerParameter):
         return create_opil_integer_parameter_value(int(parameter_value))
     elif isinstance(opil_parameter, opil.MeasureParameter):
+        if cell_parser.PARSER.is_number(str(parameter_value)):
+            return create_opil_measurement_parameter_value(parameter_value, tyto.OM.number)
         possible_units = list(ip_constants.FLUID_UNIT_MAP.keys()) + list(ip_constants.TIME_UNIT_MAP.keys())
         measured_units = cell_parser.PARSER.process_values_unit(parameter_value,
                                                                 units=possible_units,

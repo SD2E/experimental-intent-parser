@@ -159,7 +159,17 @@ class ParameterTable(object):
             parameter_id = parameter_field
             if parameter_field in self._parameter_fields:
                 parameter_id = self._parameter_fields[parameter_id]
-            self._parameter_intent.add_parameter(parameter_id, parameter_value)
+
+            if parameter_id == intent_parser_constants.PARAMETER_READER_INFO_LIST_OF_GAINS:
+                json_parameter_value = json.loads(parameter_value)
+                self._parameter_intent.add_parameter('plate_reader_info.list_of_gains.gain_1',
+                                                     json_parameter_value['gain_1'])
+                self._parameter_intent.add_parameter('plate_reader_info.list_of_gains.gain_2',
+                                                     json_parameter_value['gain_2'])
+                self._parameter_intent.add_parameter('plate_reader_info.list_of_gains.gain_3',
+                                                     json_parameter_value['gain_3'])
+            else:
+                self._parameter_intent.add_parameter(parameter_id, parameter_value)
         else:
             parameter_id = parameter_field
             if parameter_field in self._parameter_fields:
@@ -180,9 +190,6 @@ class ParameterTable(object):
             try:
                 if parameter_value:
                     json_parameter_value = json.loads(parameter_value)
-                    # if self.run_as_opil:
-                    #     if self.
-                    # else:
                     computed_value = [json_parameter_value]
                     self._flatten_parameter_values(parameter_field, computed_value)
             except JSONDecodeError:

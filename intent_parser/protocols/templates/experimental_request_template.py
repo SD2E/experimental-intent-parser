@@ -557,6 +557,7 @@ class ExperimentalRequest(object):
                     opil_parameter_value = opil_utils.create_parameter_value_from_parameter(opil_parameter,
                                                                                             parameter_value)
                     opil_parameter_value.value_of = opil_parameter
+
                     self.opil_parameter_values.append(opil_parameter_value)
                 else:
                     opil_parameter_value.value = parameter_value
