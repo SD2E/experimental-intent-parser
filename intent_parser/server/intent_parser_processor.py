@@ -1400,7 +1400,10 @@ class IntentParserProcessor(object):
 
     def _add_default_parameter_values(self, parameter_fields_from_lab):
         optional_parameters = []
+        ignore_parameters = ['Experiment ID', 'Experiment Reference', 'Experiment Reference URL']
         for param_name, parameter in parameter_fields_from_lab.items():
+            if param_name in ignore_parameters:
+                continue
             parameter_values = parameter.get_valid_values()
             parameter_value = opil_util.get_param_value_as_string(parameter_values[0]) if len(
                 parameter_values) > 0 else ' '

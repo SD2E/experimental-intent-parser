@@ -37,24 +37,6 @@
     function insertOptions(){
         var theForm = this.createParameterTableForm;
         var selectedProtocol = theForm.protocols.value;
-        resetOptionsTable();
-        if(selectedProtocol == "GrowthCurve"){
-            var listOfOptions = self.growthCurve.split(",");
-            createOptionTable(listOfOptions);
-        }
-        else if(selectedProtocol == "TimeSeriesHTP"){
-            var listOfOptions = self.timeSeries.split(",");
-            createOptionTable(listOfOptions);
-        }
-        else if(selectedProtocol == "ObstacleCourse"){
-            var listOfOptions = self.obstacleCourse.split(",");
-            createOptionTable(listOfOptions);
-        }
-        else if(selectedProtocol == "CellFreeRiboswitches"){
-          var listOfOptions = self.cellFreeRiboSwitch.split(",");
-          createOptionTable(listOfOptions)
-        }
-
     }
 
     function resetOptionsTable(){
