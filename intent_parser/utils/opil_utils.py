@@ -103,8 +103,8 @@ def fix_nonunique_parameter_names(doc):
     name_map = {o.name: [] for o in all_objects if o.name}
     for o in all_objects:
         name_map[o.name].append(o)
-    # Rename using name + description
+    # Rename using name + description + display_id
     for name, nonuniquely_named_objects in name_map.items():
         if len(nonuniquely_named_objects) > 1:
             for o in nonuniquely_named_objects:
-                o.name = f'{o.name} ({o.description})'
+                o.name = f'{o.name} ({o.description})({o.display_id})'

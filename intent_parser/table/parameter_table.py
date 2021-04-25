@@ -126,8 +126,14 @@ class ParameterTable(object):
             plate_size = [int(value) for value in cell_parser.PARSER.process_numbers(parameter_value)]
             self._parameter_intent.set_plate_size(plate_size[0])
         elif parameter_field == intent_parser_constants.PARAMETER_PROTOCOL_NAME:
-            if parameter_value == 'growth_curve':
+            if parameter_value == 'cell_free_riboswitches':
+                self._parameter_intent.set_protocol_name(intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL)
+            elif parameter_value == 'growth_curve':
                 self._parameter_intent.set_protocol_name(intent_parser_constants.GROWTH_CURVE_PROTOCOL)
+            elif parameter_value == 'obstacle_course':
+                self._parameter_intent.set_protocol_name(intent_parser_constants.OBSTACLE_COURSE_PROTOCOL)
+            elif parameter_value == 'timeseries':
+                self._parameter_intent.set_protocol_name(intent_parser_constants.TIME_SERIES_HTP_PROTOCOL)
             else:
                 self._parameter_intent.set_protocol_name(parameter_value)
         elif parameter_field == intent_parser_constants.PROTOCOL_FIELD_PLATE_NUMBER:
