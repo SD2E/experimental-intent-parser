@@ -111,7 +111,7 @@ NCIT_MEDIA_NAME = 'Growth Medium'
 NCIT_REAGENT_NAME = 'Reagent'
 NCIT_STRAIN_NAME = 'Organism Strain'
 
-
+NCIT_ANTIBIOTIC_URI = 'https://identifiers.org/ncit:C258'
 NCIT_CFU_URI = 'https://identifiers.org/ncit:C68742'
 NCIT_DNA_SEQ_URI = 'https://identifiers.org/ncit:C153598'
 NCIT_FLOW_URI = 'https://identifiers.org/ncit:C78806'

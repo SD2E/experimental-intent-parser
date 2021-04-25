@@ -356,28 +356,38 @@ class ExperimentalRequest(object):
         local_sub_components = self.sample_template.features
         if self._opil_measurement_template.batch_template:
             self.batch_template = self._create_opil_local_subcomponent(self._opil_measurement_template.batch_template)
+            self.sample_template.features.append(self.batch_template)
         if self._opil_measurement_template.column_id_template:
             self.column_id_template = self._create_opil_local_subcomponent(self._opil_measurement_template.column_id_template)
+            self.sample_template.features.append(self.column_id_template)
         if self._opil_measurement_template.control_template:
             self.control_template = self._create_opil_local_subcomponent(self._opil_measurement_template.control_template)
+            self.sample_template.features.append(self.control_template)
         if self._opil_measurement_template.dna_reaction_concentration_template:
             self.dna_reaction_concentration_template = self._create_opil_local_subcomponent(self._opil_measurement_template.dna_reaction_concentration_template)
+            self.sample_template.features.append(self.dna_reaction_concentration_template)
         if self._opil_measurement_template.lab_id_template:
             self.lab_id_template = self._create_opil_local_subcomponent(self._opil_measurement_template.lab_id_template)
+            self.sample_template.features.append(self.lab_id_template)
         if self._opil_measurement_template.num_neg_control_template:
             self.num_neg_control_template = self._create_opil_local_subcomponent(self._opil_measurement_template.num_neg_control_template)
+            self.sample_template.features.append(self.num_neg_control_template)
         if self._opil_measurement_template.ods_template:
             self.ods_template = self._create_opil_local_subcomponent(self._opil_measurement_template.ods_template)
+            self.sample_template.features.append(self.ods_template)
         if self._opil_measurement_template.row_id_template:
             self.row_id_template = self._create_opil_local_subcomponent(self._opil_measurement_template.row_id_template)
+            self.sample_template.features.append(self.row_id_template)
         if self._opil_measurement_template.use_rna_inhib_template:
             self.use_rna_inhib_template = self._create_opil_local_subcomponent(self._opil_measurement_template.use_rna_inhib_template)
+            self.sample_template.features.append(self.use_rna_inhib_template)
         if self._opil_measurement_template.template_dna_template:
             self.template_dna_template = self._create_opil_local_subcomponent(self._opil_measurement_template.template_dna_template)
+            self.sample_template.features.append(self.template_dna_template)
 
         self._load_strain_template(local_sub_components)
         self._load_reagent_and_media_templates(local_sub_components)
-        self.sample_template.features = self._get_opil_features()
+        # self.sample_template.features = self._get_opil_features()
 
     def load_lab_parameters(self):
         if not self.opil_protocol_interfaces:
@@ -844,6 +854,7 @@ class ExperimentalRequest(object):
         elif len(strain) == 0:
             self.strain_template = self._create_opil_local_subcomponent(self._opil_measurement_template.strains_template)
             self.strain_template.roles = [ip_constants.NCIT_STRAIN_URI]
+            self.sample_template.features.append(self.strain_template)
         else:
             self.strain_template = strain[0]
 
@@ -855,6 +866,8 @@ class ExperimentalRequest(object):
                 self.media_and_reagents_templates[opil_local_subcomponent.name] = opil_local_subcomponent
             elif ip_constants.NCIT_INDUCER_URI in opil_local_subcomponent.roles:
                 self.media_and_reagents_templates[opil_local_subcomponent.name] = opil_local_subcomponent
+            elif ip_constants.NCIT_ANTIBIOTIC_URI in opil_local_subcomponent.roles:
+                self.media_and_reagents_templates[opil_local_subcomponent.name] = opil_local_subcomponent
 
         for ip_component in self._opil_measurement_template.media_and_reagent_templates:
             if isinstance(ip_component, ReagentIntent):
@@ -862,11 +875,13 @@ class ExperimentalRequest(object):
                 if reagent_name.get_name() not in self.media_and_reagents_templates:
                     reagent_component = self._create_reagent_template(ip_component)
                     self.media_and_reagents_templates[reagent_component.name] = reagent_component
+                    self.sample_template.features.append(reagent_component)
             elif isinstance(ip_component, MediaIntent):
                 media_name = ip_component.get_media_name()
                 if media_name.get_name() not in self.media_and_reagents_templates:
                     media_component = self._create_media_template(ip_component)
                     self.media_and_reagents_templates[media_component.name] = media_component
+                    self.sample_template.features.append(media_component)
 
     def _map_opil_measurement_to_intent(self, measurement_intents, opil_measurement_types):
         measurement_type_to_intent = {}
@@ -886,14 +901,17 @@ class ExperimentalRequest(object):
         for opil_measurement_type in opil_measurement_types:
             if not opil_measurement_type.type:
                 raise IntentParserException('A MeasurementType.type is required but none was found: s' % opil_measurement_type.identity)
+
             measurement_type = self._get_measurement_type_from_uri(opil_measurement_type.type)
             if measurement_type not in measurement_type_to_intent:
                 raise IntentParserException('Invalid measurement type not used in document %s' % opil_measurement_type)
+
             if not measurement_type_to_intent[measurement_type]:
                 raise IntentParserException('Unable to map opil to intent')
+
             opil_intent = measurement_type_to_intent[measurement_type].pop()
             new_opil_measurement = opil.Measurement()
-            protocol_interface.protocol_measurement_type.append(opil_measurement_type)
+            # protocol_interface.protocol_measurement_type.append(opil_measurement_type)
             new_opil_measurement.instance_of = opil_measurement_type
             self.opil_measurements.append(new_opil_measurement)
             opil_measurement_intent_pairs.append((new_opil_measurement, opil_intent))
