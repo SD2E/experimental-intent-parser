@@ -96,7 +96,7 @@ class IntentParserProcessor(object):
             errors = ['No OPIL output generated.']
             errors.extend(validation_errors)
             raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=errors, warnings=validation_warnings)
-        opil_doc.write('opil_output.json', file_format='json-ld')
+
         xml_string = opil_doc.write_string('json-ld')
         return xml_string
 
