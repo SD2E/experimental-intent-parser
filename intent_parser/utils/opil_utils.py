@@ -96,3 +96,15 @@ def get_param_value_as_string(parameter_value):
         return parameter_value
     return ''
 
+def fix_nonunique_parameter_names(doc):
+    # Collect all objects in Document
+    all_objects = doc.find_all(lambda obj: True if obj.name else False)
+    # Gather objects with non-unique names
+    name_map = {o.name: [] for o in all_objects if o.name}
+    for o in all_objects:
+        name_map[o.name].append(o)
+    # Rename using name + description
+    for name, nonuniquely_named_objects in name_map.items():
+        if len(nonuniquely_named_objects) > 1:
+            for o in nonuniquely_named_objects:
+                o.name = f'{o.name} ({o.description})'

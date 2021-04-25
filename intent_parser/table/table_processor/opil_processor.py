@@ -123,7 +123,6 @@ class OpilProcessor(Processor):
 
         opil_lab_template = self._lab_protocol_accessor.load_protocol_interface_from_lab(self.processed_protocol_name,
                                                                                          self.processed_lab_name)
-        self.processed_lab.set_experiment_id(self._experiment_ref)
         experiment_id = self.processed_lab.to_structured_request()[dc_constants.EXPERIMENT_ID]
         experimental_request = ExperimentalRequest(self._get_namespace_from_lab(),
                                                    opil_lab_template,

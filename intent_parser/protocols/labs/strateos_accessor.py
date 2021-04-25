@@ -4,6 +4,7 @@ from intent_parser.protocols.labs.opil_lab_accessor import OpilLabAccessors
 from intent_parser.protocols.templates.experimental_request_template import OpilDocumentTemplate
 from transcriptic import Connection
 import intent_parser.constants.intent_parser_constants as ip_constants
+import intent_parser.utils.opil_utils as opil_utils
 import logging
 import opil
 import time
@@ -58,7 +59,7 @@ class StrateosAccessor(OpilLabAccessors):
                                           protocol_name,
                                           protocol['id'],
                                           protocol['inputs'])
-
+        opil_utils.fix_nonunique_parameter_names(opil_doc)
         template = OpilDocumentTemplate()
         template.load_from_template(opil_doc)
         return template

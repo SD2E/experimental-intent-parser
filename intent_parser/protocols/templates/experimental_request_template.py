@@ -169,6 +169,7 @@ class ExperimentalRequest(object):
         self.opil_measurements = []
         self.opil_protocol_interfaces = [component.copy() for component in template.get_protocol_interfaces()]
         self.opil_parameter_values = []
+        self.opil_experiment_parameter_values = []
         self._experiment_id = experiment_id
         self._experiment_ref = experiment_ref
         self._experiment_ref_url = experiment_ref_url
@@ -343,11 +344,11 @@ class ExperimentalRequest(object):
         experimental_request = self.opil_experimental_requests[0]
         experimental_request.measurements = self.opil_measurements
         experimental_request.sample_set = self.opil_sample_sets
-        # protocol_interface.allowed_samples.append(sample_set)
+
         if len(self.opil_protocol_interfaces) != 1:
             raise IntentParserException('Expecting 1 ProtocolInterface but %d were found.' % len(self.opil_protocol_interfaces))
         experimental_request.instance_of = self.opil_protocol_interfaces[0].identity
-        experimental_request.has_parameter_value = self.opil_parameter_values
+        experimental_request.has_parameter_value = self.opil_experiment_parameter_values
 
     def create_subcomponents_from_template(self):
         if not self.sample_template:
@@ -388,14 +389,11 @@ class ExperimentalRequest(object):
         for parameter in opil_protocol_interface.has_parameter:
             opil_parameter_template = OpilParameterTemplate()
             opil_parameter_template.parameter = parameter
+            if parameter.default_value:
+                opil_parameter_value = parameter.default_value
+                opil_parameter_template.parameter_value = opil_parameter_value
+                self.opil_parameter_values.append(opil_parameter_value)
             self.lab_parameter_field_id_to_values[parameter.identity] = opil_parameter_template
-
-        for parameter_value in self.opil_parameter_values:
-            parameter_id = str(parameter_value.value_of)
-            if parameter_id not in self.lab_parameter_field_id_to_values:
-                raise IntentParserException('opil.ParameterValue %s points to an unknown parameter %s'
-                                            % (parameter_value.identity, parameter_id))
-            self.lab_parameter_field_id_to_values[parameter_id].parameter_value = parameter_value
 
     def load_experimental_request(self):
         if len(self.opil_experimental_requests) == 0:
@@ -554,13 +552,16 @@ class ExperimentalRequest(object):
                 opil_parameter = opil_parameter_template.parameter
                 opil_parameter_value = opil_parameter_template.parameter_value
                 if not opil_parameter_value:
-                    opil_parameter_value = opil_utils.create_parameter_value_from_parameter(opil_parameter,
-                                                                                            parameter_value)
-                    opil_parameter_value.value_of = opil_parameter
+                    new_opil_parameter_value = opil_utils.create_parameter_value_from_parameter(opil_parameter,
+                                                                                                parameter_value)
+                    new_opil_parameter_value.value_of = opil_parameter
 
-                    self.opil_parameter_values.append(opil_parameter_value)
+                    self.opil_experiment_parameter_values.append(new_opil_parameter_value)
                 else:
-                    opil_parameter_value.value = parameter_value
+                    new_opil_parameter_value = opil_utils.create_parameter_value_from_parameter(opil_parameter,
+                                                                                                parameter_value)
+                    new_opil_parameter_value.value_of = opil_parameter
+                    self.opil_experiment_parameter_values.append(new_opil_parameter_value)
             # else:
             #     raise IntentParserException('Parameter not supported in protocol: %s' % filtered_name)
 
