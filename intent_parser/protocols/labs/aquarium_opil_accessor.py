@@ -21,6 +21,11 @@ class AquariumOpilAccessor(OpilLabAccessors):
        super().__init__()
        self.cached_protocols = {}
 
+    def get_experiment_id_from_protocol(self, protocol_name):
+        if protocol_name not in self._SUPPORTED_PROTOCOLS:
+            raise IntentParserException('Protocol not supported by Aquarium: %s' % protocol_name)
+        return 'TBA'
+
     def get_experimental_protocol(self, experimental_request_name):
         if experimental_request_name in self._SUPPORTED_PROTOCOLS:
             if experimental_request_name not in self.cached_protocols:

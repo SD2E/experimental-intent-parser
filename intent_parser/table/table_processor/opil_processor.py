@@ -24,6 +24,10 @@ class OpilProcessor(Processor):
                       'CELL_DEATH_NEG_CONTROL',
                       'CELL_DEATH_POS_CONTROL']
 
+    _FILE_TYPES = ['CSV',
+                   'FCS'
+                   ]
+
     _FLUID_UNITS = ['%',
                     'M',
                     'mM',
@@ -66,20 +70,18 @@ class OpilProcessor(Processor):
                  experiment_ref_url,
                  lab_protocol_accessor,
                  sbol_dictionary,
-                 file_types=[],
                  lab_names=[]):
         super().__init__()
         self.processed_lab_name = ''
         self.processed_protocol_name = ''
         self.processed_controls = {}
+        self.processed_lab = None
         self.measurement_table = None
         self.processed_parameter = None
         self.opil_document = None
 
-        self._experiment_id = None
         self._experiment_ref = experiment_ref
         self._experiment_ref_url = experiment_ref_url
-        self._file_types = file_types
         self._sbol_dictionary = sbol_dictionary
         self._lab_protocol_accessor = lab_protocol_accessor
         self._lab_names = lab_names
@@ -97,7 +99,6 @@ class OpilProcessor(Processor):
 
     def _process_tables(self, lab_tables, control_tables, parameter_tables, measurement_tables):
         self._process_lab_tables(lab_tables)
-        opil.set_namespace(self._get_namespace_from_lab())
         strain_mapping = self._sbol_dictionary.get_mapped_strain(self.processed_lab_name)
 
         if len(control_tables) == 0:
@@ -120,11 +121,12 @@ class OpilProcessor(Processor):
             raise IntentParserException('Name of lab must be provided for describing an experimental request but'
                                         'none was given.')
 
-        opil_lab_template = self._lab_protocol_accessor.load_experimental_protocol_from_lab(self.processed_protocol_name,
-                                                                                            self.processed_lab_name)
+        opil_lab_template = self._lab_protocol_accessor.load_protocol_interface_from_lab(self.processed_protocol_name,
+                                                                                         self.processed_lab_name)
+        experiment_id = self.processed_lab.to_structured_request()[dc_constants.EXPERIMENT_ID]
         experimental_request = ExperimentalRequest(self._get_namespace_from_lab(),
                                                    opil_lab_template,
-                                                   self._experiment_id,
+                                                   experiment_id,
                                                    self._experiment_ref,
                                                    self._experiment_ref_url)
         experimental_request.load_experimental_request()
@@ -137,7 +139,7 @@ class OpilProcessor(Processor):
         # add measurement table info
         if self.measurement_table:
             experimental_request.load_from_measurement_table(self.measurement_table)
-            experimental_request.load_sample_template_from_experimental_request()
+            experimental_request.load_sample_template_from_protocol_interface()
             experimental_request.create_subcomponents_from_template()
             experimental_request.load_sample_set(len(self.measurement_table.get_intents()))
             experimental_request.add_variable_features_from_measurement_intents(self.measurement_table.get_intents())
@@ -147,8 +149,7 @@ class OpilProcessor(Processor):
         if self.processed_parameter:
             experimental_request.load_lab_parameters()
             experimental_request.update_parameter_values(self.processed_parameter.get_default_parameters())
-            run_parameter_fields, run_parameter_values = self.processed_parameter.to_opil_for_experiment()
-            experimental_request.add_new_parameters(run_parameter_fields, run_parameter_values)
+            experimental_request.add_run_parameters(self.processed_parameter)
 
         experimental_request.connect_properties()
         self.opil_document = experimental_request.to_opil()
@@ -199,7 +200,7 @@ class OpilProcessor(Processor):
 
         processed_lab = lab_table.get_intent()
         self.processed_lab_name = processed_lab.get_lab_name()
-        self._experiment_id = processed_lab.to_structured_request()[dc_constants.EXPERIMENT_ID]
+        self.processed_lab = processed_lab
         self.validation_errors.extend(lab_table.get_validation_errors())
         self.validation_warnings.extend(lab_table.get_validation_warnings())
 
@@ -215,11 +216,11 @@ class OpilProcessor(Processor):
                                                  timepoint_units=list(ip_constants.TIME_UNIT_MAP.keys()),
                                                  fluid_units=list(ip_constants.FLUID_UNIT_MAP.keys()),
                                                  measurement_types=self._MEASUREMENT_TYPE,
-                                                 file_type=self._file_types,
+                                                 file_type=self._FILE_TYPES,
                                                  strain_mapping=strain_mapping)
 
             control_data = {}
-            for table_caption, control_table in self.processed_controls.values():
+            for table_caption, control_table in self.processed_controls.items():
                 control_data[table_caption] = control_table.get_intents()
             measurement_table.process_table(control_data=control_data)
 
@@ -237,7 +238,10 @@ class OpilProcessor(Processor):
             self.validation_warnings.extend([message])
         try:
             table = parameter_tables[-1]
-            parameter_table = ParameterTable(table, run_as_opil=True)
+            strateos_dictionary_mapping = self._sbol_dictionary.map_common_names_and_transcriptic_id()
+            parameter_table = ParameterTable(table,
+                                             parameter_fields=strateos_dictionary_mapping,
+                                             run_as_opil=True)
             parameter_table.process_table()
 
             self.validation_warnings.extend(parameter_table.get_validation_warnings())

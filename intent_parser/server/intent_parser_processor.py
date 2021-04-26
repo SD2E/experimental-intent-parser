@@ -20,6 +20,7 @@ import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.utils.opil_utils as opil_util
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
+import json
 import logging.config
 import os
 import traceback
@@ -96,7 +97,7 @@ class IntentParserProcessor(object):
             errors.extend(validation_errors)
             raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=errors, warnings=validation_warnings)
 
-        xml_string = opil_doc.write_string('xml')
+        xml_string = opil_doc.write_string('json-ld')
         return xml_string
 
     def process_opil_post_request(self, http_host, json_body):
@@ -144,19 +145,21 @@ class IntentParserProcessor(object):
         lab_name = json_body[ip_addon_constants.LAB_NAME]
         experimental_protocol_name = json_body[ip_addon_constants.EXPERIMENT_PROTOCOL_NAME]
         protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
-        opil_document_template = protocol_factory.load_experimental_protocol_from_lab(experimental_protocol_name,
-                                                                                      lab_name)
+        opil_document_template = protocol_factory.load_protocol_interface_from_lab(experimental_protocol_name,
+                                                                                   lab_name)
         intent_parser = self.intent_parser_factory.create_intent_parser(doc_id)
         intent_parser.process_experimental_protocol_request(lab_name, opil_document_template)
         validation_warnings = intent_parser.get_validation_warnings()
         validation_errors = intent_parser.get_validation_errors()
+        actions = []
         if len(validation_errors) > 0:
             errors = ['Unable to generate experimental protocol.']
             errors.extend(validation_errors)
-            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=errors, warnings=validation_warnings)
+            error_dialog = intent_parser_view.invalid_request_model_dialog('Unable to import %s protocol for %s' % (lab_name, experimental_protocol_name),
+                                                                           errors)
+            return actions.append(error_dialog)
 
         er_table_templates = intent_parser.get_experimental_protocol_request()
-        actions = []
         if 'parameterTable' in er_table_templates:
             lab_table_len = self._calculate_table_dimensions(er_table_templates['parameterTable'])
             parameter_table = intent_parser_view.create_table_template(json_body[ip_addon_constants.CURSOR_CHILD_INDEX],
@@ -275,6 +278,38 @@ class IntentParserProcessor(object):
         return {'authenticationLink': link}
 
     def process_run_experiment_post(self, json_body):
+        validation_errors = []
+        validation_warnings = []
+        response_json = {}
+        if json_body is None:
+            validation_errors.append('Unable to get information from Google document.')
+        else:
+            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+            intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+            intent_parser.process_experiment_run_request()
+            validation_warnings.extend(intent_parser.get_validation_warnings())
+            validation_errors.extend(intent_parser.get_validation_errors())
+            request_data = intent_parser.get_experiment_request()
+            response_json = TACCGoAccessor().execute_experiment(request_data)
+
+        action_list = []
+        if not response_json or ('_links' not in response_json and 'self' not in response_json['_links']):
+            validation_errors.append('Intent Parser unable to get redirect link to TACC authentication webpage.')
+
+        if len(validation_errors) == 0:
+            link = response_json['_links']['self']
+            action_list.append(intent_parser_view.create_execute_experiment_dialog(link))
+        else:
+            all_messages = []
+            all_messages.extend(validation_warnings)
+            all_messages.extend(validation_errors)
+            dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to execute experiment',
+                                                                            all_messages)
+            action_list.append(dialog_action)
+        actions = {'actions': action_list}
+        return actions
+
+    def process_run_opil_experiment_post(self, json_body):
         validation_errors = []
         validation_warnings = []
         response_json = {}
@@ -743,9 +778,16 @@ class IntentParserProcessor(object):
             action_list.append(dialog_action)
         elif table_type == ip_addon_constants.TABLE_TYPE_EXPERIMENT_PROTOCOLS:
             lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
-            lab_names = ['select lab', intent_parser_constants.LAB_DUKE_HASE]
+            lab_names = ['select lab',
+                         intent_parser_constants.LAB_DUKE_HASE,
+                         intent_parser_constants.LAB_TRANSCRIPTIC]
             aquarium_protocols = lab_protocol_accessor.get_protocol_names_from_lab(intent_parser_constants.LAB_DUKE_HASE)
-            dialog_action = intent_parser_view.create_experimental_protocol_dialog(cursor_child_index, lab_names, aquarium_protocols)
+            strateos_protocols = lab_protocol_accessor.get_protocol_names_from_lab(intent_parser_constants.LAB_TRANSCRIPTIC)
+
+            dialog_action = intent_parser_view.create_experimental_protocol_dialog(cursor_child_index,
+                                                                                   lab_names,
+                                                                                   aquarium_protocols,
+                                                                                   strateos_protocols)
             action_list.append(dialog_action)
         else:
             self.logger.warning('Table type not supported: %s' % table_type)
@@ -1358,7 +1400,10 @@ class IntentParserProcessor(object):
 
     def _add_default_parameter_values(self, parameter_fields_from_lab):
         optional_parameters = []
+        ignore_parameters = ['Experiment ID', 'Experiment Reference', 'Experiment Reference URL']
         for param_name, parameter in parameter_fields_from_lab.items():
+            if param_name in ignore_parameters:
+                continue
             parameter_values = parameter.get_valid_values()
             parameter_value = opil_util.get_param_value_as_string(parameter_values[0]) if len(
                 parameter_values) > 0 else ' '

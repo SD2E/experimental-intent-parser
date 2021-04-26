@@ -124,7 +124,7 @@ class StructuredRequestProcessor(Processor):
                                           temperature_units=self.catalog_accessor.get_temperature_units(),
                                           timepoint_units=self.catalog_accessor.get_time_units(),
                                           fluid_units=self.catalog_accessor.get_fluid_units(),
-                                          measurement_types=self.catalog_accessor.get_measurements(),
+                                          measurement_types=self.catalog_accessor.get_measurement_types(),
                                           file_type=self.catalog_accessor.get_file_types(),
                                           strain_mapping=strain_mapping)
 

@@ -51,14 +51,15 @@ class ControlsTable(object):
 
     def process_table(self):
         self._table_caption = self._intent_parser_table.caption()
+        if not self._table_caption:
+            raise TableException('Control Table must have a caption but none was found.')
         for row_index in range(self._intent_parser_table.data_row_start_index(), self._intent_parser_table.number_of_rows()):
             self._process_row(row_index)
 
     def _process_row(self, row_index):
         row = self._intent_parser_table.get_row(row_index)
         control = ControlIntent()
-        if self._table_caption:
-            raise TableException('Control Table must have a caption but non was found.')
+
         control.set_table_caption(self._table_caption)
         row_offset = row_index # Used for reporting row value to users
 
@@ -176,7 +177,6 @@ class ControlsTable(object):
 
     def _process_timepoint(self, cell, control, row_index, column_index):
         try:
-            result = []
             for measured_unit in cell_parser.PARSER.process_values_unit(cell.get_text(),
                                                                         units=self._timepoint_units,
                                                                         unit_type=ip_constants.UNIT_TYPE_TIMEPOINTS):

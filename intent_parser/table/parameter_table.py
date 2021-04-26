@@ -126,7 +126,16 @@ class ParameterTable(object):
             plate_size = [int(value) for value in cell_parser.PARSER.process_numbers(parameter_value)]
             self._parameter_intent.set_plate_size(plate_size[0])
         elif parameter_field == intent_parser_constants.PARAMETER_PROTOCOL_NAME:
-            self._parameter_intent.set_protocol_name(parameter_value)
+            if parameter_value == 'cell_free_riboswitches':
+                self._parameter_intent.set_protocol_name(intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL)
+            elif parameter_value == 'growth_curve':
+                self._parameter_intent.set_protocol_name(intent_parser_constants.GROWTH_CURVE_PROTOCOL)
+            elif parameter_value == 'obstacle_course':
+                self._parameter_intent.set_protocol_name(intent_parser_constants.OBSTACLE_COURSE_PROTOCOL)
+            elif parameter_value == 'timeseries':
+                self._parameter_intent.set_protocol_name(intent_parser_constants.TIME_SERIES_HTP_PROTOCOL)
+            else:
+                self._parameter_intent.set_protocol_name(parameter_value)
         elif parameter_field == intent_parser_constants.PROTOCOL_FIELD_PLATE_NUMBER:
             plate_number = [int(value) for value in cell_parser.PARSER.process_numbers(parameter_value)]
             self._parameter_intent.set_plate_number(plate_number[0])
@@ -157,7 +166,16 @@ class ParameterTable(object):
             if parameter_field in self._parameter_fields:
                 parameter_id = self._parameter_fields[parameter_id]
 
-            self._parameter_intent.add_parameter(parameter_id, parameter_value)
+            if parameter_id == intent_parser_constants.PARAMETER_READER_INFO_LIST_OF_GAINS:
+                json_parameter_value = json.loads(parameter_value)
+                self._parameter_intent.add_parameter('plate_reader_info.list_of_gains.gain_1',
+                                                     json_parameter_value['gain_1'])
+                self._parameter_intent.add_parameter('plate_reader_info.list_of_gains.gain_2',
+                                                     json_parameter_value['gain_2'])
+                self._parameter_intent.add_parameter('plate_reader_info.list_of_gains.gain_3',
+                                                     json_parameter_value['gain_3'])
+            else:
+                self._parameter_intent.add_parameter(parameter_id, parameter_value)
         else:
             parameter_id = parameter_field
             if parameter_field in self._parameter_fields:

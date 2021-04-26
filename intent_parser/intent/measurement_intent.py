@@ -4,7 +4,7 @@ from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.utils.id_provider import IdProvider
 from math import inf
-from sbol3 import LocalSubComponent, TextProperty
+from sbol3 import Component, Measure, TextProperty
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
@@ -71,6 +71,9 @@ class MeasurementIntent(object):
 
     def get_measurement_type(self) -> str:
         return self._measurement_type
+
+    def get_replicates(self):
+        return self._replicates
 
     def get_strains(self):
         return self._strains
@@ -152,7 +155,7 @@ class MeasurementIntent(object):
         return structure_request
 
     def batch_values_to_opil_measures(self):
-        return [opil.Measure(value, tyto.OM.number) for value in self._batches]
+        return [Measure(value, tyto.OM.number) for value in self._batches]
 
     def file_types_to_opil_measurement_annotation(self, opil_measurement):
         opil_measurement.file_types = TextProperty(opil_measurement,
@@ -162,7 +165,7 @@ class MeasurementIntent(object):
         opil_measurement.file_types = self._file_types
 
     def measurement_type_to_opil_measurement_type(self):
-        measurement_type = opil.MeasurementType(self._id_provider.get_unique_sd2_id())
+        measurement_type = opil.MeasurementType()
         measurement_type.required = True
         if self._measurement_type == ip_constants.MEASUREMENT_TYPE_FLOW:
             measurement_type.type = ip_constants.NCIT_FLOW_URI
@@ -190,10 +193,7 @@ class MeasurementIntent(object):
         return measurement_type
 
     def optical_density_values_to_opil_measures(self):
-        return [opil.Measure(value, tyto.OM.number) for value in self._optical_densities]
-
-    def replicate_values_to_opil_measure(self):
-        return [opil.Measure(replicate_value, tyto.OM.number) for replicate_value in self._replicates]
+        return [Measure(value, tyto.OM.number) for value in self._optical_densities]
 
     def strain_values_to_opil_components(self):
         return [strain.to_opil_component() for strain in self._strains]
@@ -337,8 +337,8 @@ class ContentIntent(object):
     def col_id_values_to_opil_components(self):
         col_id_components = []
         for value in self._column_ids:
-            col_id_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                              component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            col_id_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                         types=sbol_constants.SBO_FUNCTIONAL_ENTITY)
             col_id_component.name = str(value.get_value())
             col_id_components.append(col_id_component)
         return col_id_components
@@ -346,8 +346,8 @@ class ContentIntent(object):
     def dna_reaction_concentration_values_to_opil_components(self):
         dna_reaction_concentration_components = []
         for value in self._dna_reaction_concentrations:
-            lab_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                      component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            lab_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                      types=sbol_constants.SBO_FUNCTIONAL_ENTITY)
             lab_component.name = str(value.get_value())
             dna_reaction_concentration_components.append(lab_component)
         return dna_reaction_concentration_components
@@ -355,8 +355,8 @@ class ContentIntent(object):
     def lab_id_values_to_opil_components(self):
         lab_id_components = []
         for value in self._lab_ids:
-            lab_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                      component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            lab_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                      types=sbol_constants.SBO_FUNCTIONAL_ENTITY)
             lab_component.name = str(value.get_value())
             lab_id_components.append(lab_component)
         return lab_id_components
@@ -364,8 +364,8 @@ class ContentIntent(object):
     def number_of_negative_control_values_to_opil_components(self):
         num_neg_control_components = []
         for value in self._num_neg_controls:
-            num_neg_control_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                                       component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            num_neg_control_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                                  types=sbol_constants.SBO_FUNCTIONAL_ENTITY)
             num_neg_control_component.name = str(value.get_value())
             num_neg_control_components.append(num_neg_control_component)
         return num_neg_control_components
@@ -373,8 +373,8 @@ class ContentIntent(object):
     def use_rna_inhibitor_values_to_opil_components(self):
         use_rna_inhib_components = []
         for value in self._rna_inhibitor_reaction_flags:
-            use_rna_inhib_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                                     component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            use_rna_inhib_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                                types=sbol_constants.SBO_FUNCTIONAL_ENTITY)
             use_rna_inhib_component.name = str(value.get_value())
             use_rna_inhib_components.append(use_rna_inhib_component)
         return use_rna_inhib_components
@@ -382,8 +382,8 @@ class ContentIntent(object):
     def row_id_values_to_opil_components(self):
         row_id_components = []
         for value in self._row_ids:
-            row_id_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                         component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            row_id_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                         types=sbol_constants.SBO_FUNCTIONAL_ENTITY)
             row_id_component.name = str(value.get_value())
             row_id_components.append(row_id_component)
         return row_id_components
@@ -391,8 +391,8 @@ class ContentIntent(object):
     def template_dna_values_to_opil_components(self):
         template_dna_components = []
         for value in self._template_dna_values:
-            template_dna_component = opil.Component(identity=self._id_provider.get_unique_sd2_id(),
-                                               component_type=sbol_constants.SBO_FUNCTIONAL_ENTITY)
+            template_dna_component = Component(identity=self._id_provider.get_unique_sd2_id(),
+                                               types=sbol_constants.SBO_FUNCTIONAL_ENTITY)
             template_dna_component.name = value.get_name()
             template_dna_components.append(template_dna_component)
         return template_dna_components

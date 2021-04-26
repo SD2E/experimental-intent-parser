@@ -6,6 +6,9 @@ class OpilLabAccessors(object):
     def __init__(self):
         pass
 
+    def get_experiment_id_from_protocol(self, protocol_name):
+        raise NotImplementedError('not implemented')
+
     def get_experimental_protocol(self, experimental_request_name):
         raise NotImplementedError('not implemented')
 

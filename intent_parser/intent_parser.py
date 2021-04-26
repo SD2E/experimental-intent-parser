@@ -300,7 +300,7 @@ class IntentParser(object):
 
     def process_experimental_protocol_request(self, lab_name, opil_document_template):
         experimental_protocol = ExperimentalProtocolProcessor(opil_document_template, lab_name)
-        experimental_protocol.process_protocol_interface()
+        experimental_protocol.process_protocol_interface(self._get_experiment_reference_url())
         self.validation_errors.extend(experimental_protocol.get_errors())
         self.validation_warnings.extend(experimental_protocol.get_warnings())
         self.experimental_protocol = experimental_protocol.get_intent()
@@ -313,7 +313,6 @@ class IntentParser(object):
                                        experiment_ref_url,
                                        lab_protocol_accessor,
                                        self.sbol_dictionary,
-                                       file_types=self.catalog_accessor.get_file_types(),
                                        lab_names=[ip_constants.LAB_TRANSCRIPTIC, ip_constants.LAB_DUKE_HASE])
         opil_processor.process_intent(lab_tables=filtered_tables[TableType.LAB],
                                       control_tables=filtered_tables[TableType.CONTROL],

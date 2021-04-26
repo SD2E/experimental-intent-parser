@@ -8,7 +8,7 @@ google-auth-oauthlib
 gunicorn
 jsonschema
 oauth2client
-opil==1.0b3.post2
+opil==1.0b5.post2
 pymongo
 pyspellchecker
 python-docx
@@ -16,7 +16,7 @@ python-Levenshtein
 python-magic
 requests_oauthlib
 sbol2
-sbol3==1.0a6
+sbol3==1.0a8
 six==1.13.0
 tenacity
 transcriptic==9.1.0

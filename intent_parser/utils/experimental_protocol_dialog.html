@@ -37,12 +37,16 @@
         if(selectedLab == "Duke_Haase"){
             document.getElementById("selectExperimentProtocolId").innerHTML = this.aquarium;
         }
+        else if(selectedLab == "Transcriptic"){
+            document.getElementById("selectExperimentProtocolId").innerHTML = this.strateos;
+        }
         else{
             document.getElementById("selectExperimentProtocolId").innerHTML = "<option>None</option>";
         }
     }
 
     this.aquarium = "${AQUARIUMOPTIONS}";
+    this.strateos = "${STRATEOSOPTIONS}";
   </script>
 
   <center>

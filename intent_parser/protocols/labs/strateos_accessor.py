@@ -4,11 +4,12 @@ from intent_parser.protocols.labs.opil_lab_accessor import OpilLabAccessors
 from intent_parser.protocols.templates.experimental_request_template import OpilDocumentTemplate
 from transcriptic import Connection
 import intent_parser.constants.intent_parser_constants as ip_constants
+import intent_parser.utils.opil_utils as opil_utils
 import logging
 import opil
 import time
 import threading
-
+import sbol3
 
 class StrateosAccessor(OpilLabAccessors):
     """
@@ -28,6 +29,12 @@ class StrateosAccessor(OpilLabAccessors):
         self.protocol_lock = threading.Lock()
         self._name_to_json = {}
         self._protocol_thread = threading.Thread(target=self._periodically_fetch_protocols)
+
+    def get_experiment_id_from_protocol(self, protocol_name):
+        if protocol_name not in self._name_to_json:
+            raise IntentParserException('Protocol not supported by Strateos: %s' % protocol_name)
+        protocol = self._name_to_json[protocol_name]
+        return protocol['id']
 
     def get_experimental_protocol(self, experimental_request_name):
         if experimental_request_name not in self._name_to_json:
@@ -52,6 +59,7 @@ class StrateosAccessor(OpilLabAccessors):
                                           protocol_name,
                                           protocol['id'],
                                           protocol['inputs'])
+        opil_utils.fix_nonunique_parameter_names(opil_doc)
         template = OpilDocumentTemplate()
         template.load_from_template(opil_doc)
         return template
