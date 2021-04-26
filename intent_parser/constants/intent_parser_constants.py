@@ -5,6 +5,8 @@ List of constants used for reading and writing contents from intent parser
 RELEASE_VERSION = '3.1'
 # name of labs Intent Parser has connection to
 LAB_TRANSCRIPTIC = 'Transcriptic'
+LAB_DUKE_HASE = 'Duke_Haase'
+AQUARIUM_NAMESPACE = 'http://aquarium.bio/'
 STRATEOS_NAMESPACE = 'http://strateos.com/'
 
 # keywords used for calling POST methods
@@ -44,7 +46,9 @@ SUBMIT_FORM_CREATE_PARAMETER_TABLE = 'createParameterTable'
 # Intent Parser's supporting unit types
 UNIT_TYPE_FLUID = 'fluid'
 UNIT_TYPE_TEMPERATURE = 'temperature'
-UNIT_TYPE_TIMEPOINT = 'timepoint'
+UNIT_TYPE_TIMEPOINTS = 'timepoints'
+
+UNIT_DAY = 'day'
 
 # Mappings used for submitting terms to SynBioHub
 LAB_IDS_LIST = ['BioFAB UID',
@@ -88,7 +92,6 @@ ITEM_TYPES = {
 }
 
 SPARQL_LIMIT = 5
-
 # sbol3 encodings
 MEASUREMENT_TYPE_AUTOMATED_TEST = 'AUTOMATED_TEST'
 MEASUREMENT_TYPE_CFU = 'CFU'
@@ -101,10 +104,18 @@ MEASUREMENT_TYPE_PLATE_READER = 'PLATE_READER'
 MEASUREMENT_TYPE_PROTEOMICS = 'PROTEOMICS'
 MEASUREMENT_TYPE_RNA_SEQ = 'RNA_SEQ'
 MEASUREMENT_TYPE_SEQUENCING_CHROMATOGRAM = 'SEQUENCING_CHROMATOGRAM'
+MEASUREMENT_TYPE_FLUOESCENE_MICROSCOPY = 'FLUORESCENCE MICROSCOPY'
 
+NCIT_INDUCER_NAME = 'Inducer'
+NCIT_MEDIA_NAME = 'Growth Medium'
+NCIT_REAGENT_NAME = 'Reagent'
+NCIT_STRAIN_NAME = 'Organism Strain'
+
+NCIT_ANTIBIOTIC_URI = 'https://identifiers.org/ncit:C258'
 NCIT_CFU_URI = 'https://identifiers.org/ncit:C68742'
 NCIT_DNA_SEQ_URI = 'https://identifiers.org/ncit:C153598'
 NCIT_FLOW_URI = 'https://identifiers.org/ncit:C78806'
+NCIT_FLUORESCENCE_MICROSCOPY = 'https://identifiers.org/NCIT:C16856'
 NCIT_IMAGE_URI = 'https://identifiers.org/ncit:C16853'
 NCIT_INDUCER_URI = 'https://identifiers.org/ncit:C120268'
 NCIT_MEDIA_URI = 'https://identifiers.org/ncit:C85504'
@@ -118,6 +129,7 @@ NCIT_STRAIN_URI = 'https://identifiers.org/ncit:C14419'
 NCIT_CELSIUS = 'https://identifiers.org/ncit:C42559'
 NCIT_CONCENTRATION = 'https://identifiers.org/ncit:C41185'
 NCIT_DAY = 'https://identifiers.org/ncit:C25301'
+NCIT_CONCENTRATION_ENTITY_POOL = 'https://identifiers.org/SBO:0000196'
 NCIT_FAHRENHEIT = 'https://identifiers.org/ncit:C44277'
 NCIT_FOLD_CHANGE = 'https://identifiers.org/ncit:C60693'
 NCIT_HOUR = 'https://identifiers.org/ncit:C25529'
@@ -146,7 +158,65 @@ UO_MILLI_MOLAR = 'https://identifiers.org/UO:0000063'
 UO_GRAM_PER_LITER = 'https://identifiers.org/UO:0000175'
 UO_NANO_GRAM_PER_LITER = 'https://identifiers.org/UO:0010050'
 
-# measurement-typeis specific to SD2 project
+FLUID_UNIT_CONCENTRATION = '%'
+FLUID_UNIT_MOLAR = 'M'
+FLUID_UNIT_MILLI_MOLAR = 'mM'
+FLUID_UNIT_FOLD = 'X'
+FLUID_UNIT_GRAM_PER_LITER = 'g/L'
+FLUID_UNIT_MICROGRAM_PER_MILLILITER = 'ug/ml'
+FLUID_UNIT_MICROMOLE = 'micromole'
+FLUID_UNIT_MICROMOLE_ABBREVIATION = 'uM'
+FLUID_UNIT_NANOMOLE = 'nM'
+FLUID_UNIT_MILLIGRAM_PER_MILLILITER = 'mg/ml'
+FLUID_UNIT_NANOGRAM_PER_LITER = 'ng/ul'
+FLUID_UNIT_MICROLITRE = 'microliter'
+FLUID_UNIT_NANOMETER = 'nanometer'
+
+FLUID_UNIT_MAP = {FLUID_UNIT_CONCENTRATION: NCIT_CONCENTRATION,
+                  FLUID_UNIT_MOLAR: UO_MOLAR,
+                  FLUID_UNIT_MILLI_MOLAR: UO_MILLI_MOLAR,
+                  FLUID_UNIT_FOLD: NCIT_FOLD_CHANGE,
+                  FLUID_UNIT_GRAM_PER_LITER: UO_GRAM_PER_LITER,
+                  FLUID_UNIT_MICROGRAM_PER_MILLILITER: NCIT_MICROGRAM_PER_MILLILITER,
+                  FLUID_UNIT_MICROMOLE: NCIT_MICROMOLE,
+                  FLUID_UNIT_NANOMOLE: NCIT_NANOMOLE,
+                  FLUID_UNIT_MICROMOLE_ABBREVIATION: NCIT_MICROMOLE,
+                  FLUID_UNIT_MILLIGRAM_PER_MILLILITER: UO_MILLIGRAM_PER_MILLILITER,
+                  FLUID_UNIT_NANOGRAM_PER_LITER: UO_NANO_GRAM_PER_LITER,
+                  FLUID_UNIT_MICROLITRE: OTU_MICROLITRE,
+                  FLUID_UNIT_NANOMETER: OTU_NANOMETER}
+
+TEMPERATURE_UNIT_CELSIUS = 'celsius'
+TEMPERATURE_UNIT_FAHRENHEIT = 'fahrenheit'
+TEMPERATURE_UNIT_MAP = {TEMPERATURE_UNIT_CELSIUS: NCIT_CELSIUS,
+                        TEMPERATURE_UNIT_FAHRENHEIT: NCIT_FAHRENHEIT}
+
+TIME_UNIT_DAY = 'day'
+TIME_UNIT_HOUR = 'hour'
+TIME_UNIT_FEMTOSECOND = 'femtosecond'
+TIME_UNIT_MICROSECOND = 'microsecond'
+TIME_UNIT_MILLISECOND = 'millisecond'
+TIME_UNIT_MINUTE = 'minute'
+TIME_UNIT_MONTH = 'month'
+TIME_UNIT_NANOSECOND = 'nanosecond'
+TIME_UNIT_PICOSECOND = 'picosecond'
+TIME_UNIT_SECOND = 'second'
+TIME_UNIT_WEEK = 'week'
+TIME_UNIT_YEAR = 'year'
+TIME_UNIT_MAP = {TIME_UNIT_DAY: NCIT_MONTH,
+                 TIME_UNIT_HOUR: NCIT_HOUR,
+                 TIME_UNIT_FEMTOSECOND: OTU_FEMTOSECOND,
+                 TIME_UNIT_MICROSECOND: NCIT_MICROSECOND,
+                 TIME_UNIT_MILLISECOND: NCIT_MILLISECOND,
+                 TIME_UNIT_MINUTE: NCIT_MINUTE,
+                 TIME_UNIT_MONTH: NCIT_MONTH,
+                 TIME_UNIT_NANOSECOND: NCIT_NANOSECOND,
+                 TIME_UNIT_PICOSECOND: NCIT_PICOSECOND,
+                 TIME_UNIT_SECOND: NCIT_SECOND,
+                 TIME_UNIT_WEEK: NCIT_WEEK,
+                 TIME_UNIT_YEAR: NCIT_YEAR}
+
+# measurement-type specific to SD2 project
 SD2_AUTOMATED_TEST_URI = 'http://sd2e.org#automatedTest'
 SD2_CONDITION_SPACE_URI = 'http://sd2e.org#conditionSpace'
 SD2_EXPERIMENTAL_DESIGN_URI = 'http://sd2e.org#experimentalDesign'

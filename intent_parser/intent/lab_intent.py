@@ -6,6 +6,9 @@ class LabIntent(object):
         self._lab_id = ip_constants.TACC_SERVER
         self._experiment_id = 'TBD'
 
+    def get_experiment_id(self):
+        return self._experiment_id
+
     def get_lab_name(self) -> str:
         return self._lab_id
 

@@ -2,7 +2,8 @@
 Functions for generating views related to intent parser
 """
 from intent_parser.accessor.catalog_accessor import CatalogAccessor
-from intent_parser.utils.html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, SpellcheckHtmlBuilder
+from intent_parser.utils.html_builder import AddHtmlBuilder, AnalyzeHtmlBuilder, SpellcheckHtmlBuilder, \
+    ExperimentalProtocolHtmlBuilder
 from intent_parser.utils.html_builder import ControlsTableHtmlBuilder, MeasurementTableHtmlBuilder, ParameterTableHtmlBuilder
 import intent_parser.constants.ip_app_script_constants as addon_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
@@ -66,6 +67,7 @@ def create_controls_table_dialog(cursor_index):
 
 def create_parameter_table_dialog(cursor_child_index,
                                   protocol_names,
+                                  lab_name,
                                   timeseries_optional_fields=[],
                                   growthcurve_optional_fields=[],
                                   obstaclecourse_optional_fields=[],
@@ -74,13 +76,20 @@ def create_parameter_table_dialog(cursor_child_index,
     builder = ParameterTableHtmlBuilder()
     builder.cursor_child_index_html(cursor_child_index)
     builder.protocol_names_html(html_protocols)
+    builder.lab_name_html(lab_name)
 
-    builder.growthcurve_optional_parameter_fields(create_optional_fields_checkbox(growthcurve_optional_fields))
-    builder.obstaclecourse_optional_parameter_fields(create_optional_fields_checkbox(obstaclecourse_optional_fields))
-    builder.timeseries_optional_parameter_fields(create_optional_fields_checkbox(timeseries_optional_fields))
-    builder.cellfreeriboswitch_optional_parameter_fields(create_optional_fields_checkbox(cellfreeriboswitch_options))
-    html_parameter = builder.build() 
-    dialog_action = modal_dialog(html_parameter, 'Create Parameters Table', 600, 600)
+    html_parameter = builder.build()
+    dialog_action = modal_dialog(html_parameter, 'Create Parameters Table', 300, 100)
+    return dialog_action
+
+def create_experimental_protocol_dialog(cursor_index, lab_names, aquarium_protocols, strateos_protocols):
+    builder = ExperimentalProtocolHtmlBuilder()
+    builder.cursor_child_index_html(cursor_index)
+    builder.lab_names_html(generate_html_options(lab_names))
+    builder.set_aquarium_html(generate_html_options(aquarium_protocols))
+    builder.set_strateos_html(generate_html_options(strateos_protocols))
+    html = builder.build()
+    dialog_action = modal_dialog(html, 'Import Lab Protocol', 300, 100)
     return dialog_action
 
 def create_measurement_table_dialog(cursor_child_index):
@@ -138,10 +147,7 @@ def generate_existing_link_html(title, target, two_col=False):
 def generate_html_options(options):
     options_html = ''
     for item_type in options:
-        options_html += '''
-        <option>%s</option> 
-        ''' % item_type
-
+        options_html += '''<option>%s</option> ''' % item_type
     return options_html
     
 def get_download_structured_request_link(host: str, document_id: str):

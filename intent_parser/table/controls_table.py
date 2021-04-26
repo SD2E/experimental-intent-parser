@@ -1,10 +1,11 @@
 from intent_parser.intent.control_intent import ControlIntent
+from intent_parser.intent.measure_property_intent import NamedLink
 from intent_parser.intent.measurement_intent import TimepointIntent
+from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.intent_parser_exceptions import TableException
 import intent_parser.constants.sbol_dictionary_constants as dictionary_constants
-import intent_parser.constants.intent_parser_constants as intent_parser_constants
+import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.table.cell_parser as cell_parser
-import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import logging
 
 class ControlsTable(object):
@@ -24,6 +25,9 @@ class ControlsTable(object):
         self._table_caption = ''
         self._control_intents = []
 
+        self._has_strains = False
+        self._has_contents = False
+
     def get_table_caption(self):
         return self._table_caption
 
@@ -31,7 +35,7 @@ class ControlsTable(object):
         return self._control_intents
 
     def get_structure_request(self):
-        return [control.to_structure_request() for control in self._control_intents]
+        return [control.to_structured_request() for control in self._control_intents]
 
     def get_validation_errors(self):
         return self._validation_errors
@@ -39,14 +43,24 @@ class ControlsTable(object):
     def get_validation_warnings(self):
         return self._validation_warnings
 
+    def has_contents(self):
+        return self._has_contents
+
+    def has_strains(self):
+        return self._has_strains
+
     def process_table(self):
         self._table_caption = self._intent_parser_table.caption()
+        if not self._table_caption:
+            raise TableException('Control Table must have a caption but none was found.')
         for row_index in range(self._intent_parser_table.data_row_start_index(), self._intent_parser_table.number_of_rows()):
             self._process_row(row_index)
 
     def _process_row(self, row_index):
         row = self._intent_parser_table.get_row(row_index)
         control = ControlIntent()
+
+        control.set_table_caption(self._table_caption)
         row_offset = row_index # Used for reporting row value to users
 
         for cell_index in range(len(row)):
@@ -60,15 +74,15 @@ class ControlsTable(object):
             if not cell.get_text().strip():
                 continue
 
-            if intent_parser_constants.HEADER_CONTROL_TYPE_TYPE == cell_type:
+            if ip_constants.HEADER_CONTROL_TYPE_TYPE == cell_type:
                 self._process_control_type(cell, control, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_STRAINS_TYPE == cell_type:
+            elif ip_constants.HEADER_STRAINS_TYPE == cell_type:
                 self._process_control_strains(cell, control, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_CHANNEL_TYPE == cell_type:
+            elif ip_constants.HEADER_CHANNEL_TYPE == cell_type:
                 self._process_channels(cell, control, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_CONTENTS_TYPE == cell_type:
+            elif ip_constants.HEADER_CONTENTS_TYPE == cell_type:
                 self._process_contents(cell, control, row_offset, column_offset)
-            elif intent_parser_constants.HEADER_TIMEPOINT_TYPE == cell_type:
+            elif ip_constants.HEADER_TIMEPOINT_TYPE == cell_type:
                 self._process_timepoint(cell, control, row_offset, column_offset)
 
         if not control.is_empty():
@@ -82,7 +96,7 @@ class ControlsTable(object):
                 message = ('Controls table at row %d column %d has more than one %s provided. '
                            'Only the first channel will be used from %s.') % (row_index,
                                                                               column_index,
-                                                                              intent_parser_constants.HEADER_CHANNEL_VALUE,
+                                                                              ip_constants.HEADER_CHANNEL_VALUE,
                                                                               cell_content)
                 self._logger.warning(message)
 
@@ -90,29 +104,34 @@ class ControlsTable(object):
         except TableException as err:
             message = ('Controls table for row %d column % has invalid %s value: %s') % (row_index,
                                                                                          column_index,
-                                                                                         intent_parser_constants.HEADER_CHANNEL_VALUE,
+                                                                                         ip_constants.HEADER_CHANNEL_VALUE,
                                                                                          err.get_message())
             self._validation_errors.append(message)
     
     def _process_contents(self, cell, control, row_index, column_index):
         try:
-            contents = cell_parser.PARSER.parse_content_item(cell.get_text(), cell.get_text_with_url(), fluid_units=self._fluid_units, timepoint_units=self._timepoint_units)
+            self._has_contents = True
+            contents = cell_parser.PARSER.parse_content_item(cell.get_text(),
+                                                             cell.get_text_with_url(),
+                                                             fluid_units=self._fluid_units,
+                                                             timepoint_units=self._timepoint_units)
             for content in contents:
                 control.add_content(content)
         except TableException as err:
             message = 'Controls table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                        column_index,
-                                                                                       intent_parser_constants.HEADER_CONTENTS_VALUE,
+                                                                                       ip_constants.HEADER_CONTENTS_VALUE,
                                                                                        err.get_message())
             self._validation_errors.append(message)
 
     def _process_control_strains(self, cell, control, row_index, column_index):
+        self._has_strains = True
         for input_strain, link in cell_parser.PARSER.process_names_with_uri(cell.get_text(), text_with_uri=cell.get_text_with_url()):
             parsed_strain = input_strain.strip()
             if link is None:
                 message = ('Controls table at row %d column %d has invalid %s value: %s is missing a SBH URI.' % (row_index,
                                                                                                                   column_index,
-                                                                                                                  intent_parser_constants.HEADER_STRAINS_VALUE,
+                                                                                                                  ip_constants.HEADER_STRAINS_VALUE,
                                                                                                                   parsed_strain))
                 self._validation_errors.append(message)
                 continue
@@ -121,24 +140,27 @@ class ControlsTable(object):
                 message = ('Controls table at row %d column %d has invalid %s value: '
                            '%s is an invalid link not supported in the SBOL Dictionary Strains tab.' % (row_index,
                                                                                                         column_index,
-                                                                                                        intent_parser_constants.HEADER_STRAINS_VALUE,
+                                                                                                        ip_constants.HEADER_STRAINS_VALUE,
                                                                                                         link))
                 self._validation_errors.append(message)
                 continue
 
-            strain_intent = self._strain_mapping[link]
-            if not strain_intent.has_lab_strain_name(parsed_strain):
-                lab_name = dictionary_constants.MAPPED_LAB_UID[strain_intent.get_lab_id()]
+            dictionary_strain_intent = self._strain_mapping[link]
+            if not dictionary_strain_intent.has_lab_strain_name(parsed_strain):
+                lab_name = dictionary_constants.MAPPED_LAB_UID[dictionary_strain_intent.get_lab_id()]
                 message = ('Controls table at row %d column %d has invalid %s value: '
                            '%s is not listed under %s in the SBOL Dictionary.' % (row_index,
                                                                                   column_index,
-                                                                                  intent_parser_constants.HEADER_STRAINS_VALUE,
+                                                                                  ip_constants.HEADER_STRAINS_VALUE,
                                                                                   parsed_strain,
                                                                                   lab_name))
                 self._validation_errors.append(message)
                 continue
 
-            strain_intent.set_selected_strain(parsed_strain)
+            strain_name = NamedLink(parsed_strain, link)
+            strain_intent = StrainIntent(strain_name)
+            strain_intent.set_strain_lab_name(dictionary_strain_intent.get_lab_id())
+            strain_intent.set_strain_common_name(dictionary_strain_intent.get_strain_common_name())
             control.add_strain(strain_intent)
 
     def _process_control_type(self, cell, control, row_index, column_index):
@@ -147,7 +169,7 @@ class ControlsTable(object):
             err = '%s does not match one of the following control types: \n %s' % (control_type, ' ,'.join((map(str, self._control_types))))
             message = 'Controls table at row %d column %d has invalid %s value: %s' % (row_index,
                                                                                        column_index,
-                                                                                       intent_parser_constants.HEADER_CONTROL_TYPE_VALUE,
+                                                                                       ip_constants.HEADER_CONTROL_TYPE_VALUE,
                                                                                        err)
             self._validation_errors.append(message)
         else:
@@ -155,16 +177,15 @@ class ControlsTable(object):
 
     def _process_timepoint(self, cell, control, row_index, column_index):
         try:
-            result = []
             for measured_unit in cell_parser.PARSER.process_values_unit(cell.get_text(),
-                                                                     units=self._timepoint_units,
-                                                                     unit_type='timepoints'):
+                                                                        units=self._timepoint_units,
+                                                                        unit_type=ip_constants.UNIT_TYPE_TIMEPOINTS):
                 timepoint = TimepointIntent(float(measured_unit.get_value()), measured_unit.get_unit())
                 control.add_timepoint(timepoint)
         except TableException as err:
             message = 'Controls table at row %d column % has invalid %s value: %s' % (row_index,
                                                                                       column_index,
-                                                                                      intent_parser_constants.HEADER_CONTROL_TYPE_VALUE,
+                                                                                      ip_constants.HEADER_CONTROL_TYPE_VALUE,
                                                                                       err.get_message())
             self._validation_errors.append(message)
 

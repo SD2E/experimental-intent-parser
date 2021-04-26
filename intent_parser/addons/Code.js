@@ -1,5 +1,5 @@
 var serverURL = 'http://intentparser.sd2e.org';
-var versionString = '3.1';
+var versionString = '3.2';
 
 function onOpen() {
 	const ui = DocumentApp.getUi();
@@ -14,6 +14,10 @@ function onOpen() {
 	tableHelpMenu.addItem('Measurements', 'reportMeasurementsInfo');
 	tableHelpMenu.addItem('Parameters', 'reportParametersInfo');
 
+	const runExperimentMenu = ui.createMenu('Run Experiment');
+	runExperimentMenu.addItem('with Structured Request', 'executeExperiment');
+	runExperimentMenu.addItem('with OPIL', 'executeOpilExperiment');
+
 	const helpMenu = ui.createMenu('Help');
 	helpMenu.addSubMenu(tableHelpMenu);
 	helpMenu.addItem('About', 'showHelp');
@@ -23,11 +27,12 @@ function onOpen() {
 	menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor');
 	menu.addItem('Analyze from top', 'sendAnalyzeFromTop');
 	menu.addItem('Calculate samples for measurements table', 'calculateSamples');
+    menu.addItem('Import Experimental Protocol template', 'experimentalProtocol');
     menu.addItem('Generate OPIL', 'sendOpilRequest');
 	menu.addItem('Generate Report', 'sendGenerateReport');
 	menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest');
 	menu.addItem('Report Experiment Status', 'reportExperimentStatus');
-	menu.addItem('Request Experiment Execution', 'executeExperiment');
+	menu.addSubMenu(runExperimentMenu);
 	menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor');
 	menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling');
 	menu.addItem('Update experimental results', 'updateExperimentalResults');
@@ -37,6 +42,26 @@ function onOpen() {
 	menu.addSubMenu(helpMenu);
 	menu.addToUi();
 }
+
+function experimentalProtocol(){
+    let doc = DocumentApp.getActiveDocument();
+	let cursorPosition = doc.getCursor();
+
+	if(cursorPosition == null) {
+		// Cursor position is null, so assume a selection
+		const selectionRange = doc.getSelection();
+		const rangeElement = selectionRange.getRangeElements()[0];
+		// Extract element and offset from end of selection
+		var el = rangeElement.getElement();
+	} else {
+		// Select element and off set from current position
+		var el = cursorPosition.getElement();
+	}
+	const childIndex = doc.getBody().getChildIndex(el);
+	const data = {'childIndex' : childIndex, 'tableType' : 'experimentProtocols'};
+	sendPost('/createTableTemplate', data);
+}
+
 
 function reportParametersInfo(){
 	var docId = DocumentApp.getActiveDocument().getId();
@@ -184,6 +209,10 @@ function enterLinkPrompt(title, msg) {
 
 function executeExperiment() {
 	sendPost('/run_experiment');
+}
+
+function executeOpilExperiment() {
+	sendPost('/run_opil_experiment');
 }
 
 function reportExperimentStatus() {
@@ -797,4 +826,3 @@ function createParameterTable(){
 	const data = {'childIndex' : childIndex, 'tableType' : 'parameters'};
 	sendPost('/createTableTemplate', data);
 }
-

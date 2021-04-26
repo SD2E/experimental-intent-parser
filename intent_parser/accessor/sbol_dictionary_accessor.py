@@ -1,6 +1,6 @@
 from datetime import timedelta
 from googleapiclient import errors
-from intent_parser.intent.strain_intent import StrainIntent
+from intent_parser.intent.sbol_dictionary_strain_intent import SBOLDictionaryStrainIntent
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.intent_parser_exceptions import DictionaryMaintainerException
 import intent_parser.table.cell_parser as cell_parser
@@ -455,10 +455,10 @@ class SBOLDictionaryAccessor(object):
                     lab_uid in row):
                 sbh_uri = row[dictionary_constants.COLUMN_SYNBIOHUB_URI]
                 common_name = row[dictionary_constants.COLUMN_COMMON_NAME]
-                lab_strain_names = {}
+                lab_strain_names = []
                 if row[lab_uid]:
                     lab_strain_names = [name for name in cell_parser.PARSER.extract_name_value(row[lab_uid])]
-                mapped_strains[sbh_uri] = StrainIntent(sbh_uri, lab_name, common_name, lab_strain_names=lab_strain_names)
+                mapped_strains[sbh_uri] = SBOLDictionaryStrainIntent(sbh_uri, lab_name, common_name, lab_strain_names=lab_strain_names)
         return mapped_strains
 
     def _create_strain_intents_from_spreadsheet_tab(self, tab):
@@ -471,9 +471,9 @@ class SBOLDictionaryAccessor(object):
                     if lab_uid and lab_uid in row:
                         if row[lab_uid]:
                             lab_strain_names = [name for name in cell_parser.PARSER.extract_name_value(row[lab_uid])]
-                            strain_intents[common_name] = StrainIntent(sbh_uri, lab_name, common_name, lab_strain_names=lab_strain_names)
+                            strain_intents[common_name] = SBOLDictionaryStrainIntent(sbh_uri, lab_name, common_name, lab_strain_names=lab_strain_names)
                         else:
-                            strain_intents[common_name] = StrainIntent(sbh_uri, lab_name, common_name)
+                            strain_intents[common_name] = SBOLDictionaryStrainIntent(sbh_uri, lab_name, common_name)
         return strain_intents
 
     def get_common_name_from_transcriptic_id(self, transcriptic_id):

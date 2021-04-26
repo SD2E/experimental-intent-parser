@@ -2,7 +2,7 @@ from intent_parser.table.controls_table import ControlsTable
 from intent_parser.table.measurement_table import MeasurementTable
 from intent_parser.table.intent_parser_cell import IntentParserCell
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
-from intent_parser.intent.strain_intent import StrainIntent
+from intent_parser.intent.sbol_dictionary_strain_intent import SBOLDictionaryStrainIntent
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.tests.test_util as test_utils
@@ -14,12 +14,12 @@ class MeasurementTableTest(unittest.TestCase):
     """
     def setUp(self):
         self.ip_table_factory = IntentParserTableFactory()
-        strain1 = StrainIntent('https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'ip_admin', 'strain1',
-                               lab_strain_names=['MG1655'])
-        strain2 = StrainIntent('https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1', 'ip_admin', 'strain2',
-                               lab_strain_names=['MG1655_LPV3'])
-        strain3 = StrainIntent('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'ip_admin', 'strain3',
-                               lab_strain_names=['UWBF_7376'])
+        strain1 = SBOLDictionaryStrainIntent('https://hub.sd2e.org/user/sd2e/design/MG1655/1', 'ip_admin', 'strain1',
+                                             lab_strain_names=['MG1655'])
+        strain2 = SBOLDictionaryStrainIntent('https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1', 'ip_admin', 'strain2',
+                                             lab_strain_names=['MG1655_LPV3'])
+        strain3 = SBOLDictionaryStrainIntent('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'ip_admin', 'strain3',
+                                             lab_strain_names=['UWBF_7376'])
         self.strain_mappings = {'https://hub.sd2e.org/user/sd2e/design/MG1655/1': strain1,
                                 'https://hub.sd2e.org/user/sd2e/design/MG1655_LPV3/1': strain2,
                                 'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1': strain3}
@@ -97,7 +97,7 @@ class MeasurementTableTest(unittest.TestCase):
                                          [{'name': {'label': 'row_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 3}],
                                          [{'name': {'label': 'lab_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 'foo'}]
                                          ]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
 
     def test_table_with_3_lab_ids(self):
@@ -125,7 +125,7 @@ class MeasurementTableTest(unittest.TestCase):
                             {'name': {'label': 'lab_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 'r1eu66zybzdwew'},
                             {'name': {'label': 'lab_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 'lab_id'}]]}
         self.assertEqual(1, len(meas_result))
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_table_with_3_row_ids(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -151,7 +151,7 @@ class MeasurementTableTest(unittest.TestCase):
                             'contents': [[{'name': {'label': 'row_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 1},
                                           {'name': {'label': 'row_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 2},
                                           {'name': {'label': 'row_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 3}]]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_table_with_3_col_ids(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -177,7 +177,7 @@ class MeasurementTableTest(unittest.TestCase):
                             'contents': [[{'name': {'label': 'column_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 1},
                                           {'name': {'label': 'column_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 2},
                                           {'name': {'label': 'column_id', 'sbh_uri': 'NO PROGRAM DICTIONARY ENTRY'}, 'value': 3}]]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_table_with_number_of_negative_control_type(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -212,7 +212,7 @@ class MeasurementTableTest(unittest.TestCase):
                                                          dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
                                                       dc_constants.VALUE: 3}]]}
         self.assertEqual(1, len(meas_result))
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_table_with_rna_inhibitor_in_reaction(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -244,7 +244,7 @@ class MeasurementTableTest(unittest.TestCase):
               dc_constants.VALUE: 'True'}
              ]]}
         self.assertEqual(1, len(meas_result))
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_table_with_template_dna(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -276,7 +276,7 @@ class MeasurementTableTest(unittest.TestCase):
               dc_constants.VALUE: 'Test DNA2'}
              ]]}
         self.assertEqual(1, len(meas_result))
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_table_with_dna_reaction_concentration_cell(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -311,7 +311,7 @@ class MeasurementTableTest(unittest.TestCase):
                                                          dc_constants.SBH_URI: dc_constants.NO_PROGRAM_DICTIONARY},
                                                       dc_constants.VALUE: 3}]]}
         self.assertEqual(1, len(meas_result))
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
     
     def test_table_with_1_replicate(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -336,7 +336,7 @@ class MeasurementTableTest(unittest.TestCase):
                             'file_type': ['SPREADSHEET'],
                             dc_constants.REPLICATES: [3]}
         self.assertEqual(1, len(meas_result))
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
         
     def test_table_with_3_replicates(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -363,7 +363,7 @@ class MeasurementTableTest(unittest.TestCase):
                             dc_constants.REPLICATES: [1, 2, 3]}
 
         self.assertEqual(1, len(meas_result))
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
     
     def test_table_with_1_strain(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -381,7 +381,7 @@ class MeasurementTableTest(unittest.TestCase):
                                                            file_type_cell=file_type)
         ip_table.add_row(data_row)
 
-        strain_obj = StrainIntent('https://foo.com', 'myLab', 'AND_00', lab_strain_names={'test_strain', 'foo-strain'})
+        strain_obj = SBOLDictionaryStrainIntent('https://foo.com', 'myLab', 'AND_00', lab_strain_names={'test_strain', 'foo-strain'})
         strain_mapping = {'https://foo.com': strain_obj}
 
         meas_table = MeasurementTable(ip_table, strain_mapping=strain_mapping, measurement_types={'PLATE_READER', 'FLOW'}, file_type={'SPREADSHEET'})
@@ -393,7 +393,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.STRAINS: [expected_strain]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_strain_with_unknown_links(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -411,7 +411,7 @@ class MeasurementTableTest(unittest.TestCase):
                                                            file_type_cell=file_type)
         ip_table.add_row(data_row)
 
-        strain_obj = StrainIntent('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'myLab', 'AND_00', lab_strain_names={'test_strain', 'foo-strain'})
+        strain_obj = SBOLDictionaryStrainIntent('https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1', 'myLab', 'AND_00', lab_strain_names={'test_strain', 'foo-strain'})
         strain_mapping = {'https://hub.sd2e.org/user/sd2e/design/UWBF_7376/1': strain_obj}
 
         meas_table = MeasurementTable(ip_table,
@@ -422,7 +422,7 @@ class MeasurementTableTest(unittest.TestCase):
         meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET']}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_strain_not_supported_in_lab_name(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -440,7 +440,7 @@ class MeasurementTableTest(unittest.TestCase):
                                                            file_type_cell=file_type)
         ip_table.add_row(data_row)
 
-        strain_obj = StrainIntent('https://foo.com', dc_constants.LAB_TACC, 'AND_00', lab_strain_names={'UWBF_7376'})
+        strain_obj = SBOLDictionaryStrainIntent('https://foo.com', dc_constants.LAB_TACC, 'AND_00', lab_strain_names={'UWBF_7376'})
         strain_mapping = {'https://foo.com': strain_obj}
 
         meas_table = MeasurementTable(ip_table,
@@ -451,7 +451,7 @@ class MeasurementTableTest(unittest.TestCase):
         meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET']}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_strains_with_inconsistent_links(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -475,8 +475,8 @@ class MeasurementTableTest(unittest.TestCase):
                                                            file_type_cell=file_type)
         ip_table.add_row(data_row)
 
-        strain1_obj = StrainIntent(strain_link1, 'myLab', 'AND_00', lab_strain_names={lab_strain1})
-        strain2_obj = StrainIntent(strain_link2, 'myLab', 'AND_01', lab_strain_names={lab_strain2})
+        strain1_obj = SBOLDictionaryStrainIntent(strain_link1, 'myLab', 'AND_00', lab_strain_names={lab_strain1})
+        strain2_obj = SBOLDictionaryStrainIntent(strain_link2, 'myLab', 'AND_01', lab_strain_names={lab_strain2})
         strain_mapping = {strain_link1: strain1_obj,
                           strain_link2: strain2_obj}
 
@@ -495,7 +495,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.STRAINS: [expected_strain1, expected_strain2]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_table_with_1_timepoint(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -525,7 +525,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.TIMEPOINTS: [exp_res1]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
                   
     def test_table_with_3_timepoint(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -556,7 +556,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.TIMEPOINTS: [exp_res1, exp_res2, exp_res3]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
     
     def test_table_with_1_temperature(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -586,7 +586,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.TEMPERATURES: [exp_res1]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
         
     def test_table_with_1_temperature_and_unspecified_unit(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -612,7 +612,7 @@ class MeasurementTableTest(unittest.TestCase):
         meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET']}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_table_with_2_temperature_and_unit_abbreviation(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -643,7 +643,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.TEMPERATURES: [exp_res1, exp_res2, exp_res3]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
              
     def test_table_with_3_temperature(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -675,7 +675,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.TEMPERATURES: [exp_res1, exp_res2, exp_res3]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
     
     def test_table_with_samples(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -700,7 +700,7 @@ class MeasurementTableTest(unittest.TestCase):
         meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET']}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
     
     def test_table_with_notes(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -725,7 +725,7 @@ class MeasurementTableTest(unittest.TestCase):
         meas_result = meas_table.get_intents()
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET']}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
     
     def test_table_with_1_ods(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -751,7 +751,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             ip_constants.HEADER_ODS_VALUE: [3]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
         
     def test_table_with_3_ods(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -777,7 +777,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             ip_constants.HEADER_ODS_VALUE: [33.0, 22.0, 11.0]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
         
     def test_table_with_one_value_reagent(self):
         reagent_name = 'L-arabinose'
@@ -814,7 +814,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[exp_res1]]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
             
     def test_table_with_three_value_reagent(self):
         reagent_name = 'L-arabinose'
@@ -857,7 +857,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[exp_res1, exp_res2, exp_res3]]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
             
     def test_table_with_reagent_and_unit_abbreviation(self):
         reagent_name = 'L-arabinose'
@@ -894,7 +894,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[exp_res1]]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
     
     def test_table_with_reagent_and_percentage_unit(self):
         reagent_name = 'L-arabinose'
@@ -929,7 +929,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[exp_res1]]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
         
     def test_table_with_reagent_and_unit_containing_backslash(self):
         reagent_name = 'L-arabinose'
@@ -966,7 +966,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[exp_res1]]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
         
     def test_table_with_reagent_and_timepoint(self):
         reagent_uri = 'https://hub.sd2e.org/user/sd2e/design/beta0x2Destradiol/1'
@@ -1003,7 +1003,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[exp_res1]]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_reagent_values_with_floating_points(self):
         reagent_uri = 'https://hub.sd2e.org/user/sd2e/design/Xylose/1'
@@ -1047,7 +1047,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [exp_res1]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_table_text_with_reagent_and_timepoint(self):
         reagent_uri = 'https://hub.sd2e.org/user/sd2e/design/IPTG/1'
@@ -1085,7 +1085,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[exp_res1]]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_table_with_media(self):
         media_uri = 'https://hub.sd2e.org/user/sd2e/design/Media/1'
@@ -1113,14 +1113,14 @@ class MeasurementTableTest(unittest.TestCase):
                                       file_type={'SPREADSHEET'})
         meas_table.process_table()
         meas_result = meas_table.get_intents()
-        self.assertEquals(1, len(meas_result))
+        self.assertEqual(1, len(meas_result))
         
         exp_res1 = {dc_constants.NAME: {dc_constants.LABEL: 'Media', dc_constants.SBH_URI: media_uri},
                     dc_constants.VALUE: 'sc_media'}
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[exp_res1]]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
      
     def test_table_with_media_containing_period_values(self):
         media_header = IntentParserCell()
@@ -1153,7 +1153,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[exp_res1]]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
         
     def test_table_with_media_containing_percentage_values(self):
         media_header = IntentParserCell()
@@ -1186,7 +1186,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[exp_res1]]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
     
     def test_table_with_media_containing_numerical_values(self):
         media_header = IntentParserCell()
@@ -1219,7 +1219,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             'contents': [[exp_res1]]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
         
     def test_table_with_batch_values(self):
         ip_table = test_utils.create_fake_measurement_table()
@@ -1245,7 +1245,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.BATCH: [0,1]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     def test_table_with_1_reference_control(self):
         ip_table_measurment = test_utils.create_fake_measurement_table()
@@ -1290,7 +1290,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.CONTROLS: [control_result]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
     
     def test_table_with_2_reference_control_in_one_measurement(self):
         ip_measurement_table = test_utils.create_fake_measurement_table()
@@ -1351,7 +1351,7 @@ class MeasurementTableTest(unittest.TestCase):
         expected_results = {'measurement_type': 'PLATE_READER',
                             'file_type': ['SPREADSHEET'],
                             dc_constants.CONTROLS: [control1_result, control2_result]}
-        self.assertEqual(expected_results, meas_result[0].to_structure_request())
+        self.assertEqual(expected_results, meas_result[0].to_structured_request())
 
     
     def test_table_with_2_reference_control_in_seperate_measurements(self):
@@ -1427,8 +1427,8 @@ class MeasurementTableTest(unittest.TestCase):
                              'file_type': ['SPREADSHEET'],
                              dc_constants.CONTROLS: [control2_result]}
 
-        self.assertEqual(expected_results1, meas_result[0].to_structure_request())
-        self.assertEqual(expected_results2, meas_result[1].to_structure_request())
+        self.assertEqual(expected_results1, meas_result[0].to_structured_request())
+        self.assertEqual(expected_results2, meas_result[1].to_structured_request())
       
         
 if __name__ == '__main__':

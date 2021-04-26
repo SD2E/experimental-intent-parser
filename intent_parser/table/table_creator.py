@@ -1,12 +1,143 @@
 from intent_parser.accessor.google_accessor import GoogleAccessor
+from intent_parser.intent.lab_intent import LabIntent
+from intent_parser.intent.measure_property_intent import ReagentIntent, MediaIntent
 from intent_parser.lab_experiment import LabExperiment
 from intent_parser.table.intent_parser_table_factory import IntentParserTableFactory
+import intent_parser.constants.intent_parser_constants as ip_constants
 
 class TableCreator(object):
 
     def __init__(self):
         self.doc_accessor = GoogleAccessor().get_google_doc_accessor()
         self.ip_table_factory = IntentParserTableFactory()
+
+    def create_lab_table_from_intent(self, lab_intent: LabIntent):
+        lab_table = [['%s: %s' % (ip_constants.HEADER_LAB_VALUE, lab_intent.get_lab_name())]]
+        return lab_table
+
+    def create_parameter_table_from_intent(self, parameter_intent):
+        parameter_table = [[ip_constants.HEADER_PARAMETER_VALUE, ip_constants.HEADER_PARAMETER_VALUE_VALUE]]
+
+        protocol_name = parameter_intent.get_protocol_name() if parameter_intent.get_protocol_name() else ' '
+        parameter_table.append([ip_constants.PARAMETER_PROTOCOL_NAME, protocol_name])
+        self._add_run_parameters(parameter_intent, parameter_table)
+        for name, value in parameter_intent.get_default_parameters().items():
+            parameter_table.append([name, str(value)])
+        return parameter_table
+
+    def _add_run_parameters(self, parameter_intent, parameter_table):
+        parameter_value = parameter_intent.get_xplan_base_dir() if parameter_intent.get_xplan_base_dir() else ''
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_XPLAN_BASE_DIRECTORY, parameter_value])
+
+        parameter_value = parameter_intent.get_xplan_reactor() if parameter_intent.get_xplan_reactor() else 'xplan'
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_XPLAN_REACTOR, parameter_value])
+
+        parameter_value = parameter_intent.get_plate_size() if parameter_intent.get_plate_size() else ''
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_PLATE_SIZE, parameter_value])
+
+        parameter_value = parameter_intent.get_plate_number() if parameter_intent.get_plate_number() else ''
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_PLATE_NUMBER, parameter_value])
+
+        parameter_value = parameter_intent.get_container_search_string() if parameter_intent.get_container_search_string() else ' '
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_CONTAINER_SEARCH_STRING, parameter_value])
+
+        parameter_value = parameter_intent.get_strain_property() if parameter_intent.get_strain_property() else ''
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_STRAIN_PROPERTY, parameter_value])
+
+        parameter_value = parameter_intent.get_xplan_path() if parameter_intent.get_xplan_path() else ''
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_XPLAN_PATH, parameter_value])
+
+        parameter_value = parameter_intent.get_submit_flag() if parameter_intent.get_submit_flag() else 'True'
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_SUBMIT, parameter_value])
+
+        parameter_value = parameter_intent.get_protocol_id() if parameter_intent.get_protocol_id() else ''
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_PROTOCOL_ID, parameter_value])
+
+        parameter_value = parameter_intent.get_test_mode() if parameter_intent.get_test_mode() else 'False'
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_TEST_MODE, parameter_value])
+
+        parameter_value = parameter_intent.get_experiment_ref_url() if parameter_intent.get_experiment_ref_url() else ''
+        parameter_table.append([ip_constants.PROTOCOL_FIELD_EXPERIMENT_REFERENCE_URL_FOR_XPLAN, parameter_value])
+
+    def create_measurement_table_from_intents(self, measurement_intents):
+        measurement_headers = self._create_measurement_table_header(measurement_intents)
+        measurement_data = self._add_measurement_data(measurement_intents, measurement_headers)
+        measurement_table = [list(measurement_headers.keys())] + measurement_data
+        return measurement_table
+
+    def _add_measurement_data(self, measurement_intents, measurement_headers):
+        measurement_data = []
+        for measurement_intent in measurement_intents:
+            row_data = [' '] * len(measurement_headers)
+            if ip_constants.HEADER_MEASUREMENT_TYPE_VALUE in measurement_headers:
+                measurement_type = measurement_intent.get_measurement_type() if measurement_intent.has_measurement_type() else ' '
+                index = measurement_headers[ip_constants.HEADER_MEASUREMENT_TYPE_VALUE]
+                row_data[index] = measurement_type
+            if ip_constants.HEADER_STRAINS_VALUE in measurement_headers:
+                if measurement_intent.size_of_strains() > 0:
+                    strain_values = ', '.join([strain.get_name().get_name() for strain in measurement_intent.get_strains()])
+                    index = measurement_headers[ip_constants.HEADER_STRAINS_VALUE]
+                    row_data[index] = strain_values
+            if ip_constants.HEADER_TEMPERATURE_VALUE in measurement_headers:
+                if measurement_intent.size_of_temperatures() > 0:
+                    temperature_values = ', '.join(['%s %s' % (str(temperature.get_value()), str(temperature.get_unit()))
+                                                   for temperature in measurement_intent.get_temperatures()])
+                    index = measurement_headers[ip_constants.HEADER_TEMPERATURE_VALUE]
+                    row_data[index] = temperature_values
+            if ip_constants.HEADER_TIMEPOINT_VALUE in measurement_headers:
+                if measurement_intent.size_of_timepoints() > 0:
+                    timepoint_values = ', '.join(['%s %s' % (str(timepoint.get_value()), str(timepoint.get_unit()))
+                                                  for timepoint in measurement_intent.get_timepoints()])
+                    index = measurement_headers[ip_constants.HEADER_TIMEPOINT_VALUE]
+                    row_data[index] = timepoint_values
+            if not measurement_intent.contents_is_empty():
+                for content_intent in measurement_intent.get_contents().get_contents():
+                    if content_intent.size_of_reagents() > 0:
+                        for reagent in content_intent.get_reagents():
+                            reagent_name = reagent.get_reagent_name().get_name()
+                            if reagent_name in measurement_headers and len(reagent.get_reagent_values()) > 0:
+                                reagent_values = []
+                                for reagent_value in reagent.get_reagent_values():
+                                    if reagent_value.get_unit():
+                                        reagent_values.append('%s %s' % (str(reagent_value.get_value()), str(reagent_value.get_unit())))
+                                    else:
+                                        reagent_values.append('%s' % (str(reagent_value.get_value())))
+                                index = measurement_headers[reagent_name]
+                            row_data[index] = ', '.join(reagent_values)
+                    elif content_intent.size_of_medias() > 0:
+                        for media in content_intent.get_medias():
+                            media_name = media.get_media_name().get_name()
+                            if media_name in measurement_headers and len(media.get_media_values()) > 0:
+                                media_values = ', '.join(['%s' % media_value.get_name() for media_value in media.get_media_values()])
+                                index = measurement_headers[media_name]
+                                row_data[index] = media_values
+            measurement_data.append(row_data)
+        return measurement_data
+
+    def _create_measurement_table_header(self, measurement_intents):
+        header_indices = {}
+        for measurement_intent in measurement_intents:
+            if measurement_intent.has_measurement_type() and ip_constants.HEADER_MEASUREMENT_TYPE_VALUE not in header_indices:
+                header_indices[ip_constants.HEADER_MEASUREMENT_TYPE_VALUE] = len(header_indices)
+            if measurement_intent.size_of_strains() > 0 and ip_constants.HEADER_STRAINS_VALUE not in header_indices:
+                header_indices[ip_constants.HEADER_STRAINS_VALUE] = len(header_indices)
+            if measurement_intent.size_of_temperatures() > 0 and ip_constants.HEADER_TEMPERATURE_VALUE not in header_indices:
+                header_indices[ip_constants.HEADER_TEMPERATURE_VALUE] = len(header_indices)
+            if measurement_intent.size_of_timepoints() > 0 and ip_constants.HEADER_TIMEPOINT_VALUE not in header_indices:
+                header_indices[ip_constants.HEADER_TIMEPOINT_VALUE] = len(header_indices)
+            if not measurement_intent.contents_is_empty():
+                for content_intent in measurement_intent.get_contents().get_contents():
+                    if content_intent.size_of_reagents() > 0:
+                        for reagent in content_intent.get_reagents():
+                            reagent_name = reagent.get_reagent_name().get_name()
+                            if reagent_name not in header_indices:
+                                header_indices[reagent_name] = len(header_indices)
+                    elif content_intent.size_of_medias() > 0:
+                        for media in content_intent.get_medias():
+                            media_name = media.get_media_name().get_name()
+                            if media_name not in header_indices:
+                                header_indices[media_name] = len(header_indices)
+        return header_indices
 
     def create_experiment_specification_table(self, document_id, experiment_specification_table, location=None):
         if location is None:

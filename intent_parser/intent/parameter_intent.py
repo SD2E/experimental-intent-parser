@@ -1,6 +1,4 @@
-from intent_parser.intent_parser_exceptions import IntentParserException
 from intent_parser.utils.id_provider import IdProvider
-import intent_parser.protocols.opil_parameter_utils as parameter_utils
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
 import intent_parser.constants.intent_parser_constants as ip_constants
 
@@ -25,11 +23,44 @@ class ParameterIntent(object):
     def add_parameter(self, field, value):
         self._default_parameters[field] = value
 
+    def get_container_search_string(self):
+        return self._container_search_strings
+
     def get_default_parameters(self) -> dict:
         return self._default_parameters
 
+    def get_experiment_ref_url(self):
+        return self._experiment_reference_url_for_xplan
+
+    def get_plate_number(self):
+        return self._plate_number
+
+    def get_plate_size(self):
+        return self._plate_size
+
+    def get_protocol_id(self):
+        return self._protocol_id
+
     def get_protocol_name(self):
         return self._protocol_name
+
+    def get_strain_property(self):
+        return self._strain_property
+
+    def get_submit_flag(self):
+        return self._submit
+
+    def get_test_mode(self):
+        return self._test_mode
+
+    def get_xplan_base_dir(self):
+        return self._base_dir
+
+    def get_xplan_path(self):
+        return self._xplan_path
+
+    def get_xplan_reactor(self):
+        return self._xplan_reactor
 
     def set_base_dir(self, value: str):
         self._base_dir = value
@@ -67,6 +98,9 @@ class ParameterIntent(object):
     def set_xplan_reactor(self, value: str):
         self._xplan_reactor = value
 
+    def size_of_default_parameters(self):
+        return len(self._default_parameters)
+
     def to_structure_request(self):
         return self._default_parameters
 
@@ -86,194 +120,3 @@ class ParameterIntent(object):
             ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN: self._experiment_reference_url_for_xplan,
             ip_constants.DEFAULT_PARAMETERS: self._default_parameters
         }
-
-    def to_opil_for_experiment(self):
-        parameters_fields = []
-        parameter_values = []
-        if self._base_dir is None:
-            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_BASE_DIR)
-
-        base_dir_field, base_dir_value = self._create_opil_base_dir()
-        parameters_fields.append(base_dir_field)
-        parameter_values.append(base_dir_value)
-
-        xplan_reactor_field, xplan_reactor_value = self._create_opil_xplan_reactor()
-        parameters_fields.append(xplan_reactor_field)
-        parameter_values.append(xplan_reactor_value)
-
-        if self._plate_size is None:
-            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_PLATE_SIZE)
-
-        plate_size_field, plate_size_value = self._create_opil_plate_size()
-        parameters_fields.append(plate_size_field)
-        parameter_values.append(plate_size_value)
-
-        if self._protocol_name is None:
-            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_PROTOCOL_NAME)
-
-        protocol_name_field, protocol_name_value = self._create_opil_protocol_name()
-        parameters_fields.append(protocol_name_field)
-        parameter_values.append(protocol_name_value)
-
-        if self._plate_number is None:
-            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_PLATE_NUMBER)
-
-        plate_number_field, plate_number_value = self._create_opil_plate_number()
-        parameters_fields.append(plate_number_field)
-        parameter_values.append(plate_number_value)
-
-        container_fields, container_values = self._create_opil_container_search_string()
-        parameters_fields.extend(container_fields)
-        parameter_values.extend(container_values)
-
-        if self._strain_property is None:
-            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_STRAIN_PROPERTY)
-
-        strain_property_field, strain_property_value = self._create_opil_strain_property()
-        parameters_fields.append(strain_property_field)
-        parameter_values.append(strain_property_value)
-
-        if self._xplan_path is None:
-            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_XPLAN_PATH)
-
-        xplan_path_field, xplan_path_value = self._create_xplan_path()
-        parameters_fields.append(xplan_path_field)
-        parameter_values.append(xplan_path_value)
-
-        submit_field, submit_value = self._create_opil_submit()
-        parameters_fields.append(submit_field)
-        parameter_values.append(submit_value)
-
-        if self._protocol_id is None:
-            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_PROTOCOL_ID)
-
-        protocol_id_field, protocol_id_value = self._create_opil_protocol_id()
-        parameters_fields.append(protocol_id_field)
-        parameter_values.append(protocol_id_value)
-
-        test_mode_field, test_mode_value = self._create_opil_test_mode()
-        parameters_fields.append(test_mode_field)
-        parameter_values.append(test_mode_value)
-
-        if self._experiment_reference_url_for_xplan is None:
-            raise IntentParserException('%s is missing a value' % ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN)
-
-        experiment_ref_url_for_xplan_field, experiment_ref_url_for_xplan_value = self._create_opil_experiment_url_for_xplan()
-        parameters_fields.append(experiment_ref_url_for_xplan_field)
-        parameter_values.append(experiment_ref_url_for_xplan_value)
-
-        return parameters_fields, parameter_values
-
-    def _create_opil_base_dir(self):
-        parameter_field = parameter_utils.create_opil_string_parameter_field(self._id_provider.get_unique_sd2_id(),
-                                                                             ip_constants.PARAMETER_BASE_DIR)
-        parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
-                                                                             self._base_dir)
-        parameter_field.default_value = parameter_value
-        return parameter_field, parameter_value
-
-    def _create_opil_container_search_string(self):
-        parameter_fields = []
-        parameter_values = []
-
-        if self._container_search_strings == dc_constants.GENERATE:
-            parameter_field = parameter_utils.create_opil_enumerated_parameter_field(self._id_provider.get_unique_sd2_id(),
-                                                                                     ip_constants.PARAMETER_CONTAINER_SEARCH_STRING)
-            parameter_value = parameter_utils.create_opil_enumerated_parameter_value(self._id_provider.get_unique_sd2_id(),
-                                                                                     dc_constants.GENERATE)
-            parameter_field.default_value = parameter_value
-            parameter_fields.append(parameter_field)
-            parameter_values.append(parameter_value)
-        else:
-            for value_index in range(len(self._container_search_strings)):
-                parameter_field = parameter_utils.create_opil_string_parameter_field(self._id_provider.get_unique_sd2_id(),
-                                                                                     ip_constants.PARAMETER_CONTAINER_SEARCH_STRING)
-                parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
-                                                                                     self._container_search_strings[value_index])
-                parameter_field.default_value = parameter_value
-                parameter_fields.append(parameter_field)
-                parameter_values.append(parameter_value)
-
-        return parameter_fields, parameter_values
-
-    def _create_opil_experiment_url_for_xplan(self):
-        parameter_field = parameter_utils.create_opil_string_parameter_field(self._id_provider.get_unique_sd2_id(),
-                                                                             ip_constants.PARAMETER_EXPERIMENT_REFERENCE_URL_FOR_XPLAN)
-        parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
-                                                                             self._experiment_reference_url_for_xplan)
-        parameter_field.default_value = parameter_value
-        return parameter_field, parameter_value
-
-
-    def _create_opil_plate_number(self):
-        parameter_field = parameter_utils.create_opil_integer_parameter_field(self._id_provider.get_unique_sd2_id(),
-                                                                              ip_constants.PARAMETER_PLATE_NUMBER)
-        parameter_value = parameter_utils.create_opil_integer_parameter_value(self._id_provider.get_unique_sd2_id(),
-                                                                              self._plate_number)
-        parameter_field.default_value = parameter_value
-        return parameter_field, parameter_value
-
-    def _create_opil_plate_size(self):
-        parameter_field = parameter_utils.create_opil_integer_parameter_field(self._id_provider.get_unique_sd2_id(),
-                                                                              ip_constants.PARAMETER_PLATE_SIZE)
-        parameter_value = parameter_utils.create_opil_integer_parameter_value(self._id_provider.get_unique_sd2_id(),
-                                                                              self._plate_size)
-        parameter_field.default_value = parameter_value
-        return parameter_field, parameter_value
-
-    def _create_opil_protocol_id(self):
-        parameter_field = parameter_utils.create_opil_string_parameter_field(self._id_provider.get_unique_sd2_id(),
-                                                                             ip_constants.PARAMETER_PROTOCOL_ID)
-        parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
-                                                                             self._protocol_id)
-        parameter_field.default_value = parameter_value
-        return parameter_field, parameter_value
-
-    def _create_opil_protocol_name(self):
-        parameter_field = parameter_utils.create_opil_string_parameter_field(self._id_provider.get_unique_sd2_id(),
-                                                                             ip_constants.PARAMETER_PROTOCOL_NAME)
-        parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
-                                                                             self._protocol_name)
-        parameter_field.default_value = parameter_value
-        return parameter_field, parameter_value
-
-    def _create_opil_strain_property(self):
-        parameter_field = parameter_utils.create_opil_string_parameter_field(self._id_provider.get_unique_sd2_id(),
-                                                                             ip_constants.PARAMETER_STRAIN_PROPERTY)
-        parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
-                                                                             self._strain_property)
-        parameter_field.default_value = parameter_value
-        return parameter_field, parameter_value
-
-    def _create_opil_submit(self):
-        parameter_field = parameter_utils.create_opil_boolean_parameter_field(self._id_provider.get_unique_sd2_id(),
-                                                                              ip_constants.PARAMETER_SUBMIT)
-        parameter_value = parameter_utils.create_opil_boolean_parameter_value(self._id_provider.get_unique_sd2_id(),
-                                                                              self._submit)
-        parameter_field.default_value = parameter_value
-        return parameter_field, parameter_value
-
-    def _create_opil_test_mode(self):
-        parameter_field = parameter_utils.create_opil_boolean_parameter_field(self._id_provider.get_unique_sd2_id(),
-                                                                              ip_constants.PARAMETER_TEST_MODE)
-        parameter_value = parameter_utils.create_opil_boolean_parameter_value(self._id_provider.get_unique_sd2_id(),
-                                                                              self._test_mode)
-        parameter_field.default_value = parameter_value
-        return parameter_field, parameter_value
-
-    def _create_xplan_path(self):
-        parameter_field = parameter_utils.create_opil_string_parameter_field(self._id_provider.get_unique_sd2_id(),
-                                                                             ip_constants.PARAMETER_XPLAN_PATH)
-        parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
-                                                                             self._xplan_path)
-        parameter_field.default_value = parameter_value
-        return parameter_field, parameter_value
-
-    def _create_opil_xplan_reactor(self):
-        parameter_field = parameter_utils.create_opil_string_parameter_field(self._id_provider.get_unique_sd2_id(),
-                                                                             ip_constants.PARAMETER_XPLAN_REACTOR)
-        parameter_value = parameter_utils.create_opil_string_parameter_value(self._id_provider.get_unique_sd2_id(),
-                                                                             self._xplan_reactor)
-        parameter_field.default_value = parameter_value
-        return parameter_field, parameter_value
-

@@ -1,6 +1,5 @@
 from http import HTTPStatus
 from requests_toolbelt.utils import dump
-
 import intent_parser.constants.tacc_constants as tacc_constants
 import intent_parser.utils.intent_parser_utils as ip_util
 import json
@@ -27,9 +26,9 @@ class TACCGoAccessor(object):
         self._status_token = ip_util.load_json_file(credential_file)['experiment_execution_token']
         self._execution_token = ip_util.load_json_file(credential_file)['experiment_authentication_token']
 
-    def execute_experiment(self, data):
+    def execute_experiment(self, data, content_type='application/json'):
         headers = {
-            'Content-type': 'application/json',
+            'Content-type': content_type,
         }
         payload = json.dumps(data)
         response = requests.post(tacc_constants.EXPERIMENT_AUTHENTICATION_URL + self._execution_token,
@@ -37,8 +36,8 @@ class TACCGoAccessor(object):
                                  data=payload)
 
         if response.status_code != HTTPStatus.OK:
-            data = dump.dump_all(response)
-            self.logger.error(data.decode('utf-8'))
+            output_data = dump.dump_all(response)
+            self.logger.error(output_data.decode('utf-8'))
             return {}
 
         return response.json()

@@ -2,7 +2,7 @@ from intent_parser.intent.measure_property_intent import MeasuredUnit, NamedLink
 from intent_parser.intent_parser_exceptions import TableException
 from typing import Dict, List, Tuple
 import collections
-import intent_parser.constants.intent_parser_constants as constants
+import intent_parser.constants.intent_parser_constants as ip_constants
 import re
 
 class CellParser(object):
@@ -10,25 +10,24 @@ class CellParser(object):
     Parses the contents of a cell
     """
     _Token = collections.namedtuple('Token', ['type', 'value'])
-    _fluid_units = {'x': 'X',
-                    'fold': 'X',
-                    'mmol': 'mM',
-                    'uM': 'micromole'}
-    _temperature_units = {'Celsius': 'celsius',
-                          'celsius': 'celsius',
-                          'C': 'celsius',
-                          'c': 'celsius',
-                          'Fahrenheit': 'fahrenheit',
-                          'fahrenheit': 'fahrenheit',
-                          'F': 'fahrenheit',
-                          'f': 'fahrenheit'}
-    _timepoint_units = {'hours': 'hour',
-                        'hr': 'hour',
-                        'h': 'hour'}
-    _abbreviated_unit_dict = {'fluid': _fluid_units,
-                              'temperature': _temperature_units,
-                              'timepoints': _timepoint_units
-                             }
+    _fluid_units = {'x': ip_constants.FLUID_UNIT_FOLD,
+                    'fold': ip_constants.FLUID_UNIT_FOLD,
+                    'mmol': ip_constants.FLUID_UNIT_MILLI_MOLAR,
+                    'uM': ip_constants.FLUID_UNIT_MICROMOLE}
+    _temperature_units = {'Celsius': ip_constants.TEMPERATURE_UNIT_CELSIUS,
+                          'celsius': ip_constants.TEMPERATURE_UNIT_CELSIUS,
+                          'C': ip_constants.TEMPERATURE_UNIT_CELSIUS,
+                          'c': ip_constants.TEMPERATURE_UNIT_CELSIUS,
+                          'Fahrenheit': ip_constants.TEMPERATURE_UNIT_FAHRENHEIT,
+                          'fahrenheit': ip_constants.TEMPERATURE_UNIT_FAHRENHEIT,
+                          'F': ip_constants.TEMPERATURE_UNIT_FAHRENHEIT,
+                          'f': ip_constants.TEMPERATURE_UNIT_FAHRENHEIT}
+    _timepoint_units = {'hours': ip_constants.TIME_UNIT_HOUR,
+                        'hr': ip_constants.TIME_UNIT_HOUR,
+                        'h': ip_constants.TIME_UNIT_HOUR}
+    _abbreviated_unit_dict = {ip_constants.UNIT_TYPE_FLUID: _fluid_units,
+                              ip_constants.UNIT_TYPE_TEMPERATURE: _temperature_units,
+                              ip_constants.UNIT_TYPE_TIMEPOINTS: _timepoint_units}
     
     def __init__(self):
         self._cell_tokenizer = _CellContentTokenizer()
@@ -182,7 +181,11 @@ class CellParser(object):
                 name = NamedStringValue(named_link)
                 contents.append(name)
         else:
-            raise TableException('Unable to parse %s' % text)
+            # default to a name string value
+            for label in self.extract_name_value(text):
+                named_link = self.create_name_with_uri(label, text_with_uri)
+                name = NamedStringValue(named_link)
+                contents.append(name)
         return contents
 
     def process_boolean_flag(self, text: str) -> List[bool]:
@@ -205,8 +208,8 @@ class CellParser(object):
             all_units.update(fluid_units)
         if timepoint_units:
             all_units.update(timepoint_units)
-        abbrev_units = self._abbreviated_unit_dict['fluid'] if 'fluid' is not None else {}
-        abbrev_units.update(self._abbreviated_unit_dict['timepoints'] if 'timepoints' is not None else {})
+        abbrev_units = self._abbreviated_unit_dict[ip_constants.UNIT_TYPE_FLUID]
+        abbrev_units.update(self._abbreviated_unit_dict[ip_constants.UNIT_TYPE_TIMEPOINTS])
         return self._determine_unit(unit, all_units, abbrev_units)
 
     def process_lab_name(self, text: str) -> str:
@@ -219,7 +222,7 @@ class CellParser(object):
         """
         tokens = self._lab_tokenizer.tokenize(text, keep_skip=False)
         if self._get_token_type(tokens[0]) != 'KEYWORD':
-            return None
+            return ''
         return self._get_token_value(tokens[-1])
 
     def process_lab_table_value(self, text):
@@ -301,12 +304,14 @@ class CellParser(object):
         else:
             raise TableException('%s cannot be parsed as a reagent' % text)
 
-    def process_timepoint(self, timepoint_value, timepoint_unit, timepoint_units):
-        abbrev_units = self._abbreviated_unit_dict['timepoints'] if 'timepoints' is not None else {}
-        validated_unit = self._determine_unit(timepoint_unit, timepoint_units, abbrev_units) 
-        return [{'value': float(timepoint_value), 'unit': validated_unit}] 
-        
     def process_table_caption_index(self, text):
+        """
+        Process table caption.
+        Args:
+            text: Table caption.
+        Return:
+            a integer value to represent the table index.
+        """
         tokens = self._table_tokenizer.tokenize(text, keep_separator=False, keep_skip=False)
         table_value = self._get_token_value(tokens[1])
         return int(table_value)
@@ -376,7 +381,7 @@ class CellParser(object):
         Args:
             unit: a unit
             units: A list of supported units.
-            abbrev_units: A list of abbreviated units. 
+            abbrev_units: A dictionary of abbreviated units mapped to its supporting name in intent parser.
             
         Returns:
             A unit
@@ -505,37 +510,37 @@ class _ExperimentIdTokenizer(_Tokenizer):
 class _TableHeaderTokenizer(_Tokenizer): 
     
     token_specification = [
-            (constants.HEADER_BATCH_TYPE, r'(Batch|batch)'),
-            (constants.HEADER_CHANNEL_TYPE, r'(Channel|channel)'),
-            (constants.HEADER_COLUMN_ID_TYPE, r'(Column_id|column_id)'),
-            (constants.HEADER_CONTENTS_TYPE, r'(Contents|contents)'),
-            (constants.HEADER_CONTROL_TYPE_TYPE, r'(Control|control)[ \t\n]*(Type|type)'),
-            (constants.HEADER_CONTROL_TYPE, r'(Control|control)'),
-            (constants.HEADER_EXPERIMENT_ID_TYPE, r'([Ee]xperiment)[ \t\n]*([Ii][Dd])'),
-            (constants.HEADER_EXPERIMENT_STATUS_TYPE, r'([Ee]xperiment)[ \t\n]*([Ss]tatus)'),
-            (constants.HEADER_FILE_TYPE_TYPE, r'(File|file)[ \t\n]*-[ \t\n]*(Type|type)'),
-            (constants.HEADER_MEASUREMENT_LAB_ID_TYPE, r'(Lab_id|lab_id)'),
-            (constants.HEADER_LAST_UPDATED_TYPE, r'(Last|last)[ \t\n]*(Update|update)'),
-            (constants.HEADER_MEASUREMENT_TYPE_TYPE, r'(Measurement|measurement)[ \t\n]*-[ \t\n]*(Type|type)'),
-            (constants.HEADER_NOTES_TYPE, r'(Notes|notes)'),
-            (constants.HEADER_NUM_NEG_CONTROL_TYPE, r'([Nn]umber)[ \t\n]*([Oo]f)[ \t\n]*([Nn]egative)[ \t\n]*([Cc]ontrols)'),
-            (constants.HEADER_RNA_INHIBITOR_REACTION_TYPE, r'([Uu]se)[ \t\n]*([Rr][Nn][Aa]se)[ \t\n]*([Ii]nhibitor)[ \t\n]*([Ii]n)[ \t\n]*([Rr]eaction)'),
-            (constants.HEADER_DNA_REACTION_CONCENTRATION_TYPE, r'([Dd][Nn][Aa])[ \t\n]*([Rr]eaction)[ \t\n]*([Cc]oncentration)'),
-            (constants.HEADER_TEMPLATE_DNA_TYPE, r'([Tt]emplate)[ \t\n]*([Dd][Nn][Aa])'),
-            (constants.HEADER_ODS_TYPE, r'(Ods|ods|ODS)'),
-            (constants.HEADER_PATH_TYPE, r'([Oo]utput)[ \t\n]*([Ff]rom)[ \t\n]*([Pp]ipeline)'),
-            (constants.HEADER_PARAMETER_TYPE, r'(Parameter|parameter)'),
-            (constants.HEADER_PARAMETER_VALUE_TYPE, r'(Value|value)'),
-            (constants.HEADER_PIPELINE_STATUS_TYPE, r'(Pipeline|pipeline)[ \t\n]*(Status|status)'),
-            (constants.HEADER_REPLICATE_TYPE, r'Replicate|replicate'),
-            (constants.HEADER_ROW_ID_TYPE, r'(Row_id|row_id)'),
-            (constants.HEADER_SAMPLES_TYPE, r'(Samples|samples)'),
-            (constants.HEADER_SKIP_TYPE,     r'([ \t\n]|\u000b)+'),
-            (constants.HEADER_STATE_TYPE,   r'Processed|processed'),
-            (constants.HEADER_STRAINS_TYPE,   r'Strains|strains'),
-            (constants.HEADER_TEMPERATURE_TYPE, r'(Temperature|temperature)'),
-            (constants.HEADER_TIMEPOINT_TYPE, r'(Timepoint|timepoint)'),
-            (constants.HEADER_UNKNOWN_TYPE, r'.+')]
+            (ip_constants.HEADER_BATCH_TYPE, r'(Batch|batch)'),
+            (ip_constants.HEADER_CHANNEL_TYPE, r'(Channel|channel)'),
+            (ip_constants.HEADER_COLUMN_ID_TYPE, r'(Column_id|column_id)'),
+            (ip_constants.HEADER_CONTENTS_TYPE, r'(Contents|contents)'),
+            (ip_constants.HEADER_CONTROL_TYPE_TYPE, r'(Control|control)[ \t\n]*(Type|type)'),
+            (ip_constants.HEADER_CONTROL_TYPE, r'(Control|control)'),
+            (ip_constants.HEADER_EXPERIMENT_ID_TYPE, r'([Ee]xperiment)[ \t\n]*([Ii][Dd])'),
+            (ip_constants.HEADER_EXPERIMENT_STATUS_TYPE, r'([Ee]xperiment)[ \t\n]*([Ss]tatus)'),
+            (ip_constants.HEADER_FILE_TYPE_TYPE, r'(File|file)[ \t\n]*-[ \t\n]*(Type|type)'),
+            (ip_constants.HEADER_MEASUREMENT_LAB_ID_TYPE, r'(Lab_id|lab_id)'),
+            (ip_constants.HEADER_LAST_UPDATED_TYPE, r'(Last|last)[ \t\n]*(Update|update)'),
+            (ip_constants.HEADER_MEASUREMENT_TYPE_TYPE, r'(Measurement|measurement)[ \t\n]*-[ \t\n]*(Type|type)'),
+            (ip_constants.HEADER_NOTES_TYPE, r'(Notes|notes)'),
+            (ip_constants.HEADER_NUM_NEG_CONTROL_TYPE, r'([Nn]umber)[ \t\n]*([Oo]f)[ \t\n]*([Nn]egative)[ \t\n]*([Cc]ontrols)'),
+            (ip_constants.HEADER_RNA_INHIBITOR_REACTION_TYPE, r'([Uu]se)[ \t\n]*([Rr][Nn][Aa]se)[ \t\n]*([Ii]nhibitor)[ \t\n]*([Ii]n)[ \t\n]*([Rr]eaction)'),
+            (ip_constants.HEADER_DNA_REACTION_CONCENTRATION_TYPE, r'([Dd][Nn][Aa])[ \t\n]*([Rr]eaction)[ \t\n]*([Cc]oncentration)'),
+            (ip_constants.HEADER_TEMPLATE_DNA_TYPE, r'([Tt]emplate)[ \t\n]*([Dd][Nn][Aa])'),
+            (ip_constants.HEADER_ODS_TYPE, r'(Ods|ods|ODS)'),
+            (ip_constants.HEADER_PATH_TYPE, r'([Oo]utput)[ \t\n]*([Ff]rom)[ \t\n]*([Pp]ipeline)'),
+            (ip_constants.HEADER_PARAMETER_TYPE, r'(Parameter|parameter)'),
+            (ip_constants.HEADER_PARAMETER_VALUE_TYPE, r'(Value|value)'),
+            (ip_constants.HEADER_PIPELINE_STATUS_TYPE, r'(Pipeline|pipeline)[ \t\n]*(Status|status)'),
+            (ip_constants.HEADER_REPLICATE_TYPE, r'Replicate|replicate'),
+            (ip_constants.HEADER_ROW_ID_TYPE, r'(Row_id|row_id)'),
+            (ip_constants.HEADER_SAMPLES_TYPE, r'(Samples|samples)'),
+            (ip_constants.HEADER_SKIP_TYPE, r'([ \t\n]|\u000b)+'),
+            (ip_constants.HEADER_STATE_TYPE, r'Processed|processed'),
+            (ip_constants.HEADER_STRAINS_TYPE, r'Strains|strains'),
+            (ip_constants.HEADER_TEMPERATURE_TYPE, r'(Temperature|temperature)'),
+            (ip_constants.HEADER_TIMEPOINT_TYPE, r'(Timepoint|timepoint)'),
+            (ip_constants.HEADER_UNKNOWN_TYPE, r'.+')]
     
     def __init__(self):
         super().__init__(self.token_specification)

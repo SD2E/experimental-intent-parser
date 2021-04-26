@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<style>
+  #selectLabId {
+        width: 150px;
+    }
+
+  #selectExperimentProtocolId {
+        width: 150px;
+    }
+</style>
+<body>
+  <script>
+    function onSuccess() {
+        google.script.host.close();
+    }
+
+    function handleCancel() {
+        google.script.host.close();
+    }
+
+    function handleSubmit() {
+        var extra = {"action": "createExperimentProtocolTables"};
+        var theForm = this.createExperimentProtocolTablesForm;
+        var formInfo = {"cursorChildIndex" : theForm.cursorChildIndex.value,
+                        "formName" : theForm.formName.value,
+                        "labName": theForm.labNames.value,
+                        "experimentalProtocolName": theForm.experimentalProtocolName.value};
+        formInfo.extra = extra;
+        google.script.run.withSuccessHandler(onSuccess).submitForm(formInfo);
+    }
+
+    function insertProtocolOptions(){
+        var theForm = this.createExperimentProtocolTablesForm;
+        var selectedLab = theForm.labNames.value;
+
+        if(selectedLab == "Duke_Haase"){
+            document.getElementById("selectExperimentProtocolId").innerHTML = this.aquarium;
+        }
+        else if(selectedLab == "Transcriptic"){
+            document.getElementById("selectExperimentProtocolId").innerHTML = this.strateos;
+        }
+        else{
+            document.getElementById("selectExperimentProtocolId").innerHTML = "<option>select protocol</option>";
+        }
+    }
+
+    this.aquarium = "${AQUARIUMOPTIONS}";
+    this.strateos = "${STRATEOSOPTIONS}";
+  </script>
+
+  <center>
+    <form name="createExperimentProtocolTablesForm" action="/add">
+      <input type="hidden" name="cursorChildIndex" value="${CURSOR_CHILD_INDEX}">
+      <input type="hidden" name="formName" value="createExperimentProtocolTables">
+      <table stype="width:600px">
+        <tr>
+          <td align="left">Lab:</td>
+          <td align="center">
+            <select id="selectLabId" name="labNames" onchange="insertProtocolOptions()">
+              ${LAB_NAMES}
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td align="left">Protocol:</td>
+          <td align="center" id="experimentProtocolId">
+            <select id="selectExperimentProtocolId" name="experimentalProtocolName"><option>select protocol</option></select>
+          </td>
+        </tr>
+      </table>
+      <input type="button" value="Submit" id="submitButton" title="Submit form to generate table templates for the desired experimental protocol." onclick="handleSubmit()">
+      <input type="button" value="Cancel" id="cancelButton" onclick="handleCancel()">
+    </form>
+  </center>
+</body>
+</html>

@@ -82,8 +82,7 @@ class CatalogAccessor(object):
             for d in data['enum']:
                 self.temperature_units.append(d)
         return self.temperature_units
-        
-    
+
     def get_time_units(self):
         if self.time_units is None:
             data = self._fetch_from_catalog(self._TIME_UNITS_URL)

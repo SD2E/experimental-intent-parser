@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from intent_parser.protocols.labs.aquarium_opil_accessor import AquariumOpilAccessor
 from intent_parser.accessor.google_accessor import GoogleAccessor
 from intent_parser.accessor.mongo_db_accessor import TA4DBAccessor
 from intent_parser.accessor.tacc_go_accessor import TACCGoAccessor
@@ -9,21 +10,25 @@ from intent_parser.document.intent_parser_document_factory import IntentParserDo
 from intent_parser.intent_parser_factory import LabExperiment
 from intent_parser.intent_parser_exceptions import RequestErrorException
 from intent_parser.intent_parser_exceptions import IntentParserException, TableException
-from intent_parser.protocols.protocol_factory import ProtocolFactory
+from intent_parser.protocols.lab_protocol_accessor import LabProtocolAccessor
 from intent_parser.table.intent_parser_table_type import TableType
 from intent_parser.table.table_creator import TableCreator
 import intent_parser.constants.google_api_constants as google_constants
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import intent_parser.constants.ip_app_script_constants as ip_addon_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
-import intent_parser.protocols.opil_parameter_utils as opil_util
+import intent_parser.utils.opil_utils as opil_util
 import intent_parser.utils.intent_parser_utils as intent_parser_utils
 import intent_parser.utils.intent_parser_view as intent_parser_view
+import json
 import logging.config
 import os
 import traceback
 
 class IntentParserProcessor(object):
+    """
+    Process requests coming into Intent Parser Server.
+    """
 
     logger = logging.getLogger('intent_parser_processor')
 
@@ -36,6 +41,7 @@ class IntentParserProcessor(object):
         self.sbh = sbh
         self.sbol_dictionary = sbol_dictionary
         self.strateos_accessor = strateos_accessor
+        self.aquarium_accessor = AquariumOpilAccessor()
         self.intent_parser_factory = intent_parser_factory
 
         self.sparql_similar_query = intent_parser_utils.load_file(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'findSimilar.sparql'))
@@ -68,7 +74,7 @@ class IntentParserProcessor(object):
         validation_errors = []
         validation_warnings = []
         if table_type == 'parameter':
-            protocol_factory = ProtocolFactory(self.strateos_accessor)
+            protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
             intent_parser.process_parameter_info(protocol_factory)
             validation_warnings.extend(intent_parser.get_validation_warnings())
             validation_errors.extend(intent_parser.get_validation_errors())
@@ -80,10 +86,10 @@ class IntentParserProcessor(object):
         return intent_parser.get_table_info()
 
     def process_opil_get_request(self, document_id):
-        protocol_factory = ProtocolFactory(self.strateos_accessor)
+        lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
-        intent_parser.process_opil_request(protocol_factory)
-        sbol_doc = intent_parser.get_opil_request()
+        intent_parser.process_opil_request(lab_protocol_accessor)
+        opil_doc = intent_parser.get_opil_request()
         validation_warnings = intent_parser.get_validation_warnings()
         validation_errors = intent_parser.get_validation_errors()
         if len(validation_errors) > 0:
@@ -91,7 +97,7 @@ class IntentParserProcessor(object):
             errors.extend(validation_errors)
             raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=errors, warnings=validation_warnings)
 
-        xml_string = sbol_doc.write_string('xml')
+        xml_string = opil_doc.write_string('json-ld')
         return xml_string
 
     def process_opil_post_request(self, http_host, json_body):
@@ -99,7 +105,7 @@ class IntentParserProcessor(object):
         validation_warnings = []
 
         document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
-        protocol_factory = ProtocolFactory(self.strateos_accessor)
+        protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_opil_request(protocol_factory)
         validation_warnings.extend(intent_parser.get_validation_warnings())
@@ -121,6 +127,72 @@ class IntentParserProcessor(object):
         action_list = [dialog_action]
         actions = {'actions': action_list}
         return actions
+
+    def process_get_experimental_protocol_names(self):
+        lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
+        return lab_protocol_accessor.map_name_to_experimental_protocols()
+
+    def process_experimental_protocol_request(self, json_body, document_id=''):
+        doc_id = document_id
+        if not document_id:
+            doc_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+
+        if ip_addon_constants.LAB_NAME not in json_body:
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=['Missing %s' % ip_addon_constants.LAB_NAME])
+        if ip_addon_constants.EXPERIMENT_PROTOCOL_NAME not in json_body:
+            raise RequestErrorException(HTTPStatus.BAD_REQUEST, errors=['Missing %s' % ip_addon_constants.EXPERIMENT_PROTOCOL_NAME])
+
+        lab_name = json_body[ip_addon_constants.LAB_NAME]
+        experimental_protocol_name = json_body[ip_addon_constants.EXPERIMENT_PROTOCOL_NAME]
+        protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
+        opil_document_template = protocol_factory.load_protocol_interface_from_lab(experimental_protocol_name,
+                                                                                   lab_name)
+        intent_parser = self.intent_parser_factory.create_intent_parser(doc_id)
+        intent_parser.process_experimental_protocol_request(lab_name, opil_document_template)
+        validation_warnings = intent_parser.get_validation_warnings()
+        validation_errors = intent_parser.get_validation_errors()
+        actions = []
+        if len(validation_errors) > 0:
+            errors = ['Unable to generate experimental protocol.']
+            errors.extend(validation_errors)
+            error_dialog = intent_parser_view.invalid_request_model_dialog('Unable to import %s protocol for %s' % (lab_name, experimental_protocol_name),
+                                                                           errors)
+            return actions.append(error_dialog)
+
+        er_table_templates = intent_parser.get_experimental_protocol_request()
+        if 'parameterTable' in er_table_templates:
+            lab_table_len = self._calculate_table_dimensions(er_table_templates['parameterTable'])
+            parameter_table = intent_parser_view.create_table_template(json_body[ip_addon_constants.CURSOR_CHILD_INDEX],
+                                                 er_table_templates['parameterTable'],
+                                                 ip_addon_constants.TABLE_TYPE_PARAMETERS,
+                                                 lab_table_len)
+            actions.extend(parameter_table)
+        if 'measurementTable' in er_table_templates and 'labTable' in er_table_templates:
+            measurement_table_len = self._calculate_table_dimensions(er_table_templates['measurementTable'])
+            measurement_table = intent_parser_view.create_table_template(json_body[ip_addon_constants.CURSOR_CHILD_INDEX],
+                                                                         er_table_templates['measurementTable'],
+                                                                         ip_addon_constants.TABLE_TYPE_MEASUREMENTS,
+                                                                         measurement_table_len,
+                                                                         additional_info={ip_addon_constants.TABLE_TYPE_LAB: er_table_templates['labTable']})
+            actions.extend(measurement_table)
+        if 'labTable' in er_table_templates:
+            lab_table_len = self._calculate_table_dimensions(er_table_templates['labTable'])
+            lab_table = intent_parser_view.create_table_template(json_body[ip_addon_constants.CURSOR_CHILD_INDEX],
+                                                                 er_table_templates['labTable'],
+                                                                 ip_addon_constants.TABLE_TYPE_MEASUREMENTS,
+                                                                 lab_table_len)
+            actions.extend(lab_table)
+        return actions
+
+    def _calculate_table_dimensions(self, table_template):
+        table_len = []
+        for row_index in range(len(table_template)):
+            row_length = []
+            for col_index in range(len(table_template[row_index])):
+                col_size = len(table_template[row_index][col_index])
+                row_length.append(col_size)
+            table_len.append(row_length)
+            return table_len
 
     def process_document_report(self, document_id):
         """
@@ -206,6 +278,38 @@ class IntentParserProcessor(object):
         return {'authenticationLink': link}
 
     def process_run_experiment_post(self, json_body):
+        validation_errors = []
+        validation_warnings = []
+        response_json = {}
+        if json_body is None:
+            validation_errors.append('Unable to get information from Google document.')
+        else:
+            document_id = intent_parser_utils.get_document_id_from_json_body(json_body)
+            intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
+            intent_parser.process_experiment_run_request()
+            validation_warnings.extend(intent_parser.get_validation_warnings())
+            validation_errors.extend(intent_parser.get_validation_errors())
+            request_data = intent_parser.get_experiment_request()
+            response_json = TACCGoAccessor().execute_experiment(request_data)
+
+        action_list = []
+        if not response_json or ('_links' not in response_json and 'self' not in response_json['_links']):
+            validation_errors.append('Intent Parser unable to get redirect link to TACC authentication webpage.')
+
+        if len(validation_errors) == 0:
+            link = response_json['_links']['self']
+            action_list.append(intent_parser_view.create_execute_experiment_dialog(link))
+        else:
+            all_messages = []
+            all_messages.extend(validation_warnings)
+            all_messages.extend(validation_errors)
+            dialog_action = intent_parser_view.invalid_request_model_dialog('Failed to execute experiment',
+                                                                            all_messages)
+            action_list.append(dialog_action)
+        actions = {'actions': action_list}
+        return actions
+
+    def process_run_opil_experiment_post(self, json_body):
         validation_errors = []
         validation_warnings = []
         response_json = {}
@@ -412,6 +516,10 @@ class IntentParserProcessor(object):
             actions = self.process_create_parameter_table(data, json_body['documentId'])
             result['actions'] = actions
             result['results'] = {'operationSucceeded': True}
+        elif action_type == 'createExperimentProtocolTables':
+            actions = self.process_experimental_protocol_request(data, document_id=document_id)
+            result['actions'] = actions
+            result['results'] = {'operationSucceeded': True}
         else:
             message = 'Request %s not supported in Intent Parser' % action_type
             result = intent_parser_view.operation_failed(message)
@@ -496,7 +604,9 @@ class IntentParserProcessor(object):
                                                                           'Download Structured Request ',
                                                                           validation_warnings, width=600)
         else:
-            all_errors = validation_warnings + validation_errors
+            all_errors = []
+            all_errors.extend(validation_warnings)
+            all_errors.extend(validation_errors)
             dialog_action = intent_parser_view.invalid_request_model_dialog('Structured request validation: Failed!',
                                                                             all_errors)
 
@@ -660,47 +770,30 @@ class IntentParserProcessor(object):
             intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
             intent_parser.process_lab_name()
             lab_name = intent_parser.get_lab_name()
-            protocol_factory = ProtocolFactory(transcriptic_accessor=self.strateos_accessor)
-            protocol_factory.set_selected_lab(lab_name)
-            protocol_names = [intent_parser_constants.PROTOCOL_PLACEHOLDER,
-                              intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL,
-                              intent_parser_constants.GROWTH_CURVE_PROTOCOL,
-                              intent_parser_constants.OBSTACLE_COURSE_PROTOCOL,
-                              intent_parser_constants.TIME_SERIES_HTP_PROTOCOL]
-            # TODO: uncomment when opil fixes this protocol
-            cell_free_riboswitch_parameters = self._get_optional_parameter_names(protocol_factory,
-                                                                                 intent_parser_constants.CELL_FREE_RIBO_SWITCH_PROTOCOL)
-
-            growth_curve_parameters = self._get_optional_parameter_names(protocol_factory,
-                                                                         intent_parser_constants.GROWTH_CURVE_PROTOCOL)
-
-            obstacle_course_parameters = self._get_optional_parameter_names(protocol_factory,
-                                                                            intent_parser_constants.OBSTACLE_COURSE_PROTOCOL)
-
-            time_series_parameters = self._get_optional_parameter_names(protocol_factory,
-                                                                        intent_parser_constants.TIME_SERIES_HTP_PROTOCOL)
-
+            lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
+            protocol_names = lab_protocol_accessor.get_protocol_names_from_lab(lab_name)
             dialog_action = intent_parser_view.create_parameter_table_dialog(cursor_child_index,
                                                                              protocol_names,
-                                                                             timeseries_optional_fields=time_series_parameters,
-                                                                             growthcurve_optional_fields=growth_curve_parameters,
-                                                                             obstaclecourse_optional_fields=obstacle_course_parameters,
-                                                                             cellfreeriboswitch_options=cell_free_riboswitch_parameters)
+                                                                             lab_name)
+            action_list.append(dialog_action)
+        elif table_type == ip_addon_constants.TABLE_TYPE_EXPERIMENT_PROTOCOLS:
+            lab_protocol_accessor = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
+            lab_names = ['select lab',
+                         intent_parser_constants.LAB_DUKE_HASE,
+                         intent_parser_constants.LAB_TRANSCRIPTIC]
+            aquarium_protocols = lab_protocol_accessor.get_protocol_names_from_lab(intent_parser_constants.LAB_DUKE_HASE)
+            strateos_protocols = lab_protocol_accessor.get_protocol_names_from_lab(intent_parser_constants.LAB_TRANSCRIPTIC)
+
+            dialog_action = intent_parser_view.create_experimental_protocol_dialog(cursor_child_index,
+                                                                                   lab_names,
+                                                                                   aquarium_protocols,
+                                                                                   strateos_protocols)
             action_list.append(dialog_action)
         else:
             self.logger.warning('Table type not supported: %s' % table_type)
 
         actions = {'actions': action_list}
         return actions
-
-    def _get_optional_parameter_names(self, protocol_factory, protocol_name):
-        protocol_parameters = protocol_factory.map_parameter_values(protocol_name)
-        optional_param_names = []
-        for param_name, parameter in protocol_parameters.items():
-            if not parameter.is_required():
-                optional_param_names.append(param_name)
-
-        return optional_param_names
 
     def get_common_names_for_optional_parameter_fields(self, parameters: dict):
         common_names = []
@@ -1279,28 +1372,11 @@ class IntentParserProcessor(object):
         lab_name = data[ip_addon_constants.HTML_LAB]
         table_template.append([intent_parser_constants.PARAMETER_PROTOCOL_NAME, selected_protocol])
 
-        protocol_factory = ProtocolFactory(self.strateos_accessor)
-        protocol_factory.set_selected_lab(lab_name)
-        protocol_id = protocol_factory.get_protocol_id(selected_protocol)
-        parameter_fields_from_lab = protocol_factory.map_parameter_values(selected_protocol)
+        protocol_factory = LabProtocolAccessor(self.strateos_accessor, self.aquarium_accessor)
+        protocol_id = protocol_factory.get_protocol_id(selected_protocol, lab_name)
+        parameter_fields_from_lab = protocol_factory.map_name_to_parameters(selected_protocol, lab_name)
 
-        required_parameters = self._add_required_parameters(parameter_fields_from_lab,
-                                                            google_constants.GOOGLE_DOC_URL_PREFIX + document_id,
-                                                            protocol_id)
-        table_template.extend(required_parameters)
-
-        selected_optional_parameters = data[ip_addon_constants.HTML_OPTIONALPARAMETERS]
-        optional_parameters = self._add_optional_parameters(parameter_fields_from_lab,
-                                                            selected_optional_parameters)
-        table_template.extend(optional_parameters)
-
-        column_width = [len(header) for header in header_row]
-        return intent_parser_view.create_table_template(data[ip_addon_constants.CURSOR_CHILD_INDEX],
-                                                        table_template,
-                                                        ip_addon_constants.TABLE_TYPE_PARAMETERS,
-                                                        column_width)
-
-    def _add_required_parameters(self, parameter_fields_from_lab, experiment_ref_url, protocol_id):
+        experiment_ref_url = google_constants.GOOGLE_DOC_URL_PREFIX + document_id
         required_parameters = [[intent_parser_constants.PROTOCOL_FIELD_XPLAN_BASE_DIRECTORY, ''],
                                [intent_parser_constants.PROTOCOL_FIELD_XPLAN_REACTOR, 'xplan'],
                                [intent_parser_constants.PROTOCOL_FIELD_PLATE_SIZE, ''],
@@ -1312,26 +1388,25 @@ class IntentParserProcessor(object):
                                [intent_parser_constants.PROTOCOL_FIELD_PROTOCOL_ID, protocol_id],
                                [intent_parser_constants.PROTOCOL_FIELD_TEST_MODE, 'False'],
                                [intent_parser_constants.PROTOCOL_FIELD_EXPERIMENT_REFERENCE_URL_FOR_XPLAN, experiment_ref_url]]
+        table_template.extend(required_parameters)
+        optional_parameters = self._add_default_parameter_values(parameter_fields_from_lab)
+        table_template.extend(optional_parameters)
 
-        for param_name, parameter in parameter_fields_from_lab.items():
-            if not parameter.is_required():
-                continue
-            parameter_values = parameter.get_valid_values()
-            parameter_value = opil_util.get_param_value_as_string(parameter_values[0]) if len(parameter_values) > 0 else ' '
-            row = [param_name, parameter_value]
-            required_parameters.append(row)
+        column_width = [len(header) for header in header_row]
+        return intent_parser_view.create_table_template(data[ip_addon_constants.CURSOR_CHILD_INDEX],
+                                                        table_template,
+                                                        ip_addon_constants.TABLE_TYPE_PARAMETERS,
+                                                        column_width)
 
-        return required_parameters
-
-    def _add_optional_parameters(self, parameter_fields_from_lab, selected_optional_parameters):
+    def _add_default_parameter_values(self, parameter_fields_from_lab):
         optional_parameters = []
-        for param_name in selected_optional_parameters:
-            if param_name not in parameter_fields_from_lab:
+        ignore_parameters = ['Experiment ID', 'Experiment Reference', 'Experiment Reference URL']
+        for param_name, parameter in parameter_fields_from_lab.items():
+            if param_name in ignore_parameters:
                 continue
-
-            parameter = parameter_fields_from_lab[param_name]
             parameter_values = parameter.get_valid_values()
-            parameter_value = opil_util.get_param_value_as_string(parameter_values[0]) if len(parameter_values) > 0 else ' '
+            parameter_value = opil_util.get_param_value_as_string(parameter_values[0]) if len(
+                parameter_values) > 0 else ' '
             row = [param_name, parameter_value]
             optional_parameters.append(row)
         return optional_parameters

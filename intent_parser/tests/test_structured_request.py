@@ -1,10 +1,10 @@
+from intent_parser.intent.strain_intent import StrainIntent
 from intent_parser.intent_parser import IntentParser
 from intent_parser.intent.control_intent import ControlIntent
 from intent_parser.intent.measurement_intent import ContentIntent, MeasurementIntent
 from intent_parser.intent.measure_property_intent import NamedIntegerValue, NamedLink, ReagentIntent, TemperatureIntent, \
     TimepointIntent, MeasuredUnit
 from intent_parser.intent_parser_exceptions import IntentParserException
-from intent_parser.intent.strain_intent import StrainIntent
 from unittest.mock import patch
 import intent_parser.constants.intent_parser_constants as ip_constants
 import intent_parser.constants.sd2_datacatalog_constants as dc_constants
@@ -117,13 +117,13 @@ class StructureRequestTest(unittest.TestCase):
         measurement_intent = MeasurementIntent()
         measurement_intent.set_measurement_type(ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE)
         with self.assertRaises(IntentParserException):
-            measurement_intent.to_structure_request()
+            measurement_intent.to_structured_request()
 
     def test_measurement_with_missing_measurement_type(self):
         measurement_intent = MeasurementIntent()
         measurement_intent.add_file_type('SPREADSHEET')
         with self.assertRaises(IntentParserException):
-            measurement_intent.to_structure_request()
+            measurement_intent.to_structured_request()
 
     def test_measurement_with_file_type_and_measurement_type(self):
         measurement_intent = MeasurementIntent()
@@ -131,7 +131,7 @@ class StructureRequestTest(unittest.TestCase):
         measurement_intent.add_file_type('SPREADSHEET')
         self.assertEqual({dc_constants.MEASUREMENT_TYPE: ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE,
                           dc_constants.FILE_TYPE: ['SPREADSHEET']},
-                         measurement_intent.to_structure_request())
+                         measurement_intent.to_structured_request())
 
     def test_measurement_with_replicate_size_1(self):
         measurement_intent = MeasurementIntent()
@@ -141,7 +141,7 @@ class StructureRequestTest(unittest.TestCase):
         self.assertEqual({dc_constants.MEASUREMENT_TYPE: ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE,
                           dc_constants.FILE_TYPE: ['SPREADSHEET'],
                           dc_constants.REPLICATES: [5]},
-                         measurement_intent.to_structure_request())
+                         measurement_intent.to_structured_request())
 
     def test_measurement_with_replicate_size_3(self):
         measurement_intent = MeasurementIntent()
@@ -153,18 +153,17 @@ class StructureRequestTest(unittest.TestCase):
         self.assertEqual({dc_constants.MEASUREMENT_TYPE: ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE,
                           dc_constants.FILE_TYPE: ['SPREADSHEET'],
                           dc_constants.REPLICATES: [5, 10, 15]},
-                         measurement_intent.to_structure_request())
+                         measurement_intent.to_structured_request())
 
     def test_measurement_with_strain_size_1(self):
         measurement_intent = MeasurementIntent()
         measurement_intent.set_measurement_type(ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE)
         measurement_intent.add_file_type('SPREADSHEET')
 
-        strain = StrainIntent('www.synbiohub.org/example/strain',
-                              'my_lab',
-                              'my_strain',
-                              lab_strain_names=['and_00', 'and_gate'])
-        strain.set_selected_strain('and_00')
+        strain_name = NamedLink('and_00', link='www.synbiohub.org/example/strain')
+        strain = StrainIntent(strain_name)
+        strain.set_strain_lab_name('my_lab')
+        strain.set_strain_common_name('my_strain')
         measurement_intent.add_strain(strain)
 
         strain_structure_request = {dc_constants.SBH_URI: 'www.synbiohub.org/example/strain',
@@ -173,25 +172,23 @@ class StructureRequestTest(unittest.TestCase):
         self.assertEqual({dc_constants.MEASUREMENT_TYPE: ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE,
                           dc_constants.FILE_TYPE: ['SPREADSHEET'],
                           dc_constants.STRAINS: [strain_structure_request]},
-                         measurement_intent.to_structure_request())
+                         measurement_intent.to_structured_request())
 
     def test_measurement_with_strain_size_2(self):
         measurement_intent = MeasurementIntent()
         measurement_intent.set_measurement_type(ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE)
         measurement_intent.add_file_type('SPREADSHEET')
 
-        strain1 = StrainIntent('www.synbiohub.org/example/and_strain',
-                              'my_lab',
-                              'and_strain',
-                              lab_strain_names=['and_00', 'and_gate'])
-        strain1.set_selected_strain('and_00')
+        strain_value1 = NamedLink('and_00', link='www.synbiohub.org/example/and_strain')
+        strain1 = StrainIntent(strain_value1)
+        strain1.set_strain_lab_name('my_lab')
+        strain1.set_strain_common_name('and_strain')
         measurement_intent.add_strain(strain1)
 
-        strain2 = StrainIntent('www.synbiohub.org/example/or_strain',
-                               'my_lab',
-                               'or_strain',
-                               lab_strain_names=['or_00', 'or_gate'])
-        strain2.set_selected_strain('or_gate')
+        strain_value2 = NamedLink('or_gate', link='www.synbiohub.org/example/or_strain')
+        strain2 = StrainIntent(strain_value2)
+        strain2.set_strain_lab_name('my_lab')
+        strain2.set_strain_common_name('or_strain')
         measurement_intent.add_strain(strain2)
 
         strain_structure_request = [{dc_constants.SBH_URI: 'www.synbiohub.org/example/and_strain',
@@ -204,7 +201,7 @@ class StructureRequestTest(unittest.TestCase):
         self.assertEqual({dc_constants.MEASUREMENT_TYPE: ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE,
                           dc_constants.FILE_TYPE: ['SPREADSHEET'],
                           dc_constants.STRAINS: strain_structure_request},
-                         measurement_intent.to_structure_request())
+                         measurement_intent.to_structured_request())
 
     def test_measurement_with_ods_size_1(self):
         measurement_intent = MeasurementIntent()
@@ -214,7 +211,7 @@ class StructureRequestTest(unittest.TestCase):
         self.assertEqual({dc_constants.MEASUREMENT_TYPE: ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE,
                           dc_constants.FILE_TYPE: ['SPREADSHEET'],
                           dc_constants.ODS: [3.0]},
-                         measurement_intent.to_structure_request())
+                         measurement_intent.to_structured_request())
 
     def test_measurement_with_temperature_size_1(self):
         measurement_intent = MeasurementIntent()
@@ -228,7 +225,7 @@ class StructureRequestTest(unittest.TestCase):
         self.assertEqual({dc_constants.MEASUREMENT_TYPE: ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE,
                           dc_constants.FILE_TYPE: ['SPREADSHEET'],
                           dc_constants.TEMPERATURES: [temperature_structure_request]},
-                         measurement_intent.to_structure_request())
+                         measurement_intent.to_structured_request())
 
 
     def test_measurement_with_timepoint_size_1(self):
@@ -244,7 +241,7 @@ class StructureRequestTest(unittest.TestCase):
         self.assertEqual({dc_constants.MEASUREMENT_TYPE: ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE,
                           dc_constants.FILE_TYPE: ['SPREADSHEET'],
                           dc_constants.TIMEPOINTS: [timepoint_structure_request]},
-                         measurement_intent.to_structure_request())
+                         measurement_intent.to_structured_request())
 
     def test_measurement_with_batches_size_1(self):
         measurement_intent = MeasurementIntent()
@@ -255,7 +252,7 @@ class StructureRequestTest(unittest.TestCase):
         self.assertEqual({dc_constants.MEASUREMENT_TYPE: ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE,
                           dc_constants.FILE_TYPE: ['SPREADSHEET'],
                           dc_constants.BATCH: [5]},
-                         measurement_intent.to_structure_request())
+                         measurement_intent.to_structured_request())
 
     def test_measurement_with_control_type(self):
         measurement_intent = MeasurementIntent()
@@ -270,7 +267,7 @@ class StructureRequestTest(unittest.TestCase):
         self.assertEqual({dc_constants.MEASUREMENT_TYPE: ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE,
                           dc_constants.FILE_TYPE: ['SPREADSHEET'],
                           dc_constants.CONTROLS: [control_structure_request]},
-                         measurement_intent.to_structure_request())
+                         measurement_intent.to_structured_request())
 
     def test_measurement_with_neg_control_content_size_1(self):
         measurement_intent = MeasurementIntent()
@@ -288,22 +285,21 @@ class StructureRequestTest(unittest.TestCase):
         self.assertDictEqual({dc_constants.CONTENTS: [content_structure_request],
                               dc_constants.FILE_TYPE: ['SPREADSHEET'],
                               dc_constants.MEASUREMENT_TYPE: ip_constants.MEASUREMENT_TYPE_CONDITION_SPACE},
-                             measurement_intent.to_structure_request())
+                             measurement_intent.to_structured_request())
 
     def test_control_with_control_type(self):
         control_intent = ControlIntent()
         control_intent.set_control_type('EMPTY_VECTOR')
         self.assertEqual({dc_constants.TYPE: 'EMPTY_VECTOR'},
-                         control_intent.to_structure_request())
+                         control_intent.to_structured_request())
 
     def test_control_with_strains_size_1(self):
         control_intent = ControlIntent()
         control_intent.set_control_type('EMPTY_VECTOR')
-        strain = StrainIntent('www.synbiohub.org/example/strain',
-                              'my_lab',
-                              'my_strain',
-                              lab_strain_names=['and_00', 'and_gate'])
-        strain.set_selected_strain('and_00')
+        strain_name = NamedLink('and_00', link='www.synbiohub.org/example/strain')
+        strain = StrainIntent(strain_name)
+        strain.set_strain_lab_name('my_lab')
+        strain.set_strain_common_name('my_strain')
         control_intent.add_strain(strain)
 
         strain_structure_request = {dc_constants.SBH_URI: 'www.synbiohub.org/example/strain',
@@ -311,7 +307,7 @@ class StructureRequestTest(unittest.TestCase):
                                     dc_constants.LAB_ID: 'name.my_lab.and_00'}
         self.assertEqual({dc_constants.TYPE: 'EMPTY_VECTOR',
                           dc_constants.STRAINS: [strain_structure_request]},
-                         control_intent.to_structure_request())
+                         control_intent.to_structured_request())
 
     def test_control_with_channel_size_1(self):
         control_intent = ControlIntent()
@@ -320,7 +316,7 @@ class StructureRequestTest(unittest.TestCase):
 
         self.assertEqual({dc_constants.TYPE: 'EMPTY_VECTOR',
                           dc_constants.CHANNEL: 'BL1-A'},
-                         control_intent.to_structure_request())
+                         control_intent.to_structured_request())
 
     def test_control_with_content_size_1(self):
         control_intent = ControlIntent()
@@ -336,7 +332,7 @@ class StructureRequestTest(unittest.TestCase):
                                      dc_constants.UNIT: 'micromole'}]
         self.assertEqual({dc_constants.TYPE: 'EMPTY_VECTOR',
                           dc_constants.CONTENTS: [content_structure_request]},
-                         control_intent.to_structure_request())
+                         control_intent.to_structured_request())
 
     def test_control_with_timepoint_size_1(self):
         control_intent = ControlIntent()
@@ -350,7 +346,7 @@ class StructureRequestTest(unittest.TestCase):
 
         self.assertEqual({dc_constants.TYPE: 'EMPTY_VECTOR',
                           dc_constants.TIMEPOINTS: [timepoint_structure_request]},
-                         control_intent.to_structure_request())
+                         control_intent.to_structured_request())
 
 if __name__ == '__main__':
     unittest.main()

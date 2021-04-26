@@ -2,11 +2,11 @@ from flask import Flask, make_response, request, redirect
 from flask_restful import Api, Resource
 from flasgger import Swagger
 from http import HTTPStatus
-from intent_parser.accessor.strateos_accessor import StrateosAccessor
 from intent_parser.accessor.sbol_dictionary_accessor import SBOLDictionaryAccessor
 from intent_parser.intent_parser_exceptions import IntentParserException, RequestErrorException
 from intent_parser.intent_parser_factory import IntentParserFactory
 from intent_parser.accessor.intent_parser_sbh import IntentParserSBH
+from intent_parser.protocols.labs.strateos_accessor import StrateosAccessor
 from intent_parser.server.intent_parser_processor import IntentParserProcessor
 import intent_parser.constants.intent_parser_constants as intent_parser_constants
 import logging.config
@@ -94,6 +94,28 @@ class GetDocumentReport(Resource):
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
+class GetExperimentalProtocols(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def get(self):
+        """
+        Get a list of experimental protocols for supporting labs.
+        ---
+        responses:
+            200:
+                description: a dictionary containing name of labs and their supporting experimental protocols.
+        """
+        try:
+            report = self._ip_processor.process_get_experimental_protocol_names()
+            return report, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_warnings()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
 class GetExperimentRequestDocuments(Resource):
     def __init__(self, ip_processor):
@@ -204,7 +226,7 @@ class GetOpilRequest(Resource):
         try:
             opil_output = self._ip_processor.process_opil_get_request(doc_id)
             response = make_response(opil_output)
-            response.headers['Content-Type'] = 'application/xml'
+            response.headers['Content-Type'] = 'application/json'
             return response
         except RequestErrorException as err:
             status_code = err.get_http_status()
@@ -472,6 +494,32 @@ class PostExperimentExecutionStatus(Resource):
         experiment_data = self._ip_processor.process_experiment_execution_status(request.get_json())
         return experiment_data, HTTPStatus.OK
 
+class PostExperimentalProtocol(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        """
+        Generate table templates for given an experimental protocol
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    documentId:
+                        type: string
+                    labName:
+                        type: string
+                    experimentalProtocolName:
+                        type: string
+        responses:
+            200:
+                description: TBD.
+        """
+        experiment_protocol_data = self._ip_processor.process_experimental_protocol_request(request.get_json())
+        return experiment_protocol_data, HTTPStatus.OK
+
 class PostExperimentStatus(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
@@ -637,6 +685,39 @@ class PostRunExperiment(Resource):
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
+
+class PostRunOpilExperiment(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def post(self):
+        """
+        Executes a given experiment with opil data.
+        ---
+        parameters:
+            - in: body
+              name: body
+              schema:
+                properties:
+                    doc_id:
+                        type: string
+        responses:
+            200:
+                description: Result returned as actions performed on a given document.
+        """
+        # previously called executeExperiment
+        try:
+            experiment_data = self._ip_processor.process_run_opil_experiment_post(request.get_json())
+            return experiment_data, HTTPStatus.OK
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_warnings()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
+
+
 class PostSearchSynBioHub(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
@@ -797,6 +878,9 @@ class IntentParserServer(object):
         api.add_resource(GetGenerateStructuredRequest,
                          '/generateStructuredRequest/d/<string:doc_id>',
                          resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(GetExperimentalProtocols,
+                         '/experimentalProtocols',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(GetExperimentRequestDocuments,
                          '/experiment_request_documents',
                          resource_class_kwargs={'ip_processor': self.ip_processor})
@@ -834,6 +918,9 @@ class IntentParserServer(object):
         api.add_resource(PostExperimentExecutionStatus,
                          '/experimentExecutionStatus',
                          resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostExperimentalProtocol,
+                         '/experimentalProtocol',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(PostExperimentStatus,
                          '/experiment_status',
                          resource_class_kwargs={'ip_processor': self.ip_processor})
@@ -848,6 +935,9 @@ class IntentParserServer(object):
                          resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(PostRunExperiment,
                          '/run_experiment',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(PostRunOpilExperiment,
+                         '/run_opil_experiment',
                          resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(PostSearchSynBioHub,
                          '/searchSynBioHub',
