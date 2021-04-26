@@ -89,7 +89,7 @@ def create_experimental_protocol_dialog(cursor_index, lab_names, aquarium_protoc
     builder.set_aquarium_html(generate_html_options(aquarium_protocols))
     builder.set_strateos_html(generate_html_options(strateos_protocols))
     html = builder.build()
-    dialog_action = modal_dialog(html, 'Experimental Protocols', 300, 150)
+    dialog_action = modal_dialog(html, 'Import Lab Protocol', 300, 100)
     return dialog_action
 
 def create_measurement_table_dialog(cursor_child_index):
