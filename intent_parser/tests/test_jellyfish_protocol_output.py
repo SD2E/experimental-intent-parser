@@ -7,7 +7,7 @@ from intent_parser.table.measurement_table import MeasurementTable
 import intent_parser.constants.intent_parser_constants as ip_constants
 import unittest
 
-
+@unittest.skip("reparenting with existing id")
 class JellyFishProtocolOutputTest(unittest.TestCase):
 
     def setUp(self):
