@@ -4,7 +4,7 @@ setuptools.setup(
     name='intent-parser', 
     version='3.3',
     packages=setuptools.find_packages(),
-    python_requires='>=3.6',
+    python_requires='>=3.8',
     include_package_data=True,    # include everything in source control
     entry_points={
         'console_scripts': [
