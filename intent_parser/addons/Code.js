@@ -22,10 +22,13 @@ function onOpen() {
 	helpMenu.addSubMenu(tableHelpMenu);
 	helpMenu.addItem('About', 'showHelp');
 
+	const analyzeMenu = ui.createMenu('Analyze');
+	analyzeMenu.addItem('from cursor', 'sendAnalyzeFromCursor');
+	analyzeMenu.addItem('from top', 'sendAnalyzeFromTop');
+
 	const menu = ui.createMenu('Parse Intent');
 	menu.addItem('Add to SynBioHub', 'addToSynBioHub');
-	menu.addItem('Analyze from cursor', 'sendAnalyzeFromCursor');
-	menu.addItem('Analyze from top', 'sendAnalyzeFromTop');
+	menu.addSubMenu(analyzeMenu);
 	menu.addItem('Calculate samples for measurements table', 'calculateSamples');
     menu.addItem('Import Experimental Protocol template', 'experimentalProtocol');
     menu.addItem('Generate OPIL', 'sendOpilRequest');
