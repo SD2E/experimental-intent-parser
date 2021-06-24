@@ -15,32 +15,39 @@ function onOpen() {
 	tableHelpMenu.addItem('Parameters', 'reportParametersInfo');
 
 	const runExperimentMenu = ui.createMenu('Run Experiment');
+  runExperimentMenu.addItem('with OPIL', 'executeOpilExperiment');
 	runExperimentMenu.addItem('with Structured Request', 'executeExperiment');
-	runExperimentMenu.addItem('with OPIL', 'executeOpilExperiment');
 
 	const helpMenu = ui.createMenu('Help');
 	helpMenu.addSubMenu(tableHelpMenu);
 	helpMenu.addItem('About', 'showHelp');
 
-	const analyzeMenu = ui.createMenu('Analyze');
+	const analyzeMenu = ui.createMenu('Analyze and link keywords');
 	analyzeMenu.addItem('from cursor', 'sendAnalyzeFromCursor');
 	analyzeMenu.addItem('from top', 'sendAnalyzeFromTop');
 
+  const generateMenu = ui.createMenu('Generate');
+  generateMenu.addItem('OPIL', 'sendOpilRequest');
+  generateMenu.addItem('Report', 'sendGenerateReport');
+	generateMenu.addItem('Structured Request', 'sendGenerateStructuredRequest');
+
+  const addBySpellingMenu = ui.createMenu('Suggest adding terms to SynBioHub');
+	addBySpellingMenu.addItem('from cursor', 'addBySpellingFromCursor');
+	addBySpellingMenu.addItem('from top', 'addBySpelling');
+
 	const menu = ui.createMenu('Parse Intent');
-	menu.addItem('Add to SynBioHub', 'addToSynBioHub');
+	menu.addItem('Add selection to SynBioHub', 'addToSynBioHub');
 	menu.addSubMenu(analyzeMenu);
 	menu.addItem('Calculate samples for measurements table', 'calculateSamples');
-    menu.addItem('Import Experimental Protocol template', 'experimentalProtocol');
-    menu.addItem('Generate OPIL', 'sendOpilRequest');
-	menu.addItem('Generate Report', 'sendGenerateReport');
-	menu.addItem('Generate Structured Request', 'sendGenerateStructuredRequest');
+  menu.addSubMenu(tablesMenu);
+  menu.addItem('Import Experimental Protocol template', 'experimentalProtocol');
+  menu.addSubMenu(generateMenu);
 	menu.addItem('Report Experiment Status', 'reportExperimentStatus');
 	menu.addSubMenu(runExperimentMenu);
-	menu.addItem('Suggest Additions by Spelling from cursor', 'addBySpellingFromCursor');
-	menu.addItem('Suggest Additions by Spelling from top', 'addBySpelling');
+  menu.addSubMenu(addBySpellingMenu);
 	menu.addItem('Update experimental results', 'updateExperimentalResults');
 	menu.addItem('Validate Structured Request', 'sendValidateStructuredRequest');
-	menu.addSubMenu(tablesMenu);
+
 	menu.addItem('File Issues', 'reportIssues');
 	menu.addSubMenu(helpMenu);
 	menu.addToUi();
