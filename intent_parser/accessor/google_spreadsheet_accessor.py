@@ -9,7 +9,7 @@ class GoogleSpreadsheetAccessor:
     _REQUESTS_PER_SEC = 0.5
 
     def __init__(self, credentials):
-        self._sheet_service = build('sheets', 'v4', credentials=credentials)
+        self._sheet_service = build('sheets', 'v4', credentials=credentials, cache_discovery=False)
 
     def create_new_spreadsheet(self, name):
         """Creates a new spreadsheet.

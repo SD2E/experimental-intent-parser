@@ -11,7 +11,7 @@ class GoogleDriveV3Accessor(object):
     logger = logging.getLogger('intent_parser_google_drive_accessor')
 
     def __init__(self, credentials):
-        self._service = build('drive', 'v3', credentials=credentials)
+        self._service = build('drive', 'v3', credentials=credentials, cache_discovery=False)
         self._authed_session = AuthorizedSession(credentials)
 
     def insert_comment_with_anchor(self, file_id, comment_text, quoted_tex, anchor_data):
