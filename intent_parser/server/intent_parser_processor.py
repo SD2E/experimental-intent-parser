@@ -194,6 +194,23 @@ class IntentParserProcessor(object):
             table_len.append(row_length)
             return table_len
 
+    def process_control_information(self, document_id):
+        return '''
+        <h2> Controls Table </h2>
+        <p><b>Description</b>: control definition based on time, strain, contents, etc.</p>
+        <b>Required fields:</b>
+        <ul>
+        <li><a href="https://schema.catalog.sd2e.org/schemas/control_type.json"> <b>Type</b></a>: an expected type for this control. <i>Example:</i> HIGH_FITC</li>
+        <li><b>Strains</b>: a list of one or more text values representing a strain listed in the SBOL Dictionary lab name. <i>Example:</i> B_subtilis_comKS_mCherry_1x</li>
+        </ul>
+        <b>Optional fields:</b>
+        <ul>
+        <li><b>Channel</b>: a text value representing FCS channel. <i>Example:</i> BL1-A</li>
+        <li><b>Contents</b>: a list of one or more text values representing the content of a control. A content can come in the form of a name or a name followed by a value, followed by a timepoint unit. <i>Example:</i> beta_estradiol or beta_estradiol 0.05 micromole</li>
+        <li><b><a href="https://schema.catalog.sd2e.org/schemas/time_unit.json">Timepoints</a></b>: a list of one or more text values representing point in a time series. <i>Example:</i> 2, 4 hours</li>
+        </ul>
+        '''
+
     def process_document_report(self, document_id):
         """
         Handles a request to generate a report

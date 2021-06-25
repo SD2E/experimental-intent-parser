@@ -86,24 +86,14 @@ function reportParametersInfo() {
     };
 
     var response = UrlFetchApp.fetch(serverURL + '/tableInformation', options);
-    param_info = response.getContentText();
+    var param_info = response.getContentText();
     showSidebar(param_info, "Parameters Table Information");
 }
 
 function reportControlsInfo() {
-    html_content = '<h2> Controls Table </h2>\n' +
-        '<p><b>Description</b>: control definition based on time, strain, contents, etc.</p>\n' +
-        '<b>Required fields:</b>\n' +
-        '<ul>\n' +
-        '\t<li><a href="https://schema.catalog.sd2e.org/schemas/control_type.json"> <b>Type</b></a>: an expected type for this control. <i>Example:</i> HIGH_FITC</li>\n' +
-        '\t<li><b>Strains</b>: a list of one or more text values representing a strain listed in the SBOL Dictionary lab name. <i>Example:</i> B_subtilis_comKS_mCherry_1x</li>\n' +
-        '</ul>\n' +
-        '<b>Optional fields:</b>\n' +
-        '<ul>\n' +
-        '\t<li><b>Channel</b>: a text value representing FCS channel. <i>Example:</i> BL1-A</li>\n' +
-        '\t<li><b>Contents</b>: a list of one or more text values representing the content of a control. A content can come in the form of a name or a name followed by a value, followed by a timepoint unit. <i>Example:</i> beta_estradiol or beta_estradiol 0.05 micromole</li>\n' +
-        '\t<li><b><a href="https://schema.catalog.sd2e.org/schemas/time_unit.json">Timepoints</a></b>: a list of one or more text values representing point in a time series. <i>Example:</i> 2, 4 hours</li>\n' +
-        '</ul>';
+    const docId = DocumentApp.getActiveDocument().getId();
+    let response = UrlFetchApp.fetch(serverURL + '/control_information/d/' + docId);
+    let html_content = response.getContentText();
     showSidebar(html_content, "Controls Table Information");
 }
 

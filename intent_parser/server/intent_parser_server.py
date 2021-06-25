@@ -65,6 +65,37 @@ class GetStatus(Resource):
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
+class GetControlInfo(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def get(self, doc_id):
+        """
+        Get information about Controls
+        ---
+        parameters:
+            - in: path
+              name: doc_id
+              type: string
+              required: true
+              description: ID of document
+        responses:
+            200:
+                description: Information about controls.
+        """
+        try:
+            control_info = self._ip_processor.process_control_information(doc_id)
+            response = make_response(control_info)
+            response.headers['Content-Type'] = 'text/html'
+            return response
+        except RequestErrorException as err:
+            status_code = err.get_http_status()
+            res = {"errors": err.get_errors(),
+                   "warnings": err.get_warnings()}
+            return res, status_code
+        except IntentParserException as err:
+            return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
+
 class GetDocumentReport(Resource):
     def __init__(self, ip_processor):
         self._ip_processor = ip_processor
@@ -895,6 +926,9 @@ class IntentParserServer(object):
                          resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(GetUpdateExperimentStatus,
                          '/update_experiment_status/d/<string:doc_id>',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(GetControlInfo,
+                         '/control_information/d/<string:doc_id>',
                          resource_class_kwargs={'ip_processor': self.ip_processor})
 
         api.add_resource(PostAddBySpelling,
