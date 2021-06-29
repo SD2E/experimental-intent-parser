@@ -233,8 +233,87 @@ class GetGenerateStructuredRequest(Resource):
         except IntentParserException as err:
             return err.get_message(), HTTPStatus.INTERNAL_SERVER_ERROR
 
+class GetIntentParserInfo(Resource):
+    def __init__(self):
+        pass
 
+    def get(self):
+        """
+        Get information about Intent Parser.
+        ---
+        responses:
+            200:
+                description: Information about Intent Parser.
+        """
+        info = '''
+            <p>Intent Parser version %s</p>
+            
+            <p>
+            Intent Parser is a tool for collaborative generation of unambiguous automation-friendly experiment designs, 
+            ready for execution in the laboratory. Intent Parser combines a word-processing interface with structured 
+            tables and assisted linking to definitions to provide a simple interface for incremental formal codification 
+            of experiment designs. This tool can help synthetic biology collaborations by reducing the time and skills 
+            required to produce precise experiment designs, enabling automatic checking for errors and ambiguities, 
+            supporting automated execution of experiments, and simplifying the interpretation of experimental data.
+            </p>
+            
+            <p>Visit our website at <a href="https://sd2e.github.io/experimental-intent-parser/" target=_blank>
+            https://sd2e.github.io/experimental-intent-parser/</a> to learn more about the tool and its 
+            features.</p>
+            
+            <p>To file a bug or provide feedback, visit our 
+            <a href="https://github.com/SD2E/experimental-intent-parser" target=_blank>GitHub repository</a>. 
+            and submit an issue.</p>
+        ''' % intent_parser_constants.RELEASE_VERSION
+        response = make_response(info)
+        response.headers['Content-Type'] = 'text/html'
+        return response
 
+class GetLabInfo(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def get(self, doc_id):
+        """
+        Get information about lab.
+        ---
+        parameters:
+            - in: path
+              name: doc_id
+              type: string
+              required: true
+              description: ID of document
+        responses:
+            200:
+                description: Information about lab.
+        """
+        control_info = self._ip_processor.process_lab_information(doc_id)
+        response = make_response(control_info)
+        response.headers['Content-Type'] = 'text/html'
+        return response
+
+class GetMeasurementInfo(Resource):
+    def __init__(self, ip_processor):
+        self._ip_processor = ip_processor
+
+    def get(self, doc_id):
+        """
+        Get information about measurements.
+        ---
+        parameters:
+            - in: path
+              name: doc_id
+              type: string
+              required: true
+              description: ID of document
+        responses:
+            200:
+                description: Information about measurements.
+        """
+        control_info = self._ip_processor.process_measurement_information(doc_id)
+        response = make_response(control_info)
+        response.headers['Content-Type'] = 'text/html'
+        return response
 
 class GetOpilRequest(Resource):
     def __init__(self, ip_processor):
@@ -903,6 +982,8 @@ class IntentParserServer(object):
         api.add_resource(GetStatus,
                          '/status',
                          resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(GetIntentParserInfo,
+                         '/about')
         api.add_resource(GetDocumentReport,
                          '/document_report/d/<string:doc_id>',
                          resource_class_kwargs={'ip_processor': self.ip_processor})
@@ -917,6 +998,12 @@ class IntentParserServer(object):
                          resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(GetExperimentStatus,
                          '/experiment_status/d/<string:doc_id>',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(GetLabInfo,
+                         '/lab_information/d/<string:doc_id>',
+                         resource_class_kwargs={'ip_processor': self.ip_processor})
+        api.add_resource(GetMeasurementInfo,
+                         '/measurement_information/d/<string:doc_id>',
                          resource_class_kwargs={'ip_processor': self.ip_processor})
         api.add_resource(GetOpilRequest,
                          '/generateOpilRequest/d/<string:doc_id>',

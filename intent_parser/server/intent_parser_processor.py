@@ -274,6 +274,48 @@ class IntentParserProcessor(object):
         actions = {'actions': action_list}
         return actions
 
+    def process_lab_information(self, document_id):
+        return '''
+        <h2> Lab Table </h2>
+        <p><b>Description</b>: information linked to a lab.</p>
+        <b>Required fields:</b>
+        <ul>
+        <li><a href="https://schema.catalog.sd2e.org/schemas/lab.json"> <b>Lab</b></a>: a text value representing the lab that performed this experiment. <i>Example:</i> TACC</li>
+        </ul>
+        <b>Optionalfields:</b>
+        <ul>
+        <li><b>Experiment_id</b>: a text identifier, namespaced performer, for the experiment <i>Example:</i> 123</li>
+        </ul>
+        '''
+
+    def process_measurement_information(self, document_id):
+        return '''
+        <h2> Measurements Table </h2>
+        <p><b>Description</b>: measurements expected to be produced for a run, broken down by measurement type and sample conditions</p>
+        <b>Required fields:</b>
+        <ul>
+        <li><a href="https://schema.catalog.sd2e.org/schemas/measurement_type.json"> <b>Measurement Type</b></a>: an expected file type for this measurement. <i>Example:</i> RNA_SEQ</li>
+        <li><a href="https://schema.catalog.sd2e.org/schemas/filetype_label.json"> <b>File Type</b></a>: a list of one or more expected file type for this measurement. <i>Example:</i> MSWORD, SPREADSHEET</li>
+        </ul>
+        <b>Optional fields:</b>
+        <ul>
+        <li><b>Batch</b>: a list of one or more numerical values representing the batches a measurement belongs to. <i>Example:</i> 1, 2, 3</li>
+        <li><b>Controls</b>: a list of Control Table captions for representing expected control elements for this run <i>Example:</i> Table 1, Table 2</li>
+        <li><b>Ods</b>: a list of one or more numerical values representing expected optical densities for this measurement. <i>Example:</i> 5</li>
+        <li><b>Replicates</b>: a list of one or more numerical values representing expected number of replicates. <i>Example:</i> 6</li>
+        <li><b>Strains</b>: a list of one or more string values representing expected strains for this measurement. Strains listed in this field must have a hyperlink that references to a SBH URI. <i>Example:</i> UWBF_6390</li>
+        <li><a href="https://schema.catalog.sd2e.org/schemas/temperature.json"><b>Temperatures</b></a>: a list of one or more numerical values followed by a temperature unit representing expected temperatures for this measurement. <i>Example</i>: 30 celsius</li>
+        <li><a href="https://schema.catalog.sd2e.org/schemas/time_unit.json"><b>Timepoints</b></a>: a list of one or more numerical values followed by a timepoint unit representing expected timepoints for this run. <i>Example:</i> 0, 4, 8, 12, 16 hour</li>
+        <li><b>Column_id</b>: a list of one or more numerical values to signify which column of which run received which inducer concentration. <i>Example:</i> 2</li>
+        <li><b>Row_id</b>: a list of one or more numerical values signify which row of which run received which inducer concentration. <i>Example:</i> 1</li>
+        <li><b>lab_id</b>: a list of one or more text values to specify lab ids. <i>Example:</i> abc</li>
+        <li><b>Number of Negative Controls</b>: a list of integers. <i>Example:</i> 1, 2, 3</li>
+        <li><b>Use RNAse Inhibitor in Reaction</b>: a list of boolean values. <i>Example:</i> True, False</li>
+        <li><b>DNA Reaction Concentration</b>: a list of integers. <i>Example:</i> 1, 2, 3</li>
+        <li><b>Template DNA</b>: a list of string. <i>Example:</i> a, b, c</li>
+        </ul>
+        '''
+
     def process_run_experiment_get(self, document_id):
         intent_parser = self.intent_parser_factory.create_intent_parser(document_id)
         intent_parser.process_experiment_run_request()

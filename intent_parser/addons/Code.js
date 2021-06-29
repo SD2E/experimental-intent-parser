@@ -2,40 +2,40 @@ var serverURL = 'http://intentparser.sd2e.org';
 var versionString = '3.3';
 
 function onOpen() {
-    const ui = DocumentApp.getUi();
-    const tablesMenu = ui.createMenu('Create table templates');
+    let ui = DocumentApp.getUi();
+    let tablesMenu = ui.createMenu('Create table templates');
     tablesMenu.addItem('Controls', 'createControlsTable');
     tablesMenu.addItem('Measurements', 'createTableMeasurements');
     tablesMenu.addItem('Parameters', 'createParameterTable');
 
-    const tableHelpMenu = ui.createMenu('Tables');
+    let tableHelpMenu = ui.createMenu('Tables');
     tableHelpMenu.addItem('Controls', 'reportControlsInfo');
     tableHelpMenu.addItem('Lab', 'reportLabInfo');
     tableHelpMenu.addItem('Measurements', 'reportMeasurementsInfo');
     tableHelpMenu.addItem('Parameters', 'reportParametersInfo');
 
-    const runExperimentMenu = ui.createMenu('Run Experiment');
+    let runExperimentMenu = ui.createMenu('Run Experiment');
     runExperimentMenu.addItem('with OPIL', 'executeOpilExperiment');
     runExperimentMenu.addItem('with Structured Request', 'executeExperiment');
 
-    const helpMenu = ui.createMenu('Help');
+    let helpMenu = ui.createMenu('Help');
     helpMenu.addSubMenu(tableHelpMenu);
     helpMenu.addItem('About', 'showHelp');
 
-    const analyzeMenu = ui.createMenu('Analyze and link keywords');
+    let analyzeMenu = ui.createMenu('Analyze and link keywords');
     analyzeMenu.addItem('from cursor', 'sendAnalyzeFromCursor');
     analyzeMenu.addItem('from top', 'sendAnalyzeFromTop');
 
-    const generateMenu = ui.createMenu('Generate');
+    let generateMenu = ui.createMenu('Generate');
     generateMenu.addItem('OPIL', 'sendOpilRequest');
     generateMenu.addItem('Report', 'sendGenerateReport');
     generateMenu.addItem('Structured Request', 'sendGenerateStructuredRequest');
 
-    const addBySpellingMenu = ui.createMenu('Suggest adding terms to SynBioHub');
+    let addBySpellingMenu = ui.createMenu('Suggest adding terms to SynBioHub');
     addBySpellingMenu.addItem('from cursor', 'addBySpellingFromCursor');
     addBySpellingMenu.addItem('from top', 'addBySpelling');
 
-    const menu = ui.createMenu('Parse Intent');
+    let menu = ui.createMenu('Parse Intent');
     menu.addItem('Add selection to SynBioHub', 'addToSynBioHub');
     menu.addSubMenu(analyzeMenu);
     menu.addItem('Calculate samples for measurements table', 'calculateSamples');
@@ -98,81 +98,23 @@ function reportControlsInfo() {
 }
 
 function reportLabInfo() {
-    html_content = '<h2> Lab Table </h2>\n' +
-        '<p><b>Description</b>: information linked to a lab.</p>\n' +
-        '<b>Required fields:</b>\n' +
-        '<ul>\n' +
-        '\t<li><a href="https://schema.catalog.sd2e.org/schemas/lab.json"> <b>Lab</b></a>: a text value representing the lab that performed this experiment. <i>Example:</i> TACC</li>\n' +
-        '</ul>\n' +
-        '<b>Optionalfields:</b>\n' +
-        '<ul>\n' +
-        '\t<li><b>Experiment_id</b>: a text identifier, namespaced performer, for the experiment <i>Example:</i> 123</li>\n' +
-        '</ul>'
+    const docId = DocumentApp.getActiveDocument().getId();
+    let response = UrlFetchApp.fetch(serverURL + '/lab_information/d/' + docId);
+    let html_content = response.getContentText();
     showSidebar(html_content, "Lab Table Information");
 }
 
 function reportMeasurementsInfo() {
-    html_content = '<h2> Measurements Table </h2>\n' +
-        '<p><b>Description</b>: measurements expected to be produced for a run, broken down by measurement type and sample conditions</p>\n' +
-        '<b>Required fields:</b>\n' +
-        '<ul>\n' +
-        '\t<li><a href="https://schema.catalog.sd2e.org/schemas/measurement_type.json"> <b>Measurement Type</b></a>: an expected file type for this measurement. <i>Example:</i> RNA_SEQ</li>\n' +
-        '\t<li><a href="https://schema.catalog.sd2e.org/schemas/filetype_label.json"> <b>File Type</b></a>: a list of one or more expected file type for this measurement. <i>Example:</i> MSWORD, SPREADSHEET</li>\n' +
-        '</ul>\n' +
-        '<b>Optional fields:</b>\n' +
-        '<ul>\n' +
-        '\t<li><b>Batch</b>: a list of one or more numerical values representing the batches a measurement belongs to. <i>Example:</i> 1, 2, 3</li>\n' +
-        '\t<li><b>Controls</b>: a list of Control Table captions for representing expected control elements for this run <i>Example:</i> Table 1, Table 2</li>\n' +
-        '\t<li><b>Ods</b>: a list of one or more numerical values representing expected optical densities for this measurement. <i>Example:</i> 5</li>\n' +
-        '\t<li><b>Replicates</b>: a list of one or more numerical values representing expected number of replicates. <i>Example:</i> 6</li>\n' +
-        '\t<li><b>Strains</b>: a list of one or more string values representing expected strains for this measurement. Strains listed in this field must have a hyperlink that references to a SBH URI. <i>Example:</i> UWBF_6390</li>\n' +
-        '\t<li><a href="https://schema.catalog.sd2e.org/schemas/temperature.json"><b>Temperatures</b></a>: a list of one or more numerical values followed by a temperature unit representing expected temperatures for this measurement. <i>Example</i>: 30 celsius</li>\n' +
-        '\t<li><a href="https://schema.catalog.sd2e.org/schemas/time_unit.json"><b>Timepoints</b></a>: a list of one or more numerical values followed by a timepoint unit representing expected timepoints for this run. <i>Example:</i> 0, 4, 8, 12, 16 hour</li>\n' +
-        '\t<li><b>Column_id</b>: a list of one or more numerical values to signify which column of which run received which inducer concentration. <i>Example:</i> 2</li>\n' +
-        '\t<li><b>Row_id</b>: a list of one or more numerical values signify which row of which run received which inducer concentration. <i>Example:</i> 1</li>\n' +
-        '\t<li><b>lab_id</b>: a list of one or more text values to specify lab ids. <i>Example:</i> abc</li>\n' +
-        '\t<li><b>Number of Negative Controls</b>: a list of integers. <i>Example:</i> 1, 2, 3</li>\n' +
-        '\t<li><b>Use RNAse Inhibitor in Reaction</b>: a list of boolean values. <i>Example:</i> True, False</li>\n' +
-        '\t<li><b>DNA Reaction Concentration</b>: a list of integers. <i>Example:</i> 1, 2, 3</li>\n' +
-        '\t<li><b>Template DNA</b>: a list of string. <i>Example:</i> a, b, c</li>\n' +
-        '</ul>';
-    showSidebar(html_content, 'Measurement Table Information');
+    const docId = DocumentApp.getActiveDocument().getId();
+    let response = UrlFetchApp.fetch(serverURL + '/measurement_information/d/' + docId);
+    let html_content = response.getContentText();
+    showSidebar(html_content, "Measurement Table Information");
 }
 
 function showHelp() {
-    var helpHTML = '\
-		<p>\
-		Intent Parser version %s\
-		</p>\
-		<p>\
-		The purpose of the intent parser add-on is to create a suite of tools that aids the user in creating well documented experimental plans.\
-		</p>\
-		<p>\
-		Several different actions help users link terms to SynbioHub, to create a better trail of documentation.  \
-		The first action is <b><i>analyzing</i></b> the document, which searches for terms present in the SD2 spreadsheet dictionary and offers to insert links to the SynbioHub definition of those terms.  \
-		Additionally, the document can be scanned for terms that do not exist in the <b><i>spelling</i></b> dictionary and suggest them as terms to possibly additions into the SD2 spreadsheet dictionary or to have a link manually added.  \
-		Users can also highlight arbitrary terms and <b><i>add</i></b> a definition to SynbioHub for that term.  \
-		This <b><i>add</i></b> dialog will also query SynbioHub for matches to the selected term and links to those terms can be added.\
-		</p>\
-		<p>\
-		Intent parser can also help create structured requests from the experimental request document.  \
-		This works by creating a table for the measurements which can be parsed.  \
-		The first step in this is creating a measurements table template, using the <b><i>create table templates</i></b> file menu option.  \
-		The measurements table template dialog will ask a few questions about the table, and then insert the table template into the document.  \
-		Users will need to enter the reagent names in the blank columns and fill in the rest of the table.  \
-		Each table cell can accept a comma separated list of values and units should be specified where appropriate.  \
-		If only one value in the comma-separated list has a unit, that unit will be used for all entries in the list.  \
-		For instance, the entry "0, 4, 8, 12 hour" will use the unit of hour for each entry.  \
-		Once the measurements table is complete, a structured request can be generated with the <b><i>Generate Structured Request</i></b> file menu option, which will create a json file that can be saved for later use.  \
-		Additionally, the <b><i>Validate Structured Request</i></b> option can be used to generate and validate a structured request.  \
-		If the request fails validation, an error message will be printed which indicates that the request failed validation, and why.  \
-		</p>\
-		<p>\
-		Problems? <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>File and issue</a>\
-		</p>\
-		';
-    verFormattedHTML = Utilities.formatString(helpHTML, versionString);
-    showModalDialog(verFormattedHTML, 'Help', 600, 600);
+    let response = UrlFetchApp.fetch(serverURL + '/about');
+    let html_content = response.getContentText();
+    showModalDialog(html_content, 'Help', 450, 350);
 }
 
 function validate_uri(uri) {
@@ -396,11 +338,8 @@ function processActions(response) {
 }
 
 function showSidebar(html, sidebarTitle) {
-    var user = Session.getActiveUser();
-    var userEmail = user.getEmail();
-
-    var ui = DocumentApp.getUi();
-    var htmlOutput = HtmlService.createHtmlOutput(html).setTitle(sidebarTitle);
+    let ui = DocumentApp.getUi();
+    const htmlOutput = HtmlService.createHtmlOutput(html).setTitle(sidebarTitle);
     ui.showSidebar(htmlOutput);
 }
 
@@ -682,12 +621,12 @@ function sendGenerateReport() {
 }
 
 function reportIssues() {
-    helpHTML = '\
+    const helpHTML = '\
 		<p>Something unexpected happen with the intent-parser plugin?</p> \
 		<p>Want to request a feature support?</p> \
 		<p>Send a bug report <a href="https://gitlab.sd2e.org/sd2program/experimental-intent-parser/issues"  target=_blank>here</a>.</p> \
 		';
-    verFormattedHTML = Utilities.formatString(helpHTML, versionString);
+    let verFormattedHTML = Utilities.formatString(helpHTML, versionString);
     showModalDialog(verFormattedHTML, 'Issues', 400, 200);
 }
 
