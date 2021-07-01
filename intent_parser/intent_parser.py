@@ -421,6 +421,9 @@ class IntentParser(object):
                 experiment_ref = {dc_constants.EXPERIMENT_REFERENCE_URL: self._get_experiment_reference_url()}
                 map_experiment_reference(self.datacatalog_config, experiment_ref)
                 return experiment_ref[dc_constants.CHALLENGE_PROBLEM]
+            else:
+                self.logger.error('Unable to connect to data catalog.')
+                return dc_constants.UNDEFINED
         except Exception as err:
             message = 'Failed to map challenge problem for doc id %s! Check that this document is in the ' \
                       'Challenge Problem folder under DARPA SD2E Shared > CP Working Groups > ExperimentalRequests'\
