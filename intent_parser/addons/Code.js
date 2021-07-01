@@ -177,6 +177,9 @@ function processActions(response) {
                 const p = PropertiesService.getDocumentProperties();
                 p.setProperty("analyze_progress", actionDesc['progress']);
                 break;
+            case 'showSidebar':
+			    showSidebar(actionDesc['html'], actionDesc['sidebarTitle']);
+			    break;
             case 'showModalDialog':
                 showModalDialog(actionDesc['html'], actionDesc['title'],
                     actionDesc['width'], actionDesc['height']);
@@ -334,10 +337,11 @@ function sendPost(resource, data) {
     };
 
     let shouldProcessActions = true;
+    let responseOb = null;
     while (shouldProcessActions) {
         const response = UrlFetchApp.fetch(serverURL + resource, options);
         const responseText = response.getContentText();
-        const responseOb = JSON.parse(responseText);
+        responseOb = JSON.parse(responseText);
 
         shouldProcessActions = processActions(responseOb);
     }

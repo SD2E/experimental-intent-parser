@@ -85,6 +85,8 @@ class AnalyzeHtmlBuilder(object):
     def button_script(self, button_script):
         self.html = self.html.replace('${BUTTONS_SCRIPT}', button_script)
 
+    def build(self):
+        return self.html
 
 class ExperimentalProtocolHtmlBuilder(object):
     def __init__(self):

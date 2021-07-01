@@ -401,7 +401,7 @@ def create_analyze_result_dialog(term, uri, content_term, document_id, paragraph
     if button_script:
         html_builder.button_script(button_script)
 
-    dialog_action = sidebar_dialog(html_builder.build())
+    dialog_action = sidebar_dialog(html_builder.build(), 'Analyze Terms')
     actions.append(dialog_action)
     return actions
 
@@ -476,12 +476,13 @@ def report_spelling_results(start_par, end_par, start_cursor, end_cursor, term):
     html_builder.button_script(all_button_script)
     html_builder.button_html(all_button_html)
 
-    dialog_action = sidebar_dialog(html_builder.build())
+    dialog_action = sidebar_dialog(html_builder.build(), 'Suggest Additions by Spelling')
     action_list.append(dialog_action)
     return action_list
 
-def sidebar_dialog(html_message):
+def sidebar_dialog(html_message, sidebarTitle):
     return {'action': 'showSidebar',
+            'sidebarTitle': sidebarTitle,
             'html': html_message}
 
 def message_dialog(title, message):
