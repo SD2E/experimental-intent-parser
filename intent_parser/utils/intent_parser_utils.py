@@ -56,7 +56,6 @@ def get_element_type(element, element_type):
         for key in element:
             if key == element_type:
                 elements.append(element[key])
-
             elements += get_element_type(element[key], element_type)
     elif type(element) is list:
         for entry in element:
