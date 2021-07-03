@@ -127,11 +127,11 @@ function buttonClick(buttonName) {
 }
 
 function processActions(response) {
+    let waitForMoreActions = false;
     if (typeof (response.actions) == 'undefined') {
-        return;
+        return waitForMoreActions;
     }
     const actions = response.actions;
-    let waitForMoreActions = false;
     for (const actionKey in actions) {
         const actionDesc = actions[actionKey];
         switch (actionDesc['action']) {
@@ -345,7 +345,6 @@ function sendPost(resource, data) {
 
         shouldProcessActions = processActions(responseOb);
     }
-    return responseOb.results;
 }
 
 /**
@@ -680,7 +679,7 @@ function addBySpellingFromCursor() {
  * @returns {*}
  */
 function submitForm(formData) {
-    return sendPost('/submitForm', formData);
+    sendPost('/submitForm', formData);
 }
 
 /**

@@ -140,6 +140,22 @@ class IntentParser(object):
         samples['sampleValues'] = samples_values
         return samples
 
+    def calculate_samples_new(self):
+        filtered_tables = self.get_tables_by_type()
+
+        sr_processor = StructuredRequestProcessor(experiment_ref,
+                                                  experiment_ref_url,
+                                                  cp_id,
+                                                  title,
+                                                  self.lab_experiment.head_revision(),
+                                                  self.lab_experiment.bookmarks(),
+                                                  self.catalog_accessor,
+                                                  self.sbol_dictionary)
+        sr_processor.process_intent(filtered_tables[TableType.LAB],
+                                    filtered_tables[TableType.CONTROL],
+                                    filtered_tables[TableType.MEASUREMENT],
+                                    filtered_tables[TableType.PARAMETER])
+
     def generate_displayId_from_selection(self, start_paragraph, start_offset, end_offset):
         paragraphs = self.lab_experiment.paragraphs()
         paragraph_text = intent_parser_utils.get_paragraph_text(paragraphs[start_paragraph])
@@ -350,8 +366,11 @@ class IntentParser(object):
         if self.ip_tables is None:
             tables = []
             list_of_tables = self.lab_experiment.tables()
-            for table in list_of_tables:
-                tables.append(self.ip_table_factory.from_google_doc(table))
+            for table_index in range(len(list_of_tables)):
+                table = list_of_tables[table_index]
+                processed_ip_table = self.ip_table_factory.from_google_doc(table)
+
+                tables.append(processed_ip_table)
             self.ip_tables = tables
 
     def process_table_indices(self):

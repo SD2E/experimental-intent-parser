@@ -95,7 +95,9 @@ class CellParser(object):
         if len(tokens) != 5:
             return False
 
-        if self._get_token_type(tokens[0]) != 'KEYWORD' or self._get_token_type(tokens[2]) != 'NAME' or self._get_token_type(tokens[4]) != 'NAME':
+        if (self._get_token_type(tokens[0]) != 'KEYWORD'
+                or self._get_token_type(tokens[2]) != 'NAME'
+                or self._get_token_type(tokens[4]) != 'NAME'):
             return False
 
         if self._get_token_value(tokens[2]) not in lab_names:
@@ -129,7 +131,6 @@ class CellParser(object):
         cell_type = self._get_token_type(self._cell_parser.parse(tokens))
         return cell_type == 'NUMBER' or cell_type == 'NUMBER_LIST'
 
-
     def is_table_caption(self, text: str) -> bool:
         """
         Determine if the text is a table caption. 
@@ -150,7 +151,7 @@ class CellParser(object):
         Alternatively, the valued-cell pattern can be a list of integer values ending with unit.
 
         Args:
-            cell_txt: a string
+            text: a string
 
         Returns:
             True if tokens follows a valued-cell pattern.
@@ -439,7 +440,7 @@ class _Tokenizer(object):
         self.token_specification = specification
 
     def _preprocess_text(self, text):
-       return text.replace('\n', '')
+        return text.replace('\n', '')
 
     def tokenize(self, text, keep_skip=True, keep_separator=True):
         tokens = []
