@@ -13,6 +13,7 @@ SYNC_PERIOD = timedelta(minutes=180)
 def perform_automatic_run():
     try:
         documents = _get_documents_from_ip()
+        runs = len(documents)
         while len(documents) > 0:
             document_id = documents.pop(0)
             logger.warning('Processing document id: %s' % document_id)
