@@ -23,12 +23,11 @@ The second part of the code base is a server written in Python that receives and
 	In this command, `intent-parser-env` represents the name of your virtual environment.
 
 3. Run `source bin/activate` to begin installing dependencies for the project
-    - Install [python-datacatalog](https://gitlab.sd2e.org/sd2program/python-datacatalog) from source. 
+    - Install [python-datacatalog](https://gitlab.sd2e.org/sd2program/python-datacataloghttps://github.com/SD2E/python-datacatalog/tree/2_2) from source. 
         * Contact @mweston in order to access this repository and clone the project. When cloning, make sure to store it in your virtual environment.
         * The project that you have clone to your local machine should be set to the master branch. Switch your github branch for python-datacatalog to `2_2` before installing this project's dependencies. 
         * Run `pip3 install -r requirements.txt` on the [requirements.txt](https://gitlab.sd2e.org/sd2program/python-datacatalog/blob/master/requirements.txt). 
           Then, build python-datacatalog by running `python3 setup.py install`.
-    - Install [synbiohub-adapter](https://github.com/SD2E/synbiohub_adapter) by running ```pip3 install git+https://github.com/SD2E/synbiohub_adapter.git@v1.2```. 
     - Install dependencies for experimental-intent-parser by running pip install on experimental-intent-parser's [requirements.txt](https://github.com/SD2E/experimental-intent-parser/blob/master/intent_parser/requirements.txt)
     ```pip3 install -r requirements.txt```
 	- This completes dependency installation. Run ```deactivate``` to stop your virtual environment.
