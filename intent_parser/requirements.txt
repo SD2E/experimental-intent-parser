@@ -1,3 +1,4 @@
+rdflib==5.0  # Must be installed before sbol3 and opil
 Flask==1.1.2
 flask-restful==0.3.9
 flasgger==0.9.5
